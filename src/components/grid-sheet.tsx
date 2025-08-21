@@ -24,7 +24,7 @@ type Sheet = {
 }
 
 const initialSheets: Sheet[] = [
-  { id: "1", name: "Q1 2024 Report", data: { '1_1': '2', '10_10': '100' }, rowTotals: {} },
+  { id: "1", name: "Q1 2024 Report", data: { '1_1': '2', '1_2': '0', '11': '0', '12': '0' }, rowTotals: {} },
   { id: "2", name: "Q2 2024 Estimates", data: { '0_0': 'Projected Revenue', '0_1': '75000' }, rowTotals: {} },
 ]
 
@@ -236,7 +236,7 @@ export default function GridSheet() {
             ))}
              <div style={{ gridColumn: `span ${GRID_SIZE}` }} />
              <div className="flex items-center justify-center p-2 font-bold min-w-[100px] bg-primary/20 rounded-md mt-1">
-                {calculateGrandTotal()}
+                Total: {calculateGrandTotal()}
               </div>
           </div>
         </div>
