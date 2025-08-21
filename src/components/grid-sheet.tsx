@@ -3,11 +3,12 @@ import React, { useState } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { validateCellContent, ValidateCellContentOutput } from "@/ai/flows/validate-cell-content"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Download, Plus, AlertCircle, Loader2 } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
 
 type CellData = { [key: string]: string }
 type ValidationResult = {
@@ -24,7 +25,7 @@ type Sheet = {
 }
 
 const initialSheets: Sheet[] = [
-  { id: "1", name: "Q1 2024 Report", data: { '1_2': '0' }, rowTotals: {} },
+  { id: "1", name: "Q1 2024 Report", data: { '1_2': '' }, rowTotals: {} },
   { id: "2", name: "Q2 2024 Estimates", data: { '0_0': 'Projected Revenue', '0_1': '75000' }, rowTotals: {} },
 ]
 
@@ -248,6 +249,12 @@ export default function GridSheet() {
           </div>
         </div>
       </CardContent>
+      <CardFooter className="mt-4">
+        <div className="w-full border rounded-lg p-4">
+          <h3 className="font-semibold mb-2">Multi - Text</h3>
+          <Textarea placeholder="Enter your text here..." rows={4} />
+        </div>
+      </CardFooter>
     </Card>
   )
 }

@@ -39,7 +39,7 @@ export default function Home() {
           GridSheet Manager
         </h1>
       </header>
-      <main className="flex-1 p-4 md:p-6 lg:p-8 lg:pb-32">
+      <main className="flex-1 p-4 md:p-6 lg:p-8">
         <Tabs defaultValue="sheet" className="w-full">
           <TabsList className="grid w-full grid-cols-3 md:w-[400px]">
             <TabsTrigger value="sheet">
