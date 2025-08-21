@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { validateCellContent, ValidateCellContentOutput } from "@/ai/flows/validate-cell-content"
 import { Button } from "@/components/ui/button"
@@ -39,6 +39,7 @@ export default function GridSheet() {
   const [activeSheetId, setActiveSheetId] = useState<string>("1")
   const [validations, setValidations] = useState<CellValidation>({})
   const [multiText, setMultiText] = useState("");
+  const [updatedCells, setUpdatedCells] = useState<string[]>([]);
 
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
 
@@ -159,21 +160,41 @@ export default function GridSheet() {
   const handleMultiTextApply = () => {
     const lines = multiText.split('\n');
     const newData = { ...activeSheet.data };
+    const currentUpdatedCells: string[] = [];
     let updates = 0;
 
-    lines.forEach(line => {
-      const match = line.match(/^(\d+)=(.+)$/);
-      if (match) {
-        const cellNumber = parseInt(match[1], 10);
-        const value = match[2];
-
+    const parseLine = (line: string): [number, number, string] | null => {
+      const singleMatch = line.match(/^(\d+)=(.+)$/);
+      if (singleMatch) {
+        const cellNumber = parseInt(singleMatch[1], 10);
+        const value = singleMatch[2];
         if (cellNumber >= 1 && cellNumber <= GRID_SIZE * GRID_SIZE) {
           const rowIndex = Math.floor((cellNumber - 1) / GRID_SIZE);
           const colIndex = (cellNumber - 1) % GRID_SIZE;
-          const key = `${rowIndex}_${colIndex}`;
-          newData[key] = value;
-          updates++;
+          return [rowIndex, colIndex, value];
         }
+      }
+
+      const pairMatch = line.match(/^(\d+),(\d+)=(.+)$/);
+      if (pairMatch) {
+        const rowIndex = parseInt(pairMatch[1], 10) - 1;
+        const colIndex = parseInt(pairMatch[2], 10) - 1;
+        const value = pairMatch[3];
+        if (rowIndex >= 0 && rowIndex < GRID_SIZE && colIndex >= 0 && colIndex < GRID_SIZE) {
+          return [rowIndex, colIndex, value];
+        }
+      }
+      return null;
+    };
+    
+    lines.forEach(line => {
+      const parsed = parseLine(line.trim());
+      if (parsed) {
+        const [rowIndex, colIndex, value] = parsed;
+        const key = `${rowIndex}_${colIndex}`;
+        newData[key] = value;
+        currentUpdatedCells.push(key);
+        updates++;
       }
     });
 
@@ -185,6 +206,8 @@ export default function GridSheet() {
         return sheet;
       });
       setSheets(updatedSheets);
+      setUpdatedCells(currentUpdatedCells);
+      setTimeout(() => setUpdatedCells([]), 2000); // Highlight for 2 seconds
       toast({ title: "Sheet Updated", description: `${updates} cell(s) have been updated.` });
     } else {
       toast({ title: "No Updates", description: "No valid cell data found in the input.", variant: "destructive" });
@@ -197,7 +220,7 @@ export default function GridSheet() {
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <CardTitle>Sheet: {activeSheet.name}</CardTitle>
-            <CardDescription>A 10x10 grid for your accounting data. Cells are numbered 1 to 100.</CardDescription>
+            <CardDescription>A 10x10 grid for your accounting data. Cells can be targeted by number (1-100) or by coordinates (row,col).</CardDescription>
           </div>
           <div className="flex gap-2">
             <Select value={activeSheetId} onValueChange={setActiveSheetId}>
@@ -235,13 +258,14 @@ export default function GridSheet() {
                   const cellNumber = rowIndex * GRID_SIZE + colIndex + 1
                   const key = `${rowIndex}_${colIndex}`
                   const validation = validations[key]
+                  const isUpdated = updatedCells.includes(key);
 
                   return (
                     <div key={key} className="relative min-w-[100px]">
                       <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{cellNumber}</div>
                       <Input
                         type="text"
-                        className={`pt-5 text-sm ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''}`}
+                        className={`pt-5 text-sm transition-colors duration-300 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''}`}
                         value={activeSheet.data[key] || ''}
                         onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
                         onBlur={() => handleCellBlur(rowIndex, colIndex)}
@@ -285,11 +309,11 @@ export default function GridSheet() {
           </div>
         </div>
       </CardContent>
-      <CardFooter className="mt-8 pt-8">
+      <CardFooter className="mt-16 pt-8">
         <div className="w-full border rounded-lg p-4">
           <h3 className="font-semibold mb-2">Multi - Text</h3>
           <Textarea 
-            placeholder="Enter cell data like: 1=Value1&#10;2=Value2" 
+            placeholder="Enter cell data like: 1=Value1 or 1,1=Value1&#10;2=Value2" 
             rows={4}
             value={multiText}
             onChange={(e) => setMultiText(e.target.value)}
