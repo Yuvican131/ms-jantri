@@ -24,7 +24,7 @@ type Sheet = {
 }
 
 const initialSheets: Sheet[] = [
-  { id: "1", name: "Q1 2024 Report", data: { '1_1': '2', '1_2': '0' }, rowTotals: {} },
+  { id: "1", name: "Q1 2024 Report", data: { '1_2': '0' }, rowTotals: {} },
   { id: "2", name: "Q2 2024 Estimates", data: { '0_0': 'Projected Revenue', '0_1': '75000' }, rowTotals: {} },
 ]
 
