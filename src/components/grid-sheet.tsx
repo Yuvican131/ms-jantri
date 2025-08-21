@@ -23,7 +23,7 @@ type Sheet = {
 }
 
 const initialSheets: Sheet[] = [
-  { id: "1", name: "Q1 2024 Report", data: { '0_0': 'Revenue', '0_1': '50000', '1_0': 'Expenses', '1_1': '-21050' } },
+  { id: "1", name: "Q1 2024 Report", data: {} },
   { id: "2", name: "Q2 2024 Estimates", data: { '0_0': 'Projected Revenue', '0_1': '75000' } },
 ]
 
