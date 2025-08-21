@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { PlusCircle } from "lucide-react"
+import { PlusCircle, MoreHorizontal, Edit, Trash2 } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 type Client = {
   id: string
@@ -37,6 +38,7 @@ export default function ClientsManager() {
     }
     setEditingClient(null)
     setIsDialogOpen(false)
+    e.currentTarget.reset();
   }
   
   const handleEditClient = (client: Client) => {
@@ -57,7 +59,12 @@ export default function ClientsManager() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Manage Clients</CardTitle>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => {
+          if (!open) {
+            setEditingClient(null);
+          }
+          setIsDialogOpen(open)
+        }}>
           <DialogTrigger asChild>
             <Button size="sm" onClick={openAddDialog}>
               <PlusCircle className="h-4 w-4 mr-2" />
@@ -88,12 +95,33 @@ export default function ClientsManager() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {clients.map(client => (
               <TableRow key={client.id}>
                 <TableCell className="font-medium">{client.name}</TableCell>
+                <TableCell className="text-right">
+                   <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">Open menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEditClient(client)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        <span>Edit</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive" onClick={() => handleDeleteClient(client.id)}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        <span>Delete</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
