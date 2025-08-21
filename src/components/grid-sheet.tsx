@@ -38,6 +38,7 @@ export default function GridSheet() {
   const [sheets, setSheets] = useState<Sheet[]>(initialSheets)
   const [activeSheetId, setActiveSheetId] = useState<string>("1")
   const [validations, setValidations] = useState<CellValidation>({})
+  const [multiText, setMultiText] = useState("");
 
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
 
@@ -155,6 +156,41 @@ export default function GridSheet() {
     return total;
   };
 
+  const handleMultiTextApply = () => {
+    const lines = multiText.split('\n');
+    const newData = { ...activeSheet.data };
+    let updates = 0;
+
+    lines.forEach(line => {
+      const match = line.match(/^(\d+)=(.+)$/);
+      if (match) {
+        const cellNumber = parseInt(match[1], 10);
+        const value = match[2];
+
+        if (cellNumber >= 1 && cellNumber <= GRID_SIZE * GRID_SIZE) {
+          const rowIndex = Math.floor((cellNumber - 1) / GRID_SIZE);
+          const colIndex = (cellNumber - 1) % GRID_SIZE;
+          const key = `${rowIndex}_${colIndex}`;
+          newData[key] = value;
+          updates++;
+        }
+      }
+    });
+
+    if (updates > 0) {
+      const updatedSheets = sheets.map(sheet => {
+        if (sheet.id === activeSheetId) {
+          return { ...sheet, data: newData };
+        }
+        return sheet;
+      });
+      setSheets(updatedSheets);
+      toast({ title: "Sheet Updated", description: `${updates} cell(s) have been updated.` });
+    } else {
+      toast({ title: "No Updates", description: "No valid cell data found in the input.", variant: "destructive" });
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -249,10 +285,16 @@ export default function GridSheet() {
           </div>
         </div>
       </CardContent>
-      <CardFooter className="mt-4">
+      <CardFooter className="mt-8 pt-8">
         <div className="w-full border rounded-lg p-4">
           <h3 className="font-semibold mb-2">Multi - Text</h3>
-          <Textarea placeholder="Enter your text here..." rows={4} />
+          <Textarea 
+            placeholder="Enter cell data like: 1=Value1&#10;2=Value2" 
+            rows={4}
+            value={multiText}
+            onChange={(e) => setMultiText(e.target.value)}
+          />
+           <Button onClick={handleMultiTextApply} className="mt-2">Apply to Sheet</Button>
         </div>
       </CardFooter>
     </Card>
