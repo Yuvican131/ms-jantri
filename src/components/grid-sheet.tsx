@@ -120,6 +120,14 @@ export default function GridSheet() {
     return total
   }
 
+  const calculateGrandTotal = () => {
+    let total = 0;
+    for (let i = 0; i < GRID_SIZE; i++) {
+      total += calculateRowTotal(i);
+    }
+    return total;
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -200,6 +208,10 @@ export default function GridSheet() {
                 </div>
               </React.Fragment>
             ))}
+             <div style={{ gridColumn: `span ${GRID_SIZE}` }} />
+             <div className="flex items-center justify-center p-2 font-bold min-w-[100px] bg-primary/20 rounded-md mt-1">
+                {calculateGrandTotal()}
+              </div>
           </div>
         </div>
       </CardContent>
