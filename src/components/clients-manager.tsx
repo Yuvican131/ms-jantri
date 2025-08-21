@@ -6,20 +6,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { PlusCircle, MoreHorizontal, Edit, Trash2 } from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { PlusCircle } from "lucide-react"
 
 type Client = {
   id: string
   name: string
-  email: string
-  company: string
 }
 
 const initialClients: Client[] = [
-  { id: "1", name: "John Doe", email: "john.doe@example.com", company: "Doe Inc." },
-  { id: "2", name: "Jane Smith", email: "jane.smith@example.com", company: "Smith & Co." },
-  { id: "3", name: "Peter Jones", email: "peter.jones@example.com", company: "Jones LLC" },
+  { id: "1", name: "John Doe"},
+  { id: "2", name: "Jane Smith"},
+  { id: "3", name: "Peter Jones"},
 ]
 
 export default function ClientsManager() {
@@ -31,13 +28,11 @@ export default function ClientsManager() {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
-    const email = formData.get("email") as string
-    const company = formData.get("company") as string
 
     if (editingClient) {
-      setClients(clients.map(c => c.id === editingClient.id ? { ...c, name, email, company } : c))
+      setClients(clients.map(c => c.id === editingClient.id ? { ...c, name } : c))
     } else {
-      const newClient: Client = { id: Date.now().toString(), name, email, company }
+      const newClient: Client = { id: Date.now().toString(), name }
       setClients([...clients, newClient])
     }
     setEditingClient(null)
@@ -78,14 +73,6 @@ export default function ClientsManager() {
                 <Label htmlFor="name">Name</Label>
                 <Input id="name" name="name" defaultValue={editingClient?.name} required />
               </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" defaultValue={editingClient?.email} required />
-              </div>
-              <div>
-                <Label htmlFor="company">Company</Label>
-                <Input id="company" name="company" defaultValue={editingClient?.company} required />
-              </div>
               <DialogFooter>
                 <DialogClose asChild>
                   <Button type="button" variant="outline">Cancel</Button>
@@ -101,37 +88,12 @@ export default function ClientsManager() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Company</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {clients.map(client => (
               <TableRow key={client.id}>
                 <TableCell className="font-medium">{client.name}</TableCell>
-                <TableCell>{client.email}</TableCell>
-                <TableCell>{client.company}</TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEditClient(client)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        <span>Edit</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive" onClick={() => handleDeleteClient(client.id)}>
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        <span>Delete</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>
