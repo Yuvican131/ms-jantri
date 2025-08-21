@@ -26,7 +26,7 @@ type Sheet = {
 
 const initialSheets: Sheet[] = [
   { id: "1", name: "Q1 2024 Report", data: { }, rowTotals: {} },
-  { id: "2", name: "Q2 2024 Estimates", data: { '0_0': 'Projected Revenue', '0_1': '75000' }, rowTotals: {} },
+  { id: "2", name: "Q2 2024 Estimates", data: { }, rowTotals: {} },
 ]
 
 const GRID_SIZE = 10;
@@ -162,12 +162,28 @@ export default function GridSheet() {
     const newData = { ...activeSheet.data };
     const updatedCellKeys = new Set<string>();
     let updates = 0;
+    
+    const evaluateExpression = (expression: string): string => {
+        try {
+            // Very basic and unsafe eval. For a real app, use a proper math expression parser.
+            // This is just for demonstration purposes.
+            if (/^[0-9+\-*/.() ]+$/.test(expression)) {
+                // eslint-disable-next-line no-eval
+                const result = eval(expression);
+                return String(result);
+            }
+            return expression; // Return original if not a simple math expression
+        } catch (e) {
+            return expression; // Return original on error
+        }
+    };
+
 
     const parseLine = (line: string): [number, number, string] | null => {
       const singleMatch = line.match(/^(\d+)=(.+)$/);
       if (singleMatch) {
         const cellNumber = parseInt(singleMatch[1], 10);
-        const value = singleMatch[2];
+        const value = evaluateExpression(singleMatch[2].trim());
         if (cellNumber >= 1 && cellNumber <= GRID_SIZE * GRID_SIZE) {
           const rowIndex = Math.floor((cellNumber - 1) / GRID_SIZE);
           const colIndex = (cellNumber - 1) % GRID_SIZE;
@@ -179,7 +195,7 @@ export default function GridSheet() {
       if (pairMatch) {
         const rowIndex = parseInt(pairMatch[1], 10) - 1;
         const colIndex = parseInt(pairMatch[2], 10) - 1;
-        const value = pairMatch[3];
+        const value = evaluateExpression(pairMatch[3].trim());
         if (rowIndex >= 0 && rowIndex < GRID_SIZE && colIndex >= 0 && colIndex < GRID_SIZE) {
           return [rowIndex, colIndex, value];
         }
@@ -314,7 +330,7 @@ export default function GridSheet() {
         <div className="w-full border rounded-lg p-4">
           <h3 className="font-semibold mb-2">Multi - Text</h3>
           <Textarea 
-            placeholder="Enter cell data like: 1=Value1 or 1,1=Value1&#10;2=Value2" 
+            placeholder="Enter cell data like: 1=10+5 or 1,1=Value1&#10;2=Value2" 
             rows={4}
             value={multiText}
             onChange={(e) => setMultiText(e.target.value)}
