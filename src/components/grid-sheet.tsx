@@ -23,7 +23,7 @@ type Sheet = {
 }
 
 const initialSheets: Sheet[] = [
-  { id: "1", name: "Q1 2024 Report", data: {} },
+  { id: "1", name: "Q1 2024 Report", data: { '1_1': '2', '10_10': '100' } },
   { id: "2", name: "Q2 2024 Estimates", data: { '0_0': 'Projected Revenue', '0_1': '75000' } },
 ]
 
@@ -120,26 +120,6 @@ export default function GridSheet() {
     return total
   }
 
-  const calculateColumnTotal = (colIndex: number) => {
-    let total = 0
-    for (let rowIndex = 0; rowIndex < GRID_SIZE; rowIndex++) {
-      const key = `${rowIndex}_${colIndex}`
-      const value = activeSheet.data[key]
-      if (value && !isNaN(Number(value))) {
-        total += Number(value)
-      }
-    }
-    return total
-  }
-
-  const calculateGrandTotal = () => {
-    let total = 0;
-    for (let rowIndex = 0; rowIndex < GRID_SIZE; rowIndex++) {
-      total += calculateRowTotal(rowIndex)
-    }
-    return total;
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -220,16 +200,6 @@ export default function GridSheet() {
                 </div>
               </React.Fragment>
             ))}
-             {/* Totals Row */}
-             <div className="flex items-center justify-center font-semibold text-muted-foreground min-w-[100px] mt-2 col-start-1">Total</div>
-             {Array.from({ length: GRID_SIZE }, (_, colIndex) => (
-                <div key={`col_total_${colIndex}`} className="flex items-center justify-center p-2 font-medium min-w-[100px] bg-muted rounded-md mt-2">
-                    {calculateColumnTotal(colIndex)}
-                </div>
-                )).slice(1)}
-            <div className="flex items-center justify-center p-2 font-bold min-w-[100px] bg-primary text-primary-foreground rounded-md mt-2">
-                {calculateGrandTotal()}
-            </div>
           </div>
         </div>
       </CardContent>
