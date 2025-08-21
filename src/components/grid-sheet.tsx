@@ -133,6 +133,12 @@ export default function GridSheet() {
     setSheets(updatedSheets);
   };
 
+  const handleRowTotalBlur = (rowIndex: number, value: string) => {
+    if(value.trim() === '') {
+      handleRowTotalChange(rowIndex, '0');
+    }
+  }
+
   const getRowTotal = (rowIndex: number) => {
     if (activeSheet.rowTotals[rowIndex] !== undefined) {
       return activeSheet.rowTotals[rowIndex];
@@ -229,6 +235,7 @@ export default function GridSheet() {
                     className="text-sm font-medium text-center"
                     value={getRowTotal(rowIndex)}
                     onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
+                    onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
                     aria-label={`Row ${rowIndex + 1} Total`}
                   />
                 </div>
