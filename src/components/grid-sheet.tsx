@@ -175,50 +175,62 @@ export default function GridSheet() {
             return expression;
         }
     };
+    
+    lines.forEach(line => {
+      line = line.trim();
+      if (!line) return;
 
+      const parts = line.split('=');
+      if (parts.length !== 2) return;
 
-    const parseLine = (line: string): [number, number, string] | null => {
-      const singleMatch = line.match(/^(\d+)=(.+)$/);
-      if (singleMatch) {
-        const cellNumber = parseInt(singleMatch[1], 10);
-        const value = evaluateExpression(singleMatch[2].trim());
-        if (cellNumber >= 1 && cellNumber <= GRID_SIZE * GRID_SIZE) {
-          const rowIndex = Math.floor((cellNumber - 1) / GRID_SIZE);
-          const colIndex = (cellNumber - 1) % GRID_SIZE;
-          return [rowIndex, colIndex, value];
-        }
-      }
+      const valueStr = evaluateExpression(parts[1].trim());
+      const cellNumbersStr = parts[0].trim();
+      
+      const singleMatch = cellNumbersStr.match(/^(\d+)$/);
+      const pairMatch = cellNumbersStr.match(/^(\d+),(\d+)$/);
+      const seriesMatch = cellNumbersStr.match(/^(\d{1,3}(?:\d{1,3})*)$/);
 
-      const pairMatch = line.match(/^(\d+),(\d+)=(.+)$/);
+      let cellsToUpdate: {rowIndex: number, colIndex: number}[] = [];
+
       if (pairMatch) {
         const rowIndex = parseInt(pairMatch[1], 10) - 1;
         const colIndex = parseInt(pairMatch[2], 10) - 1;
-        const value = evaluateExpression(pairMatch[3].trim());
         if (rowIndex >= 0 && rowIndex < GRID_SIZE && colIndex >= 0 && colIndex < GRID_SIZE) {
-          return [rowIndex, colIndex, value];
+            cellsToUpdate.push({rowIndex, colIndex});
         }
+      } else if (singleMatch) {
+        const cellNumber = parseInt(singleMatch[1], 10);
+        if (cellNumber >= 1 && cellNumber <= GRID_SIZE * GRID_SIZE) {
+          const rowIndex = Math.floor((cellNumber - 1) / GRID_SIZE);
+          const colIndex = (cellNumber - 1) % GRID_SIZE;
+          cellsToUpdate.push({rowIndex, colIndex});
+        }
+      } else if (seriesMatch) {
+          const numbers = seriesMatch[1].match(/\d{1,3}/g) || [];
+          numbers.forEach(numStr => {
+              const cellNumber = parseInt(numStr, 10);
+              if (cellNumber >= 1 && cellNumber <= GRID_SIZE * GRID_SIZE) {
+                  const rowIndex = Math.floor((cellNumber - 1) / GRID_SIZE);
+                  const colIndex = (cellNumber - 1) % GRID_SIZE;
+                  cellsToUpdate.push({rowIndex, colIndex});
+              }
+          });
       }
-      return null;
-    };
-    
-    lines.forEach(line => {
-      const parsed = parseLine(line.trim());
-      if (parsed) {
-        const [rowIndex, colIndex, value] = parsed;
+
+      cellsToUpdate.forEach(({rowIndex, colIndex}) => {
         const key = `${rowIndex}_${colIndex}`;
-        
         const currentValue = parseFloat(newData[key]) || 0;
-        const newValue = parseFloat(value);
+        const newValue = parseFloat(valueStr);
         
         if (!isNaN(newValue)) {
           newData[key] = String(currentValue + newValue);
         } else {
-          newData[key] = value;
+          newData[key] = valueStr;
         }
 
         updatedCellKeys.add(key);
         updates++;
-      }
+      });
     });
 
     if (updates > 0) {
@@ -337,7 +349,7 @@ export default function GridSheet() {
         <div className="w-full border rounded-lg p-4">
           <h3 className="font-semibold mb-2">Multi - Text</h3>
           <Textarea 
-            placeholder="Enter cell data like: 1=10+5 or 1,1=Value1&#10;2=Value2" 
+            placeholder="Enter cell data like: 1=10+5, 1,1=Value1 or 112233=100" 
             rows={4}
             value={multiText}
             onChange={(e) => setMultiText(e.target.value)}
