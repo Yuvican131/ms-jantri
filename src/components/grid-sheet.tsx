@@ -20,11 +20,12 @@ type Sheet = {
   id: string
   name: string
   data: CellData
+  rowTotals: { [key: number]: string }
 }
 
 const initialSheets: Sheet[] = [
-  { id: "1", name: "Q1 2024 Report", data: { '1_1': '2', '10_10': '100' } },
-  { id: "2", name: "Q2 2024 Estimates", data: { '0_0': 'Projected Revenue', '0_1': '75000' } },
+  { id: "1", name: "Q1 2024 Report", data: { '1_1': '2', '10_10': '100' }, rowTotals: {} },
+  { id: "2", name: "Q2 2024 Estimates", data: { '0_0': 'Projected Revenue', '0_1': '75000' }, rowTotals: {} },
 ]
 
 const GRID_SIZE = 10;
@@ -82,7 +83,8 @@ export default function GridSheet() {
     const newSheet: Sheet = {
       id: Date.now().toString(),
       name: `Sheet ${sheets.length + 1}`,
-      data: {}
+      data: {},
+      rowTotals: {}
     }
     setSheets([...sheets, newSheet])
     setActiveSheetId(newSheet.id)
@@ -120,10 +122,28 @@ export default function GridSheet() {
     return total
   }
 
+  const handleRowTotalChange = (rowIndex: number, value: string) => {
+    const updatedSheets = sheets.map(sheet => {
+      if (sheet.id === activeSheetId) {
+        const newRowTotals = { ...sheet.rowTotals, [rowIndex]: value }
+        return { ...sheet, rowTotals: newRowTotals }
+      }
+      return sheet;
+    });
+    setSheets(updatedSheets);
+  };
+
+  const getRowTotal = (rowIndex: number) => {
+    if (activeSheet.rowTotals[rowIndex] !== undefined) {
+      return activeSheet.rowTotals[rowIndex];
+    }
+    return calculateRowTotal(rowIndex).toString();
+  }
+
   const calculateGrandTotal = () => {
     let total = 0;
     for (let i = 0; i < GRID_SIZE; i++) {
-      total += calculateRowTotal(i);
+      total += Number(getRowTotal(i))
     }
     return total;
   };
@@ -203,8 +223,14 @@ export default function GridSheet() {
                     </div>
                   )
                 })}
-                <div className="flex items-center justify-center p-2 font-medium min-w-[100px] bg-muted rounded-md">
-                  {calculateRowTotal(rowIndex)}
+                <div className="flex items-center justify-center p-2 font-medium min-w-[100px] rounded-md">
+                   <Input
+                    type="text"
+                    className="text-sm font-medium text-center"
+                    value={getRowTotal(rowIndex)}
+                    onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
+                    aria-label={`Row ${rowIndex + 1} Total`}
+                  />
                 </div>
               </React.Fragment>
             ))}
