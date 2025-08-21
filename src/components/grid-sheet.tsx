@@ -160,7 +160,7 @@ export default function GridSheet() {
   const handleMultiTextApply = () => {
     const lines = multiText.split('\n');
     const newData = { ...activeSheet.data };
-    const currentUpdatedCells: string[] = [];
+    const updatedCellKeys = new Set<string>();
     let updates = 0;
 
     const parseLine = (line: string): [number, number, string] | null => {
@@ -193,7 +193,7 @@ export default function GridSheet() {
         const [rowIndex, colIndex, value] = parsed;
         const key = `${rowIndex}_${colIndex}`;
         newData[key] = value;
-        currentUpdatedCells.push(key);
+        updatedCellKeys.add(key);
         updates++;
       }
     });
@@ -205,10 +205,11 @@ export default function GridSheet() {
         }
         return sheet;
       });
+      const currentUpdatedCells = Array.from(updatedCellKeys);
       setSheets(updatedSheets);
       setUpdatedCells(currentUpdatedCells);
       setTimeout(() => setUpdatedCells([]), 2000); // Highlight for 2 seconds
-      toast({ title: "Sheet Updated", description: `${updates} cell(s) have been updated.` });
+      toast({ title: "Sheet Updated", description: `${currentUpdatedCells.length} cell(s) have been updated.` });
     } else {
       toast({ title: "No Updates", description: "No valid cell data found in the input.", variant: "destructive" });
     }
