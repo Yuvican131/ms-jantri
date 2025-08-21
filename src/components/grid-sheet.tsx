@@ -188,7 +188,7 @@ export default function GridSheet() {
       
       const singleMatch = cellNumbersStr.match(/^(\d+)$/);
       const pairMatch = cellNumbersStr.match(/^(\d+),(\d+)$/);
-      const seriesMatch = cellNumbersStr.match(/^(\d{1,3}(?:\d{1,3})*)$/);
+      const seriesMatch = cellNumbersStr.match(/^(\d+)$/);
 
       let cellsToUpdate: {rowIndex: number, colIndex: number}[] = [];
 
@@ -204,17 +204,17 @@ export default function GridSheet() {
           const rowIndex = Math.floor((cellNumber - 1) / GRID_SIZE);
           const colIndex = (cellNumber - 1) % GRID_SIZE;
           cellsToUpdate.push({rowIndex, colIndex});
+        } else if (seriesMatch) { // Re-check as series if single number is out of bounds
+            const numbers = seriesMatch[1].match(/(100|[1-9]\d?)/g) || [];
+            numbers.forEach(numStr => {
+                const cellNum = parseInt(numStr, 10);
+                if (cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE) {
+                    const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
+                    const colIndex = (cellNum - 1) % GRID_SIZE;
+                    cellsToUpdate.push({rowIndex, colIndex});
+                }
+            });
         }
-      } else if (seriesMatch) {
-          const numbers = seriesMatch[1].match(/\d{1,3}/g) || [];
-          numbers.forEach(numStr => {
-              const cellNumber = parseInt(numStr, 10);
-              if (cellNumber >= 1 && cellNumber <= GRID_SIZE * GRID_SIZE) {
-                  const rowIndex = Math.floor((cellNumber - 1) / GRID_SIZE);
-                  const colIndex = (cellNumber - 1) % GRID_SIZE;
-                  cellsToUpdate.push({rowIndex, colIndex});
-              }
-          });
       }
 
       cellsToUpdate.forEach(({rowIndex, colIndex}) => {
