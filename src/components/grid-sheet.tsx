@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import React, { useState } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { validateCellContent, ValidateCellContentOutput } from "@/ai/flows/validate-cell-content"
 import { Button } from "@/components/ui/button"
@@ -108,6 +108,18 @@ export default function GridSheet() {
     document.body.removeChild(link)
   }
 
+  const calculateRowTotal = (rowIndex: number) => {
+    let total = 0
+    for (let colIndex = 0; colIndex < GRID_SIZE; colIndex++) {
+      const key = `${rowIndex}_${colIndex}`
+      const value = activeSheet.data[key]
+      if (value && !isNaN(Number(value))) {
+        total += Number(value)
+      }
+    }
+    return total
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -139,44 +151,55 @@ export default function GridSheet() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-10 gap-1 overflow-x-auto">
-          {Array.from({ length: GRID_SIZE * GRID_SIZE }, (_, i) => {
-            const rowIndex = Math.floor(i / GRID_SIZE)
-            const colIndex = i % GRID_SIZE
-            const cellNumber = i + 1
-            const key = `${rowIndex}_${colIndex}`
-            const validation = validations[key]
+        <div className="overflow-x-auto">
+          <div className="grid grid-cols-11 gap-1" style={{gridTemplateColumns: `repeat(${GRID_SIZE + 1}, minmax(100px, 1fr))`}}>
+            {/* Header for Total column */}
+            <div className="col-span-10" style={{gridColumn: `span ${GRID_SIZE}`}}></div>
+            <div className="flex items-center justify-center font-semibold text-muted-foreground">Total</div>
 
-            return (
-              <div key={key} className="relative min-w-[100px]">
-                <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{cellNumber}</div>
-                <Input
-                  type="text"
-                  className={`pt-5 text-sm ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''}`}
-                  value={activeSheet.data[key] || ''}
-                  onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
-                  onBlur={() => handleCellBlur(rowIndex, colIndex)}
-                  aria-label={`Cell ${cellNumber}`}
-                />
-                 {(validation?.isLoading || (validation && !validation.isValid)) && (
-                  <div className="absolute top-1/2 right-2 -translate-y-1/2 z-10">
-                    {validation.isLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    ) : (
-                      <Popover>
-                        <PopoverTrigger asChild>
-                           <button aria-label="Show validation error">
-                            <AlertCircle className="h-4 w-4 text-destructive" />
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="text-sm">{validation.recommendation}</PopoverContent>
-                      </Popover>
-                    )}
-                  </div>
-                )}
-              </div>
-            )
-          })}
+            {Array.from({ length: GRID_SIZE }, (_, rowIndex) => (
+              <React.Fragment key={rowIndex}>
+                {Array.from({ length: GRID_SIZE }, (_, colIndex) => {
+                  const cellNumber = rowIndex * GRID_SIZE + colIndex + 1
+                  const key = `${rowIndex}_${colIndex}`
+                  const validation = validations[key]
+
+                  return (
+                    <div key={key} className="relative min-w-[100px]">
+                      <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{cellNumber}</div>
+                      <Input
+                        type="text"
+                        className={`pt-5 text-sm ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''}`}
+                        value={activeSheet.data[key] || ''}
+                        onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
+                        onBlur={() => handleCellBlur(rowIndex, colIndex)}
+                        aria-label={`Cell ${cellNumber}`}
+                      />
+                       {(validation?.isLoading || (validation && !validation.isValid)) && (
+                        <div className="absolute top-1/2 right-2 -translate-y-1/2 z-10">
+                          {validation.isLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          ) : (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                 <button aria-label="Show validation error">
+                                  <AlertCircle className="h-4 w-4 text-destructive" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="text-sm">{validation.recommendation}</PopoverContent>
+                            </Popover>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+                <div className="flex items-center justify-center p-2 font-medium min-w-[100px] bg-muted rounded-md">
+                  {calculateRowTotal(rowIndex)}
+                </div>
+              </React.Fragment>
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>
