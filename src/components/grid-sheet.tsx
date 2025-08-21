@@ -165,16 +165,14 @@ export default function GridSheet() {
     
     const evaluateExpression = (expression: string): string => {
         try {
-            // Very basic and unsafe eval. For a real app, use a proper math expression parser.
-            // This is just for demonstration purposes.
             if (/^[0-9+\-*/.() ]+$/.test(expression)) {
                 // eslint-disable-next-line no-eval
                 const result = eval(expression);
                 return String(result);
             }
-            return expression; // Return original if not a simple math expression
+            return expression; 
         } catch (e) {
-            return expression; // Return original on error
+            return expression;
         }
     };
 
@@ -208,7 +206,16 @@ export default function GridSheet() {
       if (parsed) {
         const [rowIndex, colIndex, value] = parsed;
         const key = `${rowIndex}_${colIndex}`;
-        newData[key] = value;
+        
+        const currentValue = parseFloat(newData[key]) || 0;
+        const newValue = parseFloat(value);
+        
+        if (!isNaN(newValue)) {
+          newData[key] = String(currentValue + newValue);
+        } else {
+          newData[key] = value;
+        }
+
         updatedCellKeys.add(key);
         updates++;
       }
@@ -224,7 +231,7 @@ export default function GridSheet() {
       const currentUpdatedCells = Array.from(updatedCellKeys);
       setSheets(updatedSheets);
       setUpdatedCells(currentUpdatedCells);
-      setTimeout(() => setUpdatedCells([]), 2000); // Highlight for 2 seconds
+      setTimeout(() => setUpdatedCells([]), 2000);
       toast({ title: "Sheet Updated", description: `${currentUpdatedCells.length} cell(s) have been updated.` });
     } else {
       toast({ title: "No Updates", description: "No valid cell data found in the input.", variant: "destructive" });
