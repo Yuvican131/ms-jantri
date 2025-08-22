@@ -1,4 +1,3 @@
-
 "use client"
 import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react"
 import { useToast } from "@/hooks/use-toast"
@@ -710,26 +709,24 @@ const handleHarupApply = () => {
         </CardContent>
         <CardFooter className="flex flex-col xl:flex-row gap-4 pt-2">
           <div className="w-full xl:w-1/2 border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
-              <h3 className="font-semibold">Multi - Text</h3>
-              <Textarea
-                placeholder="Enter cell data like: 01,02,03=50 or 01 02 03=50"
-                rows={4}
-                value={multiText}
-                onChange={handleMultiTextChange}
-                onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
-              />
-              <div className="flex flex-wrap gap-2 mt-2 items-stretch">
-                <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0">Apply to Sheet</Button>
-                 <div className="flex items-center gap-2">
-                    <Button onClick={handleGenerateSheet} variant="outline" size="sm">
-                        Generate Sheet
-                    </Button>
-                    <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0">
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Clear Sheet</span>
-                    </Button>
-                </div>
-              </div>
+            <h3 className="font-semibold">Multi - Text</h3>
+            <Textarea
+              placeholder="Enter cell data like: 01,02,03=50 or 01 02 03=50"
+              rows={4}
+              value={multiText}
+              onChange={handleMultiTextChange}
+              onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
+            />
+            <div className="flex flex-wrap gap-2 mt-2 items-start">
+              <Button onClick={handleMultiTextApply}>Apply to Sheet</Button>
+              <Button onClick={handleGenerateSheet} variant="outline">
+                  Generate Sheet
+              </Button>
+              <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0">
+                  <Trash2 className="h-4 w-4" />
+                  <span className="sr-only">Clear Sheet</span>
+              </Button>
+            </div>
           </div>
           <div className="w-full xl:w-1/2 flex flex-col gap-4">
             <div className="border rounded-lg p-2 sm:p-4">
