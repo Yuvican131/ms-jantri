@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GridSheet from "@/components/grid-sheet"
 import ClientsManager, { Client } from "@/components/clients-manager"
@@ -43,9 +43,13 @@ function GridIcon(props: React.SVGProps<SVGSVGElement>) {
 export default function Home() {
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void }>(null);
   const [selectedInfo, setSelectedInfo] = useState<{ draw: string; date: Date } | null>(null);
-  const [date, setDate] = useState<Date | undefined>(new Date())
+  const [date, setDate] = useState<Date | undefined>(undefined)
   const [lastEntry, setLastEntry] = useState('');
   const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
+
+  useEffect(() => {
+    setDate(new Date());
+  }, []);
 
   const handleClientUpdateForSheet = (client: Client) => {
     if (gridSheetRef.current) {
@@ -156,5 +160,3 @@ export default function Home() {
     </div>
   )
 }
-
-    
