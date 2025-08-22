@@ -480,48 +480,65 @@ export default function GridSheet() {
             </Button>
           </div>
         </div>
-        <div className="w-full border rounded-lg p-4 mt-4 md:mt-0">
-          <h3 className="font-semibold mb-2">Laddi</h3>
-          <div className="flex flex-col items-center gap-2 mt-2">
-            <div className="flex items-start gap-2 w-full">
-                <Input 
-                  type="text"
-                  pattern="[0-9]*"
-                  className="w-full text-center" 
-                  placeholder="Num 1"
-                  value={laddiNum1}
-                  onChange={(e) => handleLaddiNum1Change(e.target.value)}
-                />
-                 <div className="flex flex-col items-center pt-2">
-                    <div className="text-sm font-bold text-primary">{combinationCount}</div>
-                </div>
-                <Input 
-                  type="text"
-                  pattern="[0-9]*"
-                  className="w-full text-center" 
-                  placeholder="Num 2"
-                  value={laddiNum2}
-                  onChange={(e) => handleLaddiNum2Change(e.target.value)}
-                />
-                 <span className="text-xl font-bold mx-2 pt-1">=</span>
-                <div className="flex flex-col">
-                  <Label htmlFor="amount" className="text-xs text-muted-foreground">Amount</Label>
-                  <Input 
-                    id="amount" 
-                    type="text" 
-                    className="w-24 text-center font-bold" 
-                    value={laddiAmount}
-                    onChange={(e) => setLaddiAmount(e.target.value)}
+        <div className="w-full flex flex-col gap-4">
+          <div className="border rounded-lg p-4">
+              <h3 className="font-semibold mb-2">New Section</h3>
+              <div className="border border-dashed rounded-lg p-4 text-center text-muted-foreground">
+                Your content here
+              </div>
+            </div>
+          <div className="w-full border rounded-lg p-4">
+            <h3 className="font-semibold mb-2">Laddi</h3>
+            <div className="flex flex-col gap-2 mt-2">
+              <div className="flex items-start gap-2 w-full">
+                <div className="flex-1">
+                  <Label htmlFor="laddiNum1" className="text-xs text-muted-foreground">A</Label>
+                  <Input
+                    id="laddiNum1"
+                    type="text"
+                    pattern="[0-9]*"
+                    className="w-full text-center"
+                    placeholder="Num 1"
+                    value={laddiNum1}
+                    onChange={(e) => handleLaddiNum1Change(e.target.value)}
                   />
                 </div>
-            </div>
-            <div className="flex items-center gap-2">
+                <div className="flex flex-col items-center pt-2 mt-4">
+                  <div className="text-sm font-bold text-primary">{combinationCount}</div>
+                </div>
+                <div className="flex-1">
+                  <Label htmlFor="laddiNum2" className="text-xs text-muted-foreground">B</Label>
+                  <Input
+                    id="laddiNum2"
+                    type="text"
+                    pattern="[0-9]*"
+                    className="w-full text-center"
+                    placeholder="Num 2"
+                    value={laddiNum2}
+                    onChange={(e) => handleLaddiNum2Change(e.target.value)}
+                  />
+                </div>
+                <span className="text-xl font-bold mx-2 pt-1 mt-4">=</span>
+                <div className="flex flex-col">
+                  <Label htmlFor="amount" className="text-xs text-muted-foreground invisible">Amount</Label>
+                  <Input
+                    id="amount"
+                    type="text"
+                    className="w-24 text-center font-bold"
+                    value={laddiAmount}
+                    onChange={(e) => setLaddiAmount(e.target.value)}
+                    placeholder="Amount"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-center gap-2">
                 <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} />
                 <Label htmlFor="remove-jodda" className="text-xs">Remove Jodda</Label>
+              </div>
             </div>
-          </div>
-          <div className="flex justify-end mt-2">
-            <Button onClick={handleLaddiApply}>Apply to Sheet</Button>
+            <div className="flex justify-end mt-2">
+              <Button onClick={handleLaddiApply}>Apply to Sheet</Button>
+            </div>
           </div>
         </div>
       </CardFooter>
