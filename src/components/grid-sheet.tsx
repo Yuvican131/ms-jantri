@@ -49,6 +49,10 @@ export default function GridSheet() {
   const [removeJodda, setRemoveJodda] = useState(false);
   const [combinationCount, setCombinationCount] = useState(0);
 
+  const [harupA, setHarupA] = useState('');
+  const [harupB, setHarupB] = useState('');
+  const [harupAmount, setHarupAmount] = useState('');
+
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
 
   const calculateCombinations = (num1: string, num2: string, removeJoddaFlag: boolean): number => {
@@ -352,6 +356,62 @@ export default function GridSheet() {
     setLaddiAmount('');
 };
 
+const handleHarupApply = () => {
+    const harupDigits = harupA.replace(/\s/g, '').split('');
+    if (harupDigits.length === 0 || !harupAmount) {
+        toast({ title: "HARUP Error", description: "Please fill HARUP 'A' and Amount fields.", variant: "destructive" });
+        return;
+    }
+
+    const amountPerDigitGroup = parseFloat(harupAmount) / harupDigits.length;
+    if (isNaN(amountPerDigitGroup)) {
+        toast({ title: "HARUP Error", description: "Invalid amount.", variant: "destructive" });
+        return;
+    }
+
+    const amountPerCell = amountPerDigitGroup / 10;
+    const newData = { ...activeSheet.data };
+    const updatedCellKeys = new Set<string>();
+    let updates = 0;
+
+    for (const digit of harupDigits) {
+        for (let i = 0; i < 10; i++) {
+            const cellNumStr = `${digit}${i}`;
+            const cellNum = parseInt(cellNumStr, 10);
+            
+            if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE) {
+                const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
+                const colIndex = (cellNum - 1) % GRID_SIZE;
+                const key = `${rowIndex}_${colIndex}`;
+                
+                const currentValue = parseFloat(newData[key]) || 0;
+                newData[key] = String(currentValue + amountPerCell);
+                updatedCellKeys.add(key);
+                updates++;
+            }
+        }
+    }
+
+    if (updates > 0) {
+        const updatedSheets = sheets.map(sheet => {
+            if (sheet.id === activeSheetId) {
+                return { ...sheet, data: newData };
+            }
+            return sheet;
+        });
+        const currentUpdatedCells = Array.from(updatedCellKeys);
+        setSheets(updatedSheets);
+        setUpdatedCells(currentUpdatedCells);
+        setTimeout(() => setUpdatedCells([]), 2000);
+        toast({ title: "Sheet Updated", description: `${currentUpdatedCells.length} cell(s) have been updated from HARUP.` });
+    } else {
+        toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
+    }
+    
+    setHarupA('');
+    setHarupB('');
+    setHarupAmount('');
+};
 
   const handleClearSheet = () => {
     const updatedSheets = sheets.map(sheet => {
@@ -364,6 +424,9 @@ export default function GridSheet() {
     setValidations({});
     setMultiText("");
     setUpdatedCells([]);
+    setHarupA('');
+    setHarupB('');
+    setHarupAmount('');
     toast({ title: "Sheet Cleared", description: "All cell values have been reset." });
   };
   
@@ -486,11 +549,14 @@ export default function GridSheet() {
               <div className="border border-dashed rounded-lg p-4 text-muted-foreground flex flex-col gap-2">
                  <div className="flex items-center gap-2">
                   <Label htmlFor="harupA" className="w-8 text-center">A</Label>
-                  <Input id="harupA" placeholder="0123456789" className="w-32" />
+                  <Input id="harupA" placeholder="0123456789" className="w-32" value={harupA} onChange={(e) => setHarupA(e.target.value)} />
                   <Label htmlFor="harupB" className="w-8 text-center">B</Label>
-                  <Input id="harupB" placeholder="0123456789" className="w-32" />
+                  <Input id="harupB" placeholder="0123456789" className="w-32" value={harupB} onChange={(e) => setHarupB(e.target.value)}/>
                   <span className="text-xl font-bold mx-2">=</span>
-                  <Input id="harupAmount" placeholder="Amount" className="w-24 font-bold" />
+                  <Input id="harupAmount" placeholder="Amount" className="w-24 font-bold" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)} />
+                </div>
+                 <div className="flex justify-end mt-2">
+                    <Button onClick={handleHarupApply}>Apply to Sheet</Button>
                 </div>
               </div>
             </div>
