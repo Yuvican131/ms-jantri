@@ -263,7 +263,11 @@ export default function GridSheet() {
             if (removeJodda && d1 === d2) continue;
 
             const cellNumStr = `${d1}${d2}`;
-            const cellNum = parseInt(cellNumStr, 10);
+            let cellNum = parseInt(cellNumStr, 10);
+
+            if (cellNumStr === '00') {
+              cellNum = 100;
+            }
 
             if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE) {
                 const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
