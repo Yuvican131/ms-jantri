@@ -302,7 +302,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         let cellNumbersStr = parts[0].trim();
         
         // Auto-format numbers if no commas/spaces are present
-        if (!/[\s,]+/.test(cellNumbersStr) && /^\d+$/.test(cellNumbersStr) && cellNumbersStr.length > 2) {
+        if (!/[\s,]+/.test(cellNumbersStr) && /^\d+$/.test(cellNumbersStr) && cellNumbersStr.length > 2 && cellNumbersStr.length % 2 === 0) {
              cellNumbersStr = cellNumbersStr.match(/.{1,2}/g)?.join(',') || cellNumbersStr;
         }
         
@@ -688,14 +688,14 @@ const handleHarupApply = () => {
                     <History className="mr-2 h-4 w-4" />
                     Last Entry
                 </Button>
+                 <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0">
+                  <Trash2 className="h-4 w-4" />
+                  <span className="sr-only">Clear Sheet</span>
+              </Button>
               </div>
             </div>
             <div className="flex flex-col gap-2">
               <Button onClick={handleGenerateSheet} variant="outline">Generate Sheet</Button>
-              <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0">
-                  <Trash2 className="h-4 w-4" />
-                  <span className="sr-only">Clear Sheet</span>
-              </Button>
             </div>
           </div>
           <div className="w-full xl:w-1/2 flex flex-col gap-4">
