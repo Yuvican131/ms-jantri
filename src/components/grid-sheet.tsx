@@ -673,7 +673,7 @@ const handleHarupApply = () => {
                 <Trash2 className="mr-2 h-4 w-4" />
                 Clear Sheet
               </Button>
-               <Button onClick={handleGenerateSheet} variant="outline">Generate Sheet</Button>
+              <Button onClick={handleGenerateSheet} variant="outline">Generate Sheet</Button>
             </div>
           </div>
           <div className="w-full xl:w-1/2 flex flex-col gap-4">
