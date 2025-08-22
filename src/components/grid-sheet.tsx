@@ -1,3 +1,4 @@
+
 "use client"
 import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react"
 import { useToast } from "@/hooks/use-toast"
@@ -302,7 +303,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const valueStr = evaluateExpression(parts[1].trim());
         let cellNumbersStr = parts[0].trim();
         
-        if (!/[\s,]+/.test(cellNumbersStr) && /^\d+$/.test(cellNumbersStr) && cellNumbersStr.length > 2 && cellNumbersStr.length % 2 === 0) {
+        if (!/[\s,]+/.test(cellNumbersStr) && /^\d+$/.test(cellNumbersStr) && cellNumbersStr.length > 2 && cellNumbersStr.length % 2 === 0 && cellNumbersStr !== '100') {
              cellNumbersStr = cellNumbersStr.match(/.{1,2}/g)?.join(',') || cellNumbersStr;
         }
         
@@ -708,7 +709,7 @@ const handleHarupApply = () => {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col xl:flex-row gap-4 pt-2">
-          <div className="w-full xl:w-1/2 border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
+          <div className="w-full xl:w-2/5 border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
             <h3 className="font-semibold">Multi - Text</h3>
             <Textarea
               placeholder="Enter cell data like: 01,02,03=50 or 01 02 03=50"
@@ -728,7 +729,7 @@ const handleHarupApply = () => {
               </Button>
             </div>
           </div>
-          <div className="w-full xl:w-1/2 flex flex-col gap-4">
+          <div className="w-full xl:w-3/5 flex flex-col gap-4">
             <div className="border rounded-lg p-2 sm:p-4">
                 <h3 className="font-semibold mb-2">HARUP</h3>
                 <div className="flex flex-col sm:flex-row items-center gap-2">
@@ -850,3 +851,4 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
