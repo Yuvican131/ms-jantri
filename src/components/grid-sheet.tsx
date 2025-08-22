@@ -90,6 +90,7 @@ export default function GridSheet() {
         return;
     }
     setLaddiNum1(newLaddiNum1);
+    setLaddiNum2(newLaddiNum1);
   }
 
   const handleLaddiNum2Change = (value: string) => {
