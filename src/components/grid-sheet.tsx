@@ -670,7 +670,7 @@ const handleHarupApply = () => {
         </CardContent>
         <CardFooter className="flex flex-col xl:flex-row gap-4 pt-2">
           <div className="w-full xl:w-1/2 border rounded-lg p-4 flex gap-4">
-            <div className="flex-1">
+            <div className="flex-1 flex flex-col">
               <h3 className="font-semibold mb-2">Multi - Text</h3>
               <Textarea
                 placeholder="Enter cell data like: 1=10+5, 1,1=Value1 or 112233=100"
@@ -678,13 +678,14 @@ const handleHarupApply = () => {
                 value={multiText}
                 onChange={(e) => setMultiText(e.target.value)}
                 onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
+                className="flex-grow"
               />
-              <div className="flex gap-2 mt-2">
+              <div className="flex gap-2 mt-2 items-stretch">
                 <Button onClick={handleMultiTextApply} className="h-auto">Apply to Sheet</Button>
-                <div className="border rounded-lg p-2 flex-grow">
+                <div className="border rounded-lg p-2 flex-grow flex flex-col">
                   <h3 className="font-semibold mb-2 text-center">Last Entry</h3>
-                  <div className="bg-muted rounded-md p-2 h-full text-xs overflow-auto">
-                      <pre>{lastEntry}</pre>
+                  <div className="bg-muted rounded-md p-2 flex-grow text-xs overflow-auto">
+                      <pre className="h-full">{lastEntry}</pre>
                   </div>
                 </div>
               </div>
