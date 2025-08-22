@@ -376,7 +376,8 @@ const handleHarupApply = () => {
     let updates = 0;
 
     if (harupADigits.length > 0) {
-        const amountPerCell = totalAmount / 10;
+      const amountPerDigit = totalAmount / harupADigits.length;
+      const amountPerCell = amountPerDigit / 10;
         for (const digit of harupADigits) {
             for (let i = 0; i < 10; i++) {
                 const cellNumStr = `${digit}${i}`;
@@ -398,24 +399,25 @@ const handleHarupApply = () => {
     }
     
     if (harupBDigits.length > 0) {
-        const amountPerCell = totalAmount / 10;
-        for (const digit of harupBDigits) {
-            for (let i = 0; i < 10; i++) {
-                const cellNumStr = `${i}${digit}`;
-                const cellNum = parseInt(cellNumStr, 10);
-                
-                if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE) {
-                     const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
-                     const colIndex = (cellNum - 1) % GRID_SIZE;
-                     const key = `${rowIndex}_${colIndex}`;
-                    
-                    const currentValue = parseFloat(newData[key]) || 0;
-                    newData[key] = String(currentValue + amountPerCell);
-                    updatedCellKeys.add(key);
-                    updates++;
-                }
-            }
-        }
+      const amountPerDigit = totalAmount / harupBDigits.length;
+      const amountPerCell = amountPerDigit / 10;
+      for (const digit of harupBDigits) {
+          for (let i = 0; i < 10; i++) {
+              const cellNumStr = `${i}${digit}`;
+              const cellNum = parseInt(cellNumStr, 10);
+              
+              if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE) {
+                    const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
+                    const colIndex = (cellNum - 1) % GRID_SIZE;
+                    const key = `${rowIndex}_${colIndex}`;
+                  
+                  const currentValue = parseFloat(newData[key]) || 0;
+                  newData[key] = String(currentValue + amountPerCell);
+                  updatedCellKeys.add(key);
+                  updates++;
+              }
+          }
+      }
     }
 
     if (updates > 0) {
@@ -456,6 +458,9 @@ const handleHarupApply = () => {
     toast({ title: "Sheet Cleared", description: "All cell values have been reset." });
   };
   
+  const handleGenerateSheet = () => {
+    toast({ title: "Coming Soon!", description: "This feature is not yet implemented." });
+  };
 
   return (
     <Card>
@@ -567,6 +572,7 @@ const handleHarupApply = () => {
               <Trash2 className="mr-2 h-4 w-4" />
               Clear Sheet
             </Button>
+             <Button onClick={handleGenerateSheet} variant="outline">Generate Sheet</Button>
           </div>
         </div>
         <div className="w-full flex flex-col gap-4">
