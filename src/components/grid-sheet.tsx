@@ -297,6 +297,10 @@ export default function GridSheet() {
     } else {
         toast({ title: "No Laddi Updates", description: "No valid cell combinations found to update.", variant: "destructive" });
     }
+
+    setLaddiNum1('');
+    setLaddiNum2('');
+    setLaddiAmount('');
 };
 
 
