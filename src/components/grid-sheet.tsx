@@ -34,6 +34,7 @@ const initialSheets: Sheet[] = [
 const GRID_SIZE = 10;
 const DUMMY_ACCOUNTS = "Revenue, Expenses, Assets, Liabilities, Equity, COGS"
 const DUMMY_RULES = "Cell content must be a number or a standard account name. If it's a number, it can be positive or negative."
+const MAX_COMBINATIONS = 100;
 
 export default function GridSheet() {
   const { toast } = useToast()
@@ -50,12 +51,12 @@ export default function GridSheet() {
 
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
 
-  useEffect(() => {
-    const digits1 = laddiNum1.split('');
-    const digits2 = laddiNum2.split('');
+  const calculateCombinations = (num1: string, num2: string, removeJoddaFlag: boolean): number => {
+    const digits1 = num1.split('');
+    const digits2 = num2.split('');
     let count = 0;
     if (digits1.length > 0 && digits2.length > 0) {
-      if (removeJodda) {
+      if (removeJoddaFlag) {
         for (const d1 of digits1) {
           for (const d2 of digits2) {
             if (d1 !== d2) {
@@ -67,8 +68,30 @@ export default function GridSheet() {
         count = digits1.length * digits2.length;
       }
     }
+    return count;
+  };
+
+  useEffect(() => {
+    const count = calculateCombinations(laddiNum1, laddiNum2, removeJodda);
     setCombinationCount(count);
   }, [laddiNum1, laddiNum2, removeJodda]);
+
+  const handleLaddiNum1Change = (value: string) => {
+    if (calculateCombinations(value, value, removeJodda) > MAX_COMBINATIONS) {
+        toast({ title: "Combination Limit Exceeded", description: `You cannot create more than ${MAX_COMBINATIONS} combinations.`, variant: "destructive" });
+        return;
+    }
+    setLaddiNum1(value);
+    setLaddiNum2(value);
+  }
+
+  const handleLaddiNum2Change = (value: string) => {
+    if (calculateCombinations(laddiNum1, value, removeJodda) > MAX_COMBINATIONS) {
+        toast({ title: "Combination Limit Exceeded", description: `You cannot create more than ${MAX_COMBINATIONS} combinations.`, variant: "destructive" });
+        return;
+    }
+    setLaddiNum2(value);
+  }
 
   const handleCellChange = (rowIndex: number, colIndex: number, value: string) => {
     const updatedSheets = sheets.map(sheet => {
@@ -465,10 +488,7 @@ export default function GridSheet() {
                   className="w-full text-center" 
                   placeholder="Num 1"
                   value={laddiNum1}
-                  onChange={(e) => {
-                    setLaddiNum1(e.target.value)
-                    setLaddiNum2(e.target.value)
-                  }}
+                  onChange={(e) => handleLaddiNum1Change(e.target.value)}
                 />
                  <div className="flex flex-col items-center pt-2">
                     <div className="text-sm font-bold text-primary">{combinationCount}</div>
@@ -478,7 +498,7 @@ export default function GridSheet() {
                   className="w-full text-center" 
                   placeholder="Num 2"
                   value={laddiNum2}
-                  onChange={(e) => setLaddiNum2(e.target.value)}
+                  onChange={(e) => handleLaddiNum2Change(e.target.value)}
                 />
                  <span className="text-xl font-bold mx-2 pt-1">=</span>
                 <div className="flex flex-col">
