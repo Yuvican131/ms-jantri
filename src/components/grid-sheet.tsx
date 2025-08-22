@@ -301,7 +301,6 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const valueStr = evaluateExpression(parts[1].trim());
         let cellNumbersStr = parts[0].trim();
         
-        // Auto-format numbers if no commas/spaces are present
         if (!/[\s,]+/.test(cellNumbersStr) && /^\d+$/.test(cellNumbersStr) && cellNumbersStr.length > 2 && cellNumbersStr.length % 2 === 0) {
              cellNumbersStr = cellNumbersStr.match(/.{1,2}/g)?.join(',') || cellNumbersStr;
         }
@@ -569,6 +568,28 @@ const handleHarupApply = () => {
     }
   };
 
+  const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    const parts = value.split('=');
+    let numbersPart = parts[0];
+    const valuePart = parts.length > 1 ? `=${parts.slice(1).join('=')}` : '';
+
+    // Remove non-numeric characters except for commas and spaces from the numbers part
+    const cleanNumbers = numbersPart.replace(/[^0-9, ]/g, '');
+    
+    // Format the numbers part
+    const formattedNumbers = cleanNumbers
+      .replace(/ /g, ',') // Replace spaces with commas
+      .split(',')
+      .filter(s => s) // Remove empty strings from split
+      .map(s => s.replace(/(\d{2})/g, '$1,').replace(/,$/, '')) // Add comma after every 2 digits
+      .join(',')
+      .replace(/,,/g, ','); // Clean up double commas
+
+    setMultiText(`${formattedNumbers}${valuePart}`);
+  };
+
+
   if (!activeSheet) {
     return <div>Loading...</div>; // Or some other placeholder
   }
@@ -678,7 +699,7 @@ const handleHarupApply = () => {
                 placeholder="Enter cell data like: 1,2,3=50 or 1 2 3=50"
                 rows={4}
                 value={multiText}
-                onChange={(e) => setMultiText(e.target.value)}
+                onChange={handleMultiTextChange}
                 onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
                 className="flex-grow"
               />
