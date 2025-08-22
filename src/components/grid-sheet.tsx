@@ -674,10 +674,10 @@ const handleHarupApply = () => {
               <div className="flex gap-2 mt-2">
                 <Button onClick={handleMultiTextApply}>Apply to Sheet</Button>
                 <div className="border rounded-lg p-2 flex-grow">
-                    <h3 className="font-semibold mb-2 text-center">Last Entry</h3>
-                    <div className="bg-muted rounded-md p-2 h-[70px] text-xs overflow-auto">
-                        <pre>{lastEntry}</pre>
-                    </div>
+                  <h3 className="font-semibold mb-2 text-center">Last Entry</h3>
+                  <div className="bg-muted rounded-md p-2 h-[70px] text-xs overflow-auto">
+                      <pre>{lastEntry}</pre>
+                  </div>
                 </div>
               </div>
             </div>
