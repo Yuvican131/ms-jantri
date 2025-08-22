@@ -303,7 +303,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const valueStr = evaluateExpression(parts[1].trim());
         let cellNumbersStr = parts[0].trim();
         
-        if (!/[\s,]+/.test(cellNumbersStr) && /^\d+$/.test(cellNumbersStr) && cellNumbersStr.length > 2 && cellNumbersStr.length % 2 === 0 && cellNumbersStr !== '100') {
+        if (!/[\s,]+/.test(cellNumbersStr) && /^\d+$/.test(cellNumbersStr) && cellNumbersStr.length > 2 && cellNumbersStr !== '100') {
              cellNumbersStr = cellNumbersStr.match(/.{1,2}/g)?.join(',') || cellNumbersStr;
         }
         
@@ -600,7 +600,7 @@ const handleHarupApply = () => {
       .split(',')
       .map(s => s.trim())
       .filter(s => s)
-      .flatMap(s => (s.length > 2 && /^\d+$/.test(s) && !s.includes(',')) ? s.match(/.{1,2}/g) || [] : s)
+      .flatMap(s => (s.length > 2 && /^\d+$/.test(s) && !s.includes(',') && s !== '100') ? s.match(/.{1,2}/g) || [] : s)
       .join(',');
 
     setMultiText(`${autoFormattedNumbers}${valuePart}`);
@@ -710,6 +710,12 @@ const handleHarupApply = () => {
         </CardContent>
         <CardFooter className="flex flex-col xl:flex-row gap-4 pt-2">
             <div className="w-full xl:w-1/2 flex flex-col gap-4">
+                <div className="border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
+                    <h3 className="font-semibold">Master</h3>
+                    <Button onClick={() => {}} variant="outline">
+                        Generate Master
+                    </Button>
+                </div>
                 <div className="border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
                     <h3 className="font-semibold">Multi - Text</h3>
                     <Textarea
@@ -853,4 +859,5 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
 
