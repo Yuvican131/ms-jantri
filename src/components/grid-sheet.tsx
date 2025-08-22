@@ -287,7 +287,7 @@ export default function GridSheet() {
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <div className="grid grid-cols-11 gap-1" style={{gridTemplateColumns: `repeat(${GRID_SIZE + 1}, minmax(100px, 1fr))`}}>
+          <div className="grid gap-1" style={{gridTemplateColumns: `repeat(${GRID_SIZE + 1}, minmax(0, 1fr))`}}>
              {/* Header for Total column */}
              <div className="col-start-1" style={{gridColumn: `span ${GRID_SIZE}`}}></div>
              <div className="flex items-center justify-center font-semibold text-muted-foreground min-w-[100px]">Total</div>
@@ -302,7 +302,7 @@ export default function GridSheet() {
                   const isUpdated = updatedCells.includes(key);
 
                   return (
-                    <div key={key} className="relative min-w-[100px]">
+                    <div key={key} className="relative min-w-[70px]">
                       <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{cellNumber}</div>
                       <Input
                         type="text"
