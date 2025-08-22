@@ -127,6 +127,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
   const handleLaddiNum1Change = (value: string) => {
     const newLaddiNum1 = value.replace(/[^0-9]/g, '');
+    if (new Set(newLaddiNum1.split('')).size !== newLaddiNum1.length) {
+      toast({ title: "Validation Error", description: "Duplicate digits are not allowed in this field.", variant: "destructive" });
+      return;
+    }
     if (calculateCombinations(newLaddiNum1, laddiNum2, removeJodda) > MAX_COMBINATIONS) {
         toast({ title: "Combination Limit Exceeded", description: `You cannot create more than ${MAX_COMBINATIONS} combinations.`, variant: "destructive" });
         return;
@@ -137,6 +141,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
   const handleLaddiNum2Change = (value: string) => {
     const newLaddiNum2 = value.replace(/[^0-9]/g, '');
+    if (new Set(newLaddiNum2.split('')).size !== newLaddiNum2.length) {
+        toast({ title: "Validation Error", description: "Duplicate digits are not allowed in this field.", variant: "destructive" });
+        return;
+    }
     if (calculateCombinations(laddiNum1, newLaddiNum2, removeJodda) > MAX_COMBINATIONS) {
         toast({ title: "Combination Limit Exceeded", description: `You cannot create more than ${MAX_COMBINATIONS} combinations.`, variant: "destructive" });
         return;
