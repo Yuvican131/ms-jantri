@@ -20,11 +20,7 @@ type Account = {
   notes: string
 }
 
-const initialAccounts: Account[] = [
-  { id: "1", name: "Accounts Receivable", number: "1200", notes: "All outstanding invoices." },
-  { id: "2", name: "Accounts Payable", number: "2100", notes: "All outstanding bills." },
-  { id: "3", name: "Sales Revenue", number: "4000", notes: "Revenue from primary business operations." },
-]
+const initialAccounts: Account[] = []
 
 export default function AccountsManager() {
   const { toast } = useToast()
