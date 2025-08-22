@@ -389,7 +389,10 @@ export default function GridSheet() {
               className="w-full text-center" 
               placeholder="Num 1"
               value={laddiNum1}
-              onChange={(e) => setLaddiNum1(e.target.value)}
+              onChange={(e) => {
+                setLaddiNum1(e.target.value)
+                setLaddiNum2(e.target.value)
+              }}
             />
             <span className="text-xl font-bold">×</span>
             <Input 
