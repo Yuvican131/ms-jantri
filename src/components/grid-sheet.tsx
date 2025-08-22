@@ -260,6 +260,8 @@ export default function GridSheet() {
 
     for (const d1 of digits1) {
         for (const d2 of digits2) {
+            if (removeJodda && d1 === d2) continue;
+
             const cellNumStr = `${d1}${d2}`;
             const cellNum = parseInt(cellNumStr, 10);
 
