@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Download, Plus, AlertCircle, Loader2 } from "lucide-react"
+import { Download, Plus, AlertCircle, Loader2, Trash2 } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 
 type CellData = { [key: string]: string }
@@ -184,39 +184,29 @@ export default function GridSheet() {
       if (parts.length !== 2) return;
 
       const valueStr = evaluateExpression(parts[1].trim());
-      const cellNumbersStr = parts[0].trim();
+      const cellNumbersStr = parts[0].trim().replace(/\s+/g, '');
       
-      const singleMatch = cellNumbersStr.match(/^(\d+)$/);
-      const pairMatch = cellNumbersStr.match(/^(\d+),(\d+)$/);
-      const seriesMatch = cellNumbersStr.match(/^(\d+)$/);
-
       let cellsToUpdate: {rowIndex: number, colIndex: number}[] = [];
 
+      const pairMatch = cellNumbersStr.match(/^(\d+),(\d+)$/);
       if (pairMatch) {
         const rowIndex = parseInt(pairMatch[1], 10) - 1;
         const colIndex = parseInt(pairMatch[2], 10) - 1;
         if (rowIndex >= 0 && rowIndex < GRID_SIZE && colIndex >= 0 && colIndex < GRID_SIZE) {
             cellsToUpdate.push({rowIndex, colIndex});
         }
-      } else if (singleMatch) {
-        const cellNumber = parseInt(singleMatch[1], 10);
-        if (cellNumber >= 1 && cellNumber <= GRID_SIZE * GRID_SIZE) {
-          const rowIndex = Math.floor((cellNumber - 1) / GRID_SIZE);
-          const colIndex = (cellNumber - 1) % GRID_SIZE;
-          cellsToUpdate.push({rowIndex, colIndex});
-        } else if (seriesMatch) { // Re-check as series if single number is out of bounds
-            const numbers = seriesMatch[1].match(/(100|[1-9]\d?)/g) || [];
-            numbers.forEach(numStr => {
-                const cellNum = parseInt(numStr, 10);
-                if (cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE) {
-                    const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
-                    const colIndex = (cellNum - 1) % GRID_SIZE;
-                    cellsToUpdate.push({rowIndex, colIndex});
-                }
-            });
-        }
+      } else {
+        const numbers = cellNumbersStr.match(/(\d\d?)/g) || [];
+        numbers.forEach(numStr => {
+            const cellNum = parseInt(numStr, 10);
+            if (cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE) {
+                const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
+                const colIndex = (cellNum - 1) % GRID_SIZE;
+                cellsToUpdate.push({rowIndex, colIndex});
+            }
+        });
       }
-
+      
       cellsToUpdate.forEach(({rowIndex, colIndex}) => {
         const key = `${rowIndex}_${colIndex}`;
         const currentValue = parseFloat(newData[key]) || 0;
@@ -249,6 +239,21 @@ export default function GridSheet() {
       toast({ title: "No Updates", description: "No valid cell data found in the input.", variant: "destructive" });
     }
   };
+
+  const handleClearSheet = () => {
+    const updatedSheets = sheets.map(sheet => {
+      if (sheet.id === activeSheetId) {
+        return { ...sheet, data: {}, rowTotals: {} };
+      }
+      return sheet;
+    });
+    setSheets(updatedSheets);
+    setValidations({});
+    setMultiText("");
+    setUpdatedCells([]);
+    toast({ title: "Sheet Cleared", description: "All cell values have been reset." });
+  };
+
 
   return (
     <Card>
@@ -349,12 +354,18 @@ export default function GridSheet() {
         <div className="w-full border rounded-lg p-4">
           <h3 className="font-semibold mb-2">Multi - Text</h3>
           <Textarea 
-            placeholder="Enter cell data like: 1=10+5, 1,1=Value1 or 112233=100" 
+            placeholder="Enter cell data like: 1=10+5, 1,1=Value1 or 11 22 33=100" 
             rows={4}
             value={multiText}
             onChange={(e) => setMultiText(e.target.value)}
           />
-           <Button onClick={handleMultiTextApply} className="mt-2">Apply to Sheet</Button>
+          <div className="flex gap-2 mt-2">
+            <Button onClick={handleMultiTextApply}>Apply to Sheet</Button>
+            <Button onClick={handleClearSheet} variant="outline">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Clear Sheet
+            </Button>
+          </div>
         </div>
       </CardFooter>
     </Card>
