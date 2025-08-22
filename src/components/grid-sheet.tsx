@@ -646,7 +646,7 @@ const handleHarupApply = () => {
               {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                 <React.Fragment key={rowIndex}>
                   {Array.from({ length: GRID_COLS }, (_, colIndex) => {
-                    const cellNumber = colIndex + 1;
+                    const cellNumber = rowIndex * GRID_COLS + colIndex + 1;
                     const key = `${rowIndex}_${colIndex}`
                     const validation = validations[key]
                     const isUpdated = updatedCells.includes(key);
@@ -854,3 +854,4 @@ GridSheet.displayName = 'GridSheet';
 export default GridSheet;
 
     
+
