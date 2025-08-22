@@ -305,7 +305,13 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
              cellNumbersStr = cellNumbersStr.match(/.{1,2}/g)?.join(',') || cellNumbersStr;
         }
         
-        formattedLines.push(`${cellNumbersStr}=${valueStr}`);
+        const formattedCells = cellNumbersStr
+          .split(/[\s,]+/)
+          .filter(s => s)
+          .map(s => s.padStart(2, '0'))
+          .join(',');
+
+        formattedLines.push(`${formattedCells}=${valueStr}`);
 
         const numbers = cellNumbersStr.split(/[\s,]+/).filter(s => s.length > 0);
 
@@ -486,10 +492,14 @@ const handleHarupApply = () => {
     }
 
     if (updates > 0) {
-        const harupAEntry = harupA ? `A: ${harupA}` : '';
-        const harupBEntry = harupB ? `B: ${harupB}` : '';
-        const separator = harupA && harupB ? ', ' : '';
-        lastEntryString = `Harup: ${harupAEntry}${separator}${harupBEntry} = ${harupAmount}`;
+        const harupEntries: string[] = [];
+        if (harupA) {
+          harupEntries.push(`Harup: ${harupA} A = ${harupAmount}`);
+        }
+        if (harupB) {
+          harupEntries.push(`Harup: ${harupB} B = ${harupAmount}`);
+        }
+        lastEntryString = harupEntries.join('\n');
 
         const updatedSheets = sheets.map(sheet => {
             if (sheet.id === activeSheetId) {
@@ -584,24 +594,22 @@ const handleHarupApply = () => {
     let numbersPart = parts[0];
     const valuePart = parts.length > 1 ? `=${parts.slice(1).join('=')}` : '';
 
-    // Remove non-numeric characters except for commas and spaces from the numbers part
     const cleanNumbers = numbersPart.replace(/[^0-9, ]/g, '');
     
-    // Format the numbers part
     const formattedNumbers = cleanNumbers
-      .replace(/ /g, ',') // Replace spaces with commas
+      .replace(/ /g, ',')
       .split(',')
-      .filter(s => s) // Remove empty strings from split
-      .map(s => s.replace(/(\d{2})/g, '$1,').replace(/,$/, '')) // Add comma after every 2 digits
+      .filter(s => s)
+      .map(s => s.replace(/(\d{2})/g, '$1,').replace(/,$/, ''))
       .join(',')
-      .replace(/,,/g, ','); // Clean up double commas
+      .replace(/,,/g, ',');
 
     setMultiText(`${formattedNumbers}${valuePart}`);
   };
 
 
   if (!activeSheet) {
-    return <div>Loading...</div>; // Or some other placeholder
+    return <div>Loading...</div>;
   }
 
   return (
@@ -716,6 +724,9 @@ const handleHarupApply = () => {
               <div className="flex gap-2 mt-2 items-stretch">
                 <Button onClick={handleMultiTextApply} className="h-auto">Apply to Sheet</Button>
                  <div className="flex items-center gap-2">
+                    <Button onClick={handleGenerateSheet} variant="outline" className="h-full">
+                        Generate Sheet
+                    </Button>
                     <Button onClick={() => setIsLastEntryDialogOpen(true)} variant="outline" className="h-full">
                         <History className="mr-2 h-4 w-4" />
                         Last Entry
@@ -726,9 +737,6 @@ const handleHarupApply = () => {
                     </Button>
                 </div>
               </div>
-            </div>
-            <div className="flex flex-col gap-2 justify-start">
-               <Button onClick={handleGenerateSheet} variant="outline">Generate Sheet</Button>
             </div>
           </div>
           <div className="w-full xl:w-1/2 flex flex-col gap-4">
