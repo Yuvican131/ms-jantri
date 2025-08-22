@@ -317,10 +317,11 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const numbers = cellNumbersStr.split(/[\s,]+/).filter(s => s.length > 0);
 
         numbers.forEach(numStr => {
-            const cellNum = parseInt(numStr, 10);
-            if (!isNaN(cellNum) && cellNum >= 0 && cellNum < GRID_ROWS * GRID_COLS) {
-                const rowIndex = Math.floor(cellNum / GRID_COLS);
-                const colIndex = cellNum % GRID_COLS;
+            let cellNum = parseInt(numStr, 10);
+            if(cellNum === 0) cellNum = 100;
+            if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_ROWS * GRID_COLS) {
+                const rowIndex = Math.floor((cellNum - 1) / GRID_COLS);
+                const colIndex = (cellNum - 1) % GRID_COLS;
                 const key = `${rowIndex}_${colIndex}`;
                 
                 const currentValue = parseFloat(newData[key]) || 0;
@@ -376,12 +377,14 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         for (const d2 of digits2) {
             if (removeJodda && d1 === d2) continue;
 
-            const cellNumStr = `${d1}${d2}`;
-            const cellNum = parseInt(cellNumStr, 10);
+            let cellNumStr = `${d1}${d2}`;
+            let cellNum = parseInt(cellNumStr, 10);
+            if(cellNum === 0) cellNum = 100;
 
-            if (!isNaN(cellNum) && cellNum >= 0 && cellNum < GRID_ROWS * GRID_COLS) {
-                const rowIndex = Math.floor(cellNum / GRID_COLS);
-                const colIndex = cellNum % GRID_COLS;
+
+            if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_ROWS * GRID_COLS) {
+                const rowIndex = Math.floor((cellNum-1) / GRID_COLS);
+                const colIndex = (cellNum-1) % GRID_COLS;
                 const key = `${rowIndex}_${colIndex}`;
                 
                 const currentValue = parseFloat(newData[key]) || 0;
@@ -444,15 +447,16 @@ const handleHarupApply = () => {
           const cellsToUpdate = [];
           for (let i = 0; i < 10; i++) {
             const cellNumStr = `${digit}${i}`;
-            const cellNum = parseInt(cellNumStr, 10);
-            if (!isNaN(cellNum) && cellNum >= 0 && cellNum < GRID_ROWS * GRID_COLS) {
+            let cellNum = parseInt(cellNumStr, 10);
+            if(cellNum === 0) cellNum = 100;
+            if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_ROWS * GRID_COLS) {
               cellsToUpdate.push(cellNum);
             }
           }
           const amountPerCell = totalAmount / cellsToUpdate.length;
           for (const cellNum of cellsToUpdate) {
-            const rowIndex = Math.floor(cellNum / GRID_COLS);
-            const colIndex = cellNum % GRID_COLS;
+            const rowIndex = Math.floor((cellNum-1) / GRID_COLS);
+            const colIndex = (cellNum-1) % GRID_COLS;
             const key = `${rowIndex}_${colIndex}`;
             const currentValue = parseFloat(newData[key]) || 0;
             newData[key] = String(currentValue + amountPerCell);
@@ -467,15 +471,16 @@ const handleHarupApply = () => {
         const cellsToUpdate = [];
         for (let i = 0; i < 10; i++) {
           const cellNumStr = `${i}${digit}`;
-          const cellNum = parseInt(cellNumStr, 10);
-          if (!isNaN(cellNum) && cellNum >= 0 && cellNum < GRID_ROWS * GRID_COLS) {
+          let cellNum = parseInt(cellNumStr, 10);
+            if(cellNum === 0) cellNum = 100;
+          if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_ROWS * GRID_COLS) {
             cellsToUpdate.push(cellNum);
           }
         }
          const amountPerCell = totalAmount / cellsToUpdate.length;
          for (const cellNum of cellsToUpdate) {
-            const rowIndex = Math.floor(cellNum / GRID_COLS);
-            const colIndex = cellNum % GRID_COLS;
+            const rowIndex = Math.floor((cellNum-1) / GRID_COLS);
+            const colIndex = (cellNum-1) % GRID_COLS;
             const key = `${rowIndex}_${colIndex}`;
             const currentValue = parseFloat(newData[key]) || 0;
             newData[key] = String(currentValue + amountPerCell);
@@ -541,7 +546,8 @@ const handleHarupApply = () => {
       const value = activeSheet.data[key];
       if (value && value.trim() !== '' && !isNaN(Number(value)) && Number(value) !== 0) {
         const [rowIndex, colIndex] = key.split('_').map(Number);
-        const cellNumber = rowIndex * GRID_COLS + colIndex;
+        let cellNumber = rowIndex * GRID_COLS + colIndex + 1;
+        if (cellNumber === 100) cellNumber = 0;
         
         if (!valueToCells[value]) {
           valueToCells[value] = [];
@@ -593,7 +599,7 @@ const handleHarupApply = () => {
       .split(',')
       .map(s => s.trim())
       .filter(s => s)
-      .flatMap(s => (s.length > 2 && /^\d+$/.test(s)) ? s.match(/.{1,2}/g) || [] : s)
+      .flatMap(s => (s.length > 2 && /^\d+$/.test(s) && !s.includes(',')) ? s.match(/.{1,2}/g) || [] : s)
       .join(',');
 
     setMultiText(`${autoFormattedNumbers}${valuePart}`);
@@ -611,7 +617,7 @@ const handleHarupApply = () => {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <CardTitle>{props.draw} Sheet ({format(props.date, "PPP")}): {activeSheet.name}</CardTitle>
-              <CardDescription>A 10x10 grid for your accounting data. Cells can be targeted by number (0-99) or by coordinates (row,col).</CardDescription>
+              <CardDescription>A 10x10 grid for your accounting data. Cells can be targeted by number (1-99 and 00).</CardDescription>
             </div>
             <div className="flex gap-2">
               <Select value={activeSheetId} onValueChange={setActiveSheetId}>
@@ -647,20 +653,21 @@ const handleHarupApply = () => {
                 <React.Fragment key={rowIndex}>
                   {Array.from({ length: GRID_COLS }, (_, colIndex) => {
                     const cellNumber = rowIndex * GRID_COLS + colIndex + 1;
+                    const displayCellNumber = cellNumber === 100 ? 0 : cellNumber;
                     const key = `${rowIndex}_${colIndex}`
                     const validation = validations[key]
                     const isUpdated = updatedCells.includes(key);
 
                     return (
                       <div key={key} className="relative">
-                        <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{String(cellNumber).padStart(2, '0')}</div>
+                        <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{String(displayCellNumber).padStart(2, '0')}</div>
                         <Input
                           type="text"
                           className={`pt-5 text-sm transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''}`}
                           value={activeSheet.data[key] || ''}
                           onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
                           onBlur={() => handleCellBlur(rowIndex, colIndex)}
-                          aria-label={`Cell ${cellNumber}`}
+                          aria-label={`Cell ${displayCellNumber}`}
                         />
                          {(validation?.isLoading || (validation && !validation.isValid)) && (
                           <div className="absolute top-1/2 right-2 -translate-y-1/2 z-10">
@@ -705,7 +712,7 @@ const handleHarupApply = () => {
             <div className="flex-1 flex flex-col">
               <h3 className="font-semibold mb-2">Multi - Text</h3>
               <Textarea
-                placeholder="Enter cell data like: 1,2,3=50 or 1 2 3=50"
+                placeholder="Enter cell data like: 01,02,03=50 or 01 02 03=50"
                 rows={4}
                 value={multiText}
                 onChange={handleMultiTextChange}
@@ -854,4 +861,5 @@ GridSheet.displayName = 'GridSheet';
 export default GridSheet;
 
     
+
 
