@@ -243,6 +243,58 @@ export default function GridSheet() {
       toast({ title: "No Updates", description: "No valid cell data found in the input.", variant: "destructive" });
     }
   };
+  
+  const handleLaddiApply = () => {
+    if (!laddiNum1 || !laddiNum2 || !laddiAmount) {
+        toast({ title: "Laddi Error", description: "Please fill all Laddi fields.", variant: "destructive" });
+        return;
+    }
+    const newData = { ...activeSheet.data };
+    const updatedCellKeys = new Set<string>();
+    let updates = 0;
+
+    const digits1 = laddiNum1.split('');
+    const digits2 = laddiNum2.split('');
+
+    for (const d1 of digits1) {
+        for (const d2 of digits2) {
+            const cellNumStr = `${d1}${d2}`;
+            const cellNum = parseInt(cellNumStr, 10);
+
+            if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE) {
+                const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
+                const colIndex = (cellNum - 1) % GRID_SIZE;
+                const key = `${rowIndex}_${colIndex}`;
+                
+                const currentValue = parseFloat(newData[key]) || 0;
+                const newValue = parseFloat(laddiAmount);
+
+                if (!isNaN(newValue)) {
+                    newData[key] = String(currentValue + newValue);
+                    updatedCellKeys.add(key);
+                    updates++;
+                }
+            }
+        }
+    }
+
+    if (updates > 0) {
+        const updatedSheets = sheets.map(sheet => {
+            if (sheet.id === activeSheetId) {
+                return { ...sheet, data: newData };
+            }
+            return sheet;
+        });
+        const currentUpdatedCells = Array.from(updatedCellKeys);
+        setSheets(updatedSheets);
+        setUpdatedCells(currentUpdatedCells);
+        setTimeout(() => setUpdatedCells([]), 2000);
+        toast({ title: "Sheet Updated", description: `${currentUpdatedCells.length} cell(s) have been updated from Laddi.` });
+    } else {
+        toast({ title: "No Laddi Updates", description: "No valid cell combinations found to update.", variant: "destructive" });
+    }
+};
+
 
   const handleClearSheet = () => {
     const updatedSheets = sheets.map(sheet => {
@@ -403,6 +455,9 @@ export default function GridSheet() {
                 onChange={(e) => setLaddiAmount(e.target.value)}
               />
             </div>
+          </div>
+          <div className="flex justify-end mt-2">
+            <Button onClick={handleLaddiApply}>Apply to Sheet</Button>
           </div>
         </div>
       </CardFooter>
