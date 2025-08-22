@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Download, Plus, AlertCircle, Loader2, Trash2 } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 
 type CellData = { [key: string]: string }
 type ValidationResult = {
@@ -44,6 +45,7 @@ export default function GridSheet() {
   const [laddiNum1, setLaddiNum1] = useState('');
   const [laddiNum2, setLaddiNum2] = useState('');
   const [laddiAmount, setLaddiAmount] = useState('');
+  const [removeJodda, setRemoveJodda] = useState(false);
 
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
 
@@ -425,6 +427,10 @@ export default function GridSheet() {
         </div>
         <div className="w-full border rounded-lg p-4">
           <h3 className="font-semibold mb-2">Laddi</h3>
+          <div className="flex items-center space-x-2 mb-2">
+            <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} />
+            <Label htmlFor="remove-jodda">Remove Jodda</Label>
+          </div>
           <div className="flex items-center gap-2 mt-2">
             <Input 
               type="number" 
