@@ -286,8 +286,8 @@ export default function GridSheet() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          <div className="grid gap-1" style={{gridTemplateColumns: `repeat(${GRID_SIZE + 1}, minmax(0, 1fr))`}}>
+        <div className="overflow-x-auto w-full">
+          <div className="grid gap-1 min-w-max" style={{gridTemplateColumns: `repeat(${GRID_SIZE + 1}, minmax(70px, 1fr))`}}>
              {/* Header for Total column */}
              <div className="col-start-1" style={{gridColumn: `span ${GRID_SIZE}`}}></div>
              <div className="flex items-center justify-center font-semibold text-muted-foreground min-w-[100px]">Total</div>
@@ -302,7 +302,7 @@ export default function GridSheet() {
                   const isUpdated = updatedCells.includes(key);
 
                   return (
-                    <div key={key} className="relative min-w-[70px]">
+                    <div key={key} className="relative">
                       <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{cellNumber}</div>
                       <Input
                         type="text"
@@ -350,11 +350,11 @@ export default function GridSheet() {
           </div>
         </div>
       </CardContent>
-      <CardFooter className="mt-4">
+      <CardFooter className="flex gap-4">
         <div className="w-full border rounded-lg p-4">
           <h3 className="font-semibold mb-2">Multi - Text</h3>
           <Textarea 
-            placeholder="Enter cell data like: 1=10+5, 1,1=Value1 or 11 22 33=100" 
+            placeholder="Enter cell data like: 1=10+5, 1,1=Value1 or 112233=100" 
             rows={4}
             value={multiText}
             onChange={(e) => setMultiText(e.target.value)}
@@ -366,6 +366,9 @@ export default function GridSheet() {
               Clear Sheet
             </Button>
           </div>
+        </div>
+        <div className="w-full border rounded-lg p-4">
+          <h3 className="font-semibold mb-2">Laddi</h3>
         </div>
       </CardFooter>
     </Card>
