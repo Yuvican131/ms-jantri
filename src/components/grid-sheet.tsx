@@ -274,6 +274,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     const newData = { ...activeSheet.data };
     const updatedCellKeys = new Set<string>();
     let updates = 0;
+    let lastEntryString = "";
 
     const evaluateExpression = (expression: string): string => {
         try {
@@ -288,6 +289,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         }
     };
 
+    const formattedLines: string[] = [];
+
     lines.forEach(line => {
         line = line.trim();
         if (!line) return;
@@ -296,7 +299,15 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         if (parts.length !== 2) return;
 
         const valueStr = evaluateExpression(parts[1].trim());
-        const cellNumbersStr = parts[0].trim();
+        let cellNumbersStr = parts[0].trim();
+        
+        // Auto-format numbers if no commas/spaces are present
+        if (!/[\s,]+/.test(cellNumbersStr) && /^\d+$/.test(cellNumbersStr) && cellNumbersStr.length > 2) {
+             cellNumbersStr = cellNumbersStr.match(/.{1,2}/g)?.join(',') || cellNumbersStr;
+        }
+        
+        formattedLines.push(`${cellNumbersStr}=${valueStr}`);
+
         const numbers = cellNumbersStr.split(/[\s,]+/).filter(s => s.length > 0);
 
         numbers.forEach(numStr => {
@@ -325,6 +336,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     });
 
     if (updates > 0) {
+        lastEntryString = formattedLines.join('\n');
         const updatedSheets = sheets.map(sheet => {
             if (sheet.id === activeSheetId) {
                 return { ...sheet, data: newData };
@@ -334,7 +346,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const currentUpdatedCells = Array.from(updatedCellKeys);
         setSheets(updatedSheets);
         setUpdatedCells(currentUpdatedCells);
-        props.setLastEntry(multiText);
+        props.setLastEntry(lastEntryString);
         setMultiText("");
         setTimeout(() => setUpdatedCells([]), 2000);
         toast({ title: "Sheet Updated", description: `${currentUpdatedCells.length} cell(s) have been updated.` });
