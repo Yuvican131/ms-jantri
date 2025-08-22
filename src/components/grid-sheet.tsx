@@ -1,3 +1,4 @@
+
 "use client"
 import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react"
 import { useToast } from "@/hooks/use-toast"
@@ -46,6 +47,8 @@ type GridSheetHandle = {
 type GridSheetProps = {
   draw: string;
   date: Date;
+  lastEntry: string;
+  setLastEntry: (entry: string) => void;
 }
 
 
@@ -67,7 +70,6 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [harupAmount, setHarupAmount] = useState('');
   const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
-  const [lastEntry, setLastEntry] = useState("");
 
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
 
@@ -344,7 +346,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       const currentUpdatedCells = Array.from(updatedCellKeys);
       setSheets(updatedSheets);
       setUpdatedCells(currentUpdatedCells);
-      setLastEntry(multiText);
+      props.setLastEntry(multiText);
       setMultiText("");
       setTimeout(() => setUpdatedCells([]), 2000);
       toast({ title: "Sheet Updated", description: `${currentUpdatedCells.length} cell(s) have been updated.` });
@@ -515,7 +517,7 @@ const handleHarupApply = () => {
     setHarupA('');
     setHarupB('');
     setHarupAmount('');
-    setLastEntry('');
+    props.setLastEntry('');
     toast({ title: "Sheet Cleared", description: "All cell values have been reset." });
   };
   
@@ -685,7 +687,7 @@ const handleHarupApply = () => {
                 <div className="border rounded-lg p-2 flex-grow flex flex-col">
                   <h3 className="font-semibold mb-2 text-center">Last Entry</h3>
                   <div className="bg-muted rounded-md p-2 flex-grow text-xs overflow-auto">
-                      <pre className="h-full">{lastEntry}</pre>
+                      <pre className="h-full">{props.lastEntry}</pre>
                   </div>
                 </div>
               </div>
@@ -793,3 +795,4 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
