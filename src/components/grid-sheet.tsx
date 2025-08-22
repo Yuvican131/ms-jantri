@@ -482,7 +482,7 @@ export default function GridSheet() {
         </div>
         <div className="w-full flex flex-col gap-4">
           <div className="border rounded-lg p-4">
-              <h3 className="font-semibold mb-2">New Section</h3>
+              <h3 className="font-semibold mb-2">HARUP</h3>
               <div className="border border-dashed rounded-lg p-4 text-center text-muted-foreground">
                 Your content here
               </div>
