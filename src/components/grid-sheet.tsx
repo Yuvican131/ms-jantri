@@ -308,7 +308,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const formattedCells = cellNumbersStr
           .split(/[\s,]+/)
           .filter(s => s)
-          .map(s => (s === '00' ? '00' : String(parseInt(s, 10)).padStart(2, '0')))
+          .map(s => String(parseInt(s, 10)).padStart(2, '0'))
           .join(',');
 
         formattedLines.push(`${formattedCells}=${valueStr}`);
@@ -316,12 +316,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const numbers = cellNumbersStr.split(/[\s,]+/).filter(s => s.length > 0);
 
         numbers.forEach(numStr => {
-            let cellNum = parseInt(numStr, 10);
-            if (numStr === '00') cellNum = 100;
-            
-            if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE) {
-                const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
-                const colIndex = (cellNum - 1) % GRID_SIZE;
+            const cellNum = parseInt(numStr, 10);
+            if (!isNaN(cellNum) && cellNum >= 0 && cellNum < GRID_SIZE * GRID_SIZE) {
+                const rowIndex = Math.floor(cellNum / GRID_SIZE);
+                const colIndex = cellNum % GRID_SIZE;
                 const key = `${rowIndex}_${colIndex}`;
                 
                 const currentValue = parseFloat(newData[key]) || 0;
@@ -378,15 +376,11 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
             if (removeJodda && d1 === d2) continue;
 
             const cellNumStr = `${d1}${d2}`;
-            let cellNum = parseInt(cellNumStr, 10);
+            const cellNum = parseInt(cellNumStr, 10);
 
-            if (cellNumStr === '00') {
-              cellNum = 100;
-            }
-
-            if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE) {
-                const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
-                const colIndex = (cellNum - 1) % GRID_SIZE;
+            if (!isNaN(cellNum) && cellNum >= 0 && cellNum < GRID_SIZE * GRID_SIZE) {
+                const rowIndex = Math.floor(cellNum / GRID_SIZE);
+                const colIndex = cellNum % GRID_SIZE;
                 const key = `${rowIndex}_${colIndex}`;
                 
                 const currentValue = parseFloat(newData[key]) || 0;
@@ -451,14 +445,13 @@ const handleHarupApply = () => {
             const cellNumStr = `${digit}${i}`;
             const cellNum = parseInt(cellNumStr, 10);
             if (!isNaN(cellNum) && cellNum >= 0 && cellNum < GRID_SIZE * GRID_SIZE) {
-              const actualCellNum = cellNum === 0 ? 100 : cellNum;
-              cellsToUpdate.push(actualCellNum);
+              cellsToUpdate.push(cellNum);
             }
           }
           const amountPerCell = totalAmount / cellsToUpdate.length;
           for (const cellNum of cellsToUpdate) {
-            const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
-            const colIndex = (cellNum - 1) % GRID_SIZE;
+            const rowIndex = Math.floor(cellNum / GRID_SIZE);
+            const colIndex = cellNum % GRID_SIZE;
             const key = `${rowIndex}_${colIndex}`;
             const currentValue = parseFloat(newData[key]) || 0;
             newData[key] = String(currentValue + amountPerCell);
@@ -474,14 +467,14 @@ const handleHarupApply = () => {
         for (let i = 0; i < 10; i++) {
           const cellNumStr = `${i}${digit}`;
           const cellNum = parseInt(cellNumStr, 10);
-           if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE) {
+          if (!isNaN(cellNum) && cellNum >= 0 && cellNum < GRID_SIZE * GRID_SIZE) {
             cellsToUpdate.push(cellNum);
           }
         }
          const amountPerCell = totalAmount / cellsToUpdate.length;
          for (const cellNum of cellsToUpdate) {
-            const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
-            const colIndex = (cellNum - 1) % GRID_SIZE;
+            const rowIndex = Math.floor(cellNum / GRID_SIZE);
+            const colIndex = cellNum % GRID_SIZE;
             const key = `${rowIndex}_${colIndex}`;
             const currentValue = parseFloat(newData[key]) || 0;
             newData[key] = String(currentValue + amountPerCell);
@@ -547,7 +540,7 @@ const handleHarupApply = () => {
       const value = activeSheet.data[key];
       if (value && value.trim() !== '' && !isNaN(Number(value)) && Number(value) !== 0) {
         const [rowIndex, colIndex] = key.split('_').map(Number);
-        const cellNumber = rowIndex * GRID_SIZE + colIndex + 1;
+        const cellNumber = rowIndex * GRID_SIZE + colIndex;
         
         if (!valueToCells[value]) {
           valueToCells[value] = [];
@@ -559,10 +552,7 @@ const handleHarupApply = () => {
     const generatedText = Object.entries(valueToCells)
       .map(([value, cells]) => {
         cells.sort((a, b) => a - b);
-        const formattedCells = cells.map(cell => {
-          if (cell === 100) return '00';
-          return String(cell).padStart(2, '0');
-        });
+        const formattedCells = cells.map(cell => String(cell).padStart(2, '0'));
         return `${formattedCells.join(',')}=${value}`;
       })
       .join('\n');
@@ -602,12 +592,7 @@ const handleHarupApply = () => {
       .split(',')
       .map(s => s.trim())
       .filter(s => s)
-      .flatMap(s => {
-        if (s.length > 2 && s !== '100') {
-          return s.match(/.{1,2}/g) || [];
-        }
-        return s;
-      })
+      .flatMap(s => s.length > 2 ? s.match(/.{1,2}/g) || [] : s)
       .join(',');
 
     setMultiText(`${autoFormattedNumbers}${valuePart}`);
@@ -625,7 +610,7 @@ const handleHarupApply = () => {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <CardTitle>{props.draw} Sheet ({format(props.date, "PPP")}): {activeSheet.name}</CardTitle>
-              <CardDescription>A 10x10 grid for your accounting data. Cells can be targeted by number (1-100) or by coordinates (row,col).</CardDescription>
+              <CardDescription>A 10x10 grid for your accounting data. Cells can be targeted by number (0-99) or by coordinates (row,col).</CardDescription>
             </div>
             <div className="flex gap-2">
               <Select value={activeSheetId} onValueChange={setActiveSheetId}>
@@ -660,15 +645,14 @@ const handleHarupApply = () => {
               {Array.from({ length: GRID_SIZE }, (_, rowIndex) => (
                 <React.Fragment key={rowIndex}>
                   {Array.from({ length: GRID_SIZE }, (_, colIndex) => {
-                    const cellNumber = rowIndex * GRID_SIZE + colIndex + 1
+                    const cellNumber = rowIndex * GRID_SIZE + colIndex
                     const key = `${rowIndex}_${colIndex}`
                     const validation = validations[key]
                     const isUpdated = updatedCells.includes(key);
-                    const formattedCellNumber = cellNumber === 100 ? '00' : String(cellNumber).padStart(2, '0');
 
                     return (
                       <div key={key} className="relative">
-                        <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{formattedCellNumber}</div>
+                        <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{String(cellNumber).padStart(2, '0')}</div>
                         <Input
                           type="text"
                           className={`pt-5 text-sm transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''}`}
