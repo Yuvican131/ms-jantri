@@ -287,7 +287,7 @@ export default function GridSheet() {
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto w-full">
-          <div className="grid gap-1 min-w-max" style={{gridTemplateColumns: `repeat(${GRID_SIZE + 1}, minmax(70px, 1fr))`}}>
+          <div className="grid gap-1" style={{gridTemplateColumns: `repeat(${GRID_SIZE + 1}, minmax(70px, 1fr))`}}>
              {/* Header for Total column */}
              <div className="col-start-1" style={{gridColumn: `span ${GRID_SIZE}`}}></div>
              <div className="flex items-center justify-center font-semibold text-muted-foreground min-w-[100px]">Total</div>
@@ -369,8 +369,9 @@ export default function GridSheet() {
         </div>
         <div className="w-full border rounded-lg p-4">
           <h3 className="font-semibold mb-2">Laddi</h3>
-          <div className="flex gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-2">
             <Input type="number" min="1" max="9" className="w-20 text-center" placeholder="Num 1" />
+            <span className="text-xl font-bold">×</span>
             <Input type="number" min="1" max="9" className="w-20 text-center" placeholder="Num 2" />
           </div>
         </div>
