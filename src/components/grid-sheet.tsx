@@ -77,20 +77,21 @@ export default function GridSheet() {
   }, [laddiNum1, laddiNum2, removeJodda]);
 
   const handleLaddiNum1Change = (value: string) => {
-    if (calculateCombinations(value, value, removeJodda) > MAX_COMBINATIONS) {
+    const newLaddiNum1 = value.replace(/[^0-9]/g, '');
+    if (calculateCombinations(newLaddiNum1, laddiNum2, removeJodda) > MAX_COMBINATIONS) {
         toast({ title: "Combination Limit Exceeded", description: `You cannot create more than ${MAX_COMBINATIONS} combinations.`, variant: "destructive" });
         return;
     }
-    setLaddiNum1(value);
-    setLaddiNum2(value);
+    setLaddiNum1(newLaddiNum1);
   }
 
   const handleLaddiNum2Change = (value: string) => {
-    if (calculateCombinations(laddiNum1, value, removeJodda) > MAX_COMBINATIONS) {
+    const newLaddiNum2 = value.replace(/[^0-9]/g, '');
+    if (calculateCombinations(laddiNum1, newLaddiNum2, removeJodda) > MAX_COMBINATIONS) {
         toast({ title: "Combination Limit Exceeded", description: `You cannot create more than ${MAX_COMBINATIONS} combinations.`, variant: "destructive" });
         return;
     }
-    setLaddiNum2(value);
+    setLaddiNum2(newLaddiNum2);
   }
 
   const handleCellChange = (rowIndex: number, colIndex: number, value: string) => {
@@ -479,12 +480,13 @@ export default function GridSheet() {
             </Button>
           </div>
         </div>
-        <div className="w-full border rounded-lg p-4">
+        <div className="w-full border rounded-lg p-4 mt-4 md:mt-0">
           <h3 className="font-semibold mb-2">Laddi</h3>
           <div className="flex flex-col items-center gap-2 mt-2">
             <div className="flex items-start gap-2 w-full">
                 <Input 
-                  type="number" 
+                  type="text"
+                  pattern="[0-9]*"
                   className="w-full text-center" 
                   placeholder="Num 1"
                   value={laddiNum1}
@@ -494,7 +496,8 @@ export default function GridSheet() {
                     <div className="text-sm font-bold text-primary">{combinationCount}</div>
                 </div>
                 <Input 
-                  type="number" 
+                  type="text"
+                  pattern="[0-9]*"
                   className="w-full text-center" 
                   placeholder="Num 2"
                   value={laddiNum2}
@@ -525,5 +528,3 @@ export default function GridSheet() {
     </Card>
   )
 }
-
-    
