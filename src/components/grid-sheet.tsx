@@ -255,9 +255,11 @@ export default function GridSheet() {
             cellsToUpdate.push({rowIndex, colIndex});
         }
       } else {
-        const numbers = cellNumbersStr.match(/(\d\d?)/g) || [];
+        const numbers = cellNumbersStr.match(/100|\d{1,2}/g) || [];
         numbers.forEach(numStr => {
-            const cellNum = parseInt(numStr, 10);
+            let cellNum = parseInt(numStr, 10);
+            if (numStr === '00') cellNum = 100;
+            
             if (cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE) {
                 const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
                 const colIndex = (cellNum - 1) % GRID_SIZE;
