@@ -673,10 +673,6 @@ const handleHarupApply = () => {
               />
               <div className="flex gap-2 mt-2">
                 <Button onClick={handleMultiTextApply}>Apply to Sheet</Button>
-                <Button onClick={handleClearSheet} variant="outline">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Clear Sheet
-                </Button>
                 <Button onClick={handleGenerateSheet} variant="outline">Generate Sheet</Button>
               </div>
             </div>
@@ -686,6 +682,10 @@ const handleHarupApply = () => {
                     <pre>{lastEntry}</pre>
                 </div>
             </div>
+             <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0">
+                <Trash2 className="h-4 w-4" />
+                <span className="sr-only">Clear Sheet</span>
+            </Button>
           </div>
           <div className="w-full xl:w-1/2 flex flex-col gap-4">
             <div className="border rounded-lg p-4">
