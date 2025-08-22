@@ -709,86 +709,88 @@ const handleHarupApply = () => {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col xl:flex-row gap-4 pt-2">
-          <div className="w-full xl:w-2/5 border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
-            <h3 className="font-semibold">Multi - Text</h3>
-            <Textarea
-              placeholder="Enter cell data like: 01,02,03=50 or 01 02 03=50"
-              rows={4}
-              value={multiText}
-              onChange={handleMultiTextChange}
-              onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
-            />
-            <div className="flex flex-wrap gap-2 mt-2 items-start">
-              <Button onClick={handleMultiTextApply}>Apply to Sheet</Button>
-              <Button onClick={handleGenerateSheet} variant="outline">
-                  Generate Sheet
-              </Button>
-              <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0">
-                  <Trash2 className="h-4 w-4" />
-                  <span className="sr-only">Clear Sheet</span>
-              </Button>
-            </div>
-          </div>
-          <div className="w-full xl:w-3/5 flex flex-col gap-4">
-            <div className="border rounded-lg p-2 sm:p-4">
-                <h3 className="font-semibold mb-2">HARUP</h3>
-                <div className="flex flex-col sm:flex-row items-center gap-2">
-                    <Label htmlFor="harupA" className="w-8 text-center shrink-0">A</Label>
-                    <Input id="harupA" placeholder="0123.." className="min-w-0" value={harupA} onChange={(e) => setHarupA(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} />
-                    <Label htmlFor="harupB" className="w-8 text-center shrink-0">B</Label>
-                    <Input id="harupB" placeholder="0123.." className="min-w-0" value={harupB} onChange={(e) => setHarupB(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)}/>
-                    <span className="text-xl font-bold mx-2">=</span>
-                    <Input id="harupAmount" placeholder="Amount" className="w-24 font-bold shrink-0" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} />
-                </div>
-                <div className="flex justify-end mt-2">
-                    <Button onClick={handleHarupApply}>Apply</Button>
-                </div>
-            </div>
-            <div className="border rounded-lg p-2 sm:p-4">
-              <h3 className="font-semibold mb-2">Laddi</h3>
-              <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
-                  <Input
-                    id="laddiNum1"
-                    type="text"
-                    pattern="[0-9]*"
-                    className="text-center min-w-0"
-                    placeholder="Num 1"
-                    value={laddiNum1}
-                    onChange={(e) => handleLaddiNum1Change(e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
-                  />
-                  <Input
-                    id="laddiNum2"
-                    type="text"
-                    pattern="[0-9]*"
-                    className="text-center min-w-0"
-                    placeholder="Num 2"
-                    value={laddiNum2}
-                    onChange={(e) => handleLaddiNum2Change(e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
-                  />
-                  <span className="text-xl font-bold mx-2">=</span>
-                  <Input
-                    id="amount"
-                    type="text"
-                    className="w-24 text-center font-bold shrink-0"
-                    value={laddiAmount}
-                    onChange={(e) => setLaddiAmount(e.target.value)}
-                    placeholder="Amount"
-                    onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
-                  />
-                </div>
-
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-2 mt-2">
-                    <div className="flex items-center gap-2">
-                        <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} />
-                        <Label htmlFor="remove-jodda" className="text-xs">Remove Jodda</Label>
+            <div className="w-full xl:w-1/2 flex flex-col gap-4">
+                <div className="border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
+                    <h3 className="font-semibold">Multi - Text</h3>
+                    <Textarea
+                        placeholder="Enter cell data like: 01,02,03=50 or 01 02 03=50"
+                        rows={4}
+                        value={multiText}
+                        onChange={handleMultiTextChange}
+                        onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
+                    />
+                    <div className="flex flex-wrap gap-2 mt-2 items-start">
+                        <Button onClick={handleMultiTextApply}>Apply to Sheet</Button>
+                        <Button onClick={handleGenerateSheet} variant="outline">
+                            Generate Sheet
+                        </Button>
+                        <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0">
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Clear Sheet</span>
+                        </Button>
                     </div>
-                    <div className="text-sm font-bold text-primary">{combinationCount} Combinations</div>
-                    <Button onClick={handleLaddiApply}>Apply</Button>
                 </div>
             </div>
-          </div>
+            <div className="w-full xl:w-1/2 flex flex-col gap-4">
+                <div className="border rounded-lg p-2 sm:p-4">
+                    <h3 className="font-semibold mb-2">HARUP</h3>
+                    <div className="flex flex-col sm:flex-row items-center gap-2">
+                        <Label htmlFor="harupA" className="w-8 text-center shrink-0">A</Label>
+                        <Input id="harupA" placeholder="0123.." className="min-w-0" value={harupA} onChange={(e) => setHarupA(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} />
+                        <Label htmlFor="harupB" className="w-8 text-center shrink-0">B</Label>
+                        <Input id="harupB" placeholder="0123.." className="min-w-0" value={harupB} onChange={(e) => setHarupB(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)}/>
+                        <span className="text-xl font-bold mx-2">=</span>
+                        <Input id="harupAmount" placeholder="Amount" className="w-24 font-bold shrink-0" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} />
+                    </div>
+                    <div className="flex justify-end mt-2">
+                        <Button onClick={handleHarupApply}>Apply</Button>
+                    </div>
+                </div>
+                <div className="border rounded-lg p-2 sm:p-4">
+                  <h3 className="font-semibold mb-2">Laddi</h3>
+                  <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
+                      <Input
+                        id="laddiNum1"
+                        type="text"
+                        pattern="[0-9]*"
+                        className="text-center min-w-0"
+                        placeholder="Num 1"
+                        value={laddiNum1}
+                        onChange={(e) => handleLaddiNum1Change(e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
+                      />
+                      <Input
+                        id="laddiNum2"
+                        type="text"
+                        pattern="[0-9]*"
+                        className="text-center min-w-0"
+                        placeholder="Num 2"
+                        value={laddiNum2}
+                        onChange={(e) => handleLaddiNum2Change(e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
+                      />
+                      <span className="text-xl font-bold mx-2">=</span>
+                      <Input
+                        id="amount"
+                        type="text"
+                        className="w-24 text-center font-bold shrink-0"
+                        value={laddiAmount}
+                        onChange={(e) => setLaddiAmount(e.target.value)}
+                        placeholder="Amount"
+                        onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
+                      />
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-2 mt-2">
+                        <div className="flex items-center gap-2">
+                            <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} />
+                            <Label htmlFor="remove-jodda" className="text-xs">Remove Jodda</Label>
+                        </div>
+                        <div className="text-sm font-bold text-primary">{combinationCount} Combinations</div>
+                        <Button onClick={handleLaddiApply}>Apply</Button>
+                    </div>
+                </div>
+            </div>
         </CardFooter>
       </Card>
       <Dialog open={isGeneratedSheetDialogOpen} onOpenChange={setIsGeneratedSheetDialogOpen}>
