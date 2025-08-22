@@ -376,47 +376,49 @@ const handleHarupApply = () => {
     let updates = 0;
 
     if (harupADigits.length > 0) {
-      const amountPerDigit = totalAmount / harupADigits.length;
-      const amountPerCell = amountPerDigit / 10;
         for (const digit of harupADigits) {
-            for (let i = 0; i < 10; i++) {
-                const cellNumStr = `${digit}${i}`;
-                const cellNum = parseInt(cellNumStr, 10);
-                
-                if (!isNaN(cellNum) && cellNum >= 0 && cellNum < GRID_SIZE * GRID_SIZE) {
-                     const actualCellNum = cellNum === 0 ? 100 : cellNum;
-                     const rowIndex = Math.floor((actualCellNum - 1) / GRID_SIZE);
-                     const colIndex = (actualCellNum - 1) % GRID_SIZE;
-                     const key = `${rowIndex}_${colIndex}`;
-                    
-                    const currentValue = parseFloat(newData[key]) || 0;
-                    newData[key] = String(currentValue + amountPerCell);
-                    updatedCellKeys.add(key);
-                    updates++;
-                }
+          const cellsToUpdate = [];
+          for (let i = 0; i < 10; i++) {
+            const cellNumStr = `${digit}${i}`;
+            const cellNum = parseInt(cellNumStr, 10);
+            if (!isNaN(cellNum) && cellNum >= 0 && cellNum < GRID_SIZE * GRID_SIZE) {
+              const actualCellNum = cellNum === 0 ? 100 : cellNum;
+              cellsToUpdate.push(actualCellNum);
             }
+          }
+          const amountPerCell = totalAmount / cellsToUpdate.length;
+          for (const cellNum of cellsToUpdate) {
+            const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
+            const colIndex = (cellNum - 1) % GRID_SIZE;
+            const key = `${rowIndex}_${colIndex}`;
+            const currentValue = parseFloat(newData[key]) || 0;
+            newData[key] = String(currentValue + amountPerCell);
+            updatedCellKeys.add(key);
+            updates++;
+          }
         }
     }
     
     if (harupBDigits.length > 0) {
-      const amountPerDigit = totalAmount / harupBDigits.length;
-      const amountPerCell = amountPerDigit / 10;
       for (const digit of harupBDigits) {
-          for (let i = 0; i < 10; i++) {
-              const cellNumStr = `${i}${digit}`;
-              const cellNum = parseInt(cellNumStr, 10);
-              
-              if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE) {
-                    const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
-                    const colIndex = (cellNum - 1) % GRID_SIZE;
-                    const key = `${rowIndex}_${colIndex}`;
-                  
-                  const currentValue = parseFloat(newData[key]) || 0;
-                  newData[key] = String(currentValue + amountPerCell);
-                  updatedCellKeys.add(key);
-                  updates++;
-              }
+        const cellsToUpdate = [];
+        for (let i = 0; i < 10; i++) {
+          const cellNumStr = `${i}${digit}`;
+          const cellNum = parseInt(cellNumStr, 10);
+           if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE) {
+            cellsToUpdate.push(cellNum);
           }
+        }
+         const amountPerCell = totalAmount / cellsToUpdate.length;
+         for (const cellNum of cellsToUpdate) {
+            const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
+            const colIndex = (cellNum - 1) % GRID_SIZE;
+            const key = `${rowIndex}_${colIndex}`;
+            const currentValue = parseFloat(newData[key]) || 0;
+            newData[key] = String(currentValue + amountPerCell);
+            updatedCellKeys.add(key);
+            updates++;
+         }
       }
     }
 
@@ -459,8 +461,32 @@ const handleHarupApply = () => {
   };
   
   const handleGenerateSheet = () => {
-    toast({ title: "Coming Soon!", description: "This feature is not yet implemented." });
+    const valueToCells: { [value: string]: number[] } = {};
+
+    for (const key in activeSheet.data) {
+      const value = activeSheet.data[key];
+      if (value && value.trim() !== '' && !isNaN(Number(value)) && Number(value) !== 0) {
+        const [rowIndex, colIndex] = key.split('_').map(Number);
+        const cellNumber = rowIndex * GRID_SIZE + colIndex + 1;
+        
+        if (!valueToCells[value]) {
+          valueToCells[value] = [];
+        }
+        valueToCells[value].push(cellNumber);
+      }
+    }
+
+    const generatedText = Object.entries(valueToCells)
+      .map(([value, cells]) => {
+        cells.sort((a, b) => a - b);
+        return `${cells.join(',')}=${value}`;
+      })
+      .join('\n');
+
+    setMultiText(generatedText);
+    toast({ title: "Sheet Generated", description: "The multi-text area has been populated with the grid data." });
   };
+
 
   return (
     <Card>
