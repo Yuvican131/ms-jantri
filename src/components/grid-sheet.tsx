@@ -308,7 +308,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const formattedCells = cellNumbersStr
           .split(/[\s,]+/)
           .filter(s => s)
-          .map(s => s.padStart(2, '0'))
+          .map(s => (s === '00' ? '00' : String(parseInt(s, 10)).padStart(2, '0')))
           .join(',');
 
         formattedLines.push(`${formattedCells}=${valueStr}`);
@@ -596,15 +596,21 @@ const handleHarupApply = () => {
 
     const cleanNumbers = numbersPart.replace(/[^0-9, ]/g, '');
     
-    const formattedNumbers = cleanNumbers
+    const autoFormattedNumbers = cleanNumbers
       .replace(/ /g, ',')
+      .replace(/,+/g, ',') 
       .split(',')
+      .map(s => s.trim())
       .filter(s => s)
-      .map(s => s.replace(/(\d{2})/g, '$1,').replace(/,$/, ''))
-      .join(',')
-      .replace(/,,/g, ',');
+      .flatMap(s => {
+        if (s.length > 2 && s !== '100') {
+          return s.match(/.{1,2}/g) || [];
+        }
+        return s;
+      })
+      .join(',');
 
-    setMultiText(`${formattedNumbers}${valuePart}`);
+    setMultiText(`${autoFormattedNumbers}${valuePart}`);
   };
 
 
@@ -861,3 +867,5 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
