@@ -12,7 +12,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 type Client = {
   id: string
   name: string
-  pairCommInOut: string
+  pair: string
+  comm: string
+  inOut: string
   patti: string
 }
 
@@ -27,13 +29,15 @@ export default function ClientsManager() {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
-    const pairCommInOut = formData.get("pairCommInOut") as string
+    const pair = formData.get("pair") as string
+    const comm = formData.get("comm") as string
+    const inOut = formData.get("inOut") as string
     const patti = formData.get("patti") as string
 
     if (editingClient) {
-      setClients(clients.map(c => c.id === editingClient.id ? { ...c, name, pairCommInOut, patti } : c))
+      setClients(clients.map(c => c.id === editingClient.id ? { ...c, name, pair, comm, inOut, patti } : c))
     } else {
-      const newClient: Client = { id: Date.now().toString(), name, pairCommInOut, patti }
+      const newClient: Client = { id: Date.now().toString(), name, pair, comm, inOut, patti }
       setClients([...clients, newClient])
     }
     setEditingClient(null)
@@ -80,13 +84,25 @@ export default function ClientsManager() {
                 <Label htmlFor="name">Name</Label>
                 <Input id="name" name="name" defaultValue={editingClient?.name} placeholder="Enter name" required />
               </div>
-              <div>
-                <Label htmlFor="pairCommInOut">Pair Comm In/Out</Label>
-                <Input id="pairCommInOut" name="pairCommInOut" defaultValue={editingClient?.pairCommInOut} placeholder="Pair Comm In/Out" required />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="pair">Pair</Label>
+                  <Input id="pair" name="pair" defaultValue={editingClient?.pair} placeholder="Pair" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="comm">Comm</Label>
+                  <Input id="comm" name="comm" defaultValue={editingClient?.comm} placeholder="Comm" required />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="patti">Patti</Label>
-                <Input id="patti" name="patti" defaultValue={editingClient?.patti} placeholder="Patti" required />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="inOut">In/Out</Label>
+                  <Input id="inOut" name="inOut" defaultValue={editingClient?.inOut} placeholder="In/Out" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="patti">Patti</Label>
+                  <Input id="patti" name="patti" defaultValue={editingClient?.patti} placeholder="Patti" required />
+                </div>
               </div>
               <DialogFooter>
                 <DialogClose asChild>
@@ -103,7 +119,9 @@ export default function ClientsManager() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Pair Comm In/Out</TableHead>
+              <TableHead>Pair</TableHead>
+              <TableHead>Comm</TableHead>
+              <TableHead>In/Out</TableHead>
               <TableHead>Patti</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -112,7 +130,9 @@ export default function ClientsManager() {
             {clients.map(client => (
               <TableRow key={client.id}>
                 <TableCell className="font-medium">{client.name}</TableCell>
-                <TableCell>{client.pairCommInOut}</TableCell>
+                <TableCell>{client.pair}</TableCell>
+                <TableCell>{client.comm}</TableCell>
+                <TableCell>{client.inOut}</TableCell>
                 <TableCell>{client.patti}</TableCell>
                 <TableCell className="text-right">
                    <DropdownMenu>
