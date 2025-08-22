@@ -484,13 +484,13 @@ export default function GridSheet() {
           <div className="border rounded-lg p-4">
               <h3 className="font-semibold mb-2">HARUP</h3>
               <div className="border border-dashed rounded-lg p-4 text-muted-foreground flex flex-col gap-2">
-                <div className="flex items-center gap-2">
+                 <div className="flex items-center gap-2">
                   <Label htmlFor="harupA" className="w-8 text-center">A</Label>
                   <Input id="harupA" placeholder="0123456789" className="w-32" />
-                </div>
-                <div className="flex items-center gap-2">
                   <Label htmlFor="harupB" className="w-8 text-center">B</Label>
                   <Input id="harupB" placeholder="0123456789" className="w-32" />
+                  <span className="text-xl font-bold mx-2">=</span>
+                  <Input id="harupAmount" placeholder="Amount" className="w-24 font-bold" />
                 </div>
               </div>
             </div>
