@@ -350,7 +350,7 @@ export default function GridSheet() {
           </div>
         </div>
       </CardContent>
-      <CardFooter className="mt-16 pt-8">
+      <CardFooter className="mt-4">
         <div className="w-full border rounded-lg p-4">
           <h3 className="font-semibold mb-2">Multi - Text</h3>
           <Textarea 
