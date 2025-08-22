@@ -507,6 +507,12 @@ const handleHarupApply = () => {
     });
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent, handler: () => void) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handler();
+    }
+  };
 
   return (
     <>
@@ -554,11 +560,11 @@ const handleHarupApply = () => {
                     const key = `${rowIndex}_${colIndex}`
                     const validation = validations[key]
                     const isUpdated = updatedCells.includes(key);
-                    const formattedCellNumber = String(cellNumber).padStart(2, '0');
+                    const formattedCellNumber = cellNumber === 100 ? '00' : String(cellNumber).padStart(2, '0');
 
                     return (
                       <div key={key} className="relative">
-                        <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{cellNumber === 100 ? '00' : formattedCellNumber}</div>
+                        <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{formattedCellNumber}</div>
                         <Input
                           type="text"
                           className={`pt-5 text-sm transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''}`}
@@ -613,6 +619,7 @@ const handleHarupApply = () => {
               rows={4}
               value={multiText}
               onChange={(e) => setMultiText(e.target.value)}
+              onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
             />
             <div className="flex gap-2 mt-2">
               <Button onClick={handleMultiTextApply}>Apply to Sheet</Button>
@@ -629,11 +636,11 @@ const handleHarupApply = () => {
                 <div className="border border-dashed rounded-lg p-4 text-muted-foreground flex flex-col gap-2">
                    <div className="flex items-center gap-2">
                     <Label htmlFor="harupA" className="w-8 text-center">A</Label>
-                    <Input id="harupA" placeholder="0123456789" className="w-32" value={harupA} onChange={(e) => setHarupA(e.target.value)} />
+                    <Input id="harupA" placeholder="0123456789" className="w-32" value={harupA} onChange={(e) => setHarupA(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} />
                     <Label htmlFor="harupB" className="w-8 text-center">B</Label>
-                    <Input id="harupB" placeholder="0123456789" className="w-32" value={harupB} onChange={(e) => setHarupB(e.target.value)}/>
+                    <Input id="harupB" placeholder="0123456789" className="w-32" value={harupB} onChange={(e) => setHarupB(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)}/>
                     <span className="text-xl font-bold mx-2">=</span>
-                    <Input id="harupAmount" placeholder="Amount" className="w-24 font-bold" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)} />
+                    <Input id="harupAmount" placeholder="Amount" className="w-24 font-bold" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} />
                   </div>
                    <div className="flex justify-end mt-2">
                       <Button onClick={handleHarupApply}>Apply to Sheet</Button>
@@ -645,7 +652,6 @@ const handleHarupApply = () => {
               <div className="flex flex-col gap-2 mt-2">
                 <div className="flex items-start gap-2 w-full">
                   <div className="flex-1">
-                    
                     <Input
                       id="laddiNum1"
                       type="text"
@@ -654,10 +660,10 @@ const handleHarupApply = () => {
                       placeholder="Num 1"
                       value={laddiNum1}
                       onChange={(e) => handleLaddiNum1Change(e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
                     />
                   </div>
                   <div className="flex-1">
-                    
                     <Input
                       id="laddiNum2"
                       type="text"
@@ -666,6 +672,7 @@ const handleHarupApply = () => {
                       placeholder="Num 2"
                       value={laddiNum2}
                       onChange={(e) => handleLaddiNum2Change(e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
                     />
                   </div>
                   <span className="text-xl font-bold mx-2 pt-1 mt-4">=</span>
@@ -678,6 +685,7 @@ const handleHarupApply = () => {
                       value={laddiAmount}
                       onChange={(e) => setLaddiAmount(e.target.value)}
                       placeholder="Amount"
+                      onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
                     />
                   </div>
                 </div>
@@ -725,3 +733,5 @@ const handleHarupApply = () => {
     </>
   )
 }
+
+    
