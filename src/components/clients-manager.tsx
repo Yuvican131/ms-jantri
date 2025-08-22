@@ -14,11 +14,7 @@ type Client = {
   name: string
 }
 
-const initialClients: Client[] = [
-  { id: "1", name: "John Doe"},
-  { id: "2", name: "Jane Smith"},
-  { id: "3", name: "Peter Jones"},
-]
+const initialClients: Client[] = []
 
 export default function ClientsManager() {
   const [clients, setClients] = useState<Client[]>(initialClients)
