@@ -274,7 +274,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     const newData = { ...activeSheet.data };
     const updatedCellKeys = new Set<string>();
     let updates = 0;
-    
+
     const evaluateExpression = (expression: string): string => {
         try {
             if (/^[0-9+\-*/.() ]+$/.test(expression)) {
@@ -287,72 +287,59 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
             return expression;
         }
     };
-    
+
     lines.forEach(line => {
-      line = line.trim();
-      if (!line) return;
+        line = line.trim();
+        if (!line) return;
 
-      const parts = line.split('=');
-      if (parts.length !== 2) return;
+        const parts = line.split('=');
+        if (parts.length !== 2) return;
 
-      const valueStr = evaluateExpression(parts[1].trim());
-      const cellNumbersStr = parts[0].trim().replace(/\s+/g, '');
-      
-      let cellsToUpdate: {rowIndex: number, colIndex: number}[] = [];
+        const valueStr = evaluateExpression(parts[1].trim());
+        const cellNumbersStr = parts[0].trim();
+        const numbers = cellNumbersStr.split(/[\s,]+/).filter(s => s.length > 0);
 
-      const pairMatch = cellNumbersStr.match(/^(\d+),(\d+)$/);
-      if (pairMatch) {
-        const rowIndex = parseInt(pairMatch[1], 10) - 1;
-        const colIndex = parseInt(pairMatch[2], 10) - 1;
-        if (rowIndex >= 0 && rowIndex < GRID_SIZE && colIndex >= 0 && colIndex < GRID_SIZE) {
-            cellsToUpdate.push({rowIndex, colIndex});
-        }
-      } else {
-        const numbers = cellNumbersStr.match(/100|\d{1,2}/g) || [];
         numbers.forEach(numStr => {
             let cellNum = parseInt(numStr, 10);
-            if (numStr === '00' || cellNum === 100) cellNum = 100;
+            if (numStr === '00') cellNum = 100;
             
-            if (cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE) {
+            if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE) {
                 const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
                 const colIndex = (cellNum - 1) % GRID_SIZE;
-                cellsToUpdate.push({rowIndex, colIndex});
+                const key = `${rowIndex}_${colIndex}`;
+                
+                const currentValue = parseFloat(newData[key]) || 0;
+                const newValue = parseFloat(valueStr);
+
+                if (!isNaN(newValue)) {
+                    newData[key] = String(currentValue + newValue);
+                    updatedCellKeys.add(key);
+                    updates++;
+                } else {
+                    newData[key] = valueStr;
+                    updatedCellKeys.add(key);
+                    updates++;
+                }
             }
         });
-      }
-      
-      cellsToUpdate.forEach(({rowIndex, colIndex}) => {
-        const key = `${rowIndex}_${colIndex}`;
-        const currentValue = parseFloat(newData[key]) || 0;
-        const newValue = parseFloat(valueStr);
-        
-        if (!isNaN(newValue)) {
-          newData[key] = String(currentValue + newValue);
-        } else {
-          newData[key] = valueStr;
-        }
-
-        updatedCellKeys.add(key);
-        updates++;
-      });
     });
 
     if (updates > 0) {
-      const updatedSheets = sheets.map(sheet => {
-        if (sheet.id === activeSheetId) {
-          return { ...sheet, data: newData };
-        }
-        return sheet;
-      });
-      const currentUpdatedCells = Array.from(updatedCellKeys);
-      setSheets(updatedSheets);
-      setUpdatedCells(currentUpdatedCells);
-      props.setLastEntry(multiText);
-      setMultiText("");
-      setTimeout(() => setUpdatedCells([]), 2000);
-      toast({ title: "Sheet Updated", description: `${currentUpdatedCells.length} cell(s) have been updated.` });
+        const updatedSheets = sheets.map(sheet => {
+            if (sheet.id === activeSheetId) {
+                return { ...sheet, data: newData };
+            }
+            return sheet;
+        });
+        const currentUpdatedCells = Array.from(updatedCellKeys);
+        setSheets(updatedSheets);
+        setUpdatedCells(currentUpdatedCells);
+        props.setLastEntry(multiText);
+        setMultiText("");
+        setTimeout(() => setUpdatedCells([]), 2000);
+        toast({ title: "Sheet Updated", description: `${currentUpdatedCells.length} cell(s) have been updated.` });
     } else {
-      toast({ title: "No Updates", description: "No valid cell data found in the input.", variant: "destructive" });
+        toast({ title: "No Updates", description: "No valid cell data found in the input.", variant: "destructive" });
     }
   };
   
@@ -676,7 +663,7 @@ const handleHarupApply = () => {
             <div className="flex-1 flex flex-col">
               <h3 className="font-semibold mb-2">Multi - Text</h3>
               <Textarea
-                placeholder="Enter cell data like: 1=10+5, 1,1=Value1 or 112233=100"
+                placeholder="Enter cell data like: 1,2,3=50 or 1 2 3=50"
                 rows={4}
                 value={multiText}
                 onChange={(e) => setMultiText(e.target.value)}
