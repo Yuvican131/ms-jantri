@@ -53,7 +53,7 @@ export default function Home() {
     setSelectedDraw(null);
   };
 
-  const draws = ["FB", "GB", "GL", "DS"];
+  const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -93,7 +93,7 @@ export default function Home() {
                 <CardHeader>
                   <CardTitle>Select a Draw</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <CardContent className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   {draws.map((draw) => (
                     <Button key={draw} onClick={() => handleSelectDraw(draw)} className="h-24 text-2xl font-bold">
                       {draw}
