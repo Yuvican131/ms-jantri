@@ -510,9 +510,6 @@ export default function GridSheet() {
                     onChange={(e) => handleLaddiNum1Change(e.target.value)}
                   />
                 </div>
-                <div className="flex flex-col items-center pt-2 mt-4">
-                  <div className="text-sm font-bold text-primary">{combinationCount}</div>
-                </div>
                 <div className="flex-1">
                   <Label htmlFor="laddiNum2" className="text-xs text-muted-foreground">B</Label>
                   <Input
@@ -538,9 +535,12 @@ export default function GridSheet() {
                   />
                 </div>
               </div>
-              <div className="flex items-center justify-center gap-2">
-                <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} />
-                <Label htmlFor="remove-jodda" className="text-xs">Remove Jodda</Label>
+              <div className="flex flex-col items-center gap-1 mt-2">
+                <div className="text-sm font-bold text-primary">{combinationCount}</div>
+                <div className="flex items-center gap-2">
+                  <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} />
+                  <Label htmlFor="remove-jodda" className="text-xs">Remove Jodda</Label>
+                </div>
               </div>
             </div>
             <div className="flex justify-end mt-2">
@@ -552,3 +552,5 @@ export default function GridSheet() {
     </Card>
   )
 }
+
+    
