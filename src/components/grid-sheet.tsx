@@ -370,9 +370,9 @@ export default function GridSheet() {
         <div className="w-full border rounded-lg p-4">
           <h3 className="font-semibold mb-2">Laddi</h3>
           <div className="flex items-center gap-2 mt-2">
-            <Input type="number" min="1" max="9" className="w-20 text-center" placeholder="Num 1" />
+            <Input type="number" className="w-32 text-center" placeholder="Num 1" />
             <span className="text-xl font-bold">×</span>
-            <Input type="number" min="1" max="9" className="w-20 text-center" placeholder="Num 2" />
+            <Input type="number" className="w-32 text-center" placeholder="Num 2" />
           </div>
         </div>
       </CardFooter>
