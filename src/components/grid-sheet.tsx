@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import type { Client } from "./clients-manager"
 import { format } from "date-fns"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 type CellData = { [key: string]: string }
 type ValidationResult = {
@@ -83,9 +84,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const cellNum = parseInt(client.name, 10);
         const commission = parseFloat(client.comm);
 
-        if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_ROWS * GRID_COLS && !isNaN(commission)) {
-          const rowIndex = Math.floor((cellNum - 1) / GRID_COLS);
-          const colIndex = (cellNum - 1) % GRID_COLS;
+        if (!isNaN(cellNum) && cellNum >= 0 && cellNum <= 99 && !isNaN(commission)) {
+          const rowIndex = Math.floor(cellNum / GRID_COLS);
+          const colIndex = cellNum % GRID_COLS;
           const key = `${rowIndex}_${colIndex}`;
           
           const updatedSheets = sheets.map(sheet => {
@@ -304,7 +305,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const valueStr = evaluateExpression(parts[1].trim());
         let cellNumbersStr = parts[0].trim();
         
-        if (!/[\s,]+/.test(cellNumbersStr) && /^\d+$/.test(cellNumbersStr) && cellNumbersStr.length > 2) {
+        if (!/[\s,]+/.test(cellNumbersStr) && /^\d+$/.test(cellNumbersStr) && cellNumbersStr.length > 2 && cellNumbersStr !== '100') {
              cellNumbersStr = cellNumbersStr.match(/.{1,2}/g)?.join(',') || cellNumbersStr;
         }
         
@@ -320,24 +321,23 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
         numbers.forEach(numStr => {
             let cellNum = parseInt(numStr, 10);
-            if(cellNum === 0) cellNum = 100;
-            if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_ROWS * GRID_COLS) {
-                const rowIndex = Math.floor((cellNum - 1) / GRID_COLS);
-                const colIndex = (cellNum - 1) % GRID_COLS;
-                const key = `${rowIndex}_${colIndex}`;
-                
-                const currentValue = parseFloat(newData[key]) || 0;
-                const newValue = parseFloat(valueStr);
+            if(cellNum < 0 || cellNum > 99) return;
+            
+            const rowIndex = Math.floor(cellNum / GRID_COLS);
+            const colIndex = cellNum % GRID_COLS;
+            const key = `${rowIndex}_${colIndex}`;
+            
+            const currentValue = parseFloat(newData[key]) || 0;
+            const newValue = parseFloat(valueStr);
 
-                if (!isNaN(newValue)) {
-                    newData[key] = String(currentValue + newValue);
-                    updatedCellKeys.add(key);
-                    updates++;
-                } else {
-                    newData[key] = valueStr;
-                    updatedCellKeys.add(key);
-                    updates++;
-                }
+            if (!isNaN(newValue)) {
+                newData[key] = String(currentValue + newValue);
+                updatedCellKeys.add(key);
+                updates++;
+            } else {
+                newData[key] = valueStr;
+                updatedCellKeys.add(key);
+                updates++;
             }
         });
     });
@@ -370,8 +370,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     const newData = { ...activeSheet.data };
     const updatedCellKeys = new Set<string>();
     let updates = 0;
-    let lastEntryString = "";
-
+    
     const digits1 = laddiNum1.split('');
     const digits2 = laddiNum2.split('');
 
@@ -381,12 +380,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
             let cellNumStr = `${d1}${d2}`;
             let cellNum = parseInt(cellNumStr, 10);
-            if(cellNum === 0) cellNum = 100;
-
-
-            if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_ROWS * GRID_COLS) {
-                const rowIndex = Math.floor((cellNum-1) / GRID_COLS);
-                const colIndex = (cellNum-1) % GRID_COLS;
+            
+            if (!isNaN(cellNum) && cellNum >= 0 && cellNum <= 99) {
+                const rowIndex = Math.floor(cellNum / GRID_COLS);
+                const colIndex = cellNum % GRID_COLS;
                 const key = `${rowIndex}_${colIndex}`;
                 
                 const currentValue = parseFloat(newData[key]) || 0;
@@ -402,7 +399,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     }
 
     if (updates > 0) {
-        lastEntryString = `Laddi: ${laddiNum1} X ${laddiNum2} = ${laddiAmount}`;
+        const lastEntryString = `Laddi: ${laddiNum1}x${laddiNum2}=${laddiAmount}`;
         const updatedSheets = sheets.map(sheet => {
             if (sheet.id === activeSheetId) {
                 return { ...sheet, data: newData };
@@ -442,23 +439,20 @@ const handleHarupApply = () => {
     const newData = { ...activeSheet.data };
     const updatedCellKeys = new Set<string>();
     let updates = 0;
-    let lastEntryString = "";
-
+    
     if (harupADigits.length > 0) {
         for (const digit of harupADigits) {
           const cellsToUpdate = [];
           for (let i = 0; i < 10; i++) {
-            const cellNumStr = `${digit}${i}`;
-            let cellNum = parseInt(cellNumStr, 10);
-            if(cellNum === 0) cellNum = 100;
-            if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_ROWS * GRID_COLS) {
+            const cellNum = parseInt(`${digit}${i}`, 10);
+            if (!isNaN(cellNum) && cellNum >= 0 && cellNum <= 99) {
               cellsToUpdate.push(cellNum);
             }
           }
           const amountPerCell = totalAmount / cellsToUpdate.length;
           for (const cellNum of cellsToUpdate) {
-            const rowIndex = Math.floor((cellNum-1) / GRID_COLS);
-            const colIndex = (cellNum-1) % GRID_COLS;
+            const rowIndex = Math.floor(cellNum / GRID_COLS);
+            const colIndex = cellNum % GRID_COLS;
             const key = `${rowIndex}_${colIndex}`;
             const currentValue = parseFloat(newData[key]) || 0;
             newData[key] = String(currentValue + amountPerCell);
@@ -472,17 +466,15 @@ const handleHarupApply = () => {
       for (const digit of harupBDigits) {
         const cellsToUpdate = [];
         for (let i = 0; i < 10; i++) {
-          const cellNumStr = `${i}${digit}`;
-          let cellNum = parseInt(cellNumStr, 10);
-            if(cellNum === 0) cellNum = 100;
-          if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_ROWS * GRID_COLS) {
+          const cellNum = parseInt(`${i}${digit}`, 10);
+          if (!isNaN(cellNum) && cellNum >= 0 && cellNum <= 99) {
             cellsToUpdate.push(cellNum);
           }
         }
          const amountPerCell = totalAmount / cellsToUpdate.length;
          for (const cellNum of cellsToUpdate) {
-            const rowIndex = Math.floor((cellNum-1) / GRID_COLS);
-            const colIndex = (cellNum-1) % GRID_COLS;
+            const rowIndex = Math.floor(cellNum / GRID_COLS);
+            const colIndex = cellNum % GRID_COLS;
             const key = `${rowIndex}_${colIndex}`;
             const currentValue = parseFloat(newData[key]) || 0;
             newData[key] = String(currentValue + amountPerCell);
@@ -494,13 +486,9 @@ const handleHarupApply = () => {
 
     if (updates > 0) {
         const harupEntries: string[] = [];
-        if (harupA) {
-          harupEntries.push(`Harup: ${harupA} A = ${harupAmount}`);
-        }
-        if (harupB) {
-          harupEntries.push(`Harup: ${harupB} B = ${harupAmount}`);
-        }
-        lastEntryString = harupEntries.join('\n');
+        if (harupA) harupEntries.push(`Harup A: ${harupA} = ${harupAmount}`);
+        if (harupB) harupEntries.push(`Harup B: ${harupB} = ${harupAmount}`);
+        const lastEntryString = harupEntries.join('\n');
 
         const updatedSheets = sheets.map(sheet => {
             if (sheet.id === activeSheetId) {
@@ -513,7 +501,7 @@ const handleHarupApply = () => {
         setUpdatedCells(currentUpdatedCells);
         props.setLastEntry(lastEntryString);
         setTimeout(() => setUpdatedCells([]), 2000);
-        toast({ title: "Sheet Updated", description: `${currentUpdatedCells.length} cell(s) have been updated from HARUP.` });
+        toast({ title: "Sheet Updated", description: `${updatedCellKeys.size} cell(s) have been updated from HARUP.` });
     } else {
         toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
     }
@@ -548,8 +536,7 @@ const handleHarupApply = () => {
       const value = activeSheet.data[key];
       if (value && value.trim() !== '' && !isNaN(Number(value)) && Number(value) !== 0) {
         const [rowIndex, colIndex] = key.split('_').map(Number);
-        let cellNumber = rowIndex * GRID_COLS + colIndex + 1;
-        if (cellNumber === 100) cellNumber = 0;
+        const cellNumber = rowIndex * GRID_COLS + colIndex;
         
         if (!valueToCells[value]) {
           valueToCells[value] = [];
@@ -619,7 +606,7 @@ const handleHarupApply = () => {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-lg md:text-2xl">{props.draw} Sheet ({format(props.date, "PPP")}): {activeSheet.name}</CardTitle>
-              <CardDescription className="text-xs md:text-sm">A 10x10 grid for your accounting data. Cells can be targeted by number (1-99 and 00).</CardDescription>
+              <CardDescription className="text-xs md:text-sm">A 10x10 grid for your accounting data. Cells are numbered 00-99.</CardDescription>
             </div>
             <div className="flex gap-2 w-full md:w-auto">
               <Select value={activeSheetId} onValueChange={setActiveSheetId}>
@@ -654,15 +641,15 @@ const handleHarupApply = () => {
               {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                 <React.Fragment key={rowIndex}>
                   {Array.from({ length: GRID_COLS }, (_, colIndex) => {
-                    const cellNumber = rowIndex * GRID_COLS + colIndex + 1;
-                    const displayCellNumber = cellNumber === 100 ? 0 : cellNumber;
+                    const cellNumber = rowIndex * GRID_COLS + colIndex;
+                    const displayCellNumber = String(cellNumber).padStart(2, '0');
                     const key = `${rowIndex}_${colIndex}`
                     const validation = validations[key]
                     const isUpdated = updatedCells.includes(key);
 
                     return (
                       <div key={key} className="relative">
-                        <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{String(displayCellNumber).padStart(2, '0')}</div>
+                        <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{displayCellNumber}</div>
                         <Input
                           type="text"
                           className={`pt-5 text-sm transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''}`}
@@ -697,7 +684,7 @@ const handleHarupApply = () => {
                       value={getRowTotal(rowIndex)}
                       onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
                       onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
-                      aria-label={`Row ${rowIndex + 1} Total`}
+                      aria-label={`Row ${rowIndex} Total`}
                     />
                   </div>
                 </React.Fragment>
@@ -711,92 +698,97 @@ const handleHarupApply = () => {
         </CardContent>
         <CardFooter className="flex flex-col xl:flex-row gap-4 pt-2">
             <div className="w-full xl:w-1/2 flex flex-col gap-4">
-                <div className="border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
-                    <h3 className="font-semibold">Master</h3>
-                    <Button onClick={() => setIsMasterSheetDialogOpen(true)} variant="outline">
-                        Master Sheet
-                    </Button>
-                </div>
-                <div className="border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
-                    <h3 className="font-semibold">Multi - Text</h3>
-                    <Textarea
-                        placeholder="Enter cell data like: 01,02,03=50 or 01 02 03=50"
-                        rows={4}
-                        value={multiText}
-                        onChange={handleMultiTextChange}
-                        onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
-                    />
-                    <div className="flex flex-wrap gap-2 mt-2 items-start">
-                        <Button onClick={handleMultiTextApply}>Apply to Sheet</Button>
-                        <Button onClick={handleGenerateSheet} variant="outline">
-                            Generate Sheet
-                        </Button>
-                        <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0">
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Clear Sheet</span>
-                        </Button>
-                    </div>
-                </div>
+              <div className="border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
+                  <h3 className="font-semibold">Master</h3>
+                  <Button onClick={() => setIsMasterSheetDialogOpen(true)} variant="outline">
+                      Master Sheet
+                  </Button>
+              </div>
+              <div className="border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
+                  <h3 className="font-semibold">Multi - Text</h3>
+                  <Textarea
+                      placeholder="Enter cell data like: 01,02,03=50 or 01 02 03=50"
+                      rows={4}
+                      value={multiText}
+                      onChange={handleMultiTextChange}
+                      onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
+                  />
+                  <div className="flex flex-wrap gap-2 mt-2 items-start">
+                      <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0">Apply to Sheet</Button>
+                      <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0">
+                          Generate Sheet
+                      </Button>
+                      <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0">
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Clear Sheet</span>
+                      </Button>
+                  </div>
+              </div>
             </div>
             <div className="w-full xl:w-1/2 flex flex-col gap-4">
-                <div className="border rounded-lg p-2 sm:p-4">
-                    <h3 className="font-semibold mb-2">HARUP</h3>
-                    <div className="flex flex-col sm:flex-row items-center gap-2">
-                        <Label htmlFor="harupA" className="w-8 text-center shrink-0">A</Label>
-                        <Input id="harupA" placeholder="0123.." className="min-w-0" value={harupA} onChange={(e) => setHarupA(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} />
-                        <Label htmlFor="harupB" className="w-8 text-center shrink-0">B</Label>
-                        <Input id="harupB" placeholder="0123.." className="min-w-0" value={harupB} onChange={(e) => setHarupB(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)}/>
-                        <span className="text-xl font-bold mx-2">=</span>
-                        <Input id="harupAmount" placeholder="Amount" className="w-24 font-bold shrink-0" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} />
+              <div className="border rounded-lg p-2 sm:p-4">
+                  <h3 className="font-semibold mb-2">HARUP</h3>
+                  <div className="flex flex-col sm:flex-row items-stretch gap-2">
+                    <div className="flex items-center gap-2 flex-grow">
+                      <Label htmlFor="harupA" className="w-8 text-center shrink-0">A</Label>
+                      <Input id="harupA" placeholder="0123.." className="min-w-0" value={harupA} onChange={(e) => setHarupA(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} />
                     </div>
-                    <div className="flex justify-end mt-2">
-                        <Button onClick={handleHarupApply}>Apply</Button>
+                    <div className="flex items-center gap-2 flex-grow">
+                      <Label htmlFor="harupB" className="w-8 text-center shrink-0">B</Label>
+                      <Input id="harupB" placeholder="0123.." className="min-w-0" value={harupB} onChange={(e) => setHarupB(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)}/>
                     </div>
-                </div>
-                <div className="border rounded-lg p-2 sm:p-4">
-                  <h3 className="font-semibold mb-2">Laddi</h3>
-                  <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
-                      <Input
-                        id="laddiNum1"
-                        type="text"
-                        pattern="[0-9]*"
-                        className="text-center min-w-0"
-                        placeholder="Num 1"
-                        value={laddiNum1}
-                        onChange={(e) => handleLaddiNum1Change(e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
-                      />
-                      <Input
-                        id="laddiNum2"
-                        type="text"
-                        pattern="[0-9]*"
-                        className="text-center min-w-0"
-                        placeholder="Num 2"
-                        value={laddiNum2}
-                        onChange={(e) => handleLaddiNum2Change(e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
-                      />
+                    <div className="flex items-center gap-2">
                       <span className="text-xl font-bold mx-2">=</span>
-                      <Input
-                        id="amount"
-                        type="text"
-                        className="w-24 text-center font-bold shrink-0"
-                        value={laddiAmount}
-                        onChange={(e) => setLaddiAmount(e.target.value)}
-                        placeholder="Amount"
-                        onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
-                      />
+                      <Input id="harupAmount" placeholder="Amount" className="w-24 font-bold shrink-0" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} />
                     </div>
-
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-2 mt-2">
-                        <div className="flex items-center gap-2">
-                            <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} />
-                            <Label htmlFor="remove-jodda" className="text-xs">Remove Jodda</Label>
-                        </div>
-                        <div className="text-sm font-bold text-primary">{combinationCount} Combinations</div>
-                        <Button onClick={handleLaddiApply}>Apply</Button>
-                    </div>
-                </div>
+                  </div>
+                  <div className="flex justify-end mt-2">
+                      <Button onClick={handleHarupApply}>Apply</Button>
+                  </div>
+              </div>
+              <div className="border rounded-lg p-2 sm:p-4">
+                <h3 className="font-semibold mb-2">Laddi</h3>
+                <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
+                    <Input
+                      id="laddiNum1"
+                      type="text"
+                      pattern="[0-9]*"
+                      className="text-center min-w-0 flex-grow"
+                      placeholder="Num 1"
+                      value={laddiNum1}
+                      onChange={(e) => handleLaddiNum1Change(e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
+                    />
+                    <Input
+                      id="laddiNum2"
+                      type="text"
+                      pattern="[0-9]*"
+                      className="text-center min-w-0 flex-grow"
+                      placeholder="Num 2"
+                      value={laddiNum2}
+                      onChange={(e) => handleLaddiNum2Change(e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
+                    />
+                    <span className="text-xl font-bold mx-2">=</span>
+                    <Input
+                      id="amount"
+                      type="text"
+                      className="w-24 text-center font-bold shrink-0"
+                      value={laddiAmount}
+                      onChange={(e) => setLaddiAmount(e.target.value)}
+                      placeholder="Amount"
+                      onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
+                    />
+                  </div>
+                  <div className="flex flex-col sm:flex-row justify-between items-center gap-2 mt-2">
+                      <div className="flex items-center gap-2">
+                          <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} />
+                          <Label htmlFor="remove-jodda" className="text-xs">Remove Jodda</Label>
+                      </div>
+                      <div className="text-sm font-bold text-primary">{combinationCount} Combinations</div>
+                      <Button onClick={handleLaddiApply}>Apply</Button>
+                  </div>
+              </div>
             </div>
         </CardFooter>
       </Card>
@@ -828,50 +820,52 @@ const handleHarupApply = () => {
       </Dialog>
       
       <Dialog open={isMasterSheetDialogOpen} onOpenChange={setIsMasterSheetDialogOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Master Sheet - {activeSheet.name}</DialogTitle>
           </DialogHeader>
-          <div className="overflow-x-auto w-full my-4">
-            <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, minWidth: '600px'}}>
-               <div className="col-start-1" style={{gridColumn: `span ${GRID_COLS}`}}></div>
-               <div className="flex items-center justify-center font-semibold text-muted-foreground min-w-[80px] sm:min-w-[100px]">Total</div>
-              {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
-                <React.Fragment key={`master-row-${rowIndex}`}>
-                  {Array.from({ length: GRID_COLS }, (_, colIndex) => {
-                    const cellNumber = rowIndex * GRID_COLS + colIndex + 1;
-                    const displayCellNumber = cellNumber === 100 ? 0 : cellNumber;
-                    const key = `${rowIndex}_${colIndex}`
-                    return (
-                      <div key={`master-cell-${key}`} className="relative">
-                        <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{String(displayCellNumber).padStart(2, '0')}</div>
+          <ScrollArea className="flex-grow">
+            <div className="overflow-x-auto w-full my-4 pr-6">
+                <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, minWidth: '600px'}}>
+                  <div className="col-start-1" style={{gridColumn: `span ${GRID_COLS}`}}></div>
+                  <div className="flex items-center justify-center font-semibold text-muted-foreground min-w-[80px] sm:min-w-[100px]">Total</div>
+                  {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
+                    <React.Fragment key={`master-row-${rowIndex}`}>
+                      {Array.from({ length: GRID_COLS }, (_, colIndex) => {
+                        const cellNumber = rowIndex * GRID_COLS + colIndex;
+                        const displayCellNumber = String(cellNumber).padStart(2, '0');
+                        const key = `${rowIndex}_${colIndex}`
+                        return (
+                          <div key={`master-cell-${key}`} className="relative">
+                            <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{displayCellNumber}</div>
+                            <Input
+                              type="text"
+                              readOnly
+                              className="pt-5 text-sm bg-muted min-w-0"
+                              value={activeSheet.data[key] || ''}
+                              aria-label={`Cell ${displayCellNumber}`}
+                            />
+                          </div>
+                        )
+                      })}
+                      <div className="flex items-center justify-center p-2 font-medium min-w-[80px] sm:min-w-[100px] rounded-md">
                         <Input
                           type="text"
                           readOnly
-                          className="pt-5 text-sm bg-muted min-w-0"
-                          value={activeSheet.data[key] || ''}
-                          aria-label={`Cell ${displayCellNumber}`}
+                          className="text-sm font-medium text-center bg-muted min-w-0"
+                          value={getRowTotal(rowIndex)}
+                          aria-label={`Row ${rowIndex} Total`}
                         />
                       </div>
-                    )
-                  })}
-                  <div className="flex items-center justify-center p-2 font-medium min-w-[80px] sm:min-w-[100px] rounded-md">
-                     <Input
-                      type="text"
-                      readOnly
-                      className="text-sm font-medium text-center bg-muted min-w-0"
-                      value={getRowTotal(rowIndex)}
-                      aria-label={`Row ${rowIndex + 1} Total`}
-                    />
-                  </div>
-                </React.Fragment>
-              ))}
-               <div style={{ gridColumn: `span ${GRID_COLS}` }} className="flex items-center justify-end p-2 font-bold min-w-[80px] sm:min-w-[100px] mt-1 pr-4">Total</div>
-               <div className="flex items-center justify-center p-2 font-bold min-w-[80px] sm:min-w-[100px] bg-primary/20 rounded-md mt-1">
-                  {calculateGrandTotal()}
+                    </React.Fragment>
+                  ))}
+                  <div style={{ gridColumn: `span ${GRID_COLS}` }} className="flex items-center justify-end p-2 font-bold min-w-[80px] sm:min-w-[100px] mt-1 pr-4">Total</div>
+                  <div className="flex items-center justify-center p-2 font-bold min-w-[80px] sm:min-w-[100px] bg-primary/20 rounded-md mt-1">
+                      {calculateGrandTotal()}
+                    </div>
                 </div>
             </div>
-          </div>
+          </ScrollArea>
           <DialogFooter>
             <DialogClose asChild>
               <Button type="button">Close</Button>
@@ -915,6 +909,4 @@ GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
 
-
-
-
+    

@@ -67,7 +67,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6">
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6">
         <h1 className="text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2">
           <GridIcon className="h-6 w-6 text-primary" />
           GridSheet Manager
@@ -134,7 +134,7 @@ export default function Home() {
                       </PopoverContent>
                     </Popover>
                   </div>
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4">
                     {draws.map((draw) => (
                       <Button key={draw} onClick={() => handleSelectDraw(draw)} className="h-16 sm:h-20 text-lg sm:text-xl font-bold">
                         {draw}
@@ -156,3 +156,5 @@ export default function Home() {
     </div>
   )
 }
+
+    
