@@ -46,8 +46,29 @@ export default function GridSheet() {
   const [laddiNum2, setLaddiNum2] = useState('');
   const [laddiAmount, setLaddiAmount] = useState('');
   const [removeJodda, setRemoveJodda] = useState(false);
+  const [combinationCount, setCombinationCount] = useState(0);
 
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
+
+  useEffect(() => {
+    const digits1 = laddiNum1.split('');
+    const digits2 = laddiNum2.split('');
+    let count = 0;
+    if (digits1.length > 0 && digits2.length > 0) {
+      if (removeJodda) {
+        for (const d1 of digits1) {
+          for (const d2 of digits2) {
+            if (d1 !== d2) {
+              count++;
+            }
+          }
+        }
+      } else {
+        count = digits1.length * digits2.length;
+      }
+    }
+    setCombinationCount(count);
+  }, [laddiNum1, laddiNum2, removeJodda]);
 
   const handleCellChange = (rowIndex: number, colIndex: number, value: string) => {
     const updatedSheets = sheets.map(sheet => {
@@ -441,35 +462,40 @@ export default function GridSheet() {
             <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} />
             <Label htmlFor="remove-jodda">Remove Jodda</Label>
           </div>
-          <div className="flex items-center gap-2 mt-2">
-            <Input 
-              type="number" 
-              className="w-full text-center" 
-              placeholder="Num 1"
-              value={laddiNum1}
-              onChange={(e) => {
-                setLaddiNum1(e.target.value)
-                setLaddiNum2(e.target.value)
-              }}
-            />
-            <span className="text-xl font-bold">×</span>
-            <Input 
-              type="number" 
-              className="w-full text-center" 
-              placeholder="Num 2"
-              value={laddiNum2}
-              onChange={(e) => setLaddiNum2(e.target.value)}
-            />
-             <span className="text-xl font-bold mx-2">=</span>
-            <div className="flex flex-col">
-              <Label htmlFor="amount" className="text-xs text-muted-foreground">Amount</Label>
-              <Input 
-                id="amount" 
-                type="text" 
-                className="w-24 text-center font-bold" 
-                value={laddiAmount}
-                onChange={(e) => setLaddiAmount(e.target.value)}
-              />
+          <div className="flex flex-col items-center gap-2 mt-2">
+            <div className="flex items-center gap-2 w-full">
+                <Input 
+                  type="number" 
+                  className="w-full text-center" 
+                  placeholder="Num 1"
+                  value={laddiNum1}
+                  onChange={(e) => {
+                    setLaddiNum1(e.target.value)
+                    setLaddiNum2(e.target.value)
+                  }}
+                />
+                <span className="text-xl font-bold">×</span>
+                <Input 
+                  type="number" 
+                  className="w-full text-center" 
+                  placeholder="Num 2"
+                  value={laddiNum2}
+                  onChange={(e) => setLaddiNum2(e.target.value)}
+                />
+                 <span className="text-xl font-bold mx-2">=</span>
+                <div className="flex flex-col">
+                  <Label htmlFor="amount" className="text-xs text-muted-foreground">Amount</Label>
+                  <Input 
+                    id="amount" 
+                    type="text" 
+                    className="w-24 text-center font-bold" 
+                    value={laddiAmount}
+                    onChange={(e) => setLaddiAmount(e.target.value)}
+                  />
+                </div>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Combinations: <span className="font-bold text-primary">{combinationCount}</span>
             </div>
           </div>
           <div className="flex justify-end mt-2">
