@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GridSheet from "@/components/grid-sheet"
 import ClientsManager, { Client } from "@/components/clients-manager"
 import AccountsManager from "@/components/accounts-manager"
-import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History } from 'lucide-react';
+import { Users, Building, ArrowLeft, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
@@ -74,7 +74,7 @@ export default function Home() {
       </header>
       <main className="flex-1 p-4 md:p-6 lg:p-8">
         <Tabs defaultValue="sheet" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 md:w-[500px]">
+          <TabsList className="grid w-full grid-cols-3 md:w-[400px]">
             <TabsTrigger value="sheet">
               <GridIcon className="mr-2 h-4 w-4" />
               SHEET
@@ -86,10 +86,6 @@ export default function Home() {
             <TabsTrigger value="accounts">
               <Building className="mr-2 h-4 w-4" />
               ACCOUNTS
-            </TabsTrigger>
-             <TabsTrigger value="last-entry">
-              <History className="mr-2 h-4 w-4" />
-              LAST ENTRY
             </TabsTrigger>
           </TabsList>
           <TabsContent value="sheet" className="mt-4">
@@ -148,19 +144,8 @@ export default function Home() {
           <TabsContent value="accounts" className="mt-4">
             <AccountsManager />
           </TabsContent>
-           <TabsContent value="last-entry" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Last Entry</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <pre className="bg-muted p-4 rounded-md overflow-auto">{lastEntry || "No entries yet."}</pre>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       </main>
     </div>
   )
 }
-

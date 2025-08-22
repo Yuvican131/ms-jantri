@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Download, Plus, AlertCircle, Loader2, Trash2, Copy } from "lucide-react"
+import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, History } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -70,6 +70,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [harupAmount, setHarupAmount] = useState('');
   const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
+  const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
 
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
 
@@ -553,8 +554,8 @@ const handleHarupApply = () => {
     toast({ title: "Sheet Generated", description: "The multi-text area has been populated with the grid data." });
   };
   
-  const handleCopyToClipboard = () => {
-    navigator.clipboard.writeText(generatedSheetContent).then(() => {
+  const handleCopyToClipboard = (content: string) => {
+    navigator.clipboard.writeText(content).then(() => {
         toast({ title: "Copied to clipboard!" });
     }, (err) => {
         toast({ title: "Failed to copy", description: "Could not copy text to clipboard.", variant: "destructive" });
@@ -684,12 +685,10 @@ const handleHarupApply = () => {
               />
               <div className="flex gap-2 mt-2 items-stretch">
                 <Button onClick={handleMultiTextApply} className="h-auto">Apply to Sheet</Button>
-                <div className="border rounded-lg p-2 flex-grow flex flex-col">
-                  <h3 className="font-semibold mb-2 text-center">Last Entry</h3>
-                  <div className="bg-muted rounded-md p-2 flex-grow text-xs overflow-auto">
-                      <pre className="h-full">{props.lastEntry}</pre>
-                  </div>
-                </div>
+                 <Button onClick={() => setIsLastEntryDialogOpen(true)} variant="outline">
+                    <History className="mr-2 h-4 w-4" />
+                    Last Entry
+                </Button>
               </div>
             </div>
             <div className="flex flex-col gap-2">
@@ -781,9 +780,36 @@ const handleHarupApply = () => {
                 Close
               </Button>
             </DialogClose>
-            <Button onClick={handleCopyToClipboard}>
+            <Button onClick={() => handleCopyToClipboard(generatedSheetContent)}>
               <Copy className="mr-2 h-4 w-4" />
               Copy to Clipboard
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isLastEntryDialogOpen} onOpenChange={setIsLastEntryDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Last Entry</DialogTitle>
+          </DialogHeader>
+          <div className="my-4">
+            <Textarea
+              readOnly
+              value={props.lastEntry || "No entries yet."}
+              rows={Math.min(15, (props.lastEntry || "").split('\n').length)}
+              className="bg-muted"
+            />
+          </div>
+          <DialogFooter className="sm:justify-between">
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">
+                Close
+              </Button>
+            </DialogClose>
+             <Button onClick={() => handleCopyToClipboard(props.lastEntry)}>
+                <Copy className="mr-2 h-4 w-4" />
+                Copy to Clipboard
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -795,4 +821,3 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
