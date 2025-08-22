@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { PlusCircle, MoreHorizontal, Edit, Trash2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
-type Client = {
+export type Client = {
   id: string
   name: string
   pair: string
@@ -20,7 +20,11 @@ type Client = {
 
 const initialClients: Client[] = []
 
-export default function ClientsManager() {
+type ClientsManagerProps = {
+  onClientUpdateForSheet: (client: Client) => void;
+}
+
+export default function ClientsManager({ onClientUpdateForSheet }: ClientsManagerProps) {
   const [clients, setClients] = useState<Client[]>(initialClients)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
@@ -35,10 +39,17 @@ export default function ClientsManager() {
     const patti = formData.get("patti") as string
 
     if (editingClient) {
-      setClients(clients.map(c => c.id === editingClient.id ? { ...c, name, pair, comm, inOut, patti } : c))
+      const updatedClient = { ...editingClient, name, pair, comm, inOut, patti };
+      setClients(clients.map(c => c.id === editingClient.id ? updatedClient : c))
+       if (pair === "90") {
+        onClientUpdateForSheet(updatedClient);
+      }
     } else {
       const newClient: Client = { id: Date.now().toString(), name, pair, comm, inOut, patti }
       setClients([...clients, newClient])
+       if (pair === "90") {
+        onClientUpdateForSheet(newClient);
+      }
     }
     setEditingClient(null)
     setIsDialogOpen(false)

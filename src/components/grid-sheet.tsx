@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { validateCellContent, ValidateCellContentOutput } from "@/ai/flows/validate-cell-content"
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
+import type { Client } from "./clients-manager"
 
 type CellData = { [key: string]: string }
 type ValidationResult = {
@@ -37,7 +38,12 @@ const DUMMY_ACCOUNTS = "Revenue, Expenses, Assets, Liabilities, Equity, COGS"
 const DUMMY_RULES = "Cell content must be a number or a standard account name. If it's a number, it can be positive or negative."
 const MAX_COMBINATIONS = 100;
 
-export default function GridSheet() {
+type GridSheetHandle = {
+  handleClientUpdate: (client: Client) => void;
+};
+
+
+const GridSheet = forwardRef<GridSheetHandle, {}>((props, ref) => {
   const { toast } = useToast()
   const [sheets, setSheets] = useState<Sheet[]>(initialSheets)
   const [activeSheetId, setActiveSheetId] = useState<string>("1")
@@ -57,6 +63,35 @@ export default function GridSheet() {
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
 
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
+
+  useImperativeHandle(ref, () => ({
+    handleClientUpdate: (client: Client) => {
+      if (client.pair === '90') {
+        const cellNum = parseInt(client.name, 10);
+        const commission = parseFloat(client.comm);
+
+        if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE && !isNaN(commission)) {
+          const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
+          const colIndex = (cellNum - 1) % GRID_SIZE;
+          const key = `${rowIndex}_${colIndex}`;
+          
+          const updatedSheets = sheets.map(sheet => {
+            if (sheet.id === activeSheetId) {
+              const newData = { ...sheet.data };
+              const currentValue = parseFloat(newData[key]) || 0;
+              newData[key] = String(currentValue * commission);
+              return { ...sheet, data: newData };
+            }
+            return sheet;
+          });
+          setSheets(updatedSheets);
+          setUpdatedCells(prev => [...prev, key]);
+          setTimeout(() => setUpdatedCells(prev => prev.filter(c => c !== key)), 2000);
+          toast({ title: "Sheet Updated by Client", description: `Cell ${client.name} value multiplied by commission ${client.comm}.` });
+        }
+      }
+    }
+  }));
 
   const calculateCombinations = (num1: string, num2: string, removeJoddaFlag: boolean): number => {
     const digits1 = num1.split('');
@@ -515,6 +550,10 @@ const handleHarupApply = () => {
     }
   };
 
+  if (!activeSheet) {
+    return <div>Loading...</div>; // Or some other placeholder
+  }
+
   return (
     <>
       <Card>
@@ -733,6 +772,8 @@ const handleHarupApply = () => {
       </Dialog>
     </>
   )
-}
+});
 
-    
+GridSheet.displayName = 'GridSheet';
+
+export default GridSheet;
