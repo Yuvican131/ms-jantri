@@ -470,7 +470,10 @@ export default function GridSheet() {
                     setLaddiNum2(e.target.value)
                   }}
                 />
-                <span className="text-xl font-bold">×</span>
+                 <div className="flex flex-col items-center">
+                    <div className="text-sm font-bold text-primary">{combinationCount}</div>
+                    <span className="text-xl font-bold">×</span>
+                </div>
                 <Input 
                   type="number" 
                   className="w-full text-center" 
@@ -489,9 +492,6 @@ export default function GridSheet() {
                     onChange={(e) => setLaddiAmount(e.target.value)}
                   />
                 </div>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Combinations: <span className="font-bold text-primary">{combinationCount}</span>
             </div>
             <div className="flex items-center space-x-2 mt-2">
               <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} />
