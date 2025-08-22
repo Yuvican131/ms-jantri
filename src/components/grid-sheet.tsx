@@ -673,19 +673,21 @@ const handleHarupApply = () => {
               />
               <div className="flex gap-2 mt-2">
                 <Button onClick={handleMultiTextApply}>Apply to Sheet</Button>
-                <div className="w-1/3">
-                    <h3 className="font-semibold mb-2">Last Entry</h3>
-                    <div className="bg-muted rounded-md p-2 h-[96px] text-xs overflow-auto">
+                <div className="w-1/3 border rounded-lg p-2">
+                    <h3 className="font-semibold mb-2 text-center">Last Entry</h3>
+                    <div className="bg-muted rounded-md p-2 h-[70px] text-xs overflow-auto">
                         <pre>{lastEntry}</pre>
                     </div>
                 </div>
               </div>
             </div>
-            <Button onClick={handleGenerateSheet} variant="outline">Generate Sheet</Button>
-             <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0">
-                <Trash2 className="h-4 w-4" />
-                <span className="sr-only">Clear Sheet</span>
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button onClick={handleGenerateSheet} variant="outline">Generate Sheet</Button>
+              <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0">
+                  <Trash2 className="h-4 w-4" />
+                  <span className="sr-only">Clear Sheet</span>
+              </Button>
+            </div>
           </div>
           <div className="w-full xl:w-1/2 flex flex-col gap-4">
             <div className="border rounded-lg p-4">
