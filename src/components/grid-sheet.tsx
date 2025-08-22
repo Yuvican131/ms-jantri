@@ -35,7 +35,8 @@ const initialSheets: Sheet[] = [
   { id: "2", name: "Q2 2024 Estimates", data: { }, rowTotals: {} },
 ]
 
-const GRID_SIZE = 10;
+const GRID_ROWS = 10;
+const GRID_COLS = 10;
 const DUMMY_ACCOUNTS = "Revenue, Expenses, Assets, Liabilities, Equity, COGS"
 const DUMMY_RULES = "Cell content must be a number or a standard account name. If it's a number, it can be positive or negative."
 const MAX_COMBINATIONS = 100;
@@ -80,9 +81,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const cellNum = parseInt(client.name, 10);
         const commission = parseFloat(client.comm);
 
-        if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE && !isNaN(commission)) {
-          const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
-          const colIndex = (cellNum - 1) % GRID_SIZE;
+        if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_ROWS * GRID_COLS && !isNaN(commission)) {
+          const rowIndex = Math.floor((cellNum - 1) / GRID_COLS);
+          const colIndex = (cellNum - 1) % GRID_COLS;
           const key = `${rowIndex}_${colIndex}`;
           
           const updatedSheets = sheets.map(sheet => {
@@ -207,8 +208,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
   const exportToCSV = () => {
     let csvContent = "data:text/csv;charset=utf-8,"
-    const rows = Array.from({ length: GRID_SIZE }, (_, rowIndex) =>
-      Array.from({ length: GRID_SIZE }, (_, colIndex) => {
+    const rows = Array.from({ length: GRID_ROWS }, (_, rowIndex) =>
+      Array.from({ length: GRID_COLS }, (_, colIndex) => {
         const key = `${rowIndex}_${colIndex}`
         const cellValue = activeSheet.data[key] || ""
         return `"${cellValue.replace(/"/g, '""')}"`
@@ -227,7 +228,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
   const calculateRowTotal = (rowIndex: number) => {
     let total = 0
-    for (let colIndex = 0; colIndex < GRID_SIZE; colIndex++) {
+    for (let colIndex = 0; colIndex < GRID_COLS; colIndex++) {
       const key = `${rowIndex}_${colIndex}`
       const value = activeSheet.data[key]
       if (value && !isNaN(Number(value))) {
@@ -263,7 +264,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
   const calculateGrandTotal = () => {
     let total = 0;
-    for (let i = 0; i < GRID_SIZE; i++) {
+    for (let i = 0; i < GRID_ROWS; i++) {
       total += Number(getRowTotal(i))
     }
     return total;
@@ -317,9 +318,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
         numbers.forEach(numStr => {
             const cellNum = parseInt(numStr, 10);
-            if (!isNaN(cellNum) && cellNum >= 0 && cellNum < GRID_SIZE * GRID_SIZE) {
-                const rowIndex = Math.floor(cellNum / GRID_SIZE);
-                const colIndex = cellNum % GRID_SIZE;
+            if (!isNaN(cellNum) && cellNum >= 0 && cellNum < GRID_ROWS * GRID_COLS) {
+                const rowIndex = Math.floor(cellNum / GRID_COLS);
+                const colIndex = cellNum % GRID_COLS;
                 const key = `${rowIndex}_${colIndex}`;
                 
                 const currentValue = parseFloat(newData[key]) || 0;
@@ -378,9 +379,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
             const cellNumStr = `${d1}${d2}`;
             const cellNum = parseInt(cellNumStr, 10);
 
-            if (!isNaN(cellNum) && cellNum >= 0 && cellNum < GRID_SIZE * GRID_SIZE) {
-                const rowIndex = Math.floor(cellNum / GRID_SIZE);
-                const colIndex = cellNum % GRID_SIZE;
+            if (!isNaN(cellNum) && cellNum >= 0 && cellNum < GRID_ROWS * GRID_COLS) {
+                const rowIndex = Math.floor(cellNum / GRID_COLS);
+                const colIndex = cellNum % GRID_COLS;
                 const key = `${rowIndex}_${colIndex}`;
                 
                 const currentValue = parseFloat(newData[key]) || 0;
@@ -444,14 +445,14 @@ const handleHarupApply = () => {
           for (let i = 0; i < 10; i++) {
             const cellNumStr = `${digit}${i}`;
             const cellNum = parseInt(cellNumStr, 10);
-            if (!isNaN(cellNum) && cellNum >= 0 && cellNum < GRID_SIZE * GRID_SIZE) {
+            if (!isNaN(cellNum) && cellNum >= 0 && cellNum < GRID_ROWS * GRID_COLS) {
               cellsToUpdate.push(cellNum);
             }
           }
           const amountPerCell = totalAmount / cellsToUpdate.length;
           for (const cellNum of cellsToUpdate) {
-            const rowIndex = Math.floor(cellNum / GRID_SIZE);
-            const colIndex = cellNum % GRID_SIZE;
+            const rowIndex = Math.floor(cellNum / GRID_COLS);
+            const colIndex = cellNum % GRID_COLS;
             const key = `${rowIndex}_${colIndex}`;
             const currentValue = parseFloat(newData[key]) || 0;
             newData[key] = String(currentValue + amountPerCell);
@@ -467,14 +468,14 @@ const handleHarupApply = () => {
         for (let i = 0; i < 10; i++) {
           const cellNumStr = `${i}${digit}`;
           const cellNum = parseInt(cellNumStr, 10);
-          if (!isNaN(cellNum) && cellNum >= 0 && cellNum < GRID_SIZE * GRID_SIZE) {
+          if (!isNaN(cellNum) && cellNum >= 0 && cellNum < GRID_ROWS * GRID_COLS) {
             cellsToUpdate.push(cellNum);
           }
         }
          const amountPerCell = totalAmount / cellsToUpdate.length;
          for (const cellNum of cellsToUpdate) {
-            const rowIndex = Math.floor(cellNum / GRID_SIZE);
-            const colIndex = cellNum % GRID_SIZE;
+            const rowIndex = Math.floor(cellNum / GRID_COLS);
+            const colIndex = cellNum % GRID_COLS;
             const key = `${rowIndex}_${colIndex}`;
             const currentValue = parseFloat(newData[key]) || 0;
             newData[key] = String(currentValue + amountPerCell);
@@ -540,7 +541,7 @@ const handleHarupApply = () => {
       const value = activeSheet.data[key];
       if (value && value.trim() !== '' && !isNaN(Number(value)) && Number(value) !== 0) {
         const [rowIndex, colIndex] = key.split('_').map(Number);
-        const cellNumber = rowIndex * GRID_SIZE + colIndex;
+        const cellNumber = rowIndex * GRID_COLS + colIndex;
         
         if (!valueToCells[value]) {
           valueToCells[value] = [];
@@ -592,7 +593,7 @@ const handleHarupApply = () => {
       .split(',')
       .map(s => s.trim())
       .filter(s => s)
-      .flatMap(s => s.length > 2 ? s.match(/.{1,2}/g) || [] : s)
+      .flatMap(s => (s.length > 2 && /^\d+$/.test(s)) ? s.match(/.{1,2}/g) || [] : s)
       .join(',');
 
     setMultiText(`${autoFormattedNumbers}${valuePart}`);
@@ -636,16 +637,16 @@ const handleHarupApply = () => {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto w-full">
-            <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_SIZE + 1}, minmax(0, 1fr))`}}>
+            <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`}}>
                {/* Header for Total column */}
-               <div className="col-start-1" style={{gridColumn: `span ${GRID_SIZE}`}}></div>
+               <div className="col-start-1" style={{gridColumn: `span ${GRID_COLS}`}}></div>
                <div className="flex items-center justify-center font-semibold text-muted-foreground min-w-[100px]">Total</div>
  
 
-              {Array.from({ length: GRID_SIZE }, (_, rowIndex) => (
+              {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                 <React.Fragment key={rowIndex}>
-                  {Array.from({ length: GRID_SIZE }, (_, colIndex) => {
-                    const cellNumber = rowIndex * GRID_SIZE + colIndex
+                  {Array.from({ length: GRID_COLS }, (_, colIndex) => {
+                    const cellNumber = colIndex + 1;
                     const key = `${rowIndex}_${colIndex}`
                     const validation = validations[key]
                     const isUpdated = updatedCells.includes(key);
@@ -692,7 +693,7 @@ const handleHarupApply = () => {
                   </div>
                 </React.Fragment>
               ))}
-               <div style={{ gridColumn: `span ${GRID_SIZE}` }} className="flex items-center justify-end p-2 font-bold min-w-[100px] mt-1 pr-4">Total</div>
+               <div style={{ gridColumn: `span ${GRID_COLS}` }} className="flex items-center justify-end p-2 font-bold min-w-[100px] mt-1 pr-4">Total</div>
                <div className="flex items-center justify-center p-2 font-bold min-w-[100px] bg-primary/20 rounded-md mt-1">
                   {calculateGrandTotal()}
                 </div>
