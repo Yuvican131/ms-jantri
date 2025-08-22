@@ -459,7 +459,7 @@ export default function GridSheet() {
         <div className="w-full border rounded-lg p-4">
           <h3 className="font-semibold mb-2">Laddi</h3>
           <div className="flex flex-col items-center gap-2 mt-2">
-            <div className="flex items-center gap-2 w-full">
+            <div className="flex items-start gap-2 w-full">
                 <Input 
                   type="number" 
                   className="w-full text-center" 
@@ -470,10 +470,8 @@ export default function GridSheet() {
                     setLaddiNum2(e.target.value)
                   }}
                 />
-                 <div className="flex flex-col items-center">
+                 <div className="flex flex-col items-center pt-2">
                     <div className="text-sm font-bold text-primary">{combinationCount}</div>
-                    <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} />
-                    <Label htmlFor="remove-jodda" className="text-xs">Remove Jodda</Label>
                 </div>
                 <Input 
                   type="number" 
@@ -482,7 +480,7 @@ export default function GridSheet() {
                   value={laddiNum2}
                   onChange={(e) => setLaddiNum2(e.target.value)}
                 />
-                 <span className="text-xl font-bold mx-2">=</span>
+                 <span className="text-xl font-bold mx-2 pt-1">=</span>
                 <div className="flex flex-col">
                   <Label htmlFor="amount" className="text-xs text-muted-foreground">Amount</Label>
                   <Input 
@@ -493,6 +491,10 @@ export default function GridSheet() {
                     onChange={(e) => setLaddiAmount(e.target.value)}
                   />
                 </div>
+            </div>
+            <div className="flex items-center gap-2">
+                <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} />
+                <Label htmlFor="remove-jodda" className="text-xs">Remove Jodda</Label>
             </div>
           </div>
           <div className="flex justify-end mt-2">
