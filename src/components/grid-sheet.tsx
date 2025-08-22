@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Download, Plus, AlertCircle, Loader2, Trash2 } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 
 type CellData = { [key: string]: string }
 type ValidationResult = {
@@ -40,6 +41,19 @@ export default function GridSheet() {
   const [validations, setValidations] = useState<CellValidation>({})
   const [multiText, setMultiText] = useState("");
   const [updatedCells, setUpdatedCells] = useState<string[]>([]);
+  const [laddiNum1, setLaddiNum1] = useState('');
+  const [laddiNum2, setLaddiNum2] = useState('');
+  const [laddiAmount, setLaddiAmount] = useState('');
+
+  useEffect(() => {
+    const num1 = parseFloat(laddiNum1);
+    const num2 = parseFloat(laddiNum2);
+    if (!isNaN(num1) && !isNaN(num2)) {
+      setLaddiAmount((num1 * num2).toFixed(2));
+    } else {
+      setLaddiAmount('');
+    }
+  }, [laddiNum1, laddiNum2]);
 
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
 
@@ -370,9 +384,26 @@ export default function GridSheet() {
         <div className="w-full border rounded-lg p-4">
           <h3 className="font-semibold mb-2">Laddi</h3>
           <div className="flex items-center gap-2 mt-2">
-            <Input type="number" className="w-32 text-center" placeholder="Num 1" />
+            <Input 
+              type="number" 
+              className="w-32 text-center" 
+              placeholder="Num 1"
+              value={laddiNum1}
+              onChange={(e) => setLaddiNum1(e.target.value)}
+            />
             <span className="text-xl font-bold">×</span>
-            <Input type="number" className="w-32 text-center" placeholder="Num 2" />
+            <Input 
+              type="number" 
+              className="w-32 text-center" 
+              placeholder="Num 2"
+              value={laddiNum2}
+              onChange={(e) => setLaddiNum2(e.target.value)}
+            />
+             <span className="text-xl font-bold mx-2">=</span>
+            <div className="flex flex-col">
+              <Label htmlFor="amount" className="text-xs text-muted-foreground">Amount</Label>
+              <Input id="amount" type="text" className="w-32 text-center font-bold" value={laddiAmount} readOnly />
+            </div>
           </div>
         </div>
       </CardFooter>
