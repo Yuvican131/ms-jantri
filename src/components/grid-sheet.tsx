@@ -499,7 +499,7 @@ export default function GridSheet() {
             <div className="flex flex-col gap-2 mt-2">
               <div className="flex items-start gap-2 w-full">
                 <div className="flex-1">
-                  <Label htmlFor="laddiNum1" className="text-xs text-muted-foreground">A</Label>
+                  
                   <Input
                     id="laddiNum1"
                     type="text"
@@ -511,7 +511,7 @@ export default function GridSheet() {
                   />
                 </div>
                 <div className="flex-1">
-                  <Label htmlFor="laddiNum2" className="text-xs text-muted-foreground">B</Label>
+                  
                   <Input
                     id="laddiNum2"
                     type="text"
