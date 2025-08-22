@@ -93,9 +93,9 @@ export default function Home() {
                 <CardHeader>
                   <CardTitle>Select a Draw</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <CardContent className="grid grid-cols-6 gap-4">
                   {draws.map((draw) => (
-                    <Button key={draw} onClick={() => handleSelectDraw(draw)} className="h-24 text-2xl font-bold">
+                    <Button key={draw} onClick={() => handleSelectDraw(draw)} className="h-20 text-xl font-bold">
                       {draw}
                     </Button>
                   ))}
