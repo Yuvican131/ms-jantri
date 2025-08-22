@@ -1,94 +1,50 @@
 "use client"
-import { useState, useEffect, useMemo } from "react"
-import { useToast } from "@/hooks/use-toast"
-import { suggestAccountNames, SuggestAccountNamesOutput } from "@/ai/flows/suggest-account-names"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { PlusCircle, MoreHorizontal, Edit, Trash2, Loader2 } from "lucide-react"
+import { PlusCircle, MoreHorizontal, Edit, Trash2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 type Account = {
   id: string
-  name: string
-  number: string
-  notes: string
+  clientName: string
+  gameTotal: string
+  commission: string
+  balance: string
 }
 
 const initialAccounts: Account[] = []
 
 export default function AccountsManager() {
-  const { toast } = useToast()
   const [accounts, setAccounts] = useState<Account[]>(initialAccounts)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingAccount, setEditingAccount] = useState<Account | null>(null)
   
-  const [suggestions, setSuggestions] = useState<string[]>([])
-  const [isSuggesting, setIsSuggesting] = useState(false)
-  const [partialName, setPartialName] = useState("")
-  const [accountName, setAccountName] = useState("")
-
-  const debouncedPartialName = useMemo(() => {
-    const handler = setTimeout(() => {
-      setPartialName(accountName);
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [accountName]);
-  
-  useEffect(() => {
-    debouncedPartialName;
-  }, [debouncedPartialName]);
-
-  useEffect(() => {
-    if (partialName.length < 3) {
-      setSuggestions([])
-      return
-    }
-
-    const fetchSuggestions = async () => {
-      setIsSuggesting(true)
-      try {
-        const result: SuggestAccountNamesOutput = await suggestAccountNames({ partialAccountName: partialName })
-        setSuggestions(result.suggestedAccountNames)
-      } catch (error) {
-        console.error("Error fetching suggestions:", error)
-        toast({ title: "Error", description: "Could not fetch AI suggestions.", variant: "destructive" })
-      } finally {
-        setIsSuggesting(false)
-      }
-    };
-    
-    fetchSuggestions();
-  }, [partialName, toast])
-  
   const handleSaveAccount = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
-    const name = accountName
-    const number = formData.get("number") as string
-    const notes = formData.get("notes") as string
+    const clientName = formData.get("clientName") as string
+    const gameTotal = formData.get("gameTotal") as string
+    const commission = formData.get("commission") as string
+    const balance = formData.get("balance") as string
 
     if (editingAccount) {
-      setAccounts(accounts.map(a => a.id === editingAccount.id ? { ...a, name, number, notes } : a))
+      setAccounts(accounts.map(a => a.id === editingAccount.id ? { ...a, clientName, gameTotal, commission, balance } : a))
     } else {
-      const newAccount: Account = { id: Date.now().toString(), name, number, notes }
+      const newAccount: Account = { id: Date.now().toString(), clientName, gameTotal, commission, balance }
       setAccounts([...accounts, newAccount])
     }
     setEditingAccount(null)
-    setAccountName("")
-    setPartialName("")
-    setSuggestions([])
     setIsDialogOpen(false)
+    e.currentTarget.reset();
   }
 
   const handleEditAccount = (account: Account) => {
     setEditingAccount(account)
-    setAccountName(account.name)
     setIsDialogOpen(true)
   }
 
@@ -98,16 +54,7 @@ export default function AccountsManager() {
 
   const openAddDialog = () => {
     setEditingAccount(null)
-    setAccountName("")
-    setPartialName("")
-    setSuggestions([])
     setIsDialogOpen(true)
-  }
-
-  const handleSuggestionClick = (suggestion: string) => {
-    setAccountName(suggestion)
-    setPartialName(suggestion)
-    setSuggestions([])
   }
 
   return (
@@ -117,9 +64,6 @@ export default function AccountsManager() {
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
           if(!open) {
             setEditingAccount(null)
-            setAccountName("")
-            setPartialName("")
-            setSuggestions([])
           }
           setIsDialogOpen(open)
         }}>
@@ -135,41 +79,20 @@ export default function AccountsManager() {
             </DialogHeader>
             <form onSubmit={handleSaveAccount} className="space-y-4">
               <div>
-                <Label htmlFor="name">Account Name</Label>
-                <Popover open={suggestions.length > 0 && partialName.length > 0}>
-                  <PopoverTrigger asChild>
-                    <div className="relative">
-                      <Input 
-                        id="name" 
-                        name="name" 
-                        value={accountName}
-                        onChange={(e) => {
-                          setAccountName(e.target.value)
-                        }} 
-                        required 
-                        autoComplete="off"
-                      />
-                      {isSuggesting && <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin" />}
-                    </div>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                    <div className="flex flex-col">
-                      {suggestions.map((s, i) => (
-                        <button key={i} type="button" onClick={() => handleSuggestionClick(s)} className="text-left p-2 hover:bg-accent rounded-md">
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <Label htmlFor="clientName">Client Name</Label>
+                <Input id="clientName" name="clientName" defaultValue={editingAccount?.clientName} required />
               </div>
               <div>
-                <Label htmlFor="number">Account Number</Label>
-                <Input id="number" name="number" defaultValue={editingAccount?.number} required />
+                <Label htmlFor="gameTotal">Game Total</Label>
+                <Input id="gameTotal" name="gameTotal" defaultValue={editingAccount?.gameTotal} required />
               </div>
               <div>
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea id="notes" name="notes" defaultValue={editingAccount?.notes} />
+                <Label htmlFor="commission">Commission</Label>
+                <Input id="commission" name="commission" defaultValue={editingAccount?.commission} required />
+              </div>
+              <div>
+                <Label htmlFor="balance">Balance</Label>
+                <Input id="balance" name="balance" defaultValue={editingAccount?.balance} required />
               </div>
               <DialogFooter>
                 <DialogClose asChild>
@@ -185,18 +108,20 @@ export default function AccountsManager() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Account Name</TableHead>
-              <TableHead>Account Number</TableHead>
-              <TableHead>Notes</TableHead>
+              <TableHead>Client Name</TableHead>
+              <TableHead>Game Total</TableHead>
+              <TableHead>Commission</TableHead>
+              <TableHead>Balance</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {accounts.map(account => (
               <TableRow key={account.id}>
-                <TableCell className="font-medium">{account.name}</TableCell>
-                <TableCell>{account.number}</TableCell>
-                <TableCell className="max-w-[300px] truncate">{account.notes}</TableCell>
+                <TableCell className="font-medium">{account.clientName}</TableCell>
+                <TableCell>{account.gameTotal}</TableCell>
+                <TableCell>{account.commission}</TableCell>
+                <TableCell>{account.balance}</TableCell>
                 <TableCell className="text-right">
                    <DropdownMenu>
                     <DropdownMenuTrigger asChild>
