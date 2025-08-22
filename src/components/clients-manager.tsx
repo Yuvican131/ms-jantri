@@ -74,7 +74,7 @@ export default function ClientsManager() {
             <form onSubmit={handleSaveClient} className="space-y-4">
               <div>
                 <Label htmlFor="name">Name</Label>
-                <Input id="name" name="name" defaultValue={editingClient?.name} required />
+                <Input id="name" name="name" defaultValue={editingClient?.name} placeholder="Enter name" required />
               </div>
               <DialogFooter>
                 <DialogClose asChild>
