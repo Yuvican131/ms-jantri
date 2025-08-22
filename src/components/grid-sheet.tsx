@@ -268,50 +268,6 @@ export default function GridSheet() {
     toast({ title: "Sheet Cleared", description: "All cell values have been reset." });
   };
   
-  const handleLaddiApply = () => {
-    if (!laddiAmount) {
-      toast({ title: "Laddi Error", description: "Amount is missing.", variant: "destructive" });
-      return;
-    }
-
-    const combinedNumbers = laddiNum1 + laddiNum2;
-    const cellNumbers = combinedNumbers.match(/(\d\d?)/g) || [];
-    
-    if (cellNumbers.length === 0) {
-      toast({ title: "Laddi Error", description: "No valid cell numbers to update.", variant: "destructive" });
-      return;
-    }
-
-    const newData = { ...activeSheet.data };
-    const updatedCellKeys = new Set<string>();
-
-    cellNumbers.forEach(numStr => {
-      const cellNum = parseInt(numStr, 10);
-      if (cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE) {
-        const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
-        const colIndex = (cellNum - 1) % GRID_SIZE;
-        const key = `${rowIndex}_${colIndex}`;
-        
-        newData[key] = laddiAmount;
-        updatedCellKeys.add(key);
-      }
-    });
-
-    if (updatedCellKeys.size > 0) {
-      const updatedSheets = sheets.map(sheet => {
-        if (sheet.id === activeSheetId) {
-          return { ...sheet, data: newData };
-        }
-        return sheet;
-      });
-      const currentUpdatedCells = Array.from(updatedCellKeys);
-      setSheets(updatedSheets);
-      setUpdatedCells(currentUpdatedCells);
-      setTimeout(() => setUpdatedCells([]), 2000);
-      toast({ title: "Sheet Updated", description: `${currentUpdatedCells.length} cell(s) have been updated from Laddi.` });
-    }
-  };
-
 
   return (
     <Card>
@@ -454,9 +410,6 @@ export default function GridSheet() {
                 onChange={(e) => setLaddiAmount(e.target.value)}
               />
             </div>
-          </div>
-          <div className="flex gap-2 mt-2">
-            <Button onClick={handleLaddiApply}>Apply to Sheet</Button>
           </div>
         </div>
       </CardFooter>
