@@ -542,8 +542,8 @@ const handleHarupApply = () => {
       const value = activeSheet.data[key];
       if (value && value.trim() !== '' && !isNaN(Number(value)) && Number(value) !== 0) {
         const [rowIndex, colIndex] = key.split('_').map(Number);
-        let cellNumber = rowIndex * GRID_COLS + colIndex + 1;
-        if(cellNumber === 100) cellNumber = 0;
+        let cellNumber = rowIndex * GRID_COLS + colIndex;
+        if(cellNumber === 99) cellNumber = 0; else cellNumber += 1;
         
         if (!valueToCells[value]) {
           valueToCells[value] = [];
@@ -883,18 +883,18 @@ const handleHarupApply = () => {
                 </div>
             </div>
             <div className="mt-4 p-4 border-t">
-              <div className="grid grid-cols-3 gap-4">
-                  <div className="flex flex-col gap-2">
-                      <Label htmlFor="master-cutting">Cutting</Label>
-                      <Input id="master-cutting" placeholder="Enter value" />
+              <div className="flex items-center justify-around gap-2">
+                  <div className="flex-1 flex flex-col gap-1">
+                      <Label htmlFor="master-cutting" className="text-center text-sm">Cutting</Label>
+                      <Input id="master-cutting" placeholder="Value" className="text-sm" />
                   </div>
-                  <div className="flex flex-col gap-2">
-                      <Label htmlFor="master-less">Less</Label>
-                      <Input id="master-less" placeholder="Enter value" />
+                  <div className="flex-1 flex flex-col gap-1">
+                      <Label htmlFor="master-less" className="text-center text-sm">Less</Label>
+                      <Input id="master-less" placeholder="Value" className="text-sm" />
                   </div>
-                  <div className="flex flex-col gap-2">
-                      <Label htmlFor="master-dabba">Dabba</Label>
-                      <Input id="master-dabba" placeholder="Enter value" />
+                  <div className="flex-1 flex flex-col gap-1">
+                      <Label htmlFor="master-dabba" className="text-center text-sm">Dabba</Label>
+                      <Input id="master-dabba" placeholder="Value" className="text-sm" />
                   </div>
               </div>
             </div>
@@ -941,6 +941,8 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
 
     
 
