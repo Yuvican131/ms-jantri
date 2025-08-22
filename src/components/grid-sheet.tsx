@@ -472,7 +472,6 @@ export default function GridSheet() {
                 />
                  <div className="flex flex-col items-center">
                     <div className="text-sm font-bold text-primary">{combinationCount}</div>
-                    <span className="text-xl font-bold">×</span>
                 </div>
                 <Input 
                   type="number" 
