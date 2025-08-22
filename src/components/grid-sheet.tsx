@@ -7,10 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Download, Plus, AlertCircle, Loader2, Trash2 } from "lucide-react"
+import { Download, Plus, AlertCircle, Loader2, Trash2, Copy } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
 
 type CellData = { [key: string]: string }
 type ValidationResult = {
@@ -52,6 +53,8 @@ export default function GridSheet() {
   const [harupA, setHarupA] = useState('');
   const [harupB, setHarupB] = useState('');
   const [harupAmount, setHarupAmount] = useState('');
+  const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
+  const [generatedSheetContent, setGeneratedSheetContent] = useState("");
 
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
 
@@ -483,200 +486,234 @@ const handleHarupApply = () => {
       })
       .join('\n');
 
-    setMultiText(generatedText);
+    setGeneratedSheetContent(generatedText);
+    setIsGeneratedSheetDialogOpen(true);
     toast({ title: "Sheet Generated", description: "The multi-text area has been populated with the grid data." });
+  };
+  
+  const handleCopyToClipboard = () => {
+    navigator.clipboard.writeText(generatedSheetContent).then(() => {
+        toast({ title: "Copied to clipboard!" });
+    }, (err) => {
+        toast({ title: "Failed to copy", description: "Could not copy text to clipboard.", variant: "destructive" });
+        console.error('Failed to copy: ', err);
+    });
   };
 
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <CardTitle>Sheet: {activeSheet.name}</CardTitle>
-            <CardDescription>A 10x10 grid for your accounting data. Cells can be targeted by number (1-100) or by coordinates (row,col).</CardDescription>
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <CardTitle>Sheet: {activeSheet.name}</CardTitle>
+              <CardDescription>A 10x10 grid for your accounting data. Cells can be targeted by number (1-100) or by coordinates (row,col).</CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Select value={activeSheetId} onValueChange={setActiveSheetId}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="Select a sheet" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sheets.map(sheet => (
+                    <SelectItem key={sheet.id} value={sheet.id}>{sheet.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="icon" onClick={handleCreateNewSheet}>
+                <Plus className="h-4 w-4" />
+                <span className="sr-only">Create new sheet</span>
+              </Button>
+              <Button onClick={exportToCSV}>
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Select value={activeSheetId} onValueChange={setActiveSheetId}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Select a sheet" />
-              </SelectTrigger>
-              <SelectContent>
-                {sheets.map(sheet => (
-                  <SelectItem key={sheet.id} value={sheet.id}>{sheet.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="icon" onClick={handleCreateNewSheet}>
-              <Plus className="h-4 w-4" />
-              <span className="sr-only">Create new sheet</span>
-            </Button>
-            <Button onClick={exportToCSV}>
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto w-full">
-          <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_SIZE + 1}, minmax(0, 1fr))`}}>
-             {/* Header for Total column */}
-             <div className="col-start-1" style={{gridColumn: `span ${GRID_SIZE}`}}></div>
-             <div className="flex items-center justify-center font-semibold text-muted-foreground min-w-[100px]">Total</div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto w-full">
+            <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_SIZE + 1}, minmax(0, 1fr))`}}>
+               {/* Header for Total column */}
+               <div className="col-start-1" style={{gridColumn: `span ${GRID_SIZE}`}}></div>
+               <div className="flex items-center justify-center font-semibold text-muted-foreground min-w-[100px]">Total</div>
  
 
-            {Array.from({ length: GRID_SIZE }, (_, rowIndex) => (
-              <React.Fragment key={rowIndex}>
-                {Array.from({ length: GRID_SIZE }, (_, colIndex) => {
-                  const cellNumber = rowIndex * GRID_SIZE + colIndex + 1
-                  const key = `${rowIndex}_${colIndex}`
-                  const validation = validations[key]
-                  const isUpdated = updatedCells.includes(key);
+              {Array.from({ length: GRID_SIZE }, (_, rowIndex) => (
+                <React.Fragment key={rowIndex}>
+                  {Array.from({ length: GRID_SIZE }, (_, colIndex) => {
+                    const cellNumber = rowIndex * GRID_SIZE + colIndex + 1
+                    const key = `${rowIndex}_${colIndex}`
+                    const validation = validations[key]
+                    const isUpdated = updatedCells.includes(key);
 
-                  return (
-                    <div key={key} className="relative">
-                      <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{cellNumber}</div>
-                      <Input
-                        type="text"
-                        className={`pt-5 text-sm transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''}`}
-                        value={activeSheet.data[key] || ''}
-                        onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
-                        onBlur={() => handleCellBlur(rowIndex, colIndex)}
-                        aria-label={`Cell ${cellNumber}`}
-                      />
-                       {(validation?.isLoading || (validation && !validation.isValid)) && (
-                        <div className="absolute top-1/2 right-2 -translate-y-1/2 z-10">
-                          {validation.isLoading ? (
-                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                          ) : (
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                 <button aria-label="Show validation error">
-                                  <AlertCircle className="h-4 w-4 text-destructive" />
-                                </button>
-                              </PopoverTrigger>
-                              <PopoverContent className="text-sm">{validation.recommendation}</PopoverContent>
-                            </Popover>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-                <div className="flex items-center justify-center p-2 font-medium min-w-[100px] rounded-md">
-                   <Input
-                    type="text"
-                    className="text-sm font-medium text-center min-w-0"
-                    value={getRowTotal(rowIndex)}
-                    onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
-                    onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
-                    aria-label={`Row ${rowIndex + 1} Total`}
-                  />
+                    return (
+                      <div key={key} className="relative">
+                        <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{cellNumber}</div>
+                        <Input
+                          type="text"
+                          className={`pt-5 text-sm transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''}`}
+                          value={activeSheet.data[key] || ''}
+                          onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
+                          onBlur={() => handleCellBlur(rowIndex, colIndex)}
+                          aria-label={`Cell ${cellNumber}`}
+                        />
+                         {(validation?.isLoading || (validation && !validation.isValid)) && (
+                          <div className="absolute top-1/2 right-2 -translate-y-1/2 z-10">
+                            {validation.isLoading ? (
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            ) : (
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                   <button aria-label="Show validation error">
+                                    <AlertCircle className="h-4 w-4 text-destructive" />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="text-sm">{validation.recommendation}</PopoverContent>
+                              </Popover>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                  <div className="flex items-center justify-center p-2 font-medium min-w-[100px] rounded-md">
+                     <Input
+                      type="text"
+                      className="text-sm font-medium text-center min-w-0"
+                      value={getRowTotal(rowIndex)}
+                      onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
+                      onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
+                      aria-label={`Row ${rowIndex + 1} Total`}
+                    />
+                  </div>
+                </React.Fragment>
+              ))}
+               <div style={{ gridColumn: `span ${GRID_SIZE}` }} className="flex items-center justify-end p-2 font-bold min-w-[100px] mt-1 pr-4">Total</div>
+               <div className="flex items-center justify-center p-2 font-bold min-w-[100px] bg-primary/20 rounded-md mt-1">
+                  {calculateGrandTotal()}
                 </div>
-              </React.Fragment>
-            ))}
-             <div style={{ gridColumn: `span ${GRID_SIZE}` }} className="flex items-center justify-end p-2 font-bold min-w-[100px] mt-1 pr-4">Total</div>
-             <div className="flex items-center justify-center p-2 font-bold min-w-[100px] bg-primary/20 rounded-md mt-1">
-                {calculateGrandTotal()}
-              </div>
-          </div>
-        </div>
-      </CardContent>
-      <CardFooter className="flex flex-col md:flex-row gap-4 pt-2">
-        <div className="w-full border rounded-lg p-4">
-          <h3 className="font-semibold mb-2">Multi - Text</h3>
-          <Textarea 
-            placeholder="Enter cell data like: 1=10+5, 1,1=Value1 or 112233=100" 
-            rows={4}
-            value={multiText}
-            onChange={(e) => setMultiText(e.target.value)}
-          />
-          <div className="flex gap-2 mt-2">
-            <Button onClick={handleMultiTextApply}>Apply to Sheet</Button>
-            <Button onClick={handleClearSheet} variant="outline">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Clear Sheet
-            </Button>
-             <Button onClick={handleGenerateSheet} variant="outline">Generate Sheet</Button>
-          </div>
-        </div>
-        <div className="w-full flex flex-col gap-4">
-          <div className="border rounded-lg p-4">
-              <h3 className="font-semibold mb-2">HARUP</h3>
-              <div className="border border-dashed rounded-lg p-4 text-muted-foreground flex flex-col gap-2">
-                 <div className="flex items-center gap-2">
-                  <Label htmlFor="harupA" className="w-8 text-center">A</Label>
-                  <Input id="harupA" placeholder="0123456789" className="w-32" value={harupA} onChange={(e) => setHarupA(e.target.value)} />
-                  <Label htmlFor="harupB" className="w-8 text-center">B</Label>
-                  <Input id="harupB" placeholder="0123456789" className="w-32" value={harupB} onChange={(e) => setHarupB(e.target.value)}/>
-                  <span className="text-xl font-bold mx-2">=</span>
-                  <Input id="harupAmount" placeholder="Amount" className="w-24 font-bold" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)} />
-                </div>
-                 <div className="flex justify-end mt-2">
-                    <Button onClick={handleHarupApply}>Apply to Sheet</Button>
-                </div>
-              </div>
             </div>
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-col md:flex-row gap-4 pt-2">
           <div className="w-full border rounded-lg p-4">
-            <h3 className="font-semibold mb-2">Laddi</h3>
-            <div className="flex flex-col gap-2 mt-2">
-              <div className="flex items-start gap-2 w-full">
-                <div className="flex-1">
-                  
-                  <Input
-                    id="laddiNum1"
-                    type="text"
-                    pattern="[0-9]*"
-                    className="w-full text-center"
-                    placeholder="Num 1"
-                    value={laddiNum1}
-                    onChange={(e) => handleLaddiNum1Change(e.target.value)}
-                  />
-                </div>
-                <div className="flex-1">
-                  
-                  <Input
-                    id="laddiNum2"
-                    type="text"
-                    pattern="[0-9]*"
-                    className="w-full text-center"
-                    placeholder="Num 2"
-                    value={laddiNum2}
-                    onChange={(e) => handleLaddiNum2Change(e.target.value)}
-                  />
-                </div>
-                <span className="text-xl font-bold mx-2 pt-1 mt-4">=</span>
-                <div className="flex flex-col">
-                  <Label htmlFor="amount" className="text-xs text-muted-foreground invisible">Amount</Label>
-                  <Input
-                    id="amount"
-                    type="text"
-                    className="w-24 text-center font-bold"
-                    value={laddiAmount}
-                    onChange={(e) => setLaddiAmount(e.target.value)}
-                    placeholder="Amount"
-                  />
-                </div>
-              </div>
-              <div className="flex flex-col items-center gap-1 mt-2">
-                <div className="text-sm font-bold text-primary">{combinationCount}</div>
-                <div className="flex items-center gap-2">
-                  <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} />
-                  <Label htmlFor="remove-jodda" className="text-xs">Remove Jodda</Label>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end mt-2">
-              <Button onClick={handleLaddiApply}>Apply to Sheet</Button>
+            <h3 className="font-semibold mb-2">Multi - Text</h3>
+            <Textarea 
+              placeholder="Enter cell data like: 1=10+5, 1,1=Value1 or 112233=100" 
+              rows={4}
+              value={multiText}
+              onChange={(e) => setMultiText(e.target.value)}
+            />
+            <div className="flex gap-2 mt-2">
+              <Button onClick={handleMultiTextApply}>Apply to Sheet</Button>
+              <Button onClick={handleClearSheet} variant="outline">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Clear Sheet
+              </Button>
+               <Button onClick={handleGenerateSheet} variant="outline">Generate Sheet</Button>
             </div>
           </div>
-        </div>
-      </CardFooter>
-    </Card>
+          <div className="w-full flex flex-col gap-4">
+            <div className="border rounded-lg p-4">
+                <h3 className="font-semibold mb-2">HARUP</h3>
+                <div className="border border-dashed rounded-lg p-4 text-muted-foreground flex flex-col gap-2">
+                   <div className="flex items-center gap-2">
+                    <Label htmlFor="harupA" className="w-8 text-center">A</Label>
+                    <Input id="harupA" placeholder="0123456789" className="w-32" value={harupA} onChange={(e) => setHarupA(e.target.value)} />
+                    <Label htmlFor="harupB" className="w-8 text-center">B</Label>
+                    <Input id="harupB" placeholder="0123456789" className="w-32" value={harupB} onChange={(e) => setHarupB(e.target.value)}/>
+                    <span className="text-xl font-bold mx-2">=</span>
+                    <Input id="harupAmount" placeholder="Amount" className="w-24 font-bold" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)} />
+                  </div>
+                   <div className="flex justify-end mt-2">
+                      <Button onClick={handleHarupApply}>Apply to Sheet</Button>
+                  </div>
+                </div>
+              </div>
+            <div className="w-full border rounded-lg p-4">
+              <h3 className="font-semibold mb-2">Laddi</h3>
+              <div className="flex flex-col gap-2 mt-2">
+                <div className="flex items-start gap-2 w-full">
+                  <div className="flex-1">
+                    
+                    <Input
+                      id="laddiNum1"
+                      type="text"
+                      pattern="[0-9]*"
+                      className="w-full text-center"
+                      placeholder="Num 1"
+                      value={laddiNum1}
+                      onChange={(e) => handleLaddiNum1Change(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    
+                    <Input
+                      id="laddiNum2"
+                      type="text"
+                      pattern="[0-9]*"
+                      className="w-full text-center"
+                      placeholder="Num 2"
+                      value={laddiNum2}
+                      onChange={(e) => handleLaddiNum2Change(e.target.value)}
+                    />
+                  </div>
+                  <span className="text-xl font-bold mx-2 pt-1 mt-4">=</span>
+                  <div className="flex flex-col">
+                    <Label htmlFor="amount" className="text-xs text-muted-foreground invisible">Amount</Label>
+                    <Input
+                      id="amount"
+                      type="text"
+                      className="w-24 text-center font-bold"
+                      value={laddiAmount}
+                      onChange={(e) => setLaddiAmount(e.target.value)}
+                      placeholder="Amount"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-1 mt-2">
+                  <div className="text-sm font-bold text-primary">{combinationCount}</div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} />
+                    <Label htmlFor="remove-jodda" className="text-xs">Remove Jodda</Label>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end mt-2">
+                <Button onClick={handleLaddiApply}>Apply to Sheet</Button>
+              </div>
+            </div>
+          </div>
+        </CardFooter>
+      </Card>
+      <Dialog open={isGeneratedSheetDialogOpen} onOpenChange={setIsGeneratedSheetDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Generated Sheet Content</DialogTitle>
+          </DialogHeader>
+          <div className="my-4">
+            <Textarea
+              readOnly
+              value={generatedSheetContent}
+              rows={Math.min(15, generatedSheetContent.split('\n').length)}
+              className="bg-muted"
+            />
+          </div>
+          <DialogFooter className="sm:justify-between">
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">
+                Close
+              </Button>
+            </DialogClose>
+            <Button onClick={handleCopyToClipboard}>
+              <Copy className="mr-2 h-4 w-4" />
+              Copy to Clipboard
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
-
-    
-
-    
