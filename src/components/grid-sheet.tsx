@@ -67,6 +67,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [harupAmount, setHarupAmount] = useState('');
   const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
+  const [lastEntry, setLastEntry] = useState("");
 
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
 
@@ -335,6 +336,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       const currentUpdatedCells = Array.from(updatedCellKeys);
       setSheets(updatedSheets);
       setUpdatedCells(currentUpdatedCells);
+      setLastEntry(multiText);
       setMultiText("");
       setTimeout(() => setUpdatedCells([]), 2000);
       toast({ title: "Sheet Updated", description: `${currentUpdatedCells.length} cell(s) have been updated.` });
@@ -505,6 +507,7 @@ const handleHarupApply = () => {
     setHarupA('');
     setHarupB('');
     setHarupAmount('');
+    setLastEntry('');
     toast({ title: "Sheet Cleared", description: "All cell values have been reset." });
   };
   
@@ -658,22 +661,30 @@ const handleHarupApply = () => {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col xl:flex-row gap-4 pt-2">
-          <div className="w-full xl:w-1/2 border rounded-lg p-4">
-            <h3 className="font-semibold mb-2">Multi - Text</h3>
-            <Textarea
-              placeholder="Enter cell data like: 1=10+5, 1,1=Value1 or 112233=100"
-              rows={4}
-              value={multiText}
-              onChange={(e) => setMultiText(e.target.value)}
-              onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
-            />
-            <div className="flex gap-2 mt-2">
-              <Button onClick={handleMultiTextApply}>Apply to Sheet</Button>
-              <Button onClick={handleClearSheet} variant="outline">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Clear Sheet
-              </Button>
-              <Button onClick={handleGenerateSheet} variant="outline">Generate Sheet</Button>
+          <div className="w-full xl:w-1/2 border rounded-lg p-4 flex gap-4">
+            <div className="flex-1">
+              <h3 className="font-semibold mb-2">Multi - Text</h3>
+              <Textarea
+                placeholder="Enter cell data like: 1=10+5, 1,1=Value1 or 112233=100"
+                rows={4}
+                value={multiText}
+                onChange={(e) => setMultiText(e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
+              />
+              <div className="flex gap-2 mt-2">
+                <Button onClick={handleMultiTextApply}>Apply to Sheet</Button>
+                <Button onClick={handleClearSheet} variant="outline">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Clear Sheet
+                </Button>
+                <Button onClick={handleGenerateSheet} variant="outline">Generate Sheet</Button>
+              </div>
+            </div>
+            <div className="w-1/3">
+                <h3 className="font-semibold mb-2">Last Entry</h3>
+                <div className="bg-muted rounded-md p-2 h-[96px] text-xs overflow-auto">
+                    <pre>{lastEntry}</pre>
+                </div>
             </div>
           </div>
           <div className="w-full xl:w-1/2 flex flex-col gap-4">
