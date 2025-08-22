@@ -363,13 +363,13 @@ const handleHarupApply = () => {
         return;
     }
 
-    const amountPerDigitGroup = parseFloat(harupAmount) / harupDigits.length;
-    if (isNaN(amountPerDigitGroup)) {
+    const totalAmount = parseFloat(harupAmount);
+    if (isNaN(totalAmount)) {
         toast({ title: "HARUP Error", description: "Invalid amount.", variant: "destructive" });
         return;
     }
 
-    const amountPerCell = amountPerDigitGroup / 10;
+    const amountPerCell = totalAmount / 10;
     const newData = { ...activeSheet.data };
     const updatedCellKeys = new Set<string>();
     let updates = 0;
@@ -379,10 +379,11 @@ const handleHarupApply = () => {
             const cellNumStr = `${digit}${i}`;
             const cellNum = parseInt(cellNumStr, 10);
             
-            if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE) {
-                const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
-                const colIndex = (cellNum - 1) % GRID_SIZE;
-                const key = `${rowIndex}_${colIndex}`;
+            if (!isNaN(cellNum) && cellNum >= 0 && cellNum < GRID_SIZE * GRID_SIZE) {
+                 const actualCellNum = cellNum === 0 ? 100 : cellNum;
+                 const rowIndex = Math.floor((actualCellNum - 1) / GRID_SIZE);
+                 const colIndex = (actualCellNum - 1) % GRID_SIZE;
+                 const key = `${rowIndex}_${colIndex}`;
                 
                 const currentValue = parseFloat(newData[key]) || 0;
                 newData[key] = String(currentValue + amountPerCell);
@@ -618,5 +619,7 @@ const handleHarupApply = () => {
     </Card>
   )
 }
+
+    
 
     
