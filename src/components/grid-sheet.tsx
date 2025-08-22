@@ -301,7 +301,7 @@ export default function GridSheet() {
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto w-full">
-          <div className="grid gap-1" style={{gridTemplateColumns: `repeat(${GRID_SIZE + 1}, minmax(70px, 1fr))`}}>
+          <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_SIZE + 1}, minmax(0, 1fr))`}}>
              {/* Header for Total column */}
              <div className="col-start-1" style={{gridColumn: `span ${GRID_SIZE}`}}></div>
              <div className="flex items-center justify-center font-semibold text-muted-foreground min-w-[100px]">Total</div>
@@ -320,7 +320,7 @@ export default function GridSheet() {
                       <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{cellNumber}</div>
                       <Input
                         type="text"
-                        className={`pt-5 text-sm transition-colors duration-300 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''}`}
+                        className={`pt-5 text-sm transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''}`}
                         value={activeSheet.data[key] || ''}
                         onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
                         onBlur={() => handleCellBlur(rowIndex, colIndex)}
@@ -348,7 +348,7 @@ export default function GridSheet() {
                 <div className="flex items-center justify-center p-2 font-medium min-w-[100px] rounded-md">
                    <Input
                     type="text"
-                    className="text-sm font-medium text-center"
+                    className="text-sm font-medium text-center min-w-0"
                     value={getRowTotal(rowIndex)}
                     onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
                     onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
@@ -364,7 +364,7 @@ export default function GridSheet() {
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex gap-4">
+      <CardFooter className="flex flex-col md:flex-row gap-4 pt-2">
         <div className="w-full border rounded-lg p-4">
           <h3 className="font-semibold mb-2">Multi - Text</h3>
           <Textarea 
@@ -386,7 +386,7 @@ export default function GridSheet() {
           <div className="flex items-center gap-2 mt-2">
             <Input 
               type="number" 
-              className="w-32 text-center" 
+              className="w-full text-center" 
               placeholder="Num 1"
               value={laddiNum1}
               onChange={(e) => setLaddiNum1(e.target.value)}
@@ -394,7 +394,7 @@ export default function GridSheet() {
             <span className="text-xl font-bold">×</span>
             <Input 
               type="number" 
-              className="w-32 text-center" 
+              className="w-full text-center" 
               placeholder="Num 2"
               value={laddiNum2}
               onChange={(e) => setLaddiNum2(e.target.value)}
@@ -402,7 +402,13 @@ export default function GridSheet() {
              <span className="text-xl font-bold mx-2">=</span>
             <div className="flex flex-col">
               <Label htmlFor="amount" className="text-xs text-muted-foreground">Amount</Label>
-              <Input id="amount" type="text" className="w-32 text-center font-bold" value={laddiAmount} readOnly />
+              <Input 
+                id="amount" 
+                type="text" 
+                className="w-24 text-center font-bold" 
+                value={laddiAmount}
+                onChange={(e) => setLaddiAmount(e.target.value)}
+              />
             </div>
           </div>
         </div>
