@@ -72,6 +72,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [harupB, setHarupB] = useState('');
   const [harupAmount, setHarupAmount] = useState('');
   const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
+  const [isMasterSheetDialogOpen, setIsMasterSheetDialogOpen] = useState(false);
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
 
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
@@ -303,7 +304,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const valueStr = evaluateExpression(parts[1].trim());
         let cellNumbersStr = parts[0].trim();
         
-        if (!/[\s,]+/.test(cellNumbersStr) && /^\d+$/.test(cellNumbersStr) && cellNumbersStr.length > 2 && cellNumbersStr !== '100') {
+        if (!/[\s,]+/.test(cellNumbersStr) && /^\d+$/.test(cellNumbersStr) && cellNumbersStr.length > 2) {
              cellNumbersStr = cellNumbersStr.match(/.{1,2}/g)?.join(',') || cellNumbersStr;
         }
         
@@ -600,7 +601,7 @@ const handleHarupApply = () => {
       .split(',')
       .map(s => s.trim())
       .filter(s => s)
-      .flatMap(s => (s.length > 2 && /^\d+$/.test(s) && !s.includes(',') && s !== '100') ? s.match(/.{1,2}/g) || [] : s)
+      .flatMap(s => (s.length > 2 && /^\d+$/.test(s) && s !== '100') ? s.match(/.{1,2}/g) || [] : s)
       .join(',');
 
     setMultiText(`${autoFormattedNumbers}${valuePart}`);
@@ -712,7 +713,7 @@ const handleHarupApply = () => {
             <div className="w-full xl:w-1/2 flex flex-col gap-4">
                 <div className="border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
                     <h3 className="font-semibold">Master</h3>
-                    <Button onClick={() => {}} variant="outline">
+                    <Button onClick={() => setIsMasterSheetDialogOpen(true)} variant="outline">
                         Master Sheet
                     </Button>
                 </div>
@@ -825,6 +826,60 @@ const handleHarupApply = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      <Dialog open={isMasterSheetDialogOpen} onOpenChange={setIsMasterSheetDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Master Sheet - {activeSheet.name}</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-x-auto w-full my-4">
+            <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, minWidth: '600px'}}>
+               <div className="col-start-1" style={{gridColumn: `span ${GRID_COLS}`}}></div>
+               <div className="flex items-center justify-center font-semibold text-muted-foreground min-w-[80px] sm:min-w-[100px]">Total</div>
+              {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
+                <React.Fragment key={`master-row-${rowIndex}`}>
+                  {Array.from({ length: GRID_COLS }, (_, colIndex) => {
+                    const cellNumber = rowIndex * GRID_COLS + colIndex + 1;
+                    const displayCellNumber = cellNumber === 100 ? 0 : cellNumber;
+                    const key = `${rowIndex}_${colIndex}`
+                    return (
+                      <div key={`master-cell-${key}`} className="relative">
+                        <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{String(displayCellNumber).padStart(2, '0')}</div>
+                        <Input
+                          type="text"
+                          readOnly
+                          className="pt-5 text-sm bg-muted min-w-0"
+                          value={activeSheet.data[key] || ''}
+                          aria-label={`Cell ${displayCellNumber}`}
+                        />
+                      </div>
+                    )
+                  })}
+                  <div className="flex items-center justify-center p-2 font-medium min-w-[80px] sm:min-w-[100px] rounded-md">
+                     <Input
+                      type="text"
+                      readOnly
+                      className="text-sm font-medium text-center bg-muted min-w-0"
+                      value={getRowTotal(rowIndex)}
+                      aria-label={`Row ${rowIndex + 1} Total`}
+                    />
+                  </div>
+                </React.Fragment>
+              ))}
+               <div style={{ gridColumn: `span ${GRID_COLS}` }} className="flex items-center justify-end p-2 font-bold min-w-[80px] sm:min-w-[100px] mt-1 pr-4">Total</div>
+               <div className="flex items-center justify-center p-2 font-bold min-w-[80px] sm:min-w-[100px] bg-primary/20 rounded-md mt-1">
+                  {calculateGrandTotal()}
+                </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button">Close</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={props.isLastEntryDialogOpen} onOpenChange={props.setIsLastEntryDialogOpen}>
         <DialogContent>
@@ -859,6 +914,7 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
 
 
 
