@@ -12,6 +12,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 type Client = {
   id: string
   name: string
+  pairCommInOut: string
+  patti: string
 }
 
 const initialClients: Client[] = []
@@ -25,11 +27,13 @@ export default function ClientsManager() {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     const name = formData.get("name") as string
+    const pairCommInOut = formData.get("pairCommInOut") as string
+    const patti = formData.get("patti") as string
 
     if (editingClient) {
-      setClients(clients.map(c => c.id === editingClient.id ? { ...c, name } : c))
+      setClients(clients.map(c => c.id === editingClient.id ? { ...c, name, pairCommInOut, patti } : c))
     } else {
-      const newClient: Client = { id: Date.now().toString(), name }
+      const newClient: Client = { id: Date.now().toString(), name, pairCommInOut, patti }
       setClients([...clients, newClient])
     }
     setEditingClient(null)
@@ -76,6 +80,14 @@ export default function ClientsManager() {
                 <Label htmlFor="name">Name</Label>
                 <Input id="name" name="name" defaultValue={editingClient?.name} placeholder="Enter name" required />
               </div>
+              <div>
+                <Label htmlFor="pairCommInOut">Pair Comm In/Out</Label>
+                <Input id="pairCommInOut" name="pairCommInOut" defaultValue={editingClient?.pairCommInOut} placeholder="Pair Comm In/Out" required />
+              </div>
+              <div>
+                <Label htmlFor="patti">Patti</Label>
+                <Input id="patti" name="patti" defaultValue={editingClient?.patti} placeholder="Patti" required />
+              </div>
               <DialogFooter>
                 <DialogClose asChild>
                   <Button type="button" variant="outline">Cancel</Button>
@@ -91,6 +103,8 @@ export default function ClientsManager() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              <TableHead>Pair Comm In/Out</TableHead>
+              <TableHead>Patti</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -98,6 +112,8 @@ export default function ClientsManager() {
             {clients.map(client => (
               <TableRow key={client.id}>
                 <TableCell className="font-medium">{client.name}</TableCell>
+                <TableCell>{client.pairCommInOut}</TableCell>
+                <TableCell>{client.patti}</TableCell>
                 <TableCell className="text-right">
                    <DropdownMenu>
                     <DropdownMenuTrigger asChild>
