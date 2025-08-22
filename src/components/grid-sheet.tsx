@@ -362,6 +362,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     const newData = { ...activeSheet.data };
     const updatedCellKeys = new Set<string>();
     let updates = 0;
+    let lastEntryString = "";
 
     const digits1 = laddiNum1.split('');
     const digits2 = laddiNum2.split('');
@@ -395,6 +396,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     }
 
     if (updates > 0) {
+        lastEntryString = `Laddi: ${laddiNum1} X ${laddiNum2} = ${laddiAmount}`;
         const updatedSheets = sheets.map(sheet => {
             if (sheet.id === activeSheetId) {
                 return { ...sheet, data: newData };
@@ -404,6 +406,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const currentUpdatedCells = Array.from(updatedCellKeys);
         setSheets(updatedSheets);
         setUpdatedCells(currentUpdatedCells);
+        props.setLastEntry(lastEntryString);
         setTimeout(() => setUpdatedCells([]), 2000);
         toast({ title: "Sheet Updated", description: `${currentUpdatedCells.length} cell(s) have been updated from Laddi.` });
     } else {
@@ -433,6 +436,7 @@ const handleHarupApply = () => {
     const newData = { ...activeSheet.data };
     const updatedCellKeys = new Set<string>();
     let updates = 0;
+    let lastEntryString = "";
 
     if (harupADigits.length > 0) {
         for (const digit of harupADigits) {
@@ -482,6 +486,11 @@ const handleHarupApply = () => {
     }
 
     if (updates > 0) {
+        const harupAEntry = harupA ? `A: ${harupA}` : '';
+        const harupBEntry = harupB ? `B: ${harupB}` : '';
+        const separator = harupA && harupB ? ', ' : '';
+        lastEntryString = `Harup: ${harupAEntry}${separator}${harupBEntry} = ${harupAmount}`;
+
         const updatedSheets = sheets.map(sheet => {
             if (sheet.id === activeSheetId) {
                 return { ...sheet, data: newData };
@@ -491,6 +500,7 @@ const handleHarupApply = () => {
         const currentUpdatedCells = Array.from(updatedCellKeys);
         setSheets(updatedSheets);
         setUpdatedCells(currentUpdatedCells);
+        props.setLastEntry(lastEntryString);
         setTimeout(() => setUpdatedCells([]), 2000);
         toast({ title: "Sheet Updated", description: `${currentUpdatedCells.length} cell(s) have been updated from HARUP.` });
     } else {
@@ -705,18 +715,20 @@ const handleHarupApply = () => {
               />
               <div className="flex gap-2 mt-2 items-stretch">
                 <Button onClick={handleMultiTextApply} className="h-auto">Apply to Sheet</Button>
-                 <Button onClick={() => setIsLastEntryDialogOpen(true)} variant="outline">
-                    <History className="mr-2 h-4 w-4" />
-                    Last Entry
-                </Button>
-                 <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0">
-                  <Trash2 className="h-4 w-4" />
-                  <span className="sr-only">Clear Sheet</span>
-              </Button>
+                 <div className="flex items-center gap-2">
+                    <Button onClick={() => setIsLastEntryDialogOpen(true)} variant="outline" className="h-full">
+                        <History className="mr-2 h-4 w-4" />
+                        Last Entry
+                    </Button>
+                    <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0 h-full">
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Clear Sheet</span>
+                    </Button>
+                </div>
               </div>
             </div>
-            <div className="flex flex-col gap-2">
-              <Button onClick={handleGenerateSheet} variant="outline">Generate Sheet</Button>
+            <div className="flex flex-col gap-2 justify-start">
+               <Button onClick={handleGenerateSheet} variant="outline">Generate Sheet</Button>
             </div>
           </div>
           <div className="w-full xl:w-1/2 flex flex-col gap-4">
