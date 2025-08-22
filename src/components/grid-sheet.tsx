@@ -45,16 +45,6 @@ export default function GridSheet() {
   const [laddiNum2, setLaddiNum2] = useState('');
   const [laddiAmount, setLaddiAmount] = useState('');
 
-  useEffect(() => {
-    const num1 = parseFloat(laddiNum1);
-    const num2 = parseFloat(laddiNum2);
-    if (!isNaN(num1) && !isNaN(num2)) {
-      setLaddiAmount((num1 * num2).toFixed(2));
-    } else {
-      setLaddiAmount('');
-    }
-  }, [laddiNum1, laddiNum2]);
-
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
 
   const handleCellChange = (rowIndex: number, colIndex: number, value: string) => {
