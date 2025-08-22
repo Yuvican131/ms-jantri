@@ -458,10 +458,6 @@ export default function GridSheet() {
         </div>
         <div className="w-full border rounded-lg p-4">
           <h3 className="font-semibold mb-2">Laddi</h3>
-          <div className="flex items-center space-x-2 mb-2">
-            <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} />
-            <Label htmlFor="remove-jodda">Remove Jodda</Label>
-          </div>
           <div className="flex flex-col items-center gap-2 mt-2">
             <div className="flex items-center gap-2 w-full">
                 <Input 
@@ -496,6 +492,10 @@ export default function GridSheet() {
             </div>
             <div className="text-sm text-muted-foreground">
               Combinations: <span className="font-bold text-primary">{combinationCount}</span>
+            </div>
+            <div className="flex items-center space-x-2 mt-2">
+              <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} />
+              <Label htmlFor="remove-jodda">Remove Jodda</Label>
             </div>
           </div>
           <div className="flex justify-end mt-2">
