@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, History } from "lucide-react"
+import { Download, Plus, AlertCircle, Loader2, Trash2, Copy } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -50,6 +50,8 @@ type GridSheetProps = {
   date: Date;
   lastEntry: string;
   setLastEntry: (entry: string) => void;
+  isLastEntryDialogOpen: boolean;
+  setIsLastEntryDialogOpen: (open: boolean) => void;
 }
 
 
@@ -71,7 +73,6 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [harupAmount, setHarupAmount] = useState('');
   const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
-  const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
 
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
 
@@ -616,10 +617,10 @@ const handleHarupApply = () => {
         <CardHeader>
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <CardTitle>{props.draw} Sheet ({format(props.date, "PPP")}): {activeSheet.name}</CardTitle>
-              <CardDescription>A 10x10 grid for your accounting data. Cells can be targeted by number (1-99 and 00).</CardDescription>
+              <CardTitle className="text-lg md:text-2xl">{props.draw} Sheet ({format(props.date, "PPP")}): {activeSheet.name}</CardTitle>
+              <CardDescription className="text-xs md:text-sm">A 10x10 grid for your accounting data. Cells can be targeted by number (1-99 and 00).</CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 w-full md:w-auto">
               <Select value={activeSheetId} onValueChange={setActiveSheetId}>
                 <SelectTrigger className="w-full md:w-[180px]">
                   <SelectValue placeholder="Select a sheet" />
@@ -634,7 +635,7 @@ const handleHarupApply = () => {
                 <Plus className="h-4 w-4" />
                 <span className="sr-only">Create new sheet</span>
               </Button>
-              <Button onClick={exportToCSV}>
+              <Button onClick={exportToCSV} size="sm" className="hidden sm:inline-flex">
                 <Download className="h-4 w-4 mr-2" />
                 Export CSV
               </Button>
@@ -643,10 +644,10 @@ const handleHarupApply = () => {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto w-full">
-            <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`}}>
+            <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, minWidth: '600px'}}>
                {/* Header for Total column */}
                <div className="col-start-1" style={{gridColumn: `span ${GRID_COLS}`}}></div>
-               <div className="flex items-center justify-center font-semibold text-muted-foreground min-w-[100px]">Total</div>
+               <div className="flex items-center justify-center font-semibold text-muted-foreground min-w-[80px] sm:min-w-[100px]">Total</div>
  
 
               {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
@@ -688,7 +689,7 @@ const handleHarupApply = () => {
                       </div>
                     )
                   })}
-                  <div className="flex items-center justify-center p-2 font-medium min-w-[100px] rounded-md">
+                  <div className="flex items-center justify-center p-2 font-medium min-w-[80px] sm:min-w-[100px] rounded-md">
                      <Input
                       type="text"
                       className="text-sm font-medium text-center min-w-0"
@@ -700,45 +701,38 @@ const handleHarupApply = () => {
                   </div>
                 </React.Fragment>
               ))}
-               <div style={{ gridColumn: `span ${GRID_COLS}` }} className="flex items-center justify-end p-2 font-bold min-w-[100px] mt-1 pr-4">Total</div>
-               <div className="flex items-center justify-center p-2 font-bold min-w-[100px] bg-primary/20 rounded-md mt-1">
+               <div style={{ gridColumn: `span ${GRID_COLS}` }} className="flex items-center justify-end p-2 font-bold min-w-[80px] sm:min-w-[100px] mt-1 pr-4">Total</div>
+               <div className="flex items-center justify-center p-2 font-bold min-w-[80px] sm:min-w-[100px] bg-primary/20 rounded-md mt-1">
                   {calculateGrandTotal()}
                 </div>
             </div>
           </div>
         </CardContent>
         <CardFooter className="flex flex-col xl:flex-row gap-4 pt-2">
-          <div className="w-full xl:w-1/2 border rounded-lg p-4 flex gap-4">
-            <div className="flex-1 flex flex-col">
-              <h3 className="font-semibold mb-2">Multi - Text</h3>
+          <div className="w-full xl:w-1/2 border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
+              <h3 className="font-semibold">Multi - Text</h3>
               <Textarea
                 placeholder="Enter cell data like: 01,02,03=50 or 01 02 03=50"
                 rows={4}
                 value={multiText}
                 onChange={handleMultiTextChange}
                 onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
-                className="flex-grow"
               />
-              <div className="flex gap-2 mt-2 items-stretch">
-                <Button onClick={handleMultiTextApply} className="h-auto">Apply to Sheet</Button>
+              <div className="flex flex-wrap gap-2 mt-2 items-stretch">
+                <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0">Apply to Sheet</Button>
                  <div className="flex items-center gap-2">
-                    <Button onClick={handleGenerateSheet} variant="outline" className="h-full">
+                    <Button onClick={handleGenerateSheet} variant="outline" size="sm">
                         Generate Sheet
                     </Button>
-                    <Button onClick={() => setIsLastEntryDialogOpen(true)} variant="outline" className="h-full">
-                        <History className="mr-2 h-4 w-4" />
-                        Last Entry
-                    </Button>
-                    <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0 h-full">
+                    <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0">
                         <Trash2 className="h-4 w-4" />
                         <span className="sr-only">Clear Sheet</span>
                     </Button>
                 </div>
               </div>
-            </div>
           </div>
           <div className="w-full xl:w-1/2 flex flex-col gap-4">
-            <div className="border rounded-lg p-4">
+            <div className="border rounded-lg p-2 sm:p-4">
                 <h3 className="font-semibold mb-2">HARUP</h3>
                 <div className="flex flex-col sm:flex-row items-center gap-2">
                     <Label htmlFor="harupA" className="w-8 text-center shrink-0">A</Label>
@@ -752,7 +746,7 @@ const handleHarupApply = () => {
                     <Button onClick={handleHarupApply}>Apply</Button>
                 </div>
             </div>
-            <div className="border rounded-lg p-4">
+            <div className="border rounded-lg p-2 sm:p-4">
               <h3 className="font-semibold mb-2">Laddi</h3>
               <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
                   <Input
@@ -826,7 +820,7 @@ const handleHarupApply = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isLastEntryDialogOpen} onOpenChange={setIsLastEntryDialogOpen}>
+      <Dialog open={props.isLastEntryDialogOpen} onOpenChange={props.setIsLastEntryDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Last Entry</DialogTitle>
@@ -859,7 +853,3 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-    
-
-

@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GridSheet from "@/components/grid-sheet"
 import ClientsManager, { Client } from "@/components/clients-manager"
 import AccountsManager from "@/components/accounts-manager"
-import { Users, Building, ArrowLeft, Calendar as CalendarIcon } from 'lucide-react';
+import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
@@ -45,6 +45,7 @@ export default function Home() {
   const [selectedInfo, setSelectedInfo] = useState<{ draw: string; date: Date } | null>(null);
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [lastEntry, setLastEntry] = useState('');
+  const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
 
   const handleClientUpdateForSheet = (client: Client) => {
     if (gridSheetRef.current) {
@@ -67,12 +68,18 @@ export default function Home() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6">
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2">
           <GridIcon className="h-6 w-6 text-primary" />
           GridSheet Manager
         </h1>
+        <div className="ml-auto">
+          <Button onClick={() => setIsLastEntryDialogOpen(true)} variant="outline" size="sm">
+              <History className="mr-2 h-4 w-4" />
+              Last Entry
+          </Button>
+        </div>
       </header>
-      <main className="flex-1 p-4 md:p-6 lg:p-8">
+      <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8">
         <Tabs defaultValue="sheet" className="w-full">
           <TabsList className="grid w-full grid-cols-3 md:w-[400px]">
             <TabsTrigger value="sheet">
@@ -95,7 +102,7 @@ export default function Home() {
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back to Draws
                 </Button>
-                <GridSheet ref={gridSheetRef} draw={selectedInfo.draw} date={selectedInfo.date} lastEntry={lastEntry} setLastEntry={setLastEntry} />
+                <GridSheet ref={gridSheetRef} draw={selectedInfo.draw} date={selectedInfo.date} lastEntry={lastEntry} setLastEntry={setLastEntry} isLastEntryDialogOpen={isLastEntryDialogOpen} setIsLastEntryDialogOpen={setIsLastEntryDialogOpen} />
               </div>
             ) : (
               <Card>
@@ -109,7 +116,7 @@ export default function Home() {
                         <Button
                           variant={"outline"}
                           className={cn(
-                            "w-[280px] justify-start text-left font-normal",
+                            "w-full sm:w-[280px] justify-start text-left font-normal",
                             !date && "text-muted-foreground"
                           )}
                         >
@@ -127,9 +134,9 @@ export default function Home() {
                       </PopoverContent>
                     </Popover>
                   </div>
-                  <div className="grid grid-cols-6 gap-4">
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-4">
                     {draws.map((draw) => (
-                      <Button key={draw} onClick={() => handleSelectDraw(draw)} className="h-20 text-xl font-bold">
+                      <Button key={draw} onClick={() => handleSelectDraw(draw)} className="h-16 sm:h-20 text-lg sm:text-xl font-bold">
                         {draw}
                       </Button>
                     ))}
