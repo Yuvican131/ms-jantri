@@ -548,10 +548,11 @@ const handleHarupApply = () => {
                     const key = `${rowIndex}_${colIndex}`
                     const validation = validations[key]
                     const isUpdated = updatedCells.includes(key);
+                    const formattedCellNumber = String(cellNumber).padStart(2, '0');
 
                     return (
                       <div key={key} className="relative">
-                        <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{cellNumber}</div>
+                        <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{cellNumber === 100 ? '00' : formattedCellNumber}</div>
                         <Input
                           type="text"
                           className={`pt-5 text-sm transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''}`}
@@ -718,3 +719,5 @@ const handleHarupApply = () => {
     </>
   )
 }
+
+    
