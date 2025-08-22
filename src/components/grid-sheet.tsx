@@ -657,11 +657,11 @@ const handleHarupApply = () => {
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col md:flex-row gap-4 pt-2">
-          <div className="w-full border rounded-lg p-4">
+        <CardFooter className="flex flex-col xl:flex-row gap-4 pt-2">
+          <div className="w-full xl:w-1/2 border rounded-lg p-4">
             <h3 className="font-semibold mb-2">Multi - Text</h3>
-            <Textarea 
-              placeholder="Enter cell data like: 1=10+5, 1,1=Value1 or 112233=100" 
+            <Textarea
+              placeholder="Enter cell data like: 1=10+5, 1,1=Value1 or 112233=100"
               rows={4}
               value={multiText}
               onChange={(e) => setMultiText(e.target.value)}
@@ -676,76 +676,64 @@ const handleHarupApply = () => {
                <Button onClick={handleGenerateSheet} variant="outline">Generate Sheet</Button>
             </div>
           </div>
-          <div className="w-full flex flex-col gap-4">
+          <div className="w-full xl:w-1/2 flex flex-col gap-4">
             <div className="border rounded-lg p-4">
                 <h3 className="font-semibold mb-2">HARUP</h3>
-                <div className="border border-dashed rounded-lg p-4 text-muted-foreground flex flex-col gap-2">
-                   <div className="flex items-center gap-2">
-                    <Label htmlFor="harupA" className="w-8 text-center">A</Label>
-                    <Input id="harupA" placeholder="0123456789" className="w-32" value={harupA} onChange={(e) => setHarupA(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} />
-                    <Label htmlFor="harupB" className="w-8 text-center">B</Label>
-                    <Input id="harupB" placeholder="0123456789" className="w-32" value={harupB} onChange={(e) => setHarupB(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)}/>
+                <div className="flex flex-col sm:flex-row items-center gap-2">
+                    <Label htmlFor="harupA" className="w-8 text-center shrink-0">A</Label>
+                    <Input id="harupA" placeholder="0123.." className="min-w-0" value={harupA} onChange={(e) => setHarupA(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} />
+                    <Label htmlFor="harupB" className="w-8 text-center shrink-0">B</Label>
+                    <Input id="harupB" placeholder="0123.." className="min-w-0" value={harupB} onChange={(e) => setHarupB(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)}/>
                     <span className="text-xl font-bold mx-2">=</span>
-                    <Input id="harupAmount" placeholder="Amount" className="w-24 font-bold" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} />
-                  </div>
-                   <div className="flex justify-end mt-2">
-                      <Button onClick={handleHarupApply}>Apply to Sheet</Button>
-                  </div>
+                    <Input id="harupAmount" placeholder="Amount" className="w-24 font-bold shrink-0" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} />
                 </div>
-              </div>
-            <div className="w-full border rounded-lg p-4">
+                <div className="flex justify-end mt-2">
+                    <Button onClick={handleHarupApply}>Apply</Button>
+                </div>
+            </div>
+            <div className="border rounded-lg p-4">
               <h3 className="font-semibold mb-2">Laddi</h3>
-              <div className="flex flex-col gap-2 mt-2">
-                <div className="flex items-start gap-2 w-full">
-                  <div className="flex-1">
-                    <Input
-                      id="laddiNum1"
-                      type="text"
-                      pattern="[0-9]*"
-                      className="w-full text-center"
-                      placeholder="Num 1"
-                      value={laddiNum1}
-                      onChange={(e) => handleLaddiNum1Change(e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <Input
-                      id="laddiNum2"
-                      type="text"
-                      pattern="[0-9]*"
-                      className="w-full text-center"
-                      placeholder="Num 2"
-                      value={laddiNum2}
-                      onChange={(e) => handleLaddiNum2Change(e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
-                    />
-                  </div>
-                  <span className="text-xl font-bold mx-2 pt-1 mt-4">=</span>
-                  <div className="flex flex-col">
-                    <Label htmlFor="amount" className="text-xs text-muted-foreground invisible">Amount</Label>
-                    <Input
-                      id="amount"
-                      type="text"
-                      className="w-24 text-center font-bold"
-                      value={laddiAmount}
-                      onChange={(e) => setLaddiAmount(e.target.value)}
-                      placeholder="Amount"
-                      onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
-                    />
-                  </div>
+              <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
+                  <Input
+                    id="laddiNum1"
+                    type="text"
+                    pattern="[0-9]*"
+                    className="text-center min-w-0"
+                    placeholder="Num 1"
+                    value={laddiNum1}
+                    onChange={(e) => handleLaddiNum1Change(e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
+                  />
+                  <Input
+                    id="laddiNum2"
+                    type="text"
+                    pattern="[0-9]*"
+                    className="text-center min-w-0"
+                    placeholder="Num 2"
+                    value={laddiNum2}
+                    onChange={(e) => handleLaddiNum2Change(e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
+                  />
+                  <span className="text-xl font-bold mx-2">=</span>
+                  <Input
+                    id="amount"
+                    type="text"
+                    className="w-24 text-center font-bold shrink-0"
+                    value={laddiAmount}
+                    onChange={(e) => setLaddiAmount(e.target.value)}
+                    placeholder="Amount"
+                    onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
+                  />
                 </div>
-                <div className="flex flex-col items-center gap-1 mt-2">
-                  <div className="text-sm font-bold text-primary">{combinationCount}</div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} />
-                    <Label htmlFor="remove-jodda" className="text-xs">Remove Jodda</Label>
-                  </div>
+
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-2 mt-2">
+                    <div className="flex items-center gap-2">
+                        <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} />
+                        <Label htmlFor="remove-jodda" className="text-xs">Remove Jodda</Label>
+                    </div>
+                    <div className="text-sm font-bold text-primary">{combinationCount} Combinations</div>
+                    <Button onClick={handleLaddiApply}>Apply</Button>
                 </div>
-              </div>
-              <div className="flex justify-end mt-2">
-                <Button onClick={handleLaddiApply}>Apply to Sheet</Button>
-              </div>
             </div>
           </div>
         </CardFooter>
