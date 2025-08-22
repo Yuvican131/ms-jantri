@@ -5,7 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GridSheet from "@/components/grid-sheet"
 import ClientsManager, { Client } from "@/components/clients-manager"
 import AccountsManager from "@/components/accounts-manager"
-import { Users, Building } from 'lucide-react';
+import { Users, Building, ArrowLeft } from 'lucide-react';
+import { Button } from "@/components/ui/button"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 
 function GridIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -35,12 +37,23 @@ function GridIcon(props: React.SVGProps<SVGSVGElement>) {
 
 export default function Home() {
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void }>(null);
+  const [selectedDraw, setSelectedDraw] = useState<string | null>(null);
 
   const handleClientUpdateForSheet = (client: Client) => {
     if (gridSheetRef.current) {
       gridSheetRef.current.handleClientUpdate(client);
     }
   };
+  
+  const handleSelectDraw = (draw: string) => {
+    setSelectedDraw(draw);
+  };
+
+  const handleBackToDraws = () => {
+    setSelectedDraw(null);
+  };
+
+  const draws = ["FB", "GB", "GL", "DS"];
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -67,7 +80,28 @@ export default function Home() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="sheet" className="mt-4">
-            <GridSheet ref={gridSheetRef} />
+            {selectedDraw ? (
+              <div>
+                 <Button onClick={handleBackToDraws} variant="outline" className="mb-4">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Draws
+                </Button>
+                <GridSheet ref={gridSheetRef} draw={selectedDraw} />
+              </div>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Select a Draw</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {draws.map((draw) => (
+                    <Button key={draw} onClick={() => handleSelectDraw(draw)} className="h-24 text-2xl font-bold">
+                      {draw}
+                    </Button>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
           <TabsContent value="clients" className="mt-4">
             <ClientsManager onClientUpdateForSheet={handleClientUpdateForSheet} />

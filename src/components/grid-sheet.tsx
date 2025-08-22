@@ -42,8 +42,12 @@ type GridSheetHandle = {
   handleClientUpdate: (client: Client) => void;
 };
 
+type GridSheetProps = {
+  draw: string;
+}
 
-const GridSheet = forwardRef<GridSheetHandle, {}>((props, ref) => {
+
+const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const { toast } = useToast()
   const [sheets, setSheets] = useState<Sheet[]>(initialSheets)
   const [activeSheetId, setActiveSheetId] = useState<string>("1")
@@ -560,7 +564,7 @@ const handleHarupApply = () => {
         <CardHeader>
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <CardTitle>Sheet: {activeSheet.name}</CardTitle>
+              <CardTitle>{props.draw} Sheet: {activeSheet.name}</CardTitle>
               <CardDescription>A 10x10 grid for your accounting data. Cells can be targeted by number (1-100) or by coordinates (row,col).</CardDescription>
             </div>
             <div className="flex gap-2">
