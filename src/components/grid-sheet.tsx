@@ -294,6 +294,7 @@ export default function GridSheet() {
       const currentUpdatedCells = Array.from(updatedCellKeys);
       setSheets(updatedSheets);
       setUpdatedCells(currentUpdatedCells);
+      setMultiText("");
       setTimeout(() => setUpdatedCells([]), 2000);
       toast({ title: "Sheet Updated", description: `${currentUpdatedCells.length} cell(s) have been updated.` });
     } else {
