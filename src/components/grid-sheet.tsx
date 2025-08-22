@@ -483,7 +483,11 @@ const handleHarupApply = () => {
     const generatedText = Object.entries(valueToCells)
       .map(([value, cells]) => {
         cells.sort((a, b) => a - b);
-        return `${cells.join(',')}=${value}`;
+        const formattedCells = cells.map(cell => {
+          if (cell === 100) return '00';
+          return String(cell).padStart(2, '0');
+        });
+        return `${formattedCells.join(',')}=${value}`;
       })
       .join('\n');
 
@@ -719,5 +723,3 @@ const handleHarupApply = () => {
     </>
   )
 }
-
-    
