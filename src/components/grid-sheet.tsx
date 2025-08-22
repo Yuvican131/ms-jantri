@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import type { Client } from "./clients-manager"
+import { format } from "date-fns"
 
 type CellData = { [key: string]: string }
 type ValidationResult = {
@@ -44,6 +45,7 @@ type GridSheetHandle = {
 
 type GridSheetProps = {
   draw: string;
+  date: Date;
 }
 
 
@@ -297,7 +299,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const numbers = cellNumbersStr.match(/100|\d{1,2}/g) || [];
         numbers.forEach(numStr => {
             let cellNum = parseInt(numStr, 10);
-            if (numStr === '00') cellNum = 100;
+            if (numStr === '00' || cellNum === 100) cellNum = 100;
             
             if (cellNum >= 1 && cellNum <= GRID_SIZE * GRID_SIZE) {
                 const rowIndex = Math.floor((cellNum - 1) / GRID_SIZE);
@@ -564,7 +566,7 @@ const handleHarupApply = () => {
         <CardHeader>
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <CardTitle>{props.draw} Sheet: {activeSheet.name}</CardTitle>
+              <CardTitle>{props.draw} Sheet ({format(props.date, "PPP")}): {activeSheet.name}</CardTitle>
               <CardDescription>A 10x10 grid for your accounting data. Cells can be targeted by number (1-100) or by coordinates (row,col).</CardDescription>
             </div>
             <div className="flex gap-2">

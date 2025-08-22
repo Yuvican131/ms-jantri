@@ -5,9 +5,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GridSheet from "@/components/grid-sheet"
 import ClientsManager, { Client } from "@/components/clients-manager"
 import AccountsManager from "@/components/accounts-manager"
-import { Users, Building, ArrowLeft } from 'lucide-react';
+import { Users, Building, ArrowLeft, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { format } from "date-fns"
+import { cn } from "@/lib/utils"
 
 function GridIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -37,7 +41,8 @@ function GridIcon(props: React.SVGProps<SVGSVGElement>) {
 
 export default function Home() {
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void }>(null);
-  const [selectedDraw, setSelectedDraw] = useState<string | null>(null);
+  const [selectedInfo, setSelectedInfo] = useState<{ draw: string; date: Date } | null>(null);
+  const [date, setDate] = useState<Date | undefined>(new Date())
 
   const handleClientUpdateForSheet = (client: Client) => {
     if (gridSheetRef.current) {
@@ -46,11 +51,13 @@ export default function Home() {
   };
   
   const handleSelectDraw = (draw: string) => {
-    setSelectedDraw(draw);
+    if (date) {
+      setSelectedInfo({ draw, date });
+    }
   };
 
   const handleBackToDraws = () => {
-    setSelectedDraw(null);
+    setSelectedInfo(null);
   };
 
   const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
@@ -80,25 +87,51 @@ export default function Home() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="sheet" className="mt-4">
-            {selectedDraw ? (
+            {selectedInfo ? (
               <div>
                  <Button onClick={handleBackToDraws} variant="outline" className="mb-4">
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back to Draws
                 </Button>
-                <GridSheet ref={gridSheetRef} draw={selectedDraw} />
+                <GridSheet ref={gridSheetRef} draw={selectedInfo.draw} date={selectedInfo.date} />
               </div>
             ) : (
               <Card>
                 <CardHeader>
-                  <CardTitle>Select a Draw</CardTitle>
+                  <CardTitle>Select a Date and Draw</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-6 gap-4">
-                  {draws.map((draw) => (
-                    <Button key={draw} onClick={() => handleSelectDraw(draw)} className="h-20 text-xl font-bold">
-                      {draw}
-                    </Button>
-                  ))}
+                <CardContent className="flex flex-col gap-4">
+                  <div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-[280px] justify-start text-left font-normal",
+                            !date && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {date ? format(date, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={date}
+                          onSelect={setDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="grid grid-cols-6 gap-4">
+                    {draws.map((draw) => (
+                      <Button key={draw} onClick={() => handleSelectDraw(draw)} className="h-20 text-xl font-bold">
+                        {draw}
+                      </Button>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             )}
