@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, X } from "lucide-react"
+import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, X, Save } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -465,69 +465,62 @@ const handleMultiTextApply = () => {
 };
 
 const handleHarupApply = () => {
-    const harupADigits = harupA.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d)));
-    const harupBDigits = harupB.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d)));
-    
-    if ((harupADigits.length === 0 && harupBDigits.length === 0) || !harupAmount) {
-        toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' and Amount fields.", variant: "destructive" });
-        return;
-    }
+  const harupADigits = harupA.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d)));
+  const harupBDigits = harupB.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d)));
+  
+  if ((harupADigits.length === 0 && harupBDigits.length === 0) || !harupAmount) {
+      toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' and Amount fields.", variant: "destructive" });
+      return;
+  }
 
-    const totalAmount = parseFloat(harupAmount);
-    if (isNaN(totalAmount)) {
-        toast({ title: "HARUP Error", description: "Invalid amount.", variant: "destructive" });
-        return;
-    }
+  const totalAmount = parseFloat(harupAmount);
+  if (isNaN(totalAmount)) {
+      toast({ title: "HARUP Error", description: "Invalid amount.", variant: "destructive" });
+      return;
+  }
 
-    const updates: { [key: string]: string } = {};
-    
-    if (harupADigits.length > 0) {
-      for (const digit of harupADigits) {
-        const harupAAmountPerCell = totalAmount / 10;
-        for (let i = 0; i < 10; i++) {
-          const cellNumStr = `${digit}${i}`;
-          const cellNum = parseInt(cellNumStr, 10);
-          if (cellNum >= 0 && cellNum <= 99) {
+  const updates: { [key: string]: string } = {};
+  
+  const applyHarupLogic = (digits: string[], position: 'A' | 'B') => {
+    const harupAmountPerCell = totalAmount / 10;
+    for (const digit of digits) {
+      for (let i = 0; i < 10; i++) {
+        let cellNumStr = position === 'A' ? `${digit}${i}` : `${i}${digit}`;
+        const cellNum = parseInt(cellNumStr, 10);
+
+        if (cellNum >= 0 && cellNum <= 99) {
             const rowIndex = Math.floor(cellNum / GRID_COLS);
             const colIndex = cellNum % GRID_COLS;
             const key = `${rowIndex}_${colIndex}`;
-            const currentValue = parseFloat(currentData[key]) || 0;
-            updates[key] = String(currentValue + harupAAmountPerCell);
-          }
+            const currentValue = parseFloat(updates[key] || currentData[key]) || 0;
+            updates[key] = String(currentValue + harupAmountPerCell);
         }
       }
     }
-    
-    if (harupBDigits.length > 0) {
-      for (const digit of harupBDigits) {
-        const harupBAmountPerCell = totalAmount / 10;
-        for (let i = 0; i < 10; i++) {
-          const cellNumStr = `${i}${digit}`;
-          const cellNum = parseInt(cellNumStr, 10);
-          if (cellNum >= 0 && cellNum <= 99) {
-              const rowIndex = Math.floor(cellNum / GRID_COLS);
-              const colIndex = cellNum % GRID_COLS;
-              const key = `${rowIndex}_${colIndex}`;
-              const currentValue = parseFloat(currentData[key]) || 0;
-              updates[key] = String(currentValue + harupBAmountPerCell);
-          }
-        }
-      }
-    }
+  };
 
-    if (Object.keys(updates).length > 0) {
-        const harupEntries: string[] = [];
-        if (harupA) harupEntries.push(`A: ${harupA}=${harupAmount}`);
-        if (harupB) harupEntries.push(`B: ${harupB}=${harupAmount}`);
-        const lastEntryString = harupEntries.join('\n');
-        applyUpdatesToData(updates, lastEntryString);
-        setHarupA('');
-        setHarupB('');
-        setHarupAmount('');
-    } else {
-        toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
-    }
+  if (harupADigits.length > 0) {
+    applyHarupLogic(harupADigits, 'A');
+  }
+  
+  if (harupBDigits.length > 0) {
+    applyHarupLogic(harupBDigits, 'B');
+  }
+
+  if (Object.keys(updates).length > 0) {
+      const harupEntries: string[] = [];
+      if (harupA) harupEntries.push(`A: ${harupA}=${harupAmount}`);
+      if (harupB) harupEntries.push(`B: ${harupB}=${harupAmount}`);
+      const lastEntryString = harupEntries.join('\n');
+      applyUpdatesToData(updates, lastEntryString);
+      setHarupA('');
+      setHarupB('');
+      setHarupAmount('');
+  } else {
+      toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
+  }
 };
+
 
   const handleClearSheet = () => {
     const emptyData = {};
@@ -623,12 +616,47 @@ const handleHarupApply = () => {
     setMultiText(`${autoFormattedNumbers}${valuePart}`);
   };
 
+  const handleSaveSheet = () => {
+    if (!selectedClientId) {
+      toast({
+        title: "No Client Selected",
+        description: "Please select a client to save their sheet to the master sheet.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const clientData = clientSheetData[selectedClientId]?.data || {};
+    const clientName = props.clients.find(c => c.id === selectedClientId)?.name || "Unknown Client";
+
+    setSheets(prevSheets => prevSheets.map(sheet => {
+      if (sheet.id === activeSheetId) {
+        const newMasterData = { ...sheet.data };
+        Object.keys(clientData).forEach(key => {
+          const masterValue = parseFloat(newMasterData[key]) || 0;
+          const clientValue = parseFloat(clientData[key]) || 0;
+          newMasterData[key] = String(masterValue + clientValue);
+        });
+        return { ...sheet, data: newMasterData };
+      }
+      return sheet;
+    }));
+
+    // Clear client's sheet
+    updateClientData(selectedClientId, {}, {});
+
+    toast({
+      title: "Sheet Saved",
+      description: `${clientName}'s data has been saved to the master sheet and their sheet has been cleared.`,
+    });
+  };
+
 
   if (!activeSheet) {
     return <div>Loading...</div>;
   }
 
-  const isDataEntryDisabled = selectedClientId === null;
+  const isDataEntryDisabled = false;
 
   return (
     <>
@@ -747,6 +775,10 @@ const handleHarupApply = () => {
                               ))}
                           </SelectContent>
                       </Select>
+                       <Button onClick={handleSaveSheet} size="sm" disabled={!selectedClientId}>
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Sheet
+                      </Button>
                     </div>
                 </div>
                 <div className="border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
