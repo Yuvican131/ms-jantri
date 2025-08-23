@@ -327,14 +327,13 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const numbers = cellNumbersStr.split(/[\s,]+/).filter(s => s.length > 0);
 
         numbers.forEach(numStr => {
-            let cellNumInput = parseInt(numStr, 10);
-            if(isNaN(cellNumInput) || cellNumInput < 0 || cellNumInput > 100) return;
-            
-            let cellNum = cellNumInput;
-            if (cellNum === 100) {
-              cellNum = 99;
-            } else if (cellNum > 0 && cellNum < 100) {
-              cellNum = cellNum - 1;
+            let cellNum;
+            if (numStr === '00' || numStr === '100') {
+                cellNum = 99;
+            } else {
+                const parsedNum = parseInt(numStr, 10);
+                if (isNaN(parsedNum) || parsedNum < 1 || parsedNum > 99) return;
+                cellNum = parsedNum - 1;
             }
             
             const rowIndex = Math.floor(cellNum / GRID_COLS);
@@ -547,8 +546,12 @@ const handleHarupApply = () => {
         const [rowIndex, colIndex] = key.split('_').map(Number);
         let cellNumber = rowIndex * GRID_COLS + colIndex;
         
-        let displayCellNumber = cellNumber + 1;
-        if (cellNumber === 99) displayCellNumber = 100;
+        let displayCellNumber;
+        if(cellNumber === 99) {
+          displayCellNumber = 100;
+        } else {
+          displayCellNumber = cellNumber + 1;
+        }
         
         if (!valueToCells[value]) {
           valueToCells[value] = [];
