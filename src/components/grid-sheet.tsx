@@ -862,7 +862,7 @@ const handleHarupApply = () => {
                         <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled}>
                             Generate Sheet
                         </Button>
-                        <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0">
+                        <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0" disabled={isDataEntryDisabled}>
                             <Trash2 className="h-4 w-4" />
                             <span className="sr-only">Clear Sheet</span>
                         </Button>
@@ -870,8 +870,8 @@ const handleHarupApply = () => {
                 </div>
               </div>
 
-              <div className={`w-full xl:w-1/2 flex flex-col gap-4 ${isDataEntryDisabled ? 'opacity-50 pointer-events-none' : ''}`}>
-                <div className="border rounded-lg p-2 sm:p-4">
+              <div className="w-full xl:w-1/2 flex flex-col gap-4">
+                <div className={`border rounded-lg p-2 sm:p-4 ${isDataEntryDisabled ? 'opacity-50 pointer-events-none' : ''}`}>
                     <h3 className="font-semibold mb-2">HARUP</h3>
                     <div className="flex flex-col sm:flex-row items-stretch gap-2">
                       <div className="flex items-center gap-2 flex-grow">
@@ -891,7 +891,7 @@ const handleHarupApply = () => {
                         <Button onClick={handleHarupApply} disabled={isDataEntryDisabled}>Apply</Button>
                     </div>
                 </div>
-                <div className="border rounded-lg p-2 sm:p-4">
+                <div className={`border rounded-lg p-2 sm:p-4 ${isDataEntryDisabled ? 'opacity-50 pointer-events-none' : ''}`}>
                   <h3 className="font-semibold mb-2">Laddi</h3>
                   <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
                       <Input
@@ -1079,5 +1079,3 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-    
