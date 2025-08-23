@@ -707,13 +707,13 @@ const handleHarupApply = () => {
             <div className="w-full flex flex-col xl:flex-row gap-4">
               <div className="w-full xl:w-1/2 flex flex-col gap-2">
                 <div className="flex flex-row gap-2">
-                    <div className="border rounded-lg p-2 sm:p-4 flex-1 flex flex-col gap-2">
+                    <div className="border rounded-lg p-2 flex flex-col gap-2">
                         <h3 className="font-semibold">Master</h3>
                         <Button onClick={() => setIsMasterSheetDialogOpen(true)} variant="outline">
                             Master Sheet
                         </Button>
                     </div>
-                    <div className="border rounded-lg p-2 sm:p-4 flex-1 flex flex-col gap-2">
+                    <div className="border rounded-lg p-2 flex flex-col gap-2">
                         <h3 className="font-semibold">Client</h3>
                     </div>
                 </div>
@@ -946,6 +946,8 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
 
     
 
