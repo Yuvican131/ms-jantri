@@ -24,16 +24,20 @@ type ValidationResult = {
 }
 type CellValidation = { [key: string]: ValidationResult & { isLoading: boolean } }
 
+type ClientSheetData = {
+  data: CellData;
+  rowTotals: { [key: number]: string };
+};
+
 type Sheet = {
   id: string
   name: string
-  data: CellData
-  rowTotals: { [key: number]: string }
+  clientsData: { [clientId: string]: ClientSheetData };
 }
 
 const initialSheets: Sheet[] = [
-  { id: "1", name: "Q1 2024 Report", data: { }, rowTotals: {} },
-  { id: "2", name: "Q2 2024 Estimates", data: { }, rowTotals: {} },
+  { id: "1", name: "Q1 2024 Report", clientsData: {} },
+  { id: "2", name: "Q2 2024 Estimates", clientsData: {} },
 ]
 
 const GRID_ROWS = 10;
@@ -78,7 +82,11 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
-  const activeSheet = sheets.find(s => s.id === activeSheetId)!
+  const activeSheet = sheets.find(s => s.id === activeSheetId)!;
+  const clientData = selectedClient ? activeSheet.clientsData[selectedClient.id] : undefined;
+  const currentData = clientData?.data ?? {};
+  const currentRowTotals = clientData?.rowTotals ?? {};
+
 
   useImperativeHandle(ref, () => ({
     handleClientUpdate: (client: Client) => {
@@ -91,16 +99,22 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
           const colIndex = cellNum % GRID_COLS;
           const key = `${rowIndex}_${colIndex}`;
           
-          const updatedSheets = sheets.map(sheet => {
+          setSheets(prevSheets => prevSheets.map(sheet => {
             if (sheet.id === activeSheetId) {
-              const newData = { ...sheet.data };
+              const clientSheetData = sheet.clientsData[client.id] || { data: {}, rowTotals: {} };
+              const newData = { ...clientSheetData.data };
               const currentValue = parseFloat(newData[key]) || 0;
               newData[key] = String(currentValue * commission);
-              return { ...sheet, data: newData };
+              return {
+                ...sheet,
+                clientsData: {
+                  ...sheet.clientsData,
+                  [client.id]: { ...clientSheetData, data: newData }
+                }
+              };
             }
             return sheet;
-          });
-          setSheets(updatedSheets);
+          }));
           setUpdatedCells(prev => [...prev, key]);
           setTimeout(() => setUpdatedCells(prev => prev.filter(c => c !== key)), 2000);
           toast({ title: "Sheet Updated by Client", description: `Cell ${client.name} value multiplied by commission ${client.comm}.` });
@@ -166,20 +180,26 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       toast({ title: "Client not selected", description: "Please select a client before entering data.", variant: "destructive" });
       return;
     }
-    const updatedSheets = sheets.map(sheet => {
+    setSheets(prevSheets => prevSheets.map(sheet => {
       if (sheet.id === activeSheetId) {
-        const key = `${rowIndex}_${colIndex}`
-        const newData = { ...sheet.data, [key]: value }
-        return { ...sheet, data: newData }
+        const key = `${rowIndex}_${colIndex}`;
+        const clientSheetData = sheet.clientsData[selectedClient.id] || { data: {}, rowTotals: {} };
+        const newData = { ...clientSheetData.data, [key]: value };
+        return {
+          ...sheet,
+          clientsData: {
+            ...sheet.clientsData,
+            [selectedClient.id]: { ...clientSheetData, data: newData }
+          }
+        };
       }
-      return sheet
-    })
-    setSheets(updatedSheets)
+      return sheet;
+    }));
   }
 
   const handleCellBlur = async (rowIndex: number, colIndex: number) => {
     const key = `${rowIndex}_${colIndex}`
-    const cellContent = activeSheet.data[key]
+    const cellContent = currentData[key]
 
     if (!cellContent || cellContent.trim() === "") {
       const newValidations = {...validations};
@@ -208,20 +228,22 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     const newSheet: Sheet = {
       id: Date.now().toString(),
       name: `Sheet ${sheets.length + 1}`,
-      data: {},
-      rowTotals: {}
+      clientsData: {},
     }
     setSheets([...sheets, newSheet])
     setActiveSheetId(newSheet.id)
   }
 
   const exportToCSV = () => {
+    if (!selectedClient) {
+      toast({ title: "Cannot Export", description: "Please select a client to export their sheet.", variant: "destructive" });
+      return;
+    }
     let csvContent = "data:text/csv;charset=utf-8,"
     const rows = Array.from({ length: GRID_ROWS }, (_, rowIndex) =>
       Array.from({ length: GRID_COLS }, (_, colIndex) => {
-        const cellNumber = rowIndex * GRID_COLS + colIndex;
         const key = `${rowIndex}_${colIndex}`
-        const cellValue = activeSheet.data[key] || ""
+        const cellValue = currentData[key] || ""
         return `"${cellValue.replace(/"/g, '""')}"`
       }).join(",")
     ).join("\n")
@@ -230,7 +252,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     const encodedUri = encodeURI(csvContent)
     const link = document.createElement("a")
     link.setAttribute("href", encodedUri)
-    link.setAttribute("download", `${activeSheet.name}.csv`)
+    link.setAttribute("download", `${activeSheet.name}_${selectedClient.name}.csv`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -240,7 +262,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     let total = 0
     for (let colIndex = 0; colIndex < GRID_COLS; colIndex++) {
       const key = `${rowIndex}_${colIndex}`
-      const value = activeSheet.data[key]
+      const value = currentData[key]
       if (value && !isNaN(Number(value))) {
         total += Number(value)
       }
@@ -249,14 +271,21 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   }
 
   const handleRowTotalChange = (rowIndex: number, value: string) => {
-    const updatedSheets = sheets.map(sheet => {
+    if (!selectedClient) return;
+    setSheets(prevSheets => prevSheets.map(sheet => {
       if (sheet.id === activeSheetId) {
-        const newRowTotals = { ...sheet.rowTotals, [rowIndex]: value }
-        return { ...sheet, rowTotals: newRowTotals }
+        const clientSheetData = sheet.clientsData[selectedClient.id] || { data: {}, rowTotals: {} };
+        const newRowTotals = { ...clientSheetData.rowTotals, [rowIndex]: value };
+        return {
+          ...sheet,
+          clientsData: {
+            ...sheet.clientsData,
+            [selectedClient.id]: { ...clientSheetData, rowTotals: newRowTotals }
+          }
+        };
       }
       return sheet;
-    });
-    setSheets(updatedSheets);
+    }));
   };
 
   const handleRowTotalBlur = (rowIndex: number, value: string) => {
@@ -266,8 +295,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   }
 
   const getRowTotal = (rowIndex: number) => {
-    if (activeSheet.rowTotals[rowIndex] !== undefined) {
-      return activeSheet.rowTotals[rowIndex];
+    if (currentRowTotals[rowIndex] !== undefined) {
+      return currentRowTotals[rowIndex];
     }
     return calculateRowTotal(rowIndex).toString();
   }
@@ -281,15 +310,24 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   };
 
   const applyUpdates = (updates: { [key: string]: string }, lastEntryString: string) => {
+    if (!selectedClient) return;
     if (Object.keys(updates).length > 0) {
-      const updatedSheets = sheets.map(sheet => {
+      setSheets(prevSheets => prevSheets.map(sheet => {
         if (sheet.id === activeSheetId) {
-          return { ...sheet, data: { ...sheet.data, ...updates } };
+          const clientSheetData = sheet.clientsData[selectedClient.id] || { data: {}, rowTotals: {} };
+          const newData = { ...clientSheetData.data, ...updates };
+          return {
+            ...sheet,
+            clientsData: {
+              ...sheet.clientsData,
+              [selectedClient.id]: { ...clientSheetData, data: newData }
+            }
+          };
         }
         return sheet;
-      });
+      }));
+
       const updatedCellKeys = Object.keys(updates);
-      setSheets(updatedSheets);
       setUpdatedCells(updatedCellKeys);
       props.setLastEntry(lastEntryString);
       setTimeout(() => setUpdatedCells([]), 2000);
@@ -306,7 +344,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       return;
     }
     const lines = multiText.split('\n');
-    const newData = { ...activeSheet.data };
+    const newData = { ...currentData };
     const updatedCellKeys = new Set<string>();
     let lastEntryString = "";
 
@@ -376,14 +414,21 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
     if (updatedCellKeys.size > 0) {
         lastEntryString = formattedLines.join('\n');
-        const updatedSheets = sheets.map(sheet => {
+        setSheets(prevSheets => prevSheets.map(sheet => {
             if (sheet.id === activeSheetId) {
-                return { ...sheet, data: newData };
+                const clientSheetData = sheet.clientsData[selectedClient.id] || { data: {}, rowTotals: {} };
+                return {
+                    ...sheet,
+                    clientsData: {
+                      ...sheet.clientsData,
+                      [selectedClient.id]: { ...clientSheetData, data: newData }
+                    }
+                };
             }
             return sheet;
-        });
+        }));
+
         const currentUpdatedCells = Array.from(updatedCellKeys);
-        setSheets(updatedSheets);
         setUpdatedCells(currentUpdatedCells);
         props.setLastEntry(lastEntryString);
         setMultiText("");
@@ -403,7 +448,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         toast({ title: "Laddi Error", description: "Please fill all Laddi fields.", variant: "destructive" });
         return;
     }
-    const newData = { ...activeSheet.data };
+    const newData = { ...currentData };
     const updatedCellKeys = new Set<string>();
     
     const digits1 = laddiNum1.split('');
@@ -435,14 +480,21 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
     if (updatedCellKeys.size > 0) {
         const lastEntryString = `${laddiNum1}x${laddiNum2}=${laddiAmount}`;
-        const updatedSheets = sheets.map(sheet => {
+        setSheets(prevSheets => prevSheets.map(sheet => {
             if (sheet.id === activeSheetId) {
-                return { ...sheet, data: newData };
+                const clientSheetData = sheet.clientsData[selectedClient.id] || { data: {}, rowTotals: {} };
+                return {
+                    ...sheet,
+                    clientsData: {
+                      ...sheet.clientsData,
+                      [selectedClient.id]: { ...clientSheetData, data: newData }
+                    }
+                };
             }
             return sheet;
-        });
+        }));
+        
         const currentUpdatedCells = Array.from(updatedCellKeys);
-        setSheets(updatedSheets);
         setUpdatedCells(currentUpdatedCells);
         props.setLastEntry(lastEntryString);
         setTimeout(() => setUpdatedCells([]), 2000);
@@ -475,7 +527,7 @@ const handleHarupApply = () => {
         return;
     }
 
-    const newData = { ...activeSheet.data };
+    const newData = { ...currentData };
     const updatedCellKeys = new Set<string>();
     
     if (harupADigits.length > 0) {
@@ -526,14 +578,21 @@ const handleHarupApply = () => {
         if (harupB) harupEntries.push(`B: ${harupB}=${harupAmount}`);
         const lastEntryString = harupEntries.join('\n');
 
-        const updatedSheets = sheets.map(sheet => {
+        setSheets(prevSheets => prevSheets.map(sheet => {
             if (sheet.id === activeSheetId) {
-                return { ...sheet, data: newData };
+                const clientSheetData = sheet.clientsData[selectedClient.id] || { data: {}, rowTotals: {} };
+                return {
+                    ...sheet,
+                    clientsData: {
+                      ...sheet.clientsData,
+                      [selectedClient.id]: { ...clientSheetData, data: newData }
+                    }
+                };
             }
             return sheet;
-        });
+        }));
+
         const currentUpdatedCells = Array.from(updatedCellKeys);
-        setSheets(updatedSheets);
         setUpdatedCells(currentUpdatedCells);
         props.setLastEntry(lastEntryString);
         setTimeout(() => setUpdatedCells([]), 2000);
@@ -548,13 +607,23 @@ const handleHarupApply = () => {
 };
 
   const handleClearSheet = () => {
-    const updatedSheets = sheets.map(sheet => {
+    if (!selectedClient) {
+      toast({ title: "Client not selected", description: "Please select a client to clear their sheet.", variant: "destructive" });
+      return;
+    }
+    setSheets(prevSheets => prevSheets.map(sheet => {
       if (sheet.id === activeSheetId) {
-        return { ...sheet, data: {}, rowTotals: {} };
+        const clientSheetData = { data: {}, rowTotals: {} };
+        return {
+          ...sheet,
+          clientsData: {
+            ...sheet.clientsData,
+            [selectedClient.id]: clientSheetData
+          }
+        };
       }
       return sheet;
-    });
-    setSheets(updatedSheets);
+    }));
     setValidations({});
     setMultiText("");
     setUpdatedCells([]);
@@ -562,15 +631,18 @@ const handleHarupApply = () => {
     setHarupB('');
     setHarupAmount('');
     props.setLastEntry('');
-    setSelectedClient(null);
-    toast({ title: "Sheet Cleared", description: "All cell values and client selection have been reset." });
+    toast({ title: "Sheet Cleared", description: "All cell values for the selected client have been reset." });
   };
   
   const handleGenerateSheet = () => {
+    if (!selectedClient) {
+      toast({ title: "Client not selected", description: "Please select a client to generate their sheet.", variant: "destructive" });
+      return;
+    }
     const valueToCells: { [value: string]: number[] } = {};
 
-    for (const key in activeSheet.data) {
-      const value = activeSheet.data[key];
+    for (const key in currentData) {
+      const value = currentData[key];
       if (value && value.trim() !== '' && !isNaN(Number(value)) && Number(value) !== 0) {
         const [rowIndex, colIndex] = key.split('_').map(Number);
         let cellNumber = rowIndex * GRID_COLS + colIndex;
@@ -699,7 +771,7 @@ const handleHarupApply = () => {
                         <Input
                           type="text"
                           className={`pt-5 text-sm transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} bg-slate-800 text-white`}
-                          value={activeSheet.data[key] || ''}
+                          value={currentData[key] || ''}
                           onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
                           onBlur={() => handleCellBlur(rowIndex, colIndex)}
                           aria-label={`Cell ${displayCellNumber}`}
@@ -761,7 +833,7 @@ const handleHarupApply = () => {
                             const client = props.clients.find(c => c.id === clientId) || null;
                             setSelectedClient(client);
                           }}
-                          value={selectedClient?.id}
+                          value={selectedClient?.id || ''}
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select a client" />
@@ -925,7 +997,7 @@ const handleHarupApply = () => {
                               type="text"
                               readOnly
                               className="pt-5 text-sm bg-muted min-w-0"
-                              value={activeSheet.data[key] || ''}
+                              value={currentData[key] || ''}
                               aria-label={`Cell ${displayCellNumber}`}
                             />
                           </div>
@@ -1007,3 +1079,5 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
