@@ -713,7 +713,7 @@ const handleHarupApply = () => {
                             Master Sheet
                         </Button>
                     </div>
-                    <div className="border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
+                    <div className="border rounded-lg p-2 sm:p-4 flex-1 flex flex-col gap-2">
                         <h3 className="font-semibold">Client</h3>
                     </div>
                 </div>
@@ -952,4 +952,3 @@ export default GridSheet;
     
 
     
-
