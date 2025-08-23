@@ -327,14 +327,12 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
         numbers.forEach(numStr => {
             let cellNum;
-            if (numStr === '00') {
-              cellNum = 99;
-            } else if (numStr === '100') {
+            if (numStr === '00' || numStr === '100') {
               cellNum = 99;
             } else {
                 const parsedNum = parseInt(numStr, 10);
-                if (isNaN(parsedNum) || parsedNum < 1 || parsedNum > 99) return;
-                cellNum = parsedNum - 1;
+                if (isNaN(parsedNum) || parsedNum < 0 || parsedNum > 99) return;
+                cellNum = parsedNum;
             }
             
             const rowIndex = Math.floor(cellNum / GRID_COLS);
@@ -394,13 +392,6 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
             let cellNum = parseInt(cellNumStr, 10);
             
             if (!isNaN(cellNum) && cellNum >= 0 && cellNum <= 99) {
-                if (cellNum === 0) cellNum = 100;
-                cellNum = cellNum -1;
-
-                if (cellNum === 99) { // This is for '00'
-                    // Do nothing special, it's already handled
-                }
-
                 const rowIndex = Math.floor(cellNum / GRID_COLS);
                 const colIndex = cellNum % GRID_COLS;
                 const key = `${rowIndex}_${colIndex}`;
@@ -457,21 +448,20 @@ const handleHarupApply = () => {
     const updates: { [key: string]: string } = {};
     const updatedCellKeys = new Set<string>();
     
-    const harupAAmount = harupADigits.length > 0 ? totalAmount / harupADigits.length : 0;
-    const harupBAmount = harupBDigits.length > 0 ? totalAmount / harupBDigits.length : 0;
+    const harupAAmountPerCell = harupADigits.length > 0 ? totalAmount / 10 : 0;
+    const harupBAmountPerCell = harupBDigits.length > 0 ? totalAmount / 10 : 0;
 
     if (harupADigits.length > 0) {
       for (const digit of harupADigits) {
         for (let i = 0; i < 10; i++) {
           const cellNumStr = `${digit}${i}`;
           const cellNum = parseInt(cellNumStr, 10);
-          if (cellNum >=0 && cellNum <= 99) {
-            const gridIndex = cellNum === 0 ? 99 : cellNum - 1;
-            const rowIndex = Math.floor(gridIndex / GRID_COLS);
-            const colIndex = gridIndex % GRID_COLS;
+          if (cellNum >= 0 && cellNum <= 99) {
+            const rowIndex = Math.floor(cellNum / GRID_COLS);
+            const colIndex = cellNum % GRID_COLS;
             const key = `${rowIndex}_${colIndex}`;
             const currentValue = parseFloat(currentData[key]) || 0;
-            updates[key] = String(currentValue + harupAAmount / 10);
+            updates[key] = String(currentValue + harupAAmountPerCell);
             updatedCellKeys.add(key);
           }
         }
@@ -484,12 +474,11 @@ const handleHarupApply = () => {
           const cellNumStr = `${i}${digit}`;
           const cellNum = parseInt(cellNumStr, 10);
           if (cellNum >= 0 && cellNum <= 99) {
-              const gridIndex = cellNum === 0 ? 99 : cellNum - 1;
-              const rowIndex = Math.floor(gridIndex / GRID_COLS);
-              const colIndex = gridIndex % GRID_COLS;
+              const rowIndex = Math.floor(cellNum / GRID_COLS);
+              const colIndex = cellNum % GRID_COLS;
               const key = `${rowIndex}_${colIndex}`;
               const currentValue = parseFloat(currentData[key]) || 0;
-              updates[key] = String(currentValue + harupBAmount / 10);
+              updates[key] = String(currentValue + harupBAmountPerCell);
               updatedCellKeys.add(key);
           }
         }
@@ -551,9 +540,9 @@ const handleHarupApply = () => {
         
         let displayCellNumber;
         if(cellNumber === 99) {
-          displayCellNumber = 100;
+          displayCellNumber = 0;
         } else {
-          displayCellNumber = cellNumber + 1;
+          displayCellNumber = cellNumber;
         }
         
         if (!valueToCells[value]) {
@@ -567,7 +556,7 @@ const handleHarupApply = () => {
       .map(([value, cells]) => {
         cells.sort((a, b) => a - b);
         const formattedCells = cells.map(cell => {
-           if(cell === 100) return '00';
+           if(cell === 99) return '00';
            return String(cell).padStart(2, '0')
         });
         return `${formattedCells.join(',')}=${value}`;
@@ -628,7 +617,7 @@ const handleHarupApply = () => {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-lg md:text-2xl">{props.draw} Sheet ({format(props.date, "PPP")}): {activeSheet.name}</CardTitle>
-              <CardDescription className="text-xs md:text-sm">A 10x10 grid for your accounting data. Cells are numbered 01-99 and 00.</CardDescription>
+              <CardDescription className="text-xs md:text-sm">A 10x10 grid for your accounting data. Cells are numbered 00-99.</CardDescription>
             </div>
             <div className="flex gap-2 w-full md:w-auto">
               <Select value={activeSheetId} onValueChange={setActiveSheetId}>
@@ -664,14 +653,7 @@ const handleHarupApply = () => {
                 <React.Fragment key={rowIndex}>
                   {Array.from({ length: GRID_COLS }, (_, colIndex) => {
                     const cellNumber = rowIndex * GRID_COLS + colIndex;
-                    let displayCellNumber;
-                    if (cellNumber === 99) {
-                        displayCellNumber = '00';
-                    } else if (cellNumber >= 0 && cellNumber <= 98) {
-                        displayCellNumber = String(cellNumber + 1).padStart(2, '0');
-                    } else {
-                        displayCellNumber = '';
-                    }
+                    let displayCellNumber = String(cellNumber).padStart(2, '0');
 
                     const key = `${rowIndex}_${colIndex}`
                     const validation = validations[key]
@@ -879,14 +861,8 @@ const handleHarupApply = () => {
                     <React.Fragment key={`master-row-${rowIndex}`}>
                       {Array.from({ length: GRID_COLS }, (_, colIndex) => {
                         const cellNumber = rowIndex * GRID_COLS + colIndex;
-                        let displayCellNumber;
-                        if (cellNumber === 99) {
-                            displayCellNumber = '00';
-                        } else if (cellNumber >= 0 && cellNumber <= 98) {
-                            displayCellNumber = String(cellNumber + 1).padStart(2, '0');
-                        } else {
-                            displayCellNumber = '';
-                        }
+                        let displayCellNumber = String(cellNumber).padStart(2, '0');
+                        
                         const key = `${rowIndex}_${colIndex}`
                         return (
                           <div key={`master-cell-${key}`} className="relative">
