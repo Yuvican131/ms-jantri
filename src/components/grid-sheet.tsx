@@ -659,7 +659,7 @@ const handleHarupApply = () => {
                         <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{displayCellNumber}</div>
                         <Input
                           type="text"
-                          className={`pt-5 text-sm transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''}`}
+                          className={`pt-5 text-sm transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} bg-background/80 text-foreground`}
                           value={activeSheet.data[key] || ''}
                           onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
                           onBlur={() => handleCellBlur(rowIndex, colIndex)}
@@ -706,11 +706,16 @@ const handleHarupApply = () => {
         <CardFooter className="flex flex-col gap-4 pt-2">
             <div className="w-full flex flex-col xl:flex-row gap-4">
               <div className="w-full xl:w-1/2 flex flex-col gap-2">
-                <div className="border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
-                    <h3 className="font-semibold">Master</h3>
-                    <Button onClick={() => setIsMasterSheetDialogOpen(true)} variant="outline">
-                        Master Sheet
-                    </Button>
+                <div className="flex flex-row gap-2">
+                    <div className="border rounded-lg p-2 sm:p-4 flex-1 flex flex-col gap-2">
+                        <h3 className="font-semibold">Master</h3>
+                        <Button onClick={() => setIsMasterSheetDialogOpen(true)} variant="outline">
+                            Master Sheet
+                        </Button>
+                    </div>
+                    <div className="border rounded-lg p-2 sm:p-4 flex-1 flex flex-col gap-2">
+                        <h3 className="font-semibold">Client</h3>
+                    </div>
                 </div>
                 <div className="border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
                     <h3 className="font-semibold">Multi - Text</h3>
@@ -883,16 +888,16 @@ const handleHarupApply = () => {
                 </div>
             </div>
             <div className="mt-4 p-4 border-t">
-              <div className="flex items-center justify-around gap-2">
-                  <div className="flex-1 flex flex-col gap-1">
+              <div className="flex flex-wrap items-center justify-around gap-2">
+                  <div className="flex flex-col gap-1 min-w-[100px] flex-1">
                       <Label htmlFor="master-cutting" className="text-center text-sm">Cutting</Label>
                       <Input id="master-cutting" placeholder="Value" className="text-sm" />
                   </div>
-                  <div className="flex-1 flex flex-col gap-1">
+                  <div className="flex flex-col gap-1 min-w-[100px] flex-1">
                       <Label htmlFor="master-less" className="text-center text-sm">Less</Label>
                       <Input id="master-less" placeholder="Value" className="text-sm" />
                   </div>
-                  <div className="flex-1 flex flex-col gap-1">
+                  <div className="flex flex-col gap-1 min-w-[100px] flex-1">
                       <Label htmlFor="master-dabba" className="text-center text-sm">Dabba</Label>
                       <Input id="master-dabba" placeholder="Value" className="text-sm" />
                   </div>
