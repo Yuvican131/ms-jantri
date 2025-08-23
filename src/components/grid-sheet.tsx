@@ -106,10 +106,18 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   };
 
   const handleSelectedClientChange = (clientId: string) => {
-    if (selectedClientId) {
-      updateClientData(selectedClientId, currentData, currentRowTotals);
+    if (clientId === "None") {
+      if (selectedClientId) {
+        // Save current client data before switching to "None"
+        updateClientData(selectedClientId, currentData, currentRowTotals);
+      }
+      setSelectedClientId(null);
+    } else {
+        if (selectedClientId) {
+            updateClientData(selectedClientId, currentData, currentRowTotals);
+        }
+        setSelectedClientId(clientId);
     }
-    setSelectedClientId(clientId);
   };
   
 
@@ -332,7 +340,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     toast({ title: "Sheet Updated", description: `${updatedCellKeys.length} cell(s) have been updated.` });
 };
 
-  const handleMultiTextApply = () => {
+const handleMultiTextApply = () => {
     const lines = multiText.split('\n');
     let lastEntryString = "";
 
@@ -360,15 +368,18 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         if (parts.length !== 2) return;
 
         const valueStr = evaluateExpression(parts[1].trim());
+        const newValue = parseFloat(valueStr);
+        if (isNaN(newValue)) return;
+
         let cellNumbersStr = parts[0].trim();
         
         if (!/[\s,]+/.test(cellNumbersStr) && /^\d+$/.test(cellNumbersStr) && cellNumbersStr.length > 2 && cellNumbersStr !== '100') {
              cellNumbersStr = cellNumbersStr.match(/.{1,2}/g)?.join(',') || cellNumbersStr;
         }
         
-        const formattedCells = cellNumbersStr
-          .split(/[\s,]+/)
-          .filter(s => s)
+        const cellNumbers = cellNumbersStr.split(/[\s,]+/).filter(s => s);
+
+        const formattedCells = cellNumbers
           .map(s => {
             if (s === '00') return '00';
             const num = parseInt(s, 10);
@@ -381,24 +392,22 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
         formattedLines.push(`${formattedCells}=${valueStr}`);
 
-        const numbers = formattedCells.split(',');
-
-        numbers.forEach(numStr => {
-            let cellNum = parseInt(numStr, 10);
-             if (isNaN(cellNum) || cellNum < 0 || cellNum > 99) return;
+        cellNumbers.forEach(numStr => {
+            let cellNum;
+            if (numStr === '00') {
+                cellNum = 0;
+            } else {
+                cellNum = parseInt(numStr, 10);
+            }
             
+            if (isNaN(cellNum) || cellNum < 0 || cellNum > 99) return;
+
             const rowIndex = Math.floor(cellNum / GRID_COLS);
             const colIndex = cellNum % GRID_COLS;
             const key = `${rowIndex}_${colIndex}`;
             
-            const currentValue = parseFloat(currentData[key]) || 0;
-            const newValue = parseFloat(valueStr);
-
-            if (!isNaN(newValue)) {
-                updates[key] = String(currentValue + newValue);
-            } else {
-                updates[key] = valueStr;
-            }
+            const currentValue = parseFloat(updates[key] || currentData[key]) || 0;
+            updates[key] = String(currentValue + newValue);
         });
     });
 
@@ -409,7 +418,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     } else {
         toast({ title: "No Updates", description: "No valid cell data found in the input.", variant: "destructive" });
     }
-  };
+};
   
   const handleLaddiApply = () => {
     if (!laddiNum1 || !laddiNum2 || !laddiAmount) {
@@ -472,10 +481,9 @@ const handleHarupApply = () => {
 
     const updates: { [key: string]: string } = {};
     
-    const harupAAmountPerDigit = totalAmount;
     if (harupADigits.length > 0) {
       for (const digit of harupADigits) {
-        const harupAAmountPerCell = harupAAmountPerDigit / 10;
+        const harupAAmountPerCell = totalAmount / 10;
         for (let i = 0; i < 10; i++) {
           const cellNumStr = `${digit}${i}`;
           const cellNum = parseInt(cellNumStr, 10);
@@ -490,10 +498,9 @@ const handleHarupApply = () => {
       }
     }
     
-    const harupBAmountPerDigit = totalAmount;
     if (harupBDigits.length > 0) {
       for (const digit of harupBDigits) {
-        const harupBAmountPerCell = harupBAmountPerDigit / 10;
+        const harupBAmountPerCell = totalAmount / 10;
         for (let i = 0; i < 10; i++) {
           const cellNumStr = `${i}${digit}`;
           const cellNum = parseInt(cellNumStr, 10);
@@ -621,7 +628,7 @@ const handleHarupApply = () => {
     return <div>Loading...</div>;
   }
 
-  const isDataEntryDisabled = !selectedClientId;
+  const isDataEntryDisabled = selectedClientId === null;
 
   return (
     <>
@@ -729,11 +736,12 @@ const handleHarupApply = () => {
                 <div className="border rounded-lg p-2 flex flex-col gap-2 justify-center">
                     <h3 className="font-semibold text-sm">Client</h3>
                     <div className="flex items-center gap-2">
-                      <Select value={selectedClientId || ''} onValueChange={handleSelectedClientChange}>
+                      <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
                           <SelectTrigger className="flex-grow">
                               <SelectValue placeholder="Select Client" />
                           </SelectTrigger>
                           <SelectContent>
+                              <SelectItem value="None">None</SelectItem>
                               {props.clients.map(client => (
                                   <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
                               ))}
