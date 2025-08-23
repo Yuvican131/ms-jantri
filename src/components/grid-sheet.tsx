@@ -315,8 +315,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
           .map(s => {
             if (s === '100') return '00';
             const num = parseInt(s, 10);
-            if (num === 0) return '00';
-            if (num > 0 && num <=99) return String(num).padStart(2, '0');
+            if (num >= 0 && num <= 99) return String(num).padStart(2, '0');
             return null;
           })
           .filter(Boolean)
@@ -328,8 +327,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
         numbers.forEach(numStr => {
             let cellNum;
-            if (numStr === '00' || numStr === '100') {
-                cellNum = 99;
+            if (numStr === '00') {
+              cellNum = 99;
+            } else if (numStr === '100') {
+              cellNum = 99;
             } else {
                 const parsedNum = parseInt(numStr, 10);
                 if (isNaN(parsedNum) || parsedNum < 1 || parsedNum > 99) return;
@@ -393,6 +394,13 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
             let cellNum = parseInt(cellNumStr, 10);
             
             if (!isNaN(cellNum) && cellNum >= 0 && cellNum <= 99) {
+                if (cellNum === 0) cellNum = 100;
+                cellNum = cellNum -1;
+
+                if (cellNum === 99) { // This is for '00'
+                    // Do nothing special, it's already handled
+                }
+
                 const rowIndex = Math.floor(cellNum / GRID_COLS);
                 const colIndex = cellNum % GRID_COLS;
                 const key = `${rowIndex}_${colIndex}`;
@@ -432,8 +440,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 };
 
 const handleHarupApply = () => {
-    const harupADigits = harupA.replace(/\s/g, '').split('');
-    const harupBDigits = harupB.replace(/\s/g, '').split('');
+    const harupADigits = harupA.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d)));
+    const harupBDigits = harupB.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d)));
     
     if ((harupADigits.length === 0 && harupBDigits.length === 0) || !harupAmount) {
         toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' and Amount fields.", variant: "destructive" });
@@ -449,47 +457,42 @@ const handleHarupApply = () => {
     const updates: { [key: string]: string } = {};
     const updatedCellKeys = new Set<string>();
     
+    const harupAAmount = harupADigits.length > 0 ? totalAmount / harupADigits.length : 0;
+    const harupBAmount = harupBDigits.length > 0 ? totalAmount / harupBDigits.length : 0;
+
     if (harupADigits.length > 0) {
-        const amountPerDigit = totalAmount / harupADigits.length;
-        for (const digit of harupADigits) {
-          const cellsToUpdate = [];
-          for (let i = 0; i < 10; i++) {
-            const cellNum = parseInt(`${digit}${i}`, 10);
-             if (!isNaN(cellNum) && cellNum >= 0 && cellNum <= 99) {
-              cellsToUpdate.push(cellNum);
-            }
-          }
-          const amountPerCell = amountPerDigit / cellsToUpdate.length;
-          for (const cellNum of cellsToUpdate) {
-            const rowIndex = Math.floor(cellNum / GRID_COLS);
-            const colIndex = cellNum % GRID_COLS;
+      for (const digit of harupADigits) {
+        for (let i = 0; i < 10; i++) {
+          const cellNumStr = `${digit}${i}`;
+          const cellNum = parseInt(cellNumStr, 10);
+          if (cellNum >=0 && cellNum <= 99) {
+            const gridIndex = cellNum === 0 ? 99 : cellNum - 1;
+            const rowIndex = Math.floor(gridIndex / GRID_COLS);
+            const colIndex = gridIndex % GRID_COLS;
             const key = `${rowIndex}_${colIndex}`;
             const currentValue = parseFloat(currentData[key]) || 0;
-            updates[key] = String(currentValue + amountPerCell);
+            updates[key] = String(currentValue + harupAAmount / 10);
             updatedCellKeys.add(key);
           }
         }
+      }
     }
     
     if (harupBDigits.length > 0) {
-      const amountPerDigit = totalAmount / harupBDigits.length;
       for (const digit of harupBDigits) {
-        const cellsToUpdate = [];
         for (let i = 0; i < 10; i++) {
-          const cellNum = parseInt(`${i}${digit}`, 10);
-          if (!isNaN(cellNum) && cellNum >= 0 && cellNum <= 99) {
-            cellsToUpdate.push(cellNum);
+          const cellNumStr = `${i}${digit}`;
+          const cellNum = parseInt(cellNumStr, 10);
+          if (cellNum >= 0 && cellNum <= 99) {
+              const gridIndex = cellNum === 0 ? 99 : cellNum - 1;
+              const rowIndex = Math.floor(gridIndex / GRID_COLS);
+              const colIndex = gridIndex % GRID_COLS;
+              const key = `${rowIndex}_${colIndex}`;
+              const currentValue = parseFloat(currentData[key]) || 0;
+              updates[key] = String(currentValue + harupBAmount / 10);
+              updatedCellKeys.add(key);
           }
         }
-         const amountPerCell = amountPerDigit / cellsToUpdate.length;
-         for (const cellNum of cellsToUpdate) {
-            const rowIndex = Math.floor(cellNum / GRID_COLS);
-            const colIndex = cellNum % GRID_COLS;
-            const key = `${rowIndex}_${colIndex}`;
-            const currentValue = parseFloat(currentData[key]) || 0;
-            updates[key] = String(currentValue + amountPerCell);
-            updatedCellKeys.add(key);
-         }
       }
     }
 
