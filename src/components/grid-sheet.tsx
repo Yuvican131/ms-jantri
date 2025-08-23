@@ -659,7 +659,7 @@ const handleHarupApply = () => {
                         <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{displayCellNumber}</div>
                         <Input
                           type="text"
-                          className={`pt-5 text-sm transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} bg-background/80 text-foreground`}
+                          className={`pt-5 text-sm transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} bg-slate-800 text-white`}
                           value={activeSheet.data[key] || ''}
                           onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
                           onBlur={() => handleCellBlur(rowIndex, colIndex)}
@@ -713,7 +713,7 @@ const handleHarupApply = () => {
                             Master Sheet
                         </Button>
                     </div>
-                    <div className="border rounded-lg p-2 sm:p-4 flex-1 flex flex-col gap-2">
+                    <div className="border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
                         <h3 className="font-semibold">Client</h3>
                     </div>
                 </div>
@@ -952,3 +952,4 @@ export default GridSheet;
     
 
     
+
