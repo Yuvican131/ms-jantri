@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import type { Client } from "./clients-manager"
 import { format } from "date-fns"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Switch } from "@/components/ui/switch"
 
 type CellData = { [key: string]: string }
 type ValidationResult = {
@@ -25,11 +26,18 @@ type ValidationResult = {
 type CellValidation = { [key: string]: ValidationResult & { isLoading: boolean } }
 
 type Sheet = {
-  id: string
-  name: string
-  data: CellData
+  id: string;
+  name: string;
+  data: CellData;
   rowTotals: { [key: number]: string };
-}
+};
+
+type ClientSheetData = {
+  [clientId: string]: {
+    data: CellData;
+    rowTotals: { [key: number]: string };
+  };
+};
 
 const initialSheets: Sheet[] = [
   { id: "1", name: "Q1 2024 Report", data: {}, rowTotals: {} },
@@ -44,6 +52,7 @@ const MAX_COMBINATIONS = 100;
 
 type GridSheetHandle = {
   handleClientUpdate: (client: Client) => void;
+  clearSheet: () => void;
 };
 
 type GridSheetProps = {
@@ -61,6 +70,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const { toast } = useToast()
   const [sheets, setSheets] = useState<Sheet[]>(initialSheets)
   const [activeSheetId, setActiveSheetId] = useState<string>("1")
+  const [clientSheetData, setClientSheetData] = useState<ClientSheetData>({});
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [isClientDataSaving, setIsClientDataSaving] = useState(true);
+
   const [validations, setValidations] = useState<CellValidation>({})
   const [multiText, setMultiText] = useState("");
   const [updatedCells, setUpdatedCells] = useState<string[]>([]);
@@ -78,9 +91,29 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
   
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
-  const currentData = activeSheet.data
-  const currentRowTotals = activeSheet.rowTotals;
+  
+  const currentData = selectedClientId && isClientDataSaving
+    ? clientSheetData[selectedClientId]?.data || {}
+    : activeSheet.data;
 
+  const currentRowTotals = selectedClientId && isClientDataSaving
+    ? clientSheetData[selectedClientId]?.rowTotals || {}
+    : activeSheet.rowTotals;
+
+  const updateClientData = (clientId: string, data: CellData, rowTotals: { [key: number]: string }) => {
+    setClientSheetData(prev => ({
+      ...prev,
+      [clientId]: { data, rowTotals }
+    }));
+  };
+
+  const handleSelectedClientChange = (clientId: string) => {
+    if (selectedClientId && isClientDataSaving) {
+      updateClientData(selectedClientId, currentData, currentRowTotals);
+    }
+    setSelectedClientId(clientId);
+  };
+  
 
   useImperativeHandle(ref, () => ({
     handleClientUpdate: (client: Client) => {
@@ -107,7 +140,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
           toast({ title: "Sheet Updated by Client", description: `Cell ${client.name} value multiplied by commission ${client.comm}.` });
         }
       }
-    }
+    },
+    clearSheet: () => handleClearSheet(),
   }));
 
   const calculateCombinations = (num1: string, num2: string, removeJoddaFlag: boolean): number => {
@@ -163,14 +197,17 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   }
 
   const handleCellChange = (rowIndex: number, colIndex: number, value: string) => {
-    setSheets(prevSheets => prevSheets.map(sheet => {
-      if (sheet.id === activeSheetId) {
-        const key = `${rowIndex}_${colIndex}`
-        const newData = { ...sheet.data, [key]: value }
-        return { ...sheet, data: newData }
-      }
-      return sheet
-    }))
+    const key = `${rowIndex}_${colIndex}`
+    const newData = { ...currentData, [key]: value };
+    const newRowTotals = { ...currentRowTotals };
+
+    if (selectedClientId && isClientDataSaving) {
+      updateClientData(selectedClientId, newData, newRowTotals);
+    } else {
+      setSheets(prevSheets => prevSheets.map(sheet => 
+        sheet.id === activeSheetId ? { ...sheet, data: newData, rowTotals: newRowTotals } : sheet
+      ));
+    }
   }
 
   const handleCellBlur = async (rowIndex: number, colIndex: number) => {
@@ -244,13 +281,14 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   }
 
   const handleRowTotalChange = (rowIndex: number, value: string) => {
-    setSheets(prevSheets => prevSheets.map(sheet => {
-      if (sheet.id === activeSheetId) {
-        const newRowTotals = { ...sheet.rowTotals, [rowIndex]: value };
-        return { ...sheet, rowTotals: newRowTotals };
-      }
-      return sheet;
-    }));
+    const newRowTotals = { ...currentRowTotals, [rowIndex]: value };
+    if (selectedClientId && isClientDataSaving) {
+      updateClientData(selectedClientId, currentData, newRowTotals);
+    } else {
+      setSheets(prevSheets => prevSheets.map(sheet => 
+        sheet.id === activeSheetId ? { ...sheet, rowTotals: newRowTotals } : sheet
+      ));
+    }
   };
 
   const handleRowTotalBlur = (rowIndex: number, value: string) => {
@@ -274,6 +312,28 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     return total;
   };
 
+  const applyUpdatesToData = (updates: { [key: string]: string }, lastEntryString: string) => {
+    const updatedData = { ...currentData };
+    const updatedCellKeys = Object.keys(updates);
+
+    updatedCellKeys.forEach(key => {
+        updatedData[key] = updates[key];
+    });
+
+    if (selectedClientId && isClientDataSaving) {
+        updateClientData(selectedClientId, updatedData, currentRowTotals);
+    } else {
+        setSheets(prevSheets => prevSheets.map(sheet =>
+            sheet.id === activeSheetId ? { ...sheet, data: updatedData } : sheet
+        ));
+    }
+
+    setUpdatedCells(updatedCellKeys);
+    props.setLastEntry(lastEntryString);
+    setTimeout(() => setUpdatedCells([]), 2000);
+    toast({ title: "Sheet Updated", description: `${updatedCellKeys.length} cell(s) have been updated.` });
+};
+
   const handleMultiTextApply = () => {
     const lines = multiText.split('\n');
     let lastEntryString = "";
@@ -293,7 +353,6 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
     const formattedLines: string[] = [];
     const updates: { [key: string]: string } = {};
-    const updatedCellKeys = new Set<string>();
 
     lines.forEach(line => {
         line = line.trim();
@@ -315,25 +374,20 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
           .map(s => {
             if (s === '100') return '00';
             const num = parseInt(s, 10);
+            if(s.length === 1) return String(num).padStart(2, '0');
             if (num >= 0 && num <= 99) return String(num).padStart(2, '0');
             return null;
           })
-          .filter(Boolean)
+          .filter((s): s is string => s !== null)
           .join(',');
 
         formattedLines.push(`${formattedCells}=${valueStr}`);
 
-        const numbers = cellNumbersStr.split(/[\s,]+/).filter(s => s.length > 0);
+        const numbers = formattedCells.split(',');
 
         numbers.forEach(numStr => {
-            let cellNum;
-            if (numStr === '00' || numStr === '100') {
-              cellNum = 0;
-            } else {
-                const parsedNum = parseInt(numStr, 10);
-                if (isNaN(parsedNum) || parsedNum < 0 || parsedNum > 99) return;
-                cellNum = parsedNum;
-            }
+            let cellNum = parseInt(numStr, 10);
+             if (isNaN(cellNum) || cellNum < 0 || cellNum > 99) return;
             
             const rowIndex = Math.floor(cellNum / GRID_COLS);
             const colIndex = cellNum % GRID_COLS;
@@ -344,29 +398,16 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
             if (!isNaN(newValue)) {
                 updates[key] = String(currentValue + newValue);
-                updatedCellKeys.add(key);
             } else {
                 updates[key] = valueStr;
-                updatedCellKeys.add(key);
             }
         });
     });
 
-    if (updatedCellKeys.size > 0) {
+    if (Object.keys(updates).length > 0) {
         lastEntryString = formattedLines.join('\n');
-        setSheets(prevSheets => prevSheets.map(sheet => {
-            if (sheet.id === activeSheetId) {
-                return { ...sheet, data: { ...sheet.data, ...updates } };
-            }
-            return sheet;
-        }));
-
-        const currentUpdatedCells = Array.from(updatedCellKeys);
-        setUpdatedCells(currentUpdatedCells);
-        props.setLastEntry(lastEntryString);
+        applyUpdatesToData(updates, lastEntryString);
         setMultiText("");
-        setTimeout(() => setUpdatedCells([]), 2000);
-        toast({ title: "Sheet Updated", description: `${currentUpdatedCells.length} cell(s) have been updated.` });
     } else {
         toast({ title: "No Updates", description: "No valid cell data found in the input.", variant: "destructive" });
     }
@@ -379,7 +420,6 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     }
     
     const updates: { [key: string]: string } = {};
-    const updatedCellKeys = new Set<string>();
     
     const digits1 = laddiNum1.split('');
     const digits2 = laddiNum2.split('');
@@ -401,33 +441,20 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
                 if (!isNaN(newValue)) {
                     updates[key] = String(currentValue + newValue);
-                    updatedCellKeys.add(key);
                 }
             }
         }
     }
 
-    if (updatedCellKeys.size > 0) {
+    if (Object.keys(updates).length > 0) {
         const lastEntryString = `${laddiNum1}x${laddiNum2}=${laddiAmount}`;
-        setSheets(prevSheets => prevSheets.map(sheet => {
-            if (sheet.id === activeSheetId) {
-                return { ...sheet, data: { ...sheet.data, ...updates } };
-            }
-            return sheet;
-        }));
-        
-        const currentUpdatedCells = Array.from(updatedCellKeys);
-        setUpdatedCells(currentUpdatedCells);
-        props.setLastEntry(lastEntryString);
-        setTimeout(() => setUpdatedCells([]), 2000);
-        toast({ title: "Sheet Updated", description: `${currentUpdatedCells.length} cell(s) have been updated from Laddi.` });
+        applyUpdatesToData(updates, lastEntryString);
+        setLaddiNum1('');
+        setLaddiNum2('');
+        setLaddiAmount('');
     } else {
         toast({ title: "No Laddi Updates", description: "No valid cell combinations found to update.", variant: "destructive" });
     }
-
-    setLaddiNum1('');
-    setLaddiNum2('');
-    setLaddiAmount('');
 };
 
 const handleHarupApply = () => {
@@ -446,11 +473,11 @@ const handleHarupApply = () => {
     }
 
     const updates: { [key: string]: string } = {};
-    const updatedCellKeys = new Set<string>();
     
+    const harupAAmountPerDigit = totalAmount;
     if (harupADigits.length > 0) {
       for (const digit of harupADigits) {
-        const harupAAmountPerCell = totalAmount / 10;
+        const harupAAmountPerCell = harupAAmountPerDigit / 10;
         for (let i = 0; i < 10; i++) {
           const cellNumStr = `${digit}${i}`;
           const cellNum = parseInt(cellNumStr, 10);
@@ -460,15 +487,15 @@ const handleHarupApply = () => {
             const key = `${rowIndex}_${colIndex}`;
             const currentValue = parseFloat(currentData[key]) || 0;
             updates[key] = String(currentValue + harupAAmountPerCell);
-            updatedCellKeys.add(key);
           }
         }
       }
     }
     
+    const harupBAmountPerDigit = totalAmount;
     if (harupBDigits.length > 0) {
       for (const digit of harupBDigits) {
-        const harupBAmountPerCell = totalAmount / 10;
+        const harupBAmountPerCell = harupBAmountPerDigit / 10;
         for (let i = 0; i < 10; i++) {
           const cellNumStr = `${i}${digit}`;
           const cellNum = parseInt(cellNumStr, 10);
@@ -478,46 +505,40 @@ const handleHarupApply = () => {
               const key = `${rowIndex}_${colIndex}`;
               const currentValue = parseFloat(currentData[key]) || 0;
               updates[key] = String(currentValue + harupBAmountPerCell);
-              updatedCellKeys.add(key);
           }
         }
       }
     }
 
-    if (updatedCellKeys.size > 0) {
+    if (Object.keys(updates).length > 0) {
         const harupEntries: string[] = [];
         if (harupA) harupEntries.push(`A: ${harupA}=${harupAmount}`);
         if (harupB) harupEntries.push(`B: ${harupB}=${harupAmount}`);
         const lastEntryString = harupEntries.join('\n');
-
-        setSheets(prevSheets => prevSheets.map(sheet => {
-            if (sheet.id === activeSheetId) {
-                return { ...sheet, data: { ...sheet.data, ...updates } };
-            }
-            return sheet;
-        }));
-
-        const currentUpdatedCells = Array.from(updatedCellKeys);
-        setUpdatedCells(currentUpdatedCells);
-        props.setLastEntry(lastEntryString);
-        setTimeout(() => setUpdatedCells([]), 2000);
-        toast({ title: "Sheet Updated", description: `${updatedCellKeys.size} cell(s) have been updated from HARUP.` });
+        applyUpdatesToData(updates, lastEntryString);
+        setHarupA('');
+        setHarupB('');
+        setHarupAmount('');
     } else {
         toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
     }
-    
-    setHarupA('');
-    setHarupB('');
-    setHarupAmount('');
 };
 
   const handleClearSheet = () => {
-    setSheets(prevSheets => prevSheets.map(sheet => {
-      if (sheet.id === activeSheetId) {
-        return { ...sheet, data: {}, rowTotals: {} };
-      }
-      return sheet;
-    }));
+    const emptyData = {};
+    const emptyRowTotals = {};
+
+    if (selectedClientId && isClientDataSaving) {
+        updateClientData(selectedClientId, emptyData, emptyRowTotals);
+    } else {
+      setSheets(prevSheets => prevSheets.map(sheet => {
+        if (sheet.id === activeSheetId) {
+          return { ...sheet, data: emptyData, rowTotals: emptyRowTotals };
+        }
+        return sheet;
+      }));
+    }
+
     setValidations({});
     setMultiText("");
     setUpdatedCells([]);
@@ -525,7 +546,7 @@ const handleHarupApply = () => {
     setHarupB('');
     setHarupAmount('');
     props.setLastEntry('');
-    toast({ title: "Sheet Cleared", description: "All cell values have been reset." });
+    toast({ title: "Sheet Cleared", description: "All cell values for the current view have been reset." });
   };
   
   const handleGenerateSheet = () => {
@@ -537,12 +558,7 @@ const handleHarupApply = () => {
         const [rowIndex, colIndex] = key.split('_').map(Number);
         let cellNumber = rowIndex * GRID_COLS + colIndex;
         
-        let displayCellNumber;
-        if(cellNumber === 0) {
-          displayCellNumber = 100;
-        } else {
-          displayCellNumber = cellNumber;
-        }
+        let displayCellNumber = cellNumber;
         
         if (!valueToCells[value]) {
           valueToCells[value] = [];
@@ -555,7 +571,6 @@ const handleHarupApply = () => {
       .map(([value, cells]) => {
         cells.sort((a, b) => a - b);
         const formattedCells = cells.map(cell => {
-           if(cell === 100) return '00';
            return String(cell).padStart(2, '0')
         });
         return `${formattedCells.join(',')}=${value}`;
@@ -608,6 +623,7 @@ const handleHarupApply = () => {
     return <div>Loading...</div>;
   }
 
+  const isDataEntryDisabled = isClientDataSaving && !selectedClientId;
 
   return (
     <>
@@ -653,8 +669,6 @@ const handleHarupApply = () => {
                   {Array.from({ length: GRID_COLS }, (_, colIndex) => {
                     const cellNumber = rowIndex * GRID_COLS + colIndex;
                     let displayCellNumber = String(cellNumber).padStart(2, '0');
-                    if (cellNumber === 0) displayCellNumber = '00';
-
 
                     const key = `${rowIndex}_${colIndex}`
                     const validation = validations[key]
@@ -670,6 +684,7 @@ const handleHarupApply = () => {
                           onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
                           onBlur={() => handleCellBlur(rowIndex, colIndex)}
                           aria-label={`Cell ${displayCellNumber}`}
+                          disabled={isDataEntryDisabled}
                         />
                          {(validation?.isLoading || (validation && !validation.isValid)) && (
                           <div className="absolute top-1/2 right-2 -translate-y-1/2 z-10">
@@ -698,6 +713,7 @@ const handleHarupApply = () => {
                       onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
                       onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
                       aria-label={`Row ${rowIndex} Total`}
+                      disabled={isDataEntryDisabled}
                     />
                   </div>
                 </React.Fragment>
@@ -712,16 +728,25 @@ const handleHarupApply = () => {
         <CardFooter className="flex flex-col gap-4 pt-2">
             <div className="w-full flex flex-col xl:flex-row gap-4">
               <div className="w-full xl:w-1/2 flex flex-col gap-2">
-                <div className="flex flex-row gap-2">
-                    <div className="border rounded-lg p-2 flex flex-col gap-2 justify-center" style={{ height: '88px' }}>
-                        <h3 className="font-semibold text-center text-sm">Master</h3>
-                        <Button onClick={() => setIsMasterSheetDialogOpen(true)} variant="outline" className="w-full">
-                            Master Sheet
-                        </Button>
-                    </div>
-                    <div className="border rounded-lg p-2 flex flex-col gap-2 justify-center" style={{ height: '88px' }}>
-                        <h3 className="font-semibold text-center text-sm">Client</h3>
-                        <Input placeholder="Client Name" className="text-sm" />
+                <div className="border rounded-lg p-2 flex flex-col gap-2 justify-center">
+                    <h3 className="font-semibold text-sm">Client</h3>
+                    <div className="flex items-center gap-2">
+                      <Select value={selectedClientId || ''} onValueChange={handleSelectedClientChange} disabled={!isClientDataSaving}>
+                          <SelectTrigger className="flex-grow">
+                              <SelectValue placeholder="Select Client" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              {props.clients.map(client => (
+                                  <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
+                      <Switch 
+                        id="client-data-saving" 
+                        checked={isClientDataSaving} 
+                        onCheckedChange={setIsClientDataSaving}
+                      />
+                      <Label htmlFor="client-data-saving" className="text-xs">Save per client</Label>
                     </div>
                 </div>
                 <div className="border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
@@ -733,13 +758,14 @@ const handleHarupApply = () => {
                         onChange={handleMultiTextChange}
                         onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
                         className="w-full"
+                        disabled={isDataEntryDisabled}
                     />
                     <div className="flex flex-wrap gap-2 mt-2 items-start">
-                        <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0">Apply to Sheet</Button>
-                        <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0">
+                        <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled}>Apply to Sheet</Button>
+                        <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled}>
                             Generate Sheet
                         </Button>
-                        <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0">
+                        <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0" disabled={isDataEntryDisabled}>
                             <Trash2 className="h-4 w-4" />
                             <span className="sr-only">Clear Sheet</span>
                         </Button>
@@ -753,19 +779,19 @@ const handleHarupApply = () => {
                     <div className="flex flex-col sm:flex-row items-stretch gap-2">
                       <div className="flex items-center gap-2 flex-grow">
                         <Label htmlFor="harupA" className="w-8 text-center shrink-0">A</Label>
-                        <Input id="harupA" placeholder="0123.." className="min-w-0" value={harupA} onChange={(e) => setHarupA(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} />
+                        <Input id="harupA" placeholder="0123.." className="min-w-0" value={harupA} onChange={(e) => setHarupA(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
                       </div>
                       <div className="flex items-center gap-2 flex-grow">
                         <Label htmlFor="harupB" className="w-8 text-center shrink-0">B</Label>
-                        <Input id="harupB" placeholder="0123.." className="min-w-0" value={harupB} onChange={(e) => setHarupB(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} />
+                        <Input id="harupB" placeholder="0123.." className="min-w-0" value={harupB} onChange={(e) => setHarupB(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-xl font-bold mx-2">=</span>
-                        <Input id="harupAmount" placeholder="Amount" className="w-24 font-bold shrink-0" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} />
+                        <Input id="harupAmount" placeholder="Amount" className="w-24 font-bold shrink-0" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
                       </div>
                     </div>
                     <div className="flex justify-end mt-2">
-                        <Button onClick={handleHarupApply}>Apply</Button>
+                        <Button onClick={handleHarupApply} disabled={isDataEntryDisabled}>Apply</Button>
                     </div>
                 </div>
                 <div className="border rounded-lg p-2 sm:p-4">
@@ -780,6 +806,7 @@ const handleHarupApply = () => {
                         value={laddiNum1}
                         onChange={(e) => handleLaddiNum1Change(e.target.value)}
                         onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
+                        disabled={isDataEntryDisabled}
                       />
                       <Input
                         id="laddiNum2"
@@ -790,6 +817,7 @@ const handleHarupApply = () => {
                         value={laddiNum2}
                         onChange={(e) => handleLaddiNum2Change(e.target.value)}
                         onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
+                        disabled={isDataEntryDisabled}
                       />
                       <span className="text-xl font-bold mx-2">=</span>
                       <Input
@@ -800,18 +828,24 @@ const handleHarupApply = () => {
                         onChange={(e) => setLaddiAmount(e.target.value)}
                         placeholder="Amount"
                         onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
+                        disabled={isDataEntryDisabled}
                       />
                     </div>
                     <div className="flex flex-col sm:flex-row justify-between items-center gap-2 mt-2">
                         <div className="flex items-center gap-2">
-                            <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} />
+                            <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} disabled={isDataEntryDisabled}/>
                             <Label htmlFor="remove-jodda" className="text-xs">Remove Jodda</Label>
                         </div>
                         <div className="text-sm font-bold text-primary">{combinationCount} Combinations</div>
-                        <Button onClick={handleLaddiApply}>Apply</Button>
+                        <Button onClick={handleLaddiApply} disabled={isDataEntryDisabled}>Apply</Button>
                     </div>
                 </div>
               </div>
+            </div>
+            <div className="w-full flex flex-row gap-2 mt-4">
+              <Button onClick={() => setIsMasterSheetDialogOpen(true)} variant="outline" className="w-full">
+                  Master Sheet
+              </Button>
             </div>
         </CardFooter>
       </Card>
@@ -863,7 +897,6 @@ const handleHarupApply = () => {
                       {Array.from({ length: GRID_COLS }, (_, colIndex) => {
                         const cellNumber = rowIndex * GRID_COLS + colIndex;
                         let displayCellNumber = String(cellNumber).padStart(2, '0');
-                         if (cellNumber === 0) displayCellNumber = '00';
                         
                         const key = `${rowIndex}_${colIndex}`
                         return (
@@ -873,7 +906,7 @@ const handleHarupApply = () => {
                               type="text"
                               readOnly
                               className="pt-5 text-sm bg-muted min-w-0"
-                              value={currentData[key] || ''}
+                              value={activeSheet.data[key] || ''}
                               aria-label={`Cell ${displayCellNumber}`}
                             />
                           </div>
@@ -955,5 +988,3 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-    

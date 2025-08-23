@@ -41,7 +41,7 @@ function GridIcon(props: React.SVGProps<SVGSVGElement>) {
 
 
 export default function Home() {
-  const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void }>(null);
+  const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void }>(null);
   const [selectedInfo, setSelectedInfo] = useState<{ draw: string; date: Date } | null>(null);
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [lastEntry, setLastEntry] = useState('');
