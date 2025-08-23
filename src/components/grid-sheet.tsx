@@ -707,14 +707,14 @@ const handleHarupApply = () => {
             <div className="w-full flex flex-col xl:flex-row gap-4">
               <div className="w-full xl:w-1/2 flex flex-col gap-2">
                 <div className="flex flex-row gap-2">
-                    <div className="border rounded-lg p-2 flex flex-col gap-2">
-                        <h3 className="font-semibold">Master</h3>
-                        <Button onClick={() => setIsMasterSheetDialogOpen(true)} variant="outline">
+                    <div className="border rounded-lg p-2 flex flex-col gap-2 h-24">
+                        <h3 className="font-semibold text-center">Master</h3>
+                        <Button onClick={() => setIsMasterSheetDialogOpen(true)} variant="outline" className="w-full">
                             Master Sheet
                         </Button>
                     </div>
-                    <div className="border rounded-lg p-2 flex flex-col gap-2">
-                        <h3 className="font-semibold">Client</h3>
+                    <div className="border rounded-lg p-2 flex flex-col gap-2 h-24 w-24">
+                        <h3 className="font-semibold text-center">Client</h3>
                     </div>
                 </div>
                 <div className="border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
@@ -891,15 +891,15 @@ const handleHarupApply = () => {
               <div className="flex flex-wrap items-center justify-around gap-2">
                   <div className="flex flex-col gap-1 min-w-[100px] flex-1">
                       <Label htmlFor="master-cutting" className="text-center text-sm">Cutting</Label>
-                      <Input id="master-cutting" placeholder="Value" className="text-sm" />
+                      <Input id="master-cutting" placeholder="Value" className="text-sm text-center" />
                   </div>
                   <div className="flex flex-col gap-1 min-w-[100px] flex-1">
                       <Label htmlFor="master-less" className="text-center text-sm">Less</Label>
-                      <Input id="master-less" placeholder="Value" className="text-sm" />
+                      <Input id="master-less" placeholder="Value" className="text-sm text-center" />
                   </div>
                   <div className="flex flex-col gap-1 min-w-[100px] flex-1">
                       <Label htmlFor="master-dabba" className="text-center text-sm">Dabba</Label>
-                      <Input id="master-dabba" placeholder="Value" className="text-sm" />
+                      <Input id="master-dabba" placeholder="Value" className="text-sm text-center" />
                   </div>
               </div>
             </div>
