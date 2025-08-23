@@ -46,6 +46,7 @@ export default function Home() {
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [lastEntry, setLastEntry] = useState('');
   const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
+  const [clients, setClients] = useState<Client[]>([]);
 
   useEffect(() => {
     setDate(new Date());
@@ -106,7 +107,16 @@ export default function Home() {
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back to Draws
                 </Button>
-                <GridSheet ref={gridSheetRef} draw={selectedInfo.draw} date={selectedInfo.date} lastEntry={lastEntry} setLastEntry={setLastEntry} isLastEntryDialogOpen={isLastEntryDialogOpen} setIsLastEntryDialogOpen={setIsLastEntryDialogOpen} />
+                <GridSheet 
+                  ref={gridSheetRef} 
+                  draw={selectedInfo.draw} 
+                  date={selectedInfo.date} 
+                  lastEntry={lastEntry} 
+                  setLastEntry={setLastEntry} 
+                  isLastEntryDialogOpen={isLastEntryDialogOpen} 
+                  setIsLastEntryDialogOpen={setIsLastEntryDialogOpen}
+                  clients={clients}
+                />
               </div>
             ) : (
               <Card>
@@ -150,7 +160,7 @@ export default function Home() {
             )}
           </TabsContent>
           <TabsContent value="clients" className="mt-4">
-            <ClientsManager onClientUpdateForSheet={handleClientUpdateForSheet} />
+            <ClientsManager clients={clients} setClients={setClients} onClientUpdateForSheet={handleClientUpdateForSheet} />
           </TabsContent>
           <TabsContent value="accounts" className="mt-4">
             <AccountsManager />

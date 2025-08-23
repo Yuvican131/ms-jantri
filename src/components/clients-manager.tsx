@@ -1,3 +1,4 @@
+
 "use client"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -19,14 +20,13 @@ export type Client = {
   patti: string
 }
 
-const initialClients: Client[] = []
-
 type ClientsManagerProps = {
+  clients: Client[];
+  setClients: (clients: Client[]) => void;
   onClientUpdateForSheet: (client: Client) => void;
 }
 
-export default function ClientsManager({ onClientUpdateForSheet }: ClientsManagerProps) {
-  const [clients, setClients] = useState<Client[]>(initialClients)
+export default function ClientsManager({ clients, setClients, onClientUpdateForSheet }: ClientsManagerProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
 
