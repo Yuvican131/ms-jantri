@@ -442,6 +442,7 @@ const handleHarupApply = () => {
     const updatedCellKeys = new Set<string>();
     
     if (harupADigits.length > 0) {
+        const amountPerDigit = totalAmount / harupADigits.length;
         for (const digit of harupADigits) {
           const cellsToUpdate = [];
           for (let i = 0; i < 10; i++) {
@@ -450,7 +451,7 @@ const handleHarupApply = () => {
               cellsToUpdate.push(cellNum);
             }
           }
-          const amountPerCell = totalAmount / cellsToUpdate.length;
+          const amountPerCell = amountPerDigit / cellsToUpdate.length;
           for (const cellNum of cellsToUpdate) {
             const rowIndex = Math.floor(cellNum / GRID_COLS);
             const colIndex = cellNum % GRID_COLS;
@@ -463,6 +464,7 @@ const handleHarupApply = () => {
     }
     
     if (harupBDigits.length > 0) {
+      const amountPerDigit = totalAmount / harupBDigits.length;
       for (const digit of harupBDigits) {
         const cellsToUpdate = [];
         for (let i = 0; i < 10; i++) {
@@ -471,7 +473,7 @@ const handleHarupApply = () => {
             cellsToUpdate.push(cellNum);
           }
         }
-         const amountPerCell = totalAmount / cellsToUpdate.length;
+         const amountPerCell = amountPerDigit / cellsToUpdate.length;
          for (const cellNum of cellsToUpdate) {
             const rowIndex = Math.floor(cellNum / GRID_COLS);
             const colIndex = cellNum % GRID_COLS;
