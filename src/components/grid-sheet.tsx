@@ -16,7 +16,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import type { Client } from "./clients-manager"
 import { format } from "date-fns"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Switch } from "@/components/ui/switch"
 
 type CellData = { [key: string]: string }
 type ValidationResult = {
@@ -72,7 +71,6 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [activeSheetId, setActiveSheetId] = useState<string>("1")
   const [clientSheetData, setClientSheetData] = useState<ClientSheetData>({});
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-  const [isClientDataSaving, setIsClientDataSaving] = useState(true);
 
   const [validations, setValidations] = useState<CellValidation>({})
   const [multiText, setMultiText] = useState("");
@@ -92,11 +90,11 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
   
-  const currentData = selectedClientId && isClientDataSaving
+  const currentData = selectedClientId
     ? clientSheetData[selectedClientId]?.data || {}
     : activeSheet.data;
 
-  const currentRowTotals = selectedClientId && isClientDataSaving
+  const currentRowTotals = selectedClientId
     ? clientSheetData[selectedClientId]?.rowTotals || {}
     : activeSheet.rowTotals;
 
@@ -108,7 +106,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   };
 
   const handleSelectedClientChange = (clientId: string) => {
-    if (selectedClientId && isClientDataSaving) {
+    if (selectedClientId) {
       updateClientData(selectedClientId, currentData, currentRowTotals);
     }
     setSelectedClientId(clientId);
@@ -201,7 +199,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     const newData = { ...currentData, [key]: value };
     const newRowTotals = { ...currentRowTotals };
 
-    if (selectedClientId && isClientDataSaving) {
+    if (selectedClientId) {
       updateClientData(selectedClientId, newData, newRowTotals);
     } else {
       setSheets(prevSheets => prevSheets.map(sheet => 
@@ -282,7 +280,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
   const handleRowTotalChange = (rowIndex: number, value: string) => {
     const newRowTotals = { ...currentRowTotals, [rowIndex]: value };
-    if (selectedClientId && isClientDataSaving) {
+    if (selectedClientId) {
       updateClientData(selectedClientId, currentData, newRowTotals);
     } else {
       setSheets(prevSheets => prevSheets.map(sheet => 
@@ -320,7 +318,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         updatedData[key] = updates[key];
     });
 
-    if (selectedClientId && isClientDataSaving) {
+    if (selectedClientId) {
         updateClientData(selectedClientId, updatedData, currentRowTotals);
     } else {
         setSheets(prevSheets => prevSheets.map(sheet =>
@@ -372,7 +370,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
           .split(/[\s,]+/)
           .filter(s => s)
           .map(s => {
-            if (s === '100') return '00';
+            if (s === '00') return '00';
             const num = parseInt(s, 10);
             if(s.length === 1) return String(num).padStart(2, '0');
             if (num >= 0 && num <= 99) return String(num).padStart(2, '0');
@@ -528,7 +526,7 @@ const handleHarupApply = () => {
     const emptyData = {};
     const emptyRowTotals = {};
 
-    if (selectedClientId && isClientDataSaving) {
+    if (selectedClientId) {
         updateClientData(selectedClientId, emptyData, emptyRowTotals);
     } else {
       setSheets(prevSheets => prevSheets.map(sheet => {
@@ -623,7 +621,7 @@ const handleHarupApply = () => {
     return <div>Loading...</div>;
   }
 
-  const isDataEntryDisabled = isClientDataSaving && !selectedClientId;
+  const isDataEntryDisabled = !selectedClientId;
 
   return (
     <>
@@ -731,7 +729,7 @@ const handleHarupApply = () => {
                 <div className="border rounded-lg p-2 flex flex-col gap-2 justify-center">
                     <h3 className="font-semibold text-sm">Client</h3>
                     <div className="flex items-center gap-2">
-                      <Select value={selectedClientId || ''} onValueChange={handleSelectedClientChange} disabled={!isClientDataSaving}>
+                      <Select value={selectedClientId || ''} onValueChange={handleSelectedClientChange}>
                           <SelectTrigger className="flex-grow">
                               <SelectValue placeholder="Select Client" />
                           </SelectTrigger>
@@ -741,12 +739,6 @@ const handleHarupApply = () => {
                               ))}
                           </SelectContent>
                       </Select>
-                      <Switch 
-                        id="client-data-saving" 
-                        checked={isClientDataSaving} 
-                        onCheckedChange={setIsClientDataSaving}
-                      />
-                      <Label htmlFor="client-data-saving" className="text-xs">Save per client</Label>
                     </div>
                 </div>
                 <div className="border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
