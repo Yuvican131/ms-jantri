@@ -328,7 +328,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         numbers.forEach(numStr => {
             let cellNum;
             if (numStr === '00' || numStr === '100') {
-              cellNum = 99;
+              cellNum = 0;
             } else {
                 const parsedNum = parseInt(numStr, 10);
                 if (isNaN(parsedNum) || parsedNum < 0 || parsedNum > 99) return;
@@ -448,11 +448,9 @@ const handleHarupApply = () => {
     const updates: { [key: string]: string } = {};
     const updatedCellKeys = new Set<string>();
     
-    const harupAAmountPerCell = harupADigits.length > 0 ? totalAmount / 10 : 0;
-    const harupBAmountPerCell = harupBDigits.length > 0 ? totalAmount / 10 : 0;
-
     if (harupADigits.length > 0) {
       for (const digit of harupADigits) {
+        const harupAAmountPerCell = totalAmount / 10;
         for (let i = 0; i < 10; i++) {
           const cellNumStr = `${digit}${i}`;
           const cellNum = parseInt(cellNumStr, 10);
@@ -470,6 +468,7 @@ const handleHarupApply = () => {
     
     if (harupBDigits.length > 0) {
       for (const digit of harupBDigits) {
+        const harupBAmountPerCell = totalAmount / 10;
         for (let i = 0; i < 10; i++) {
           const cellNumStr = `${i}${digit}`;
           const cellNum = parseInt(cellNumStr, 10);
@@ -539,8 +538,8 @@ const handleHarupApply = () => {
         let cellNumber = rowIndex * GRID_COLS + colIndex;
         
         let displayCellNumber;
-        if(cellNumber === 99) {
-          displayCellNumber = 0;
+        if(cellNumber === 0) {
+          displayCellNumber = 100;
         } else {
           displayCellNumber = cellNumber;
         }
@@ -556,7 +555,7 @@ const handleHarupApply = () => {
       .map(([value, cells]) => {
         cells.sort((a, b) => a - b);
         const formattedCells = cells.map(cell => {
-           if(cell === 99) return '00';
+           if(cell === 100) return '00';
            return String(cell).padStart(2, '0')
         });
         return `${formattedCells.join(',')}=${value}`;
@@ -654,6 +653,8 @@ const handleHarupApply = () => {
                   {Array.from({ length: GRID_COLS }, (_, colIndex) => {
                     const cellNumber = rowIndex * GRID_COLS + colIndex;
                     let displayCellNumber = String(cellNumber).padStart(2, '0');
+                    if (cellNumber === 0) displayCellNumber = '00';
+
 
                     const key = `${rowIndex}_${colIndex}`
                     const validation = validations[key]
@@ -862,6 +863,7 @@ const handleHarupApply = () => {
                       {Array.from({ length: GRID_COLS }, (_, colIndex) => {
                         const cellNumber = rowIndex * GRID_COLS + colIndex;
                         let displayCellNumber = String(cellNumber).padStart(2, '0');
+                         if (cellNumber === 0) displayCellNumber = '00';
                         
                         const key = `${rowIndex}_${colIndex}`
                         return (
