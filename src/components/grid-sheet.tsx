@@ -314,8 +314,12 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
           .filter(s => s)
           .map(s => {
             if (s === '100') return '00';
-            return String(parseInt(s, 10)).padStart(2, '0');
+            const num = parseInt(s, 10);
+            if (num === 0) return '00';
+            if (num > 0 && num <=99) return String(num).padStart(2, '0');
+            return null;
           })
+          .filter(Boolean)
           .join(',');
 
         formattedLines.push(`${formattedCells}=${valueStr}`);
@@ -323,9 +327,15 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const numbers = cellNumbersStr.split(/[\s,]+/).filter(s => s.length > 0);
 
         numbers.forEach(numStr => {
-            let cellNum = parseInt(numStr, 10);
-            if(cellNum < 0 || cellNum > 100) return;
-            if (cellNum === 100) cellNum = 0;
+            let cellNumInput = parseInt(numStr, 10);
+            if(isNaN(cellNumInput) || cellNumInput < 0 || cellNumInput > 100) return;
+            
+            let cellNum = cellNumInput;
+            if (cellNum === 100) {
+              cellNum = 99;
+            } else if (cellNum > 0 && cellNum < 100) {
+              cellNum = cellNum - 1;
+            }
             
             const rowIndex = Math.floor(cellNum / GRID_COLS);
             const colIndex = cellNum % GRID_COLS;
@@ -382,7 +392,6 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
             let cellNumStr = `${d1}${d2}`;
             let cellNum = parseInt(cellNumStr, 10);
-            if (cellNum === 100) cellNum = 0;
             
             if (!isNaN(cellNum) && cellNum >= 0 && cellNum <= 99) {
                 const rowIndex = Math.floor(cellNum / GRID_COLS);
@@ -537,19 +546,24 @@ const handleHarupApply = () => {
       if (value && value.trim() !== '' && !isNaN(Number(value)) && Number(value) !== 0) {
         const [rowIndex, colIndex] = key.split('_').map(Number);
         let cellNumber = rowIndex * GRID_COLS + colIndex;
-        if(cellNumber === 99) cellNumber = 0; else cellNumber += 1;
+        
+        let displayCellNumber = cellNumber + 1;
+        if (cellNumber === 99) displayCellNumber = 100;
         
         if (!valueToCells[value]) {
           valueToCells[value] = [];
         }
-        valueToCells[value].push(cellNumber);
+        valueToCells[value].push(displayCellNumber);
       }
     }
 
     const generatedText = Object.entries(valueToCells)
       .map(([value, cells]) => {
         cells.sort((a, b) => a - b);
-        const formattedCells = cells.map(cell => String(cell).padStart(2, '0'));
+        const formattedCells = cells.map(cell => {
+           if(cell === 100) return '00';
+           return String(cell).padStart(2, '0')
+        });
         return `${formattedCells.join(',')}=${value}`;
       })
       .join('\n');
@@ -608,7 +622,7 @@ const handleHarupApply = () => {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-lg md:text-2xl">{props.draw} Sheet ({format(props.date, "PPP")}): {activeSheet.name}</CardTitle>
-              <CardDescription className="text-xs md:text-sm">A 10x10 grid for your accounting data. Cells are numbered 00-99.</CardDescription>
+              <CardDescription className="text-xs md:text-sm">A 10x10 grid for your accounting data. Cells are numbered 01-99 and 00.</CardDescription>
             </div>
             <div className="flex gap-2 w-full md:w-auto">
               <Select value={activeSheetId} onValueChange={setActiveSheetId}>
@@ -644,7 +658,15 @@ const handleHarupApply = () => {
                 <React.Fragment key={rowIndex}>
                   {Array.from({ length: GRID_COLS }, (_, colIndex) => {
                     const cellNumber = rowIndex * GRID_COLS + colIndex;
-                    const displayCellNumber = cellNumber === 99 ? '00' : String(cellNumber + 1).padStart(2, '0');
+                    let displayCellNumber;
+                    if (cellNumber === 99) {
+                        displayCellNumber = '00';
+                    } else if (cellNumber >= 0 && cellNumber <= 98) {
+                        displayCellNumber = String(cellNumber + 1).padStart(2, '0');
+                    } else {
+                        displayCellNumber = '';
+                    }
+
                     const key = `${rowIndex}_${colIndex}`
                     const validation = validations[key]
                     const isUpdated = updatedCells.includes(key);
@@ -851,7 +873,14 @@ const handleHarupApply = () => {
                     <React.Fragment key={`master-row-${rowIndex}`}>
                       {Array.from({ length: GRID_COLS }, (_, colIndex) => {
                         const cellNumber = rowIndex * GRID_COLS + colIndex;
-                        const displayCellNumber = cellNumber === 99 ? '00' : String(cellNumber + 1).padStart(2, '0');
+                        let displayCellNumber;
+                        if (cellNumber === 99) {
+                            displayCellNumber = '00';
+                        } else if (cellNumber >= 0 && cellNumber <= 98) {
+                            displayCellNumber = String(cellNumber + 1).padStart(2, '0');
+                        } else {
+                            displayCellNumber = '';
+                        }
                         const key = `${rowIndex}_${colIndex}`
                         return (
                           <div key={`master-cell-${key}`} className="relative">
