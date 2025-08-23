@@ -274,31 +274,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     return total;
   };
 
-  const applyUpdates = (updates: { [key: string]: string }, lastEntryString: string) => {
-    if (Object.keys(updates).length > 0) {
-      setSheets(prevSheets => prevSheets.map(sheet => {
-        if (sheet.id === activeSheetId) {
-          const newData = { ...sheet.data, ...updates };
-          return { ...sheet, data: newData };
-        }
-        return sheet;
-      }));
-
-      const updatedCellKeys = Object.keys(updates);
-      setUpdatedCells(updatedCellKeys);
-      props.setLastEntry(lastEntryString);
-      setTimeout(() => setUpdatedCells([]), 2000);
-      toast({ title: "Sheet Updated", description: `${updatedCellKeys.length} cell(s) have been updated.` });
-    } else {
-      toast({ title: "No Updates", description: "No valid operations found in the input.", variant: "destructive" });
-    }
-  };
-
-
   const handleMultiTextApply = () => {
     const lines = multiText.split('\n');
-    const newData = { ...currentData };
-    const updatedCellKeys = new Set<string>();
     let lastEntryString = "";
 
     const evaluateExpression = (expression: string): string => {
@@ -308,13 +285,15 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                 const result = eval(expression);
                 return String(result);
             }
-            return expression; 
+            return expression;
         } catch (e) {
             return expression;
         }
     };
 
     const formattedLines: string[] = [];
+    const updates: { [key: string]: string } = {};
+    const updatedCellKeys = new Set<string>();
 
     lines.forEach(line => {
         line = line.trim();
@@ -352,14 +331,14 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
             const colIndex = cellNum % GRID_COLS;
             const key = `${rowIndex}_${colIndex}`;
             
-            const currentValue = parseFloat(newData[key]) || 0;
+            const currentValue = parseFloat(currentData[key]) || 0;
             const newValue = parseFloat(valueStr);
 
             if (!isNaN(newValue)) {
-                newData[key] = String(currentValue + newValue);
+                updates[key] = String(currentValue + newValue);
                 updatedCellKeys.add(key);
             } else {
-                newData[key] = valueStr;
+                updates[key] = valueStr;
                 updatedCellKeys.add(key);
             }
         });
@@ -369,7 +348,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         lastEntryString = formattedLines.join('\n');
         setSheets(prevSheets => prevSheets.map(sheet => {
             if (sheet.id === activeSheetId) {
-                return { ...sheet, data: newData };
+                return { ...sheet, data: { ...sheet.data, ...updates } };
             }
             return sheet;
         }));
@@ -390,7 +369,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         toast({ title: "Laddi Error", description: "Please fill all Laddi fields.", variant: "destructive" });
         return;
     }
-    const newData = { ...currentData };
+    
+    const updates: { [key: string]: string } = {};
     const updatedCellKeys = new Set<string>();
     
     const digits1 = laddiNum1.split('');
@@ -409,11 +389,11 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                 const colIndex = cellNum % GRID_COLS;
                 const key = `${rowIndex}_${colIndex}`;
                 
-                const currentValue = parseFloat(newData[key]) || 0;
+                const currentValue = parseFloat(currentData[key]) || 0;
                 const newValue = parseFloat(laddiAmount);
 
                 if (!isNaN(newValue)) {
-                    newData[key] = String(currentValue + newValue);
+                    updates[key] = String(currentValue + newValue);
                     updatedCellKeys.add(key);
                 }
             }
@@ -424,7 +404,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const lastEntryString = `${laddiNum1}x${laddiNum2}=${laddiAmount}`;
         setSheets(prevSheets => prevSheets.map(sheet => {
             if (sheet.id === activeSheetId) {
-                return { ...sheet, data: newData };
+                return { ...sheet, data: { ...sheet.data, ...updates } };
             }
             return sheet;
         }));
@@ -458,7 +438,7 @@ const handleHarupApply = () => {
         return;
     }
 
-    const newData = { ...currentData };
+    const updates: { [key: string]: string } = {};
     const updatedCellKeys = new Set<string>();
     
     if (harupADigits.length > 0) {
@@ -475,8 +455,8 @@ const handleHarupApply = () => {
             const rowIndex = Math.floor(cellNum / GRID_COLS);
             const colIndex = cellNum % GRID_COLS;
             const key = `${rowIndex}_${colIndex}`;
-            const currentValue = parseFloat(newData[key]) || 0;
-            newData[key] = String(currentValue + amountPerCell);
+            const currentValue = parseFloat(currentData[key]) || 0;
+            updates[key] = String(currentValue + amountPerCell);
             updatedCellKeys.add(key);
           }
         }
@@ -496,8 +476,8 @@ const handleHarupApply = () => {
             const rowIndex = Math.floor(cellNum / GRID_COLS);
             const colIndex = cellNum % GRID_COLS;
             const key = `${rowIndex}_${colIndex}`;
-            const currentValue = parseFloat(newData[key]) || 0;
-            newData[key] = String(currentValue + amountPerCell);
+            const currentValue = parseFloat(currentData[key]) || 0;
+            updates[key] = String(currentValue + amountPerCell);
             updatedCellKeys.add(key);
          }
       }
@@ -511,7 +491,7 @@ const handleHarupApply = () => {
 
         setSheets(prevSheets => prevSheets.map(sheet => {
             if (sheet.id === activeSheetId) {
-                return { ...sheet, data: newData };
+                return { ...sheet, data: { ...sheet.data, ...updates } };
             }
             return sheet;
         }));
@@ -726,7 +706,7 @@ const handleHarupApply = () => {
                             Master Sheet
                         </Button>
                     </div>
-                    <div className="border rounded-lg p-2 flex flex-col gap-2 justify-center" style={{ height: '88px', width: '200px' }}>
+                    <div className="border rounded-lg p-2 flex flex-col gap-2 justify-center" style={{ height: '88px' }}>
                         <h3 className="font-semibold text-center text-sm">Client</h3>
                         <Input placeholder="Client Name" className="text-sm" />
                     </div>
@@ -960,3 +940,5 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
