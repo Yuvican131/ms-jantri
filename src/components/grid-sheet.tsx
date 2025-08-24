@@ -87,6 +87,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
   const [isMasterSheetDialogOpen, setIsMasterSheetDialogOpen] = useState(false);
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
+  const [cuttingValue, setCuttingValue] = useState("");
+  const [lessValue, setLessValue] = useState("");
+  const [dabbaValue, setDabbaValue] = useState("");
   
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
   
@@ -760,6 +763,29 @@ const handleHarupApply = () => {
   const masterSheetGrandTotal = () => {
     return calculateGrandTotal(activeSheet.data, activeSheet.rowTotals);
   };
+  
+  const handleApplyCutting = () => {
+    const cutValue = parseFloat(cuttingValue);
+    if (isNaN(cutValue)) {
+      toast({ title: "Invalid Input", description: "Please enter a valid number for cutting.", variant: "destructive" });
+      return;
+    }
+
+    setSheets(prevSheets => prevSheets.map(sheet => {
+      if (sheet.id === activeSheetId) {
+        const newMasterData = { ...sheet.data };
+        Object.keys(newMasterData).forEach(key => {
+          const cellValue = parseFloat(newMasterData[key]) || 0;
+          newMasterData[key] = String(cellValue - cutValue);
+        });
+        return { ...sheet, data: newMasterData };
+      }
+      return sheet;
+    }));
+
+    toast({ title: "Cutting Applied", description: `Subtracted ${cutValue} from all cells in the master sheet.` });
+    setCuttingValue("");
+  };
 
 
   return (
@@ -1066,11 +1092,12 @@ const handleHarupApply = () => {
                 </div>
             </div>
             <div className="mt-4 p-4 border-t">
-               <div className="flex flex-col sm:flex-row justify-around gap-4">
+               <div className="flex flex-col sm:flex-row justify-around gap-4 items-end">
                   <div className="flex flex-col gap-1 min-w-[100px] flex-1">
                       <Label htmlFor="master-cutting" className="text-center text-sm">Cutting</Label>
-                      <Input id="master-cutting" placeholder="Value" className="text-sm text-center" />
+                      <Input id="master-cutting" placeholder="Value" className="text-sm text-center" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
                   </div>
+                  <Button onClick={handleApplyCutting} size="sm">Apply Cutting</Button>
                   <div className="flex flex-col gap-1 min-w-[100px] flex-1">
                       <Label htmlFor="master-less" className="text-center text-sm">Less</Label>
                       <Input id="master-less" placeholder="Value" className="text-sm text-center" />
