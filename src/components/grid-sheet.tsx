@@ -390,7 +390,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     const updatedCellKeys = Object.keys(updates);
 
     updatedCellKeys.forEach(key => {
-        updatedData[key] = updates[key];
+        const currentValue = parseFloat(updatedData[key]) || 0;
+        const updateValue = parseFloat(updates[key]);
+        updatedData[key] = String(currentValue + updateValue);
     });
 
     if (selectedClientId) {
@@ -473,14 +475,34 @@ const handleMultiTextApply = () => {
             const colIndex = cellNum % GRID_COLS;
             const key = `${rowIndex}_${colIndex}`;
             
-            const currentValue = parseFloat(updates[key] || currentData[key]) || 0;
-            updates[key] = String(currentValue + newValue);
+            const currentValueInUpdate = parseFloat(updates[key]) || 0;
+            updates[key] = String(currentValueInUpdate + newValue);
         });
     });
 
     if (Object.keys(updates).length > 0) {
+        const updateWithBaseValues: { [key: string]: string } = {};
+        Object.keys(updates).forEach(key => {
+            const currentValue = parseFloat(currentData[key]) || 0;
+            const addedValue = parseFloat(updates[key]) || 0;
+            updateWithBaseValues[key] = String(currentValue + addedValue);
+        });
+
         lastEntryString = formattedLines.join('\n');
-        applyUpdatesToData(updates, lastEntryString);
+        
+        if (selectedClientId) {
+            updateClientData(selectedClientId, updateWithBaseValues, currentRowTotals);
+        } else {
+            setSheets(prevSheets => prevSheets.map(sheet =>
+                sheet.id === activeSheetId ? { ...sheet, data: updateWithBaseValues } : sheet
+            ));
+        }
+
+        setUpdatedCells(Object.keys(updates));
+        props.setLastEntry(lastEntryString);
+        setTimeout(() => setUpdatedCells([]), 2000);
+        toast({ title: "Sheet Updated", description: `${Object.keys(updates).length} cell(s) have been updated.` });
+
         setMultiText("");
     } else {
         toast({ title: "No Updates", description: "No valid cell data found in the input.", variant: "destructive" });
@@ -498,6 +520,11 @@ const handleMultiTextApply = () => {
     }
     
     const updates: { [key: string]: string } = {};
+    const amountValue = parseFloat(laddiAmount);
+     if (isNaN(amountValue)) {
+      toast({ title: "Laddi Error", description: "Invalid amount.", variant: "destructive" });
+      return;
+    }
     
     const digits1 = laddiNum1.split('');
     const digits2 = laddiNum2.split('');
@@ -514,19 +541,35 @@ const handleMultiTextApply = () => {
                 const colIndex = cellNum % GRID_COLS;
                 const key = `${rowIndex}_${colIndex}`;
                 
-                const currentValue = parseFloat(currentData[key]) || 0;
-                const newValue = parseFloat(laddiAmount);
-
-                if (!isNaN(newValue)) {
-                    updates[key] = String(currentValue + newValue);
-                }
+                const currentValueInUpdate = parseFloat(updates[key]) || 0;
+                updates[key] = String(currentValueInUpdate + amountValue);
             }
         }
     }
 
     if (Object.keys(updates).length > 0) {
+        const updateWithBaseValues: { [key: string]: string } = {};
+        Object.keys(updates).forEach(key => {
+            const currentValue = parseFloat(currentData[key]) || 0;
+            const addedValue = parseFloat(updates[key]) || 0;
+            updateWithBaseValues[key] = String(currentValue + addedValue);
+        });
+
         const lastEntryString = `${laddiNum1}x${laddiNum2}=${laddiAmount}`;
-        applyUpdatesToData(updates, lastEntryString);
+
+        if (selectedClientId) {
+            updateClientData(selectedClientId, updateWithBaseValues, currentRowTotals);
+        } else {
+            setSheets(prevSheets => prevSheets.map(sheet =>
+                sheet.id === activeSheetId ? { ...sheet, data: updateWithBaseValues } : sheet
+            ));
+        }
+
+        setUpdatedCells(Object.keys(updates));
+        props.setLastEntry(lastEntryString);
+        setTimeout(() => setUpdatedCells([]), 2000);
+        toast({ title: "Laddi Updated", description: `${Object.keys(updates).length} cell(s) have been updated.` });
+
         setLaddiNum1('');
         setLaddiNum2('');
         setLaddiAmount('');
@@ -536,76 +579,89 @@ const handleMultiTextApply = () => {
 };
 
 const handleHarupApply = () => {
-  if (isDataEntryDisabled) {
-    showClientSelectionToast();
-    return;
-  }
-  const harupADigits = harupA.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d)));
-  const harupBDigits = harupB.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d)));
+    if (isDataEntryDisabled) {
+      showClientSelectionToast();
+      return;
+    }
+    
+    const amountValue = parseFloat(harupAmount);
+    if (!harupAmount || isNaN(amountValue)) {
+      toast({ title: "HARUP Error", description: "Please provide a valid amount.", variant: "destructive" });
+      return;
+    }
   
-  if ((harupADigits.length === 0 && harupBDigits.length === 0) || !harupAmount) {
-      toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' and Amount fields.", variant: "destructive" });
+    const harupADigits = harupA.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d)));
+    const harupBDigits = harupB.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d)));
+  
+    if (harupADigits.length === 0 && harupBDigits.length === 0) {
+      toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
       return;
-  }
-
-  const totalAmount = parseFloat(harupAmount);
-  if (isNaN(totalAmount)) {
-      toast({ title: "HARUP Error", description: "Invalid amount.", variant: "destructive" });
-      return;
-  }
-
-  const updates: { [key: string]: string } = {};
-  const affectedCells = new Set<string>();
-
-  const findAffectedCells = (digits: string[], position: 'A' | 'B') => {
-    digits.forEach(digit => {
+    }
+  
+    const updates: { [key: string]: string } = {};
+    let lastEntryString = "";
+  
+    const processHarup = (digits: string[], position: 'A' | 'B', amountStr: string) => {
+      if (digits.length === 0) return;
+  
+      const amount = parseFloat(amountStr);
+      if (isNaN(amount)) return;
+      
+      const affectedCells = new Set<string>();
+      digits.forEach(digit => {
         for (let i = 0; i < 10; i++) {
-            let cellNumStr = position === 'A' ? `${digit}${i}` : `${i}${digit}`;
-            const cellNum = parseInt(cellNumStr, 10);
-            if (cellNum >= 0 && cellNum <= 99) {
-                const rowIndex = Math.floor(cellNum / GRID_COLS);
-                const colIndex = cellNum % GRID_COLS;
-                affectedCells.add(`${rowIndex}_${colIndex}`);
-            }
+          let cellNumStr = position === 'A' ? `${digit}${i}` : `${i}${digit}`;
+          const cellNum = parseInt(cellNumStr, 10);
+          if (cellNum >= 0 && cellNum <= 99) {
+            const rowIndex = Math.floor(cellNum / GRID_COLS);
+            const colIndex = cellNum % GRID_COLS;
+            affectedCells.add(`${rowIndex}_${colIndex}`);
+          }
         }
-    });
+      });
+  
+      if (affectedCells.size === 0) return;
+  
+      const amountPerCell = amount / affectedCells.size;
+      affectedCells.forEach(key => {
+        const currentValueInUpdate = parseFloat(updates[key]) || 0;
+        updates[key] = String(currentValueInUpdate + amountPerCell);
+      });
+  
+      lastEntryString += `${position}: ${digits.join('')}=${amountStr}\n`;
+    };
+  
+    processHarup(harupADigits, 'A', harupAmount);
+    processHarup(harupBDigits, 'B', harupAmount);
+  
+    if (Object.keys(updates).length > 0) {
+        const updateWithBaseValues: { [key: string]: string } = {};
+        Object.keys(updates).forEach(key => {
+            const currentValue = parseFloat(currentData[key]) || 0;
+            const addedValue = parseFloat(updates[key]) || 0;
+            updateWithBaseValues[key] = String(currentValue + addedValue);
+        });
+
+        if (selectedClientId) {
+            updateClientData(selectedClientId, updateWithBaseValues, currentRowTotals);
+        } else {
+            setSheets(prevSheets => prevSheets.map(sheet =>
+                sheet.id === activeSheetId ? { ...sheet, data: updateWithBaseValues } : sheet
+            ));
+        }
+
+        setUpdatedCells(Object.keys(updates));
+        props.setLastEntry(lastEntryString.trim());
+        setTimeout(() => setUpdatedCells([]), 2000);
+        toast({ title: "HARUP Updated", description: `${Object.keys(updates).length} cell(s) have been updated.` });
+
+        setHarupA('');
+        setHarupB('');
+        setHarupAmount('');
+    } else {
+        toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
+    }
   };
-  
-  if (harupADigits.length > 0) {
-    findAffectedCells(harupADigits, 'A');
-  }
-
-  if (harupBDigits.length > 0) {
-    findAffectedCells(harupBDigits, 'B');
-  }
-  
-  const cellCount = affectedCells.size;
-  if (cellCount === 0) {
-      toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
-      return;
-  }
-  
-  const amountPerCell = totalAmount / cellCount;
-  
-  affectedCells.forEach(key => {
-    const currentValue = parseFloat(updates[key] || currentData[key]) || 0;
-    updates[key] = String(currentValue + amountPerCell);
-  });
-  
-
-  if (Object.keys(updates).length > 0) {
-      const harupEntries: string[] = [];
-      if (harupA) harupEntries.push(`A: ${harupA}=${harupAmount}`);
-      if (harupB) harupEntries.push(`B: ${harupB}=${harupAmount}`);
-      const lastEntryString = harupEntries.join('\n');
-      applyUpdatesToData(updates, lastEntryString);
-      setHarupA('');
-      setHarupB('');
-      setHarupAmount('');
-  } else {
-      toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
-  }
-};
 
 
   const handleClearSheet = () => {
@@ -1227,3 +1283,4 @@ export default GridSheet;
 
     
 
+    
