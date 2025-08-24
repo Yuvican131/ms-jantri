@@ -789,8 +789,8 @@ const handleHarupApply = () => {
 
   const handleApplyLess = () => {
     const lessPercent = parseFloat(lessValue);
-    if (isNaN(lessPercent)) {
-      toast({ title: "Invalid Input", description: "Please enter a valid percentage for Less.", variant: "destructive" });
+    if (isNaN(lessPercent) || lessPercent < 0 || lessPercent > 100) {
+      toast({ title: "Invalid Input", description: "Please enter a valid percentage (0-100) for Less.", variant: "destructive" });
       return;
     }
 
@@ -1183,6 +1183,8 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
 
     
 
