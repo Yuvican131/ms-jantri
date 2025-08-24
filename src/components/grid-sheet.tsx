@@ -110,6 +110,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       setSelectedClientId(null);
     } else {
       setSelectedClientId(clientId);
+      if (!clientSheetData[clientId]) {
+        updateClientData(clientId, {}, {});
+      }
     }
   };
   
@@ -366,10 +369,6 @@ const handleMultiTextApply = () => {
 
         let cellNumbersStr = parts[0].trim();
         
-        if (!/[\s,]+/.test(cellNumbersStr) && /^\d+$/.test(cellNumbersStr) && cellNumbersStr.length > 2 && cellNumbersStr !== '100') {
-             cellNumbersStr = cellNumbersStr.match(/.{1,2}/g)?.join(',') || cellNumbersStr;
-        }
-        
         const cellNumbers = cellNumbersStr.split(/[\s,]+/).filter(s => s);
 
         const formattedCells = cellNumbers
@@ -474,31 +473,30 @@ const handleHarupApply = () => {
 
   const updates: { [key: string]: string } = {};
   
-  const applyHarupLogic = (digits: string[], position: 'A' | 'B') => {
-    const harupAmountPerCell = totalAmount / 10;
+  const applyHarupLogic = (digits: string[], position: 'A' | 'B', amount: number) => {
+      const amountPerCell = amount / 10;
+      digits.forEach(digit => {
+          for (let i = 0; i < 10; i++) {
+              let cellNumStr = position === 'A' ? `${digit}${i}` : `${i}${digit}`;
+              const cellNum = parseInt(cellNumStr, 10);
 
-    digits.forEach(digit => {
-      for (let i = 0; i < 10; i++) {
-        let cellNumStr = position === 'A' ? `${digit}${i}` : `${i}${digit}`;
-        const cellNum = parseInt(cellNumStr, 10);
-
-        if (cellNum >= 0 && cellNum <= 99) {
-            const rowIndex = Math.floor(cellNum / GRID_COLS);
-            const colIndex = cellNum % GRID_COLS;
-            const key = `${rowIndex}_${colIndex}`;
-            const currentValue = parseFloat(updates[key] || currentData[key]) || 0;
-            updates[key] = String(currentValue + harupAmountPerCell);
-        }
-      }
-    });
+              if (cellNum >= 0 && cellNum <= 99) {
+                  const rowIndex = Math.floor(cellNum / GRID_COLS);
+                  const colIndex = cellNum % GRID_COLS;
+                  const key = `${rowIndex}_${colIndex}`;
+                  const currentValue = parseFloat(updates[key] || currentData[key]) || 0;
+                  updates[key] = String(currentValue + amountPerCell);
+              }
+          }
+      });
   };
-
-  if (harupADigits.length > 0) {
-    applyHarupLogic(harupADigits, 'A');
-  }
   
+  if (harupADigits.length > 0) {
+      applyHarupLogic(harupADigits, 'A', totalAmount);
+  }
+
   if (harupBDigits.length > 0) {
-    applyHarupLogic(harupBDigits, 'B');
+      applyHarupLogic(harupBDigits, 'B', totalAmount);
   }
 
   if (Object.keys(updates).length > 0) {
