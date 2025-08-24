@@ -473,9 +473,9 @@ const handleHarupApply = () => {
 
   const updates: { [key: string]: string } = {};
   
-  const applyHarupLogic = (digits: string[], position: 'A' | 'B', amount: number) => {
-      const amountPerCell = amount / 10;
+  const applyHarupLogic = (digits: string[], position: 'A' | 'B') => {
       digits.forEach(digit => {
+          const amountPerCell = totalAmount / 10;
           for (let i = 0; i < 10; i++) {
               let cellNumStr = position === 'A' ? `${digit}${i}` : `${i}${digit}`;
               const cellNum = parseInt(cellNumStr, 10);
@@ -492,11 +492,11 @@ const handleHarupApply = () => {
   };
   
   if (harupADigits.length > 0) {
-      applyHarupLogic(harupADigits, 'A', totalAmount);
+      applyHarupLogic(harupADigits, 'A');
   }
 
   if (harupBDigits.length > 0) {
-      applyHarupLogic(harupBDigits, 'B', totalAmount);
+      applyHarupLogic(harupBDigits, 'B');
   }
 
   if (Object.keys(updates).length > 0) {
@@ -1012,3 +1012,5 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
