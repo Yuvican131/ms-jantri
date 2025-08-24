@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, X, Save } from "lucide-react"
+import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, X, Save, RotateCcw } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -90,6 +90,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [cuttingValue, setCuttingValue] = useState("");
   const [lessValue, setLessValue] = useState("");
   const [dabbaValue, setDabbaValue] = useState("");
+  const [masterSheetData, setMasterSheetData] = useState<CellData>({});
   
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
   
@@ -757,11 +758,11 @@ const handleHarupApply = () => {
   }
 
   const masterSheetRowTotal = (rowIndex: number) => {
-    return calculateRowTotal(rowIndex, activeSheet.data).toString();
+    return calculateRowTotal(rowIndex, masterSheetData).toString();
   };
 
   const masterSheetGrandTotal = () => {
-    return calculateGrandTotal(activeSheet.data, {});
+    return calculateGrandTotal(masterSheetData, {});
   };
   
   const handleApplyCutting = () => {
@@ -771,17 +772,12 @@ const handleHarupApply = () => {
       return;
     }
 
-    setSheets(prevSheets => prevSheets.map(sheet => {
-      if (sheet.id === activeSheetId) {
-        const newMasterData = { ...sheet.data };
-        Object.keys(newMasterData).forEach(key => {
-          const cellValue = parseFloat(newMasterData[key]) || 0;
-          newMasterData[key] = String(cellValue - cutValue);
-        });
-        return { ...sheet, data: newMasterData };
-      }
-      return sheet;
-    }));
+    const newMasterData = { ...masterSheetData };
+    Object.keys(newMasterData).forEach(key => {
+      const cellValue = parseFloat(newMasterData[key]) || 0;
+      newMasterData[key] = String(cellValue - cutValue);
+    });
+    setMasterSheetData(newMasterData);
 
     toast({ title: "Cutting Applied", description: `Subtracted ${cutValue} from all cells in the master sheet.` });
     setCuttingValue("");
@@ -794,23 +790,39 @@ const handleHarupApply = () => {
       return;
     }
 
-    setSheets(prevSheets => prevSheets.map(sheet => {
-      if (sheet.id === activeSheetId) {
-        const newMasterData = { ...sheet.data };
-        Object.keys(newMasterData).forEach(key => {
-          const cellValue = parseFloat(newMasterData[key]) || 0;
-          if (cellValue !== 0) {
-            const reduction = cellValue * (lessPercent / 100);
-            newMasterData[key] = String(cellValue - reduction);
-          }
-        });
-        return { ...sheet, data: newMasterData };
+    const newMasterData = { ...masterSheetData };
+    Object.keys(newMasterData).forEach(key => {
+      const cellValue = parseFloat(newMasterData[key]) || 0;
+      if (cellValue !== 0) {
+        const reduction = cellValue * (lessPercent / 100);
+        newMasterData[key] = String(cellValue - reduction);
       }
-      return sheet;
-    }));
+    });
+    setMasterSheetData(newMasterData);
 
     toast({ title: "Less Applied", description: `Subtracted ${lessPercent}% from all cells in the master sheet.` });
     setLessValue("");
+  };
+
+  const openMasterSheetDialog = () => {
+    setMasterSheetData({ ...activeSheet.data });
+    setIsMasterSheetDialogOpen(true);
+  };
+  
+  const handleResetMasterSheetChanges = () => {
+    setMasterSheetData({ ...activeSheet.data });
+    setCuttingValue("");
+    setLessValue("");
+    setDabbaValue("");
+    toast({ title: "Changes Reset", description: "Cutting, Less, and Dabba changes have been reverted." });
+  };
+  
+  const handleSaveMasterSheetChanges = () => {
+    setSheets(prevSheets => prevSheets.map(sheet =>
+      sheet.id === activeSheetId ? { ...sheet, data: masterSheetData } : sheet
+    ));
+    toast({ title: "Master Sheet Updated", description: "Changes have been saved." });
+    setIsMasterSheetDialogOpen(false);
   };
 
 
@@ -1031,7 +1043,7 @@ const handleHarupApply = () => {
               </div>
             </div>
             <div className="w-full flex flex-row gap-2 mt-4">
-              <Button onClick={() => setIsMasterSheetDialogOpen(true)} variant="outline" className="w-full">
+              <Button onClick={openMasterSheetDialog} variant="outline" className="w-full">
                   Master Sheet
               </Button>
             </div>
@@ -1094,7 +1106,7 @@ const handleHarupApply = () => {
                               type="text"
                               readOnly
                               className="pt-5 text-sm bg-muted min-w-0"
-                              value={activeSheet.data[key] || ''}
+                              value={masterSheetData[key] || ''}
                               aria-label={`Cell ${displayCellNumber}`}
                             />
                           </div>
@@ -1134,6 +1146,13 @@ const handleHarupApply = () => {
                       <Input id="master-dabba" placeholder="Value" className="text-sm text-center w-24" />
                       <Button size="sm">Apply</Button>
                   </div>
+                   <div className="flex items-center gap-2">
+                      <Label htmlFor="master-reset" className="text-sm">Reset</Label>
+                      <Button onClick={handleResetMasterSheetChanges} size="sm" id="master-reset" variant="destructive">
+                        <RotateCcw className="mr-2 h-4 w-4" />
+                        Reset
+                      </Button>
+                  </div>
               </div>
             </div>
           </ScrollArea>
@@ -1142,9 +1161,15 @@ const handleHarupApply = () => {
               <Trash2 className="mr-2 h-4 w-4" />
               Clear Master Sheet
             </Button>
-            <DialogClose asChild>
-              <Button type="button">Close</Button>
-            </DialogClose>
+            <div>
+              <DialogClose asChild>
+                <Button type="button" variant="secondary" className="mr-2">Close</Button>
+              </DialogClose>
+              <Button onClick={handleSaveMasterSheetChanges}>
+                <Save className="mr-2 h-4 w-4" />
+                Save Changes
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
