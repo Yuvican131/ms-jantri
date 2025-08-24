@@ -583,7 +583,6 @@ const handleHarupApply = () => {
       showClientSelectionToast();
       return;
     }
-    
     const amountValue = parseFloat(harupAmount);
     if (!harupAmount || isNaN(amountValue)) {
       toast({ title: "HARUP Error", description: "Please provide a valid amount.", variant: "destructive" });
@@ -598,41 +597,42 @@ const handleHarupApply = () => {
       return;
     }
   
+    const affectedCells = new Set<string>();
+  
+    harupADigits.forEach(digit => {
+      for (let i = 0; i < 10; i++) {
+        const cellNum = parseInt(`${digit}${i}`, 10);
+        const rowIndex = Math.floor(cellNum / GRID_COLS);
+        const colIndex = cellNum % GRID_COLS;
+        affectedCells.add(`${rowIndex}_${colIndex}`);
+      }
+    });
+  
+    harupBDigits.forEach(digit => {
+      for (let i = 0; i < 10; i++) {
+        const cellNum = parseInt(`${i}${digit}`, 10);
+        const rowIndex = Math.floor(cellNum / GRID_COLS);
+        const colIndex = cellNum % GRID_COLS;
+        affectedCells.add(`${rowIndex}_${colIndex}`);
+      }
+    });
+  
+    if (affectedCells.size === 0) {
+      toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
+      return;
+    }
+  
+    const amountPerCell = amountValue / affectedCells.size;
     const updates: { [key: string]: string } = {};
     let lastEntryString = "";
   
-    const processHarup = (digits: string[], position: 'A' | 'B', amountStr: string) => {
-      if (digits.length === 0) return;
-  
-      const amount = parseFloat(amountStr);
-      if (isNaN(amount)) return;
-      
-      const affectedCells = new Set<string>();
-      digits.forEach(digit => {
-        for (let i = 0; i < 10; i++) {
-          let cellNumStr = position === 'A' ? `${digit}${i}` : `${i}${digit}`;
-          const cellNum = parseInt(cellNumStr, 10);
-          if (cellNum >= 0 && cellNum <= 99) {
-            const rowIndex = Math.floor(cellNum / GRID_COLS);
-            const colIndex = cellNum % GRID_COLS;
-            affectedCells.add(`${rowIndex}_${colIndex}`);
-          }
-        }
-      });
-  
-      if (affectedCells.size === 0) return;
-  
-      const amountPerCell = amount / affectedCells.size;
-      affectedCells.forEach(key => {
-        const currentValueInUpdate = parseFloat(updates[key]) || 0;
-        updates[key] = String(currentValueInUpdate + amountPerCell);
-      });
-  
-      lastEntryString += `${position}: ${digits.join('')}=${amountStr}\n`;
-    };
-  
-    processHarup(harupADigits, 'A', harupAmount);
-    processHarup(harupBDigits, 'B', harupAmount);
+    affectedCells.forEach(key => {
+      const currentValueInUpdate = parseFloat(updates[key]) || 0;
+      updates[key] = String(currentValueInUpdate + amountPerCell);
+    });
+    
+    if (harupA) lastEntryString += `A: ${harupA}=${harupAmount}\n`;
+    if (harupB) lastEntryString += `B: ${harupB}=${harupAmount}\n`;
   
     if (Object.keys(updates).length > 0) {
         const updateWithBaseValues: { [key: string]: string } = {};
