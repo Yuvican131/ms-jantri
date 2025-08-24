@@ -555,31 +555,43 @@ const handleHarupApply = () => {
   }
 
   const updates: { [key: string]: string } = {};
-  
-  const applyHarupLogic = (digits: string[], position: 'A' | 'B') => {
-      digits.forEach(digit => {
-          for (let i = 0; i < 10; i++) {
-              let cellNumStr = position === 'A' ? `${digit}${i}` : `${i}${digit}`;
-              const cellNum = parseInt(cellNumStr, 10);
+  const affectedCells = new Set<string>();
 
-              if (cellNum >= 0 && cellNum <= 99) {
-                  const rowIndex = Math.floor(cellNum / GRID_COLS);
-                  const colIndex = cellNum % GRID_COLS;
-                  const key = `${rowIndex}_${colIndex}`;
-                  const currentValue = parseFloat(updates[key] || currentData[key]) || 0;
-                  updates[key] = String(currentValue + totalAmount);
-              }
-          }
-      });
+  const findAffectedCells = (digits: string[], position: 'A' | 'B') => {
+    digits.forEach(digit => {
+        for (let i = 0; i < 10; i++) {
+            let cellNumStr = position === 'A' ? `${digit}${i}` : `${i}${digit}`;
+            const cellNum = parseInt(cellNumStr, 10);
+            if (cellNum >= 0 && cellNum <= 99) {
+                const rowIndex = Math.floor(cellNum / GRID_COLS);
+                const colIndex = cellNum % GRID_COLS;
+                affectedCells.add(`${rowIndex}_${colIndex}`);
+            }
+        }
+    });
   };
   
   if (harupADigits.length > 0) {
-      applyHarupLogic(harupADigits, 'A');
+    findAffectedCells(harupADigits, 'A');
   }
 
   if (harupBDigits.length > 0) {
-      applyHarupLogic(harupBDigits, 'B');
+    findAffectedCells(harupBDigits, 'B');
   }
+  
+  const cellCount = affectedCells.size;
+  if (cellCount === 0) {
+      toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
+      return;
+  }
+  
+  const amountPerCell = totalAmount / cellCount;
+  
+  affectedCells.forEach(key => {
+    const currentValue = parseFloat(updates[key] || currentData[key]) || 0;
+    updates[key] = String(currentValue + amountPerCell);
+  });
+  
 
   if (Object.keys(updates).length > 0) {
       const harupEntries: string[] = [];
@@ -1214,3 +1226,4 @@ export default GridSheet;
     
 
     
+
