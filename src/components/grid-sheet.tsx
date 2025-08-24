@@ -297,17 +297,36 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     document.body.removeChild(link)
   }
 
-  const calculateRowTotal = (rowIndex: number) => {
-    let total = 0
+  const calculateRowTotal = (rowIndex: number, data: CellData) => {
+    let total = 0;
     for (let colIndex = 0; colIndex < GRID_COLS; colIndex++) {
-      const key = `${rowIndex}_${colIndex}`
-      const value = currentData[key]
-      if (value && !isNaN(Number(value))) {
-        total += Number(value)
-      }
+        const key = `${rowIndex}_${colIndex}`;
+        const value = data[key];
+        if (value && !isNaN(Number(value))) {
+            total += Number(value);
+        }
     }
-    return total
+    return total;
+  };
+
+  const getRowTotal = (rowIndex: number) => {
+    if (currentRowTotals[rowIndex] !== undefined) {
+      return currentRowTotals[rowIndex];
+    }
+    return calculateRowTotal(rowIndex, currentData).toString();
   }
+
+  const calculateGrandTotal = (data: CellData, totals: { [key: number]: string }) => {
+    let total = 0;
+    for (let i = 0; i < GRID_ROWS; i++) {
+        if (totals[i] !== undefined) {
+            total += Number(totals[i]);
+        } else {
+            total += calculateRowTotal(i, data);
+        }
+    }
+    return total;
+  };
 
   const handleRowTotalChange = (rowIndex: number, value: string) => {
     if (isDataEntryDisabled) {
@@ -330,21 +349,6 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       handleRowTotalChange(rowIndex, '0');
     }
   }
-
-  const getRowTotal = (rowIndex: number) => {
-    if (currentRowTotals[rowIndex] !== undefined) {
-      return currentRowTotals[rowIndex];
-    }
-    return calculateRowTotal(rowIndex).toString();
-  }
-
-  const calculateGrandTotal = () => {
-    let total = 0;
-    for (let i = 0; i < GRID_ROWS; i++) {
-      total += Number(getRowTotal(i))
-    }
-    return total;
-  };
 
   const applyUpdatesToData = (updates: { [key: string]: string }, lastEntryString: string) => {
     if (isDataEntryDisabled) {
@@ -523,7 +527,6 @@ const handleHarupApply = () => {
   
   const applyHarupLogic = (digits: string[], position: 'A' | 'B') => {
       digits.forEach(digit => {
-          const amountPerCell = totalAmount / 10;
           for (let i = 0; i < 10; i++) {
               let cellNumStr = position === 'A' ? `${digit}${i}` : `${i}${digit}`;
               const cellNum = parseInt(cellNumStr, 10);
@@ -533,7 +536,7 @@ const handleHarupApply = () => {
                   const colIndex = cellNum % GRID_COLS;
                   const key = `${rowIndex}_${colIndex}`;
                   const currentValue = parseFloat(updates[key] || currentData[key]) || 0;
-                  updates[key] = String(currentValue + amountPerCell);
+                  updates[key] = String(currentValue + totalAmount);
               }
           }
       });
@@ -713,6 +716,15 @@ const handleHarupApply = () => {
     return <div>Loading...</div>;
   }
 
+  const masterSheetRowTotal = (rowIndex: number) => {
+    return calculateRowTotal(rowIndex, activeSheet.data).toString();
+  };
+
+  const masterSheetGrandTotal = () => {
+    return calculateGrandTotal(activeSheet.data, activeSheet.rowTotals);
+  };
+
+
   return (
     <>
       <Card>
@@ -808,7 +820,7 @@ const handleHarupApply = () => {
               ))}
                <div style={{ gridColumn: `span ${GRID_COLS}` }} className="flex items-center justify-end p-2 font-bold min-w-[80px] sm:min-w-[100px] mt-1 pr-4">Total</div>
                <div className="flex items-center justify-center p-2 font-bold min-w-[80px] sm:min-w-[100px] bg-primary/20 rounded-md mt-1">
-                  {calculateGrandTotal()}
+                  {calculateGrandTotal(currentData, currentRowTotals)}
                 </div>
             </div>
           </div>
@@ -1004,7 +1016,7 @@ const handleHarupApply = () => {
                           type="text"
                           readOnly
                           className="text-sm font-medium text-center bg-muted min-w-0"
-                          value={getRowTotal(rowIndex)}
+                          value={masterSheetRowTotal(rowIndex)}
                           aria-label={`Row ${rowIndex} Total`}
                         />
                       </div>
@@ -1012,7 +1024,7 @@ const handleHarupApply = () => {
                   ))}
                   <div style={{ gridColumn: `span ${GRID_COLS}` }} className="flex items-center justify-end p-2 font-bold min-w-[80px] sm:min-w-[100px] mt-1 pr-4">Total</div>
                   <div className="flex items-center justify-center p-2 font-bold min-w-[80px] sm:min-w-[100px] bg-primary/20 rounded-md mt-1">
-                      {calculateGrandTotal()}
+                      {masterSheetGrandTotal()}
                     </div>
                 </div>
             </div>
