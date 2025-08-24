@@ -761,7 +761,7 @@ const handleHarupApply = () => {
   };
 
   const masterSheetGrandTotal = () => {
-    return calculateGrandTotal(activeSheet.data, activeSheet.rowTotals);
+    return calculateGrandTotal(activeSheet.data, {});
   };
   
   const handleApplyCutting = () => {
@@ -785,6 +785,32 @@ const handleHarupApply = () => {
 
     toast({ title: "Cutting Applied", description: `Subtracted ${cutValue} from all cells in the master sheet.` });
     setCuttingValue("");
+  };
+
+  const handleApplyLess = () => {
+    const lessPercent = parseFloat(lessValue);
+    if (isNaN(lessPercent)) {
+      toast({ title: "Invalid Input", description: "Please enter a valid percentage for Less.", variant: "destructive" });
+      return;
+    }
+
+    setSheets(prevSheets => prevSheets.map(sheet => {
+      if (sheet.id === activeSheetId) {
+        const newMasterData = { ...sheet.data };
+        Object.keys(newMasterData).forEach(key => {
+          const cellValue = parseFloat(newMasterData[key]) || 0;
+          if (cellValue !== 0) {
+            const reduction = cellValue * (lessPercent / 100);
+            newMasterData[key] = String(cellValue - reduction);
+          }
+        });
+        return { ...sheet, data: newMasterData };
+      }
+      return sheet;
+    }));
+
+    toast({ title: "Less Applied", description: `Subtracted ${lessPercent}% from all cells in the master sheet.` });
+    setLessValue("");
   };
 
 
@@ -1093,18 +1119,20 @@ const handleHarupApply = () => {
             </div>
             <div className="mt-4 p-4 border-t">
                <div className="flex flex-col sm:flex-row justify-around gap-4 items-end">
-                  <div className="flex flex-col gap-1 min-w-[100px] flex-1">
-                      <Label htmlFor="master-cutting" className="text-center text-sm">Cutting</Label>
-                      <Input id="master-cutting" placeholder="Value" className="text-sm text-center" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
+                  <div className="flex items-center gap-2">
+                      <Label htmlFor="master-cutting" className="text-sm">Cutting</Label>
+                      <Input id="master-cutting" placeholder="Value" className="text-sm text-center w-24" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
+                      <Button onClick={handleApplyCutting} size="sm">Apply</Button>
                   </div>
-                  <Button onClick={handleApplyCutting} size="sm">Apply Cutting</Button>
-                  <div className="flex flex-col gap-1 min-w-[100px] flex-1">
-                      <Label htmlFor="master-less" className="text-center text-sm">Less</Label>
-                      <Input id="master-less" placeholder="Value" className="text-sm text-center" />
+                  <div className="flex items-center gap-2">
+                      <Label htmlFor="master-less" className="text-sm">Less (%)</Label>
+                      <Input id="master-less" placeholder="Value" className="text-sm text-center w-24" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
+                      <Button onClick={handleApplyLess} size="sm">Apply</Button>
                   </div>
-                  <div className="flex flex-col gap-1 min-w-[100px] flex-1">
-                      <Label htmlFor="master-dabba" className="text-center text-sm">Dabba</Label>
-                      <Input id="master-dabba" placeholder="Value" className="text-sm text-center" />
+                  <div className="flex items-center gap-2">
+                      <Label htmlFor="master-dabba" className="text-sm">Dabba</Label>
+                      <Input id="master-dabba" placeholder="Value" className="text-sm text-center w-24" />
+                      <Button size="sm">Apply</Button>
                   </div>
               </div>
             </div>
@@ -1155,5 +1183,7 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
 
     
