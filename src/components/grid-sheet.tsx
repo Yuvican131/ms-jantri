@@ -1,3 +1,4 @@
+
 "use client"
 import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react"
 import { useToast } from "@/hooks/use-toast"
@@ -218,6 +219,32 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     }
     setLaddiNum2(newLaddiNum2);
   }
+
+  const handleHarupAChange = (value: string) => {
+    if (isDataEntryDisabled) {
+      showClientSelectionToast();
+      return;
+    }
+    const newHarupA = value.replace(/[^0-9]/g, '');
+    if (new Set(newHarupA.split('')).size !== newHarupA.length) {
+      toast({ title: "Validation Error", description: "Duplicate digits are not allowed in this field.", variant: "destructive" });
+      return;
+    }
+    setHarupA(newHarupA);
+  };
+  
+  const handleHarupBChange = (value: string) => {
+    if (isDataEntryDisabled) {
+      showClientSelectionToast();
+      return;
+    }
+    const newHarupB = value.replace(/[^0-9]/g, '');
+    if (new Set(newHarupB.split('')).size !== newHarupB.length) {
+      toast({ title: "Validation Error", description: "Duplicate digits are not allowed in this field.", variant: "destructive" });
+      return;
+    }
+    setHarupB(newHarupB);
+  };
 
   const handleCellChange = (rowIndex: number, colIndex: number, value: string) => {
     if (isDataEntryDisabled) {
@@ -888,11 +915,11 @@ const handleHarupApply = () => {
                     <div className="flex flex-col sm:flex-row items-stretch gap-2">
                       <div className="flex items-center gap-2 flex-grow">
                         <Label htmlFor="harupA" className="w-8 text-center shrink-0">A</Label>
-                        <Input id="harupA" placeholder="0123.." className="min-w-0" value={harupA} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupA(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                        <Input id="harupA" placeholder="0123.." className="min-w-0" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
                       </div>
                       <div className="flex items-center gap-2 flex-grow">
                         <Label htmlFor="harupB" className="w-8 text-center shrink-0">B</Label>
-                        <Input id="harupB" placeholder="0123.." className="min-w-0" value={harupB} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupB(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                        <Input id="harupB" placeholder="0123.." className="min-w-0" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-xl font-bold mx-2">=</span>
