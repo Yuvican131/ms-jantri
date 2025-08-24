@@ -711,6 +711,16 @@ const handleHarupApply = () => {
     });
   };
 
+  const handleClearMasterSheet = () => {
+    setSheets(prevSheets => prevSheets.map(sheet => {
+      if (sheet.id === activeSheetId) {
+        return { ...sheet, data: {}, rowTotals: {} };
+      }
+      return sheet;
+    }));
+    toast({ title: "Master Sheet Cleared", description: "All data from the master sheet has been removed." });
+  };
+
 
   if (!activeSheet) {
     return <div>Loading...</div>;
@@ -1045,7 +1055,11 @@ const handleHarupApply = () => {
               </div>
             </div>
           </ScrollArea>
-          <DialogFooter className="mt-4">
+          <DialogFooter className="mt-4 sm:justify-between">
+             <Button variant="outline" onClick={handleClearMasterSheet}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Clear Master Sheet
+            </Button>
             <DialogClose asChild>
               <Button type="button">Close</Button>
             </DialogClose>
