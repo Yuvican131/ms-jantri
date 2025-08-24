@@ -107,16 +107,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
   const handleSelectedClientChange = (clientId: string) => {
     if (clientId === "None") {
-      if (selectedClientId) {
-        // Save current client data before switching to "None"
-        updateClientData(selectedClientId, currentData, currentRowTotals);
-      }
       setSelectedClientId(null);
     } else {
-        if (selectedClientId) {
-            updateClientData(selectedClientId, currentData, currentRowTotals);
-        }
-        setSelectedClientId(clientId);
+      setSelectedClientId(clientId);
     }
   };
   
@@ -483,7 +476,8 @@ const handleHarupApply = () => {
   
   const applyHarupLogic = (digits: string[], position: 'A' | 'B') => {
     const harupAmountPerCell = totalAmount / 10;
-    for (const digit of digits) {
+
+    digits.forEach(digit => {
       for (let i = 0; i < 10; i++) {
         let cellNumStr = position === 'A' ? `${digit}${i}` : `${i}${digit}`;
         const cellNum = parseInt(cellNumStr, 10);
@@ -496,7 +490,7 @@ const handleHarupApply = () => {
             updates[key] = String(currentValue + harupAmountPerCell);
         }
       }
-    }
+    });
   };
 
   if (harupADigits.length > 0) {
