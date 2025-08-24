@@ -1,4 +1,3 @@
-
 "use client"
 import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react"
 import { useToast } from "@/hooks/use-toast"
@@ -98,6 +97,16 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     ? clientSheetData[selectedClientId]?.rowTotals || {}
     : activeSheet.rowTotals;
 
+  const isDataEntryDisabled = !selectedClientId;
+
+  const showClientSelectionToast = () => {
+    toast({
+      title: "No Client Selected",
+      description: "Please select a client to enable data entry.",
+      variant: "destructive",
+    });
+  };
+
   const updateClientData = (clientId: string, data: CellData, rowTotals: { [key: number]: string }) => {
     setClientSheetData(prev => ({
       ...prev,
@@ -119,6 +128,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
   useImperativeHandle(ref, () => ({
     handleClientUpdate: (client: Client) => {
+      if (isDataEntryDisabled) {
+        showClientSelectionToast();
+        return;
+      }
       if (client.pair === '90') {
         const cellNum = parseInt(client.name, 10);
         const commission = parseFloat(client.comm);
@@ -172,6 +185,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   }, [laddiNum1, laddiNum2, removeJodda]);
 
   const handleLaddiNum1Change = (value: string) => {
+    if (isDataEntryDisabled) {
+      showClientSelectionToast();
+      return;
+    }
     const newLaddiNum1 = value.replace(/[^0-9]/g, '');
     if (new Set(newLaddiNum1.split('')).size !== newLaddiNum1.length) {
       toast({ title: "Validation Error", description: "Duplicate digits are not allowed in this field.", variant: "destructive" });
@@ -186,6 +203,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   }
 
   const handleLaddiNum2Change = (value: string) => {
+    if (isDataEntryDisabled) {
+      showClientSelectionToast();
+      return;
+    }
     const newLaddiNum2 = value.replace(/[^0-9]/g, '');
     if (new Set(newLaddiNum2.split('')).size !== newLaddiNum2.length) {
         toast({ title: "Validation Error", description: "Duplicate digits are not allowed in this field.", variant: "destructive" });
@@ -199,6 +220,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   }
 
   const handleCellChange = (rowIndex: number, colIndex: number, value: string) => {
+    if (isDataEntryDisabled) {
+      showClientSelectionToast();
+      return;
+    }
     const key = `${rowIndex}_${colIndex}`
     const newData = { ...currentData, [key]: value };
     const newRowTotals = { ...currentRowTotals };
@@ -213,6 +238,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   }
 
   const handleCellBlur = async (rowIndex: number, colIndex: number) => {
+    if (isDataEntryDisabled) return;
+
     const key = `${rowIndex}_${colIndex}`
     const cellContent = currentData[key]
 
@@ -283,6 +310,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   }
 
   const handleRowTotalChange = (rowIndex: number, value: string) => {
+    if (isDataEntryDisabled) {
+      showClientSelectionToast();
+      return;
+    }
     const newRowTotals = { ...currentRowTotals, [rowIndex]: value };
     if (selectedClientId) {
       updateClientData(selectedClientId, currentData, newRowTotals);
@@ -294,6 +325,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   };
 
   const handleRowTotalBlur = (rowIndex: number, value: string) => {
+    if (isDataEntryDisabled) return;
     if(value.trim() === '') {
       handleRowTotalChange(rowIndex, '0');
     }
@@ -315,6 +347,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   };
 
   const applyUpdatesToData = (updates: { [key: string]: string }, lastEntryString: string) => {
+    if (isDataEntryDisabled) {
+      showClientSelectionToast();
+      return;
+    }
     const updatedData = { ...currentData };
     const updatedCellKeys = Object.keys(updates);
 
@@ -337,6 +373,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 };
 
 const handleMultiTextApply = () => {
+    if (isDataEntryDisabled) {
+        showClientSelectionToast();
+        return;
+    }
     const lines = multiText.split('\n');
     let lastEntryString = "";
 
@@ -413,6 +453,10 @@ const handleMultiTextApply = () => {
 };
   
   const handleLaddiApply = () => {
+    if (isDataEntryDisabled) {
+      showClientSelectionToast();
+      return;
+    }
     if (!laddiNum1 || !laddiNum2 || !laddiAmount) {
         toast({ title: "Laddi Error", description: "Please fill all Laddi fields.", variant: "destructive" });
         return;
@@ -457,6 +501,10 @@ const handleMultiTextApply = () => {
 };
 
 const handleHarupApply = () => {
+  if (isDataEntryDisabled) {
+    showClientSelectionToast();
+    return;
+  }
   const harupADigits = harupA.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d)));
   const harupBDigits = harupB.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d)));
   
@@ -515,6 +563,10 @@ const handleHarupApply = () => {
 
 
   const handleClearSheet = () => {
+    if (isDataEntryDisabled) {
+        showClientSelectionToast();
+        return;
+    }
     const emptyData = {};
     const emptyRowTotals = {};
 
@@ -540,6 +592,10 @@ const handleHarupApply = () => {
   };
   
   const handleGenerateSheet = () => {
+    if (isDataEntryDisabled) {
+      showClientSelectionToast();
+      return;
+    }
     const valueToCells: { [value: string]: number[] } = {};
 
     for (const key in currentData) {
@@ -582,6 +638,11 @@ const handleHarupApply = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, handler: () => void) => {
+    if (isDataEntryDisabled) {
+      showClientSelectionToast();
+      e.preventDefault();
+      return;
+    }
     if (e.key === 'Enter') {
       e.preventDefault();
       handler();
@@ -589,6 +650,10 @@ const handleHarupApply = () => {
   };
 
   const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (isDataEntryDisabled) {
+      showClientSelectionToast();
+      return;
+    }
     const value = e.target.value;
     const parts = value.split('=');
     let numbersPart = parts[0];
@@ -648,8 +713,6 @@ const handleHarupApply = () => {
     return <div>Loading...</div>;
   }
 
-  const isDataEntryDisabled = false;
-
   return (
     <>
       <Card>
@@ -704,7 +767,7 @@ const handleHarupApply = () => {
                         <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{displayCellNumber}</div>
                         <Input
                           type="text"
-                          className={`pt-5 text-sm transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} bg-slate-800 text-white`}
+                          className={`pt-5 text-sm transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50' : 'bg-slate-800 text-white'}`}
                           value={currentData[key] || ''}
                           onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
                           onBlur={() => handleCellBlur(rowIndex, colIndex)}
@@ -761,7 +824,7 @@ const handleHarupApply = () => {
                               <SelectValue placeholder="Select Client" />
                           </SelectTrigger>
                           <SelectContent>
-                              <SelectItem value="None">None</SelectItem>
+                              <SelectItem value="None">None (Master Sheet)</SelectItem>
                               {props.clients.map(client => (
                                   <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
                               ))}
@@ -803,15 +866,15 @@ const handleHarupApply = () => {
                     <div className="flex flex-col sm:flex-row items-stretch gap-2">
                       <div className="flex items-center gap-2 flex-grow">
                         <Label htmlFor="harupA" className="w-8 text-center shrink-0">A</Label>
-                        <Input id="harupA" placeholder="0123.." className="min-w-0" value={harupA} onChange={(e) => setHarupA(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                        <Input id="harupA" placeholder="0123.." className="min-w-0" value={harupA} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupA(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
                       </div>
                       <div className="flex items-center gap-2 flex-grow">
                         <Label htmlFor="harupB" className="w-8 text-center shrink-0">B</Label>
-                        <Input id="harupB" placeholder="0123.." className="min-w-0" value={harupB} onChange={(e) => setHarupB(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                        <Input id="harupB" placeholder="0123.." className="min-w-0" value={harupB} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupB(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-xl font-bold mx-2">=</span>
-                        <Input id="harupAmount" placeholder="Amount" className="w-24 font-bold shrink-0" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                        <Input id="harupAmount" placeholder="Amount" className="w-24 font-bold shrink-0" value={harupAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
                       </div>
                     </div>
                     <div className="flex justify-end mt-2">
@@ -849,7 +912,7 @@ const handleHarupApply = () => {
                         type="text"
                         className="w-24 text-center font-bold shrink-0"
                         value={laddiAmount}
-                        onChange={(e) => setLaddiAmount(e.target.value)}
+                        onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
                         placeholder="Amount"
                         onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
                         disabled={isDataEntryDisabled}
@@ -857,7 +920,7 @@ const handleHarupApply = () => {
                     </div>
                     <div className="flex flex-col sm:flex-row justify-between items-center gap-2 mt-2">
                         <div className="flex items-center gap-2">
-                            <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => setRemoveJodda(Boolean(checked))} disabled={isDataEntryDisabled}/>
+                            <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={isDataEntryDisabled}/>
                             <Label htmlFor="remove-jodda" className="text-xs">Remove Jodda</Label>
                         </div>
                         <div className="text-sm font-bold text-primary">{combinationCount} Combinations</div>
