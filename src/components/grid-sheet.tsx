@@ -133,7 +133,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   };
 
   const saveDataForUndo = () => {
-    setPreviousSheetState({ data: { ...currentData }, rowTotals: { ...currentRowTotals } });
+    const dataToSave = selectedClientId ? clientSheetData[selectedClientId] : activeSheet;
+    setPreviousSheetState({ data: { ...(dataToSave?.data || {}) }, rowTotals: { ...(dataToSave?.rowTotals || {}) } });
   };
   
   const handleRevertLastEntry = () => {
@@ -168,15 +169,21 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
           const colIndex = cellNum % GRID_COLS;
           const key = `${rowIndex}_${colIndex}`;
           
-          setSheets(prevSheets => prevSheets.map(sheet => {
-            if (sheet.id === activeSheetId) {
-              const newData = { ...sheet.data };
-              const currentValue = parseFloat(newData[key]) || 0;
-              newData[key] = String(currentValue * commission);
-              return { ...sheet, data: newData };
-            }
-            return sheet;
-          }));
+          const newData = { ...currentData };
+          const currentValue = parseFloat(newData[key]) || 0;
+          newData[key] = String(currentValue * commission);
+
+          if(selectedClientId) {
+            updateClientData(selectedClientId, newData, currentRowTotals);
+          } else {
+            setSheets(prevSheets => prevSheets.map(sheet => {
+              if (sheet.id === activeSheetId) {
+                return { ...sheet, data: newData };
+              }
+              return sheet;
+            }));
+          }
+
           setUpdatedCells(prev => [...prev, key]);
           setTimeout(() => setUpdatedCells(prev => prev.filter(c => c !== key)), 2000);
           toast({ title: "Sheet Updated by Client", description: `Cell ${client.name} value multiplied by commission ${client.comm}.` });
@@ -405,39 +412,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     }
   }
 
-  const applyUpdatesToData = (updates: { [key: string]: string }, lastEntryString: string) => {
+  const handleMultiTextApply = () => {
     if (isDataEntryDisabled) {
       showClientSelectionToast();
       return;
-    }
-    saveDataForUndo();
-    const updatedData = { ...currentData };
-    const updatedCellKeys = Object.keys(updates);
-
-    updatedCellKeys.forEach(key => {
-        const currentValue = parseFloat(updatedData[key]) || 0;
-        const updateValue = parseFloat(updates[key]);
-        updatedData[key] = String(currentValue + updateValue);
-    });
-
-    if (selectedClientId) {
-        updateClientData(selectedClientId, updatedData, currentRowTotals);
-    } else {
-        setSheets(prevSheets => prevSheets.map(sheet =>
-            sheet.id === activeSheetId ? { ...sheet, data: updatedData } : sheet
-        ));
-    }
-
-    setUpdatedCells(updatedCellKeys);
-    props.setLastEntry(lastEntryString);
-    setTimeout(() => setUpdatedCells([]), 2000);
-    toast({ title: "Sheet Updated", description: `${updatedCellKeys.length} cell(s) have been updated.` });
-};
-
-const handleMultiTextApply = () => {
-    if (isDataEntryDisabled) {
-        showClientSelectionToast();
-        return;
     }
     saveDataForUndo();
     const lines = multiText.split(/[\n#]+/).filter(line => line.trim() !== '');
@@ -507,27 +485,29 @@ const handleMultiTextApply = () => {
     });
 
     if (Object.keys(updates).length > 0) {
-        const updateWithBaseValues: { [key: string]: string } = {};
-        Object.keys(updates).forEach(key => {
-            const currentValue = parseFloat(currentData[key]) || 0;
+        const newData = { ...currentData };
+        const updatedKeys = Object.keys(updates);
+        
+        updatedKeys.forEach(key => {
+            const currentValue = parseFloat(newData[key]) || 0;
             const addedValue = parseFloat(updates[key]) || 0;
-            updateWithBaseValues[key] = String(currentValue + addedValue);
+            newData[key] = String(currentValue + addedValue);
         });
-
+        
         lastEntryString = formattedLines.join('\n');
         
         if (selectedClientId) {
-            updateClientData(selectedClientId, updateWithBaseValues, currentRowTotals);
+            updateClientData(selectedClientId, newData, currentRowTotals);
         } else {
             setSheets(prevSheets => prevSheets.map(sheet =>
-                sheet.id === activeSheetId ? { ...sheet, data: updateWithBaseValues } : sheet
+                sheet.id === activeSheetId ? { ...sheet, data: newData } : sheet
             ));
         }
 
-        setUpdatedCells(Object.keys(updates));
+        setUpdatedCells(updatedKeys);
         props.setLastEntry(lastEntryString);
         setTimeout(() => setUpdatedCells([]), 2000);
-        toast({ title: "Sheet Updated", description: `${Object.keys(updates).length} cell(s) have been updated.` });
+        toast({ title: "Sheet Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
 
         setMultiText("");
     } else {
@@ -575,27 +555,29 @@ const handleMultiTextApply = () => {
     }
 
     if (Object.keys(updates).length > 0) {
-        const updateWithBaseValues: { [key: string]: string } = {};
-        Object.keys(updates).forEach(key => {
-            const currentValue = parseFloat(currentData[key]) || 0;
+        const newData = { ...currentData };
+        const updatedKeys = Object.keys(updates);
+
+        updatedKeys.forEach(key => {
+            const currentValue = parseFloat(newData[key]) || 0;
             const addedValue = parseFloat(updates[key]) || 0;
-            updateWithBaseValues[key] = String(currentValue + addedValue);
+            newData[key] = String(currentValue + addedValue);
         });
 
         const lastEntryString = `${laddiNum1}x${laddiNum2}=${laddiAmount}`;
 
         if (selectedClientId) {
-            updateClientData(selectedClientId, updateWithBaseValues, currentRowTotals);
+            updateClientData(selectedClientId, newData, currentRowTotals);
         } else {
             setSheets(prevSheets => prevSheets.map(sheet =>
-                sheet.id === activeSheetId ? { ...sheet, data: updateWithBaseValues } : sheet
+                sheet.id === activeSheetId ? { ...sheet, data: newData } : sheet
             ));
         }
 
-        setUpdatedCells(Object.keys(updates));
+        setUpdatedCells(updatedKeys);
         props.setLastEntry(lastEntryString);
         setTimeout(() => setUpdatedCells([]), 2000);
-        toast({ title: "Laddi Updated", description: `${Object.keys(updates).length} cell(s) have been updated.` });
+        toast({ title: "Laddi Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
 
         setLaddiNum1('');
         setLaddiNum2('');
@@ -661,25 +643,27 @@ const handleHarupApply = () => {
     if (harupADigits.length > 0) lastEntryString += `A: ${harupA}=${harupAmount}\n`;
     if (harupBDigits.length > 0) lastEntryString += `B: ${harupB}=${harupAmount}\n`;
 
-    const updateWithBaseValues: { [key: string]: string } = {};
-    Object.keys(updates).forEach(key => {
-        const currentValue = parseFloat(currentData[key]) || 0;
+    const newData = { ...currentData };
+    const updatedKeys = Object.keys(updates);
+
+    updatedKeys.forEach(key => {
+        const currentValue = parseFloat(newData[key]) || 0;
         const addedValue = parseFloat(updates[key]) || 0;
-        updateWithBaseValues[key] = String(currentValue + addedValue);
+        newData[key] = String(currentValue + addedValue);
     });
 
     if (selectedClientId) {
-        updateClientData(selectedClientId, updateWithBaseValues, currentRowTotals);
+        updateClientData(selectedClientId, newData, currentRowTotals);
     } else {
         setSheets(prevSheets => prevSheets.map(sheet =>
-            sheet.id === activeSheetId ? { ...sheet, data: updateWithBaseValues } : sheet
+            sheet.id === activeSheetId ? { ...sheet, data: newData } : sheet
         ));
     }
 
-    setUpdatedCells(Object.keys(updates));
+    setUpdatedCells(updatedKeys);
     props.setLastEntry(lastEntryString.trim());
     setTimeout(() => setUpdatedCells([]), 2000);
-    toast({ title: "HARUP Updated", description: `${Object.keys(updates).length} cell(s) have been updated.` });
+    toast({ title: "HARUP Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
 
     setHarupA('');
     setHarupB('');
@@ -1307,14 +1291,3 @@ GridSheet.displayName = 'GridSheet';
 export default GridSheet;
 
     
-
-    
-
-    
-
-    
-
-    
-
-    
-
