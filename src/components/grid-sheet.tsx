@@ -588,88 +588,89 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 };
 
 const handleHarupApply = () => {
-  if (isDataEntryDisabled) {
-    showClientSelectionToast();
-    return;
-  }
-  const amountValue = parseFloat(harupAmount);
-  if (!harupAmount || isNaN(amountValue)) {
-    toast({ title: "HARUP Error", description: "Please provide a valid amount.", variant: "destructive" });
-    return;
-  }
-
-  const harupADigits = [...new Set(harupA.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d))))];
-  const harupBDigits = [...new Set(harupB.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d))))];
-
-  if (harupADigits.length === 0 && harupBDigits.length === 0) {
-    toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
-    return;
-  }
-
-  saveDataForUndo();
-  const affectedCells = new Set<string>();
-
-  harupADigits.forEach(digit => {
-    for (let i = 0; i < 10; i++) {
-      const cellNum = parseInt(`${digit}${i}`, 10);
-      const rowIndex = Math.floor(cellNum / GRID_COLS);
-      const colIndex = cellNum % GRID_COLS;
-      affectedCells.add(`${rowIndex}_${colIndex}`);
+    if (isDataEntryDisabled) {
+      showClientSelectionToast();
+      return;
     }
-  });
-
-  harupBDigits.forEach(digit => {
-    for (let i = 0; i < 10; i++) {
-      const cellNum = parseInt(`${i}${digit}`, 10);
-      const rowIndex = Math.floor(cellNum / GRID_COLS);
-      const colIndex = cellNum % GRID_COLS;
-      affectedCells.add(`${rowIndex}_${colIndex}`);
+    const amountValue = parseFloat(harupAmount);
+    if (!harupAmount || isNaN(amountValue)) {
+      toast({ title: "HARUP Error", description: "Please provide a valid amount.", variant: "destructive" });
+      return;
     }
-  });
 
-  if (affectedCells.size === 0) {
-    toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
-    return;
-  }
-
-  const amountPerCell = amountValue / affectedCells.size;
-  const updates: { [key: string]: string } = {};
-
-  affectedCells.forEach(key => {
-    const currentValueInUpdate = parseFloat(updates[key]) || 0;
-    updates[key] = String(currentValueInUpdate + amountPerCell);
-  });
+    const harupADigits = [...new Set(harupA.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d))))];
+    const harupBDigits = [...new Set(harupB.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d))))];
   
-  let lastEntryString = "";
-  if (harupADigits.length > 0) lastEntryString += `A: ${harupA}=${harupAmount}\n`;
-  if (harupBDigits.length > 0) lastEntryString += `B: ${harupB}=${harupAmount}\n`;
-
-  const newData = { ...currentData };
-  const updatedKeys = Object.keys(updates);
-
-  updatedKeys.forEach(key => {
-      const currentValue = parseFloat(newData[key]) || 0;
-      const addedValue = parseFloat(updates[key]) || 0;
-      newData[key] = String(currentValue + addedValue);
-  });
-
-  if (selectedClientId) {
-      updateClientData(selectedClientId, newData, currentRowTotals);
-  } else {
-      setSheets(prevSheets => prevSheets.map(sheet =>
-          sheet.id === activeSheetId ? { ...sheet, data: newData } : sheet
-      ));
-  }
-
-  setUpdatedCells(updatedKeys);
-  props.setLastEntry(lastEntryString.trim());
-  setTimeout(() => setUpdatedCells([]), 2000);
-  toast({ title: "HARUP Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
-
-  setHarupA('');
-  setHarupB('');
-  setHarupAmount('');
-};
+    if (harupADigits.length === 0 && harupBDigits.length === 0) {
+      toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
+      return;
+    }
+  
+    saveDataForUndo();
+    const affectedCells = new Set<string>();
+  
+    harupADigits.forEach(digit => {
+      for (let i = 0; i < 10; i++) {
+        // HARUP A (andar) -> cells START with the digit
+        const cellNum = parseInt(`${digit}${i}`, 10);
+        const rowIndex = Math.floor(cellNum / GRID_COLS);
+        const colIndex = cellNum % GRID_COLS;
+        affectedCells.add(`${rowIndex}_${colIndex}`);
+      }
+    });
+  
+    harupBDigits.forEach(digit => {
+      for (let i = 0; i < 10; i++) {
+        // HARUP B (bahar) -> cells END with the digit
+        const cellNum = parseInt(`${i}${digit}`, 10);
+        const rowIndex = Math.floor(cellNum / GRID_COLS);
+        const colIndex = cellNum % GRID_COLS;
+        affectedCells.add(`${rowIndex}_${colIndex}`);
+      }
+    });
+  
+    if (affectedCells.size === 0) {
+      toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
+      return;
+    }
+  
+    const amountPerCell = amountValue / affectedCells.size;
+    const updates: { [key: string]: string } = {};
+  
+    affectedCells.forEach(key => {
+      updates[key] = String(amountPerCell);
+    });
+    
+    let lastEntryString = "";
+    if (harupADigits.length > 0) lastEntryString += `A: ${harupA}=${harupAmount}\n`;
+    if (harupBDigits.length > 0) lastEntryString += `B: ${harupB}=${harupAmount}\n`;
+  
+    const newData = { ...currentData };
+    const updatedKeys = Object.keys(updates);
+  
+    updatedKeys.forEach(key => {
+        const currentValue = parseFloat(newData[key]) || 0;
+        const addedValue = parseFloat(updates[key]) || 0;
+        newData[key] = String(currentValue + addedValue);
+    });
+  
+    if (selectedClientId) {
+        updateClientData(selectedClientId, newData, currentRowTotals);
+    } else {
+        setSheets(prevSheets => prevSheets.map(sheet =>
+            sheet.id === activeSheetId ? { ...sheet, data: newData } : sheet
+        ));
+    }
+  
+    setUpdatedCells(updatedKeys);
+    props.setLastEntry(lastEntryString.trim());
+    setTimeout(() => setUpdatedCells([]), 2000);
+    toast({ title: "HARUP Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
+  
+    setHarupA('');
+    setHarupB('');
+    setHarupAmount('');
+  };
 
 
 
@@ -1291,5 +1292,7 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
 
     
