@@ -567,8 +567,8 @@ const handleHarupApply = () => {
         return;
     }
 
-    const harupADigits = harupA.replace(/[^0-9]/g, '').split('');
-    const harupBDigits = harupB.replace(/[^0-9]/g, '').split('');
+    const harupADigits = [...new Set(harupA.replace(/[^0-9]/g, '').split(''))];
+    const harupBDigits = [...new Set(harupB.replace(/[^0-9]/g, '').split(''))];
 
     if (harupADigits.length === 0 && harupBDigits.length === 0) {
         toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
@@ -606,8 +606,7 @@ const handleHarupApply = () => {
     const updates: { [key: string]: string } = {};
 
     affectedCells.forEach(key => {
-        const currentValueInUpdate = parseFloat(updates[key]) || 0;
-        updates[key] = String(currentValueInUpdate + amountPerCell);
+        updates[key] = String(amountPerCell);
     });
 
     let lastEntryString = "";
@@ -874,22 +873,28 @@ const handleHarupApply = () => {
     setIsMasterSheetDialogOpen(false);
   };
 
+  const getFontSize = (text: string) => {
+    const length = text.length;
+    if (length > 8) return '0.6rem';
+    if (length > 6) return '0.75rem';
+    if (length > 4) return '1rem';
+    return '1.25rem';
+  };
 
   return (
     <>
       <Card>
         <CardHeader className="p-4">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
             <div>
-              <CardTitle className="text-base md:text-xl">{props.draw} Sheet ({format(props.date, "PPP")})</CardTitle>
+              <CardTitle className="text-lg md:text-xl">{props.draw} Sheet ({format(props.date, "PPP")})</CardTitle>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 xl:grid-cols-2">
-            <div className="overflow-x-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2">
+            <div className="overflow-x-auto pr-2">
               <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, 1fr)`}}>
-                {/* Header for Total column */}
                 <div className="col-start-1" style={{gridColumn: `span ${GRID_COLS}`}}></div>
                 <div className="flex items-center justify-center font-semibold text-muted-foreground text-sm p-1">Total</div>
   
@@ -902,14 +907,16 @@ const handleHarupApply = () => {
                       const key = `${rowIndex}_${colIndex}`
                       const validation = validations[key]
                       const isUpdated = updatedCells.includes(key);
+                      const cellValue = currentData[key] || '';
 
                       return (
-                        <div key={key} className="relative">
+                        <div key={key} className="relative aspect-square">
                           <div className="absolute top-0 left-0.5 text-xs text-muted-foreground/80 select-none pointer-events-none z-10">{displayCellNumber}</div>
                           <Input
                             type="text"
-                            className={`p-2 text-xl h-16 text-center transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50' : 'bg-slate-800 text-white'}`}
-                            value={currentData[key] || ''}
+                            style={{ fontSize: getFontSize(cellValue) }}
+                            className={`p-1 h-full w-full text-center transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50' : 'bg-slate-800 text-white'}`}
+                            value={cellValue}
                             onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
                             onBlur={() => handleCellBlur(rowIndex, colIndex)}
                             aria-label={`Cell ${displayCellNumber}`}
@@ -934,10 +941,10 @@ const handleHarupApply = () => {
                         </div>
                       )
                     })}
-                    <div className="flex items-center justify-center p-0 font-medium">
+                    <div className="flex items-center justify-center p-0 font-medium aspect-square">
                       <Input
                         type="text"
-                        className="text-lg font-medium text-center h-16 p-2 min-w-0"
+                        className="text-base font-medium text-center h-full w-full p-1 min-w-0"
                         value={getRowTotal(rowIndex)}
                         onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
                         onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
@@ -954,9 +961,7 @@ const handleHarupApply = () => {
               </div>
             </div>
 
-            {/* Controls Section */}
-            <div className="flex flex-col gap-2 pl-2">
-              <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2 pl-2 mt-4 lg:mt-0">
                 <div className="border rounded-lg p-3 flex flex-col gap-2">
                     <h3 className="font-semibold">Client</h3>
                     <div className="flex items-center gap-2">
@@ -981,77 +986,83 @@ const handleHarupApply = () => {
                         </Button>
                     </div>
                 </div>
-                  <div className="border rounded-lg p-3 flex flex-col gap-2">
-                      <h3 className="font-semibold">Multi-Text</h3>
-                      <Textarea
-                          placeholder="e.g. 01,02,03=50 or 10=20#45=50"
-                          rows={1}
-                          value={multiText}
-                          onChange={handleMultiTextChange}
-                          onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
-                          className="w-full text-sm"
-                          disabled={isDataEntryDisabled}
-                      />
-                      <div className="flex flex-wrap gap-2 mt-1 items-start">
-                          <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled} size="sm">Apply</Button>
-                          <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled} size="sm">
-                              Generate
-                          </Button>
-                          <Button onClick={handleClearSheet} variant="destructive" className="shrink-0" disabled={isDataEntryDisabled} size="sm">
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Clear
-                          </Button>
-                      </div>
-                  </div>
-                  <div className="border rounded-lg p-4">
-                    <h3 className="font-semibold mb-2">Laddi</h3>
-                    <div className="flex items-center gap-2 mb-2">
-                        <Input
-                          id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0" placeholder="Num 1"
-                          value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
-                        />
-                        <span className="font-bold">x</span>
-                        <Input
-                          id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0" placeholder="Num 2"
-                          value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
-                        />
-                        <span className="font-bold">=</span>
-                        <Input
-                          id="amount" type="text" className="text-center font-bold"
-                          value={laddiAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
-                          placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
-                        />
-                      </div>
-                      <div className="flex justify-between items-center gap-2 mt-3">
-                          <div className="flex items-center gap-2">
-                              <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={isDataEntryDisabled}/>
-                              <Label htmlFor="remove-jodda" className="text-sm">Jodda</Label>
-                          </div>
-                          <div className="text-sm font-bold text-primary">{combinationCount} Combos</div>
-                          <Button onClick={handleLaddiApply} disabled={isDataEntryDisabled} size="sm">Apply</Button>
-                      </div>
-                  </div>
-                
-                <div className="border rounded-lg p-4">
-                    <h3 className="font-semibold mb-2">HARUP</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="flex items-center gap-2">
-                          <Label htmlFor="harupA" className="w-8 text-center shrink-0 text-sm">A</Label>
-                          <Input id="harupA" placeholder="e.g. 123" className="min-w-0" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
-                      </div>
-                      <div className="flex items-center gap-2">
-                          <Label htmlFor="harupB" className="w-8 text-center shrink-0 text-sm">B</Label>
-                          <Input id="harupB" placeholder="e.g. 456" className="min-w-0" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
-                      </div>
-                    </div>
-                     <div className="flex items-center gap-2 mt-2">
-                        <Label htmlFor="harupAmount" className="w-8 text-center shrink-0 text-sm">=</Label>
-                        <Input id="harupAmount" placeholder="Amount" className="font-bold" value={harupAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
-                        <Button onClick={handleHarupApply} disabled={isDataEntryDisabled} size="sm">Apply</Button>
+
+                <div className="border rounded-lg p-3 flex flex-col gap-2">
+                    <h3 className="font-semibold">Multi-Text</h3>
+                    <Textarea
+                        placeholder="e.g. 01,02,03=50 or 10=20#45=50"
+                        rows={1}
+                        value={multiText}
+                        onChange={handleMultiTextChange}
+                        onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
+                        className="w-full text-sm"
+                        disabled={isDataEntryDisabled}
+                    />
+                    <div className="flex flex-wrap gap-2 mt-1 items-start">
+                        <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled} size="sm">Apply</Button>
+                        <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled} size="sm">
+                            Generate
+                        </Button>
+                        <Button onClick={handleClearSheet} variant="destructive" className="shrink-0" disabled={isDataEntryDisabled} size="sm">
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Clear
+                        </Button>
                     </div>
                 </div>
-              </div>
 
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold mb-2">Laddi</h3>
+                  <div className="grid grid-cols-5 items-center gap-2 mb-2">
+                      <Input
+                        id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2" placeholder="Num 1"
+                        value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
+                      />
+                      <span className="font-bold text-center">x</span>
+                      <Input
+                        id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2" placeholder="Num 2"
+                        value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
+                      />
+                  </div>
+                  <div className="grid grid-cols-5 items-center gap-2">
+                    <div className="col-span-3 flex items-center gap-2">
+                      <span className="font-bold text-center">=</span>
+                      <Input
+                        id="amount" type="text" className="text-center font-bold"
+                        value={laddiAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
+                        placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
+                      />
+                    </div>
+                    <div className="col-span-2 flex justify-end">
+                      <Button onClick={handleLaddiApply} disabled={isDataEntryDisabled} size="sm">Apply</Button>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center gap-2 mt-3">
+                      <div className="flex items-center gap-2">
+                          <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={isDataEntryDisabled}/>
+                          <Label htmlFor="remove-jodda" className="text-sm">Jodda</Label>
+                      </div>
+                      <div className="text-sm font-bold text-primary">{combinationCount} Combos</div>
+                  </div>
+                </div>
+              
+              <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold mb-2">HARUP</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center gap-2">
+                        <Label htmlFor="harupA" className="w-8 text-center shrink-0 text-sm">A</Label>
+                        <Input id="harupA" placeholder="e.g. 123" className="min-w-0" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Label htmlFor="harupB" className="w-8 text-center shrink-0 text-sm">B</Label>
+                        <Input id="harupB" placeholder="e.g. 456" className="min-w-0" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                    </div>
+                  </div>
+                   <div className="flex items-center gap-2 mt-2">
+                      <Label htmlFor="harupAmount" className="w-8 text-center shrink-0 text-sm">=</Label>
+                      <Input id="harupAmount" placeholder="Amount" className="font-bold" value={harupAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                      <Button onClick={handleHarupApply} disabled={isDataEntryDisabled} size="sm">Apply</Button>
+                  </div>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -1222,3 +1233,4 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
