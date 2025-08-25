@@ -326,17 +326,6 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     }
   }
 
-  const handleCreateNewSheet = () => {
-    const newSheet: Sheet = {
-      id: Date.now().toString(),
-      name: `Sheet ${sheets.length + 1}`,
-      data: {},
-      rowTotals: {}
-    }
-    setSheets([...sheets, newSheet])
-    setActiveSheetId(newSheet.id)
-  }
-
   const calculateRowTotal = (rowIndex: number, data: CellData) => {
     let total = 0;
     for (let colIndex = 0; colIndex < GRID_COLS; colIndex++) {
@@ -617,7 +606,8 @@ const handleHarupApply = () => {
     const updates: { [key: string]: string } = {};
 
     affectedCells.forEach(key => {
-        updates[key] = String(amountPerCell);
+        const currentValueInUpdate = parseFloat(updates[key]) || 0;
+        updates[key] = String(currentValueInUpdate + amountPerCell);
     });
 
     let lastEntryString = "";
@@ -888,20 +878,17 @@ const handleHarupApply = () => {
   return (
     <>
       <Card>
-        <CardHeader>
+        <CardHeader className="p-4">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <CardTitle className="text-lg md:text-2xl">{props.draw} Sheet ({format(props.date, "PPP")})</CardTitle>
-            </div>
-            <div className="flex gap-2 w-full md:w-auto">
-              {/* Removed sheet selector and buttons */}
+              <CardTitle className="text-base md:text-xl">{props.draw} Sheet ({format(props.date, "PPP")})</CardTitle>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 xl:grid-cols-2">
-            <div className="overflow-x-auto pr-2">
-              <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`}}>
+            <div className="overflow-x-auto">
+              <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, 1fr)`}}>
                 {/* Header for Total column */}
                 <div className="col-start-1" style={{gridColumn: `span ${GRID_COLS}`}}></div>
                 <div className="flex items-center justify-center font-semibold text-muted-foreground text-sm p-1">Total</div>
@@ -968,32 +955,32 @@ const handleHarupApply = () => {
             </div>
 
             {/* Controls Section */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 pl-2">
               <div className="flex flex-col gap-4">
-                  <div className="border rounded-lg p-3 flex flex-col gap-2">
-                      <h3 className="font-semibold">Client</h3>
-                      <div className="flex items-center gap-2">
-                          <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
-                              <SelectTrigger className="flex-grow">
-                                  <SelectValue placeholder="Select Client" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                  <SelectItem value="None">None (Master Sheet)</SelectItem>
-                                  {props.clients.map(client => (
-                                      <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                                  ))}
-                              </SelectContent>
-                          </Select>
-                          <Button onClick={handleSaveSheet} disabled={!selectedClientId} size="sm">
-                              <Save className="h-4 w-4 mr-2" />
-                              Save
-                          </Button>
-                          <Button onClick={handleRevertLastEntry} variant="outline" disabled={!previousSheetState || isDataEntryDisabled} size="sm">
-                              <Undo2 className="h-4 w-4 mr-2" />
-                              Revert
-                          </Button>
-                      </div>
-                  </div>
+                <div className="border rounded-lg p-3 flex flex-col gap-2">
+                    <h3 className="font-semibold">Client</h3>
+                    <div className="flex items-center gap-2">
+                        <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
+                            <SelectTrigger className="flex-grow">
+                                <SelectValue placeholder="Select Client" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="None">None (Master Sheet)</SelectItem>
+                                {props.clients.map(client => (
+                                    <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Button onClick={handleSaveSheet} disabled={!selectedClientId} size="sm">
+                            <Save className="h-4 w-4 mr-2" />
+                            Save
+                        </Button>
+                        <Button onClick={handleRevertLastEntry} variant="outline" disabled={!previousSheetState || isDataEntryDisabled} size="sm">
+                            <Undo2 className="h-4 w-4 mr-2" />
+                            Revert
+                        </Button>
+                    </div>
+                </div>
                   <div className="border rounded-lg p-3 flex flex-col gap-2">
                       <h3 className="font-semibold">Multi-Text</h3>
                       <Textarea
