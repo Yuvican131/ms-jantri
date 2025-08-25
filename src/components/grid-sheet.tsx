@@ -39,8 +39,7 @@ type ClientSheetData = {
 };
 
 const initialSheets: Sheet[] = [
-  { id: "1", name: "Q1 2024 Report", data: {}, rowTotals: {} },
-  { id: "2", name: "Q2 2024 Estimates", data: {}, rowTotals: {} },
+  { id: "1", name: "Sheet 1", data: {}, rowTotals: {} },
 ]
 
 const GRID_ROWS = 10;
@@ -338,26 +337,6 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     setActiveSheetId(newSheet.id)
   }
 
-  const exportToCSV = () => {
-    let csvContent = "data:text/csv;charset=utf-8,"
-    const rows = Array.from({ length: GRID_ROWS }, (_, rowIndex) =>
-      Array.from({ length: GRID_COLS }, (_, colIndex) => {
-        const key = `${rowIndex}_${colIndex}`
-        const cellValue = currentData[key] || ""
-        return `"${cellValue.replace(/"/g, '""')}"`
-      }).join(",")
-    ).join("\n")
-
-    csvContent += rows
-    const encodedUri = encodeURI(csvContent)
-    const link = document.createElement("a")
-    link.setAttribute("href", encodedUri)
-    link.setAttribute("download", `${activeSheet.name}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
-
   const calculateRowTotal = (rowIndex: number, data: CellData) => {
     let total = 0;
     for (let colIndex = 0; colIndex < GRID_COLS; colIndex++) {
@@ -588,88 +567,87 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 };
 
 const handleHarupApply = () => {
-    if (isDataEntryDisabled) {
-        showClientSelectionToast();
-        return;
-    }
-    const amountValue = parseFloat(harupAmount);
-    if (!harupAmount || isNaN(amountValue)) {
-        toast({ title: "HARUP Error", description: "Please provide a valid amount.", variant: "destructive" });
-        return;
-    }
+  if (isDataEntryDisabled) {
+      showClientSelectionToast();
+      return;
+  }
+  const amountValue = parseFloat(harupAmount);
+  if (!harupAmount || isNaN(amountValue)) {
+      toast({ title: "HARUP Error", description: "Please provide a valid amount.", variant: "destructive" });
+      return;
+  }
 
-    const harupADigits = harupA.replace(/[^0-9]/g, '').split('');
-    const harupBDigits = harupB.replace(/[^0-9]/g, '').split('');
+  const harupADigits = harupA.replace(/[^0-9]/g, '').split('');
+  const harupBDigits = harupB.replace(/[^0-9]/g, '').split('');
 
-    if (harupADigits.length === 0 && harupBDigits.length === 0) {
-        toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
-        return;
-    }
-    
-    saveDataForUndo();
+  if (harupADigits.length === 0 && harupBDigits.length === 0) {
+      toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
+      return;
+  }
+  
+  saveDataForUndo();
 
-    const affectedCells = new Set<string>();
+  const affectedCells = new Set<string>();
 
-    harupADigits.forEach(digit => {
-        for (let i = 0; i < 10; i++) {
-            const cellNum = parseInt(`${digit}${i}`, 10);
-            const rowIndex = Math.floor(cellNum / GRID_COLS);
-            const colIndex = cellNum % GRID_COLS;
-            affectedCells.add(`${rowIndex}_${colIndex}`);
-        }
-    });
+  harupADigits.forEach(digit => {
+      for (let i = 0; i < 10; i++) {
+          const cellNum = parseInt(`${digit}${i}`, 10);
+          const rowIndex = Math.floor(cellNum / GRID_COLS);
+          const colIndex = cellNum % GRID_COLS;
+          affectedCells.add(`${rowIndex}_${colIndex}`);
+      }
+  });
 
-    harupBDigits.forEach(digit => {
-        for (let i = 0; i < 10; i++) {
-            const cellNum = parseInt(`${i}${digit}`, 10);
-            const rowIndex = Math.floor(cellNum / GRID_COLS);
-            const colIndex = cellNum % GRID_COLS;
-            affectedCells.add(`${rowIndex}_${colIndex}`);
-        }
-    });
+  harupBDigits.forEach(digit => {
+      for (let i = 0; i < 10; i++) {
+          const cellNum = parseInt(`${i}${digit}`, 10);
+          const rowIndex = Math.floor(cellNum / GRID_COLS);
+          const colIndex = cellNum % GRID_COLS;
+          affectedCells.add(`${rowIndex}_${colIndex}`);
+      }
+  });
 
-    if (affectedCells.size === 0) {
-        toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
-        return;
-    }
+  if (affectedCells.size === 0) {
+      toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
+      return;
+  }
 
-    const amountPerCell = amountValue / affectedCells.size;
-    const updates: { [key: string]: string } = {};
+  const amountPerCell = amountValue / affectedCells.size;
+  const updates: { [key: string]: string } = {};
 
-    affectedCells.forEach(key => {
-        const currentValueInUpdate = parseFloat(updates[key]) || 0;
-        updates[key] = String(currentValueInUpdate + amountPerCell);
-    });
+  affectedCells.forEach(key => {
+      updates[key] = String(amountPerCell);
+  });
 
-    let lastEntryString = "";
-    if (harupADigits.length > 0) lastEntryString += `A: ${harupA}=${harupAmount}\n`;
-    if (harupBDigits.length > 0) lastEntryString += `B: ${harupB}=${harupAmount}\n`;
+  let lastEntryString = "";
+  if (harupADigits.length > 0) lastEntryString += `A: ${harupA}=${harupAmount}\n`;
+  if (harupBDigits.length > 0) lastEntryString += `B: ${harupB}=${harupAmount}\n`;
 
-    const newData = { ...currentData };
-    const updatedKeys = Array.from(affectedCells);
+  const newData = { ...currentData };
+  const updatedKeys = Array.from(affectedCells);
 
-    updatedKeys.forEach(key => {
-        const currentValue = parseFloat(newData[key]) || 0;
-        const addedValue = parseFloat(updates[key]) || 0;
-        newData[key] = String(currentValue + addedValue);
-    });
+  updatedKeys.forEach(key => {
+      const currentValue = parseFloat(newData[key]) || 0;
+      const addedValue = parseFloat(updates[key]) || 0;
+      newData[key] = String(currentValue + addedValue);
+  });
 
-    if (selectedClientId) {
-        updateClientData(selectedClientId, newData, currentRowTotals);
-    } else {
-        setSheets(prevSheets => prevSheets.map(sheet =>
-            sheet.id === activeSheetId ? { ...sheet, data: newData } : sheet
-        ));
-    }
+  if (selectedClientId) {
+      updateClientData(selectedClientId, newData, currentRowTotals);
+  } else {
+      setSheets(prevSheets => prevSheets.map(sheet =>
+          sheet.id === activeSheetId ? { ...sheet, data: newData } : sheet
+      ));
+  }
 
-    setUpdatedCells(updatedKeys);
-    props.setLastEntry(lastEntryString.trim());
-    setTimeout(() => setUpdatedCells([]), 2000);
-    toast({ title: "HARUP Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
+  setUpdatedCells(updatedKeys);
+  props.setLastEntry(lastEntryString.trim());
+  setTimeout(() => setUpdatedCells([]), 2000);
+  toast({ title: "HARUP Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
 
-    setHarupA('');
-    setHarupB('');
-    setHarupAmount('');
+  setHarupA('');
+  setHarupB('');
+  setHarupAmount('');
 };
 
 
@@ -912,33 +890,16 @@ const handleHarupApply = () => {
         <CardHeader>
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <CardTitle className="text-lg md:text-2xl">{props.draw} Sheet ({format(props.date, "PPP")}): {activeSheet.name}</CardTitle>
+              <CardTitle className="text-lg md:text-2xl">{props.draw} Sheet ({format(props.date, "PPP")})</CardTitle>
             </div>
             <div className="flex gap-2 w-full md:w-auto">
-              <Select value={activeSheetId} onValueChange={setActiveSheetId}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Select a sheet" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sheets.map(sheet => (
-                    <SelectItem key={sheet.id} value={sheet.id}>{sheet.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="icon" onClick={handleCreateNewSheet}>
-                <Plus className="h-4 w-4" />
-                <span className="sr-only">Create new sheet</span>
-              </Button>
-              <Button onClick={exportToCSV} size="sm" className="hidden sm:inline-flex">
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
-              </Button>
+              {/* Removed sheet selector and buttons */}
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 xl:grid-cols-3">
-            <div className="xl:col-span-2 overflow-x-auto pr-2">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div className="overflow-x-auto pr-2">
               <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`}}>
                 {/* Header for Total column */}
                 <div className="col-start-1" style={{gridColumn: `span ${GRID_COLS}`}}></div>
@@ -1006,95 +967,99 @@ const handleHarupApply = () => {
             </div>
 
             {/* Controls Section */}
-            <div className="flex flex-col gap-4 pl-2">
-              <div className="border rounded-lg p-3 flex flex-col gap-2 justify-center">
-                  <h3 className="font-semibold">Client</h3>
-                  <div className="flex items-center gap-2">
-                    <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
-                        <SelectTrigger className="flex-grow">
-                            <SelectValue placeholder="Select Client" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="None">None (Master Sheet)</SelectItem>
-                            {props.clients.map(client => (
-                                <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                      <Button onClick={handleSaveSheet} disabled={!selectedClientId} size="sm">
-                      <Save className="h-4 w-4 mr-2" />
-                      Save
-                    </Button>
-                    <Button onClick={handleRevertLastEntry} variant="outline" disabled={!previousSheetState || isDataEntryDisabled} size="sm">
-                      <Undo2 className="h-4 w-4 mr-2" />
-                      Revert
-                    </Button>
-                  </div>
-              </div>
+            <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div className="border rounded-lg p-3 flex flex-col gap-2 justify-center">
+                        <h3 className="font-semibold">Client</h3>
+                        <div className="flex items-center gap-2">
+                        <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
+                            <SelectTrigger className="flex-grow">
+                                <SelectValue placeholder="Select Client" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="None">None (Master Sheet)</SelectItem>
+                                {props.clients.map(client => (
+                                    <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                            <Button onClick={handleSaveSheet} disabled={!selectedClientId} size="sm">
+                            <Save className="h-4 w-4 mr-2" />
+                            Save
+                        </Button>
+                        <Button onClick={handleRevertLastEntry} variant="outline" disabled={!previousSheetState || isDataEntryDisabled} size="sm">
+                            <Undo2 className="h-4 w-4 mr-2" />
+                            Revert
+                        </Button>
+                        </div>
+                    </div>
 
-              <div className="border rounded-lg p-3 flex flex-col gap-2">
-                  <h3 className="font-semibold">Multi-Text</h3>
-                  <Textarea
-                      placeholder="e.g. 01,02,03=50 or 10=20#45=50"
-                      rows={3}
-                      value={multiText}
-                      onChange={handleMultiTextChange}
-                      onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
-                      className="w-full text-sm"
-                      disabled={isDataEntryDisabled}
-                  />
-                  <div className="flex flex-wrap gap-2 mt-1 items-start">
-                      <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled} size="sm">Apply</Button>
-                      <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled} size="sm">
-                          Generate
-                      </Button>
-                      <Button onClick={handleClearSheet} variant="destructive" className="shrink-0" disabled={isDataEntryDisabled} size="sm">
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Clear
-                      </Button>
-                  </div>
-              </div>
+                    <div className="border rounded-lg p-3 flex flex-col gap-2">
+                        <h3 className="font-semibold">Multi-Text</h3>
+                        <Textarea
+                            placeholder="e.g. 01,02,03=50 or 10=20#45=50"
+                            rows={1}
+                            value={multiText}
+                            onChange={handleMultiTextChange}
+                            onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
+                            className="w-full text-sm"
+                            disabled={isDataEntryDisabled}
+                        />
+                        <div className="flex flex-wrap gap-2 mt-1 items-start">
+                            <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled} size="sm">Apply</Button>
+                            <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled} size="sm">
+                                Generate
+                            </Button>
+                            <Button onClick={handleClearSheet} variant="destructive" className="shrink-0" disabled={isDataEntryDisabled} size="sm">
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Clear
+                            </Button>
+                        </div>
+                    </div>
+                </div>
 
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold mb-2">Laddi</h3>
-                <div className="flex items-center gap-2 mb-2">
-                    <Input
-                      id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0" placeholder="Num 1"
-                      value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
-                    />
-                    <span className="font-bold">x</span>
-                    <Input
-                       id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0" placeholder="Num 2"
-                      value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
-                    />
-                    <span className="font-bold">=</span>
-                    <Input
-                      id="amount" type="text" className="text-center font-bold"
-                      value={laddiAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
-                      placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
-                    />
-                  </div>
-                  <div className="flex justify-between items-center gap-2 mt-3">
-                      <div className="flex items-center gap-2">
-                          <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={isDataEntryDisabled}/>
-                          <Label htmlFor="remove-jodda" className="text-sm">Jodda</Label>
-                      </div>
-                      <div className="text-sm font-bold text-primary">{combinationCount} Combos</div>
-                      <Button onClick={handleLaddiApply} disabled={isDataEntryDisabled} size="sm">Apply</Button>
-                  </div>
-              </div>
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold mb-2">Laddi</h3>
+                  <div className="flex items-center gap-2 mb-2">
+                      <Input
+                        id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0" placeholder="Num 1"
+                        value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
+                      />
+                      <span className="font-bold">x</span>
+                      <Input
+                        id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0" placeholder="Num 2"
+                        value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
+                      />
+                      <span className="font-bold">=</span>
+                      <Input
+                        id="amount" type="text" className="text-center font-bold"
+                        value={laddiAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
+                        placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
+                      />
+                    </div>
+                    <div className="flex justify-between items-center gap-2 mt-3">
+                        <div className="flex items-center gap-2">
+                            <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={isDataEntryDisabled}/>
+                            <Label htmlFor="remove-jodda" className="text-sm">Jodda</Label>
+                        </div>
+                        <div className="text-sm font-bold text-primary">{combinationCount} Combos</div>
+                        <Button onClick={handleLaddiApply} disabled={isDataEntryDisabled} size="sm">Apply</Button>
+                    </div>
+                </div>
               
               <div className="border rounded-lg p-4">
                   <h3 className="font-semibold mb-2">HARUP</h3>
-                  <div className="flex items-center gap-2 mb-2">
-                      <Label htmlFor="harupA" className="w-8 text-center shrink-0 text-sm">A</Label>
-                      <Input id="harupA" placeholder="e.g. 123" className="min-w-0" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center gap-2">
+                        <Label htmlFor="harupA" className="w-8 text-center shrink-0 text-sm">A</Label>
+                        <Input id="harupA" placeholder="e.g. 123" className="min-w-0" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Label htmlFor="harupB" className="w-8 text-center shrink-0 text-sm">B</Label>
+                        <Input id="harupB" placeholder="e.g. 456" className="min-w-0" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 mb-2">
-                      <Label htmlFor="harupB" className="w-8 text-center shrink-0 text-sm">B</Label>
-                      <Input id="harupB" placeholder="e.g. 456" className="min-w-0" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
-                  </div>
-                   <div className="flex items-center gap-2">
+                   <div className="flex items-center gap-2 mt-2">
                       <Label htmlFor="harupAmount" className="w-8 text-center shrink-0 text-sm">=</Label>
                       <Input id="harupAmount" placeholder="Amount" className="font-bold" value={harupAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
                       <Button onClick={handleHarupApply} disabled={isDataEntryDisabled} size="sm">Apply</Button>
@@ -1271,13 +1236,3 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-    
-
-    
-
-
-
-    
-
-    
