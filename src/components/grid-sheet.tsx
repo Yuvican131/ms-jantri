@@ -913,7 +913,6 @@ const handleHarupApply = () => {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-lg md:text-2xl">{props.draw} Sheet ({format(props.date, "PPP")}): {activeSheet.name}</CardTitle>
-              <CardDescription className="text-xs md:text-sm">A 10x10 grid for your accounting data. Cells are numbered 00-99.</CardDescription>
             </div>
             <div className="flex gap-2 w-full md:w-auto">
               <Select value={activeSheetId} onValueChange={setActiveSheetId}>
