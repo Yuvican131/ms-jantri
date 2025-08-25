@@ -873,29 +873,20 @@ const handleHarupApply = () => {
     setIsMasterSheetDialogOpen(false);
   };
 
-  const getFontSize = (text: string) => {
-    const length = text.length;
-    if (length > 8) return '0.5rem';
-    if (length > 6) return '0.6rem';
-    if (length > 4) return '0.7rem';
-    if (length > 3) return '0.8rem';
-    return '1rem';
-  };
-
   return (
     <>
       <Card>
         <CardHeader className="p-2 md:p-4">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
             <div>
-              <CardTitle className="text-base md:text-lg">{props.draw} Sheet ({format(props.date, "PPP")})</CardTitle>
+              <CardTitle className="text-xl md:text-2xl">{props.draw} Sheet ({format(props.date, "PPP")})</CardTitle>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2">
-            <div className="overflow-x-auto w-[600px] max-w-[600px]">
-              <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, 1fr)`}}>
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_400px]">
+            <div className="overflow-x-auto">
+              <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(50px, 1fr))`}}>
                 <div className="col-start-1" style={{gridColumn: `span ${GRID_COLS}`}}></div>
                 <div className="flex items-center justify-center font-semibold text-muted-foreground text-sm p-1">Total</div>
   
@@ -908,16 +899,14 @@ const handleHarupApply = () => {
                       const key = `${rowIndex}_${colIndex}`
                       const validation = validations[key]
                       const isUpdated = updatedCells.includes(key);
-                      const cellValue = currentData[key] || '';
 
                       return (
-                        <div key={key} className="relative aspect-square">
+                        <div key={key} className="relative">
                           <div className="absolute top-0 left-0.5 text-xs text-muted-foreground/80 select-none pointer-events-none z-10">{displayCellNumber}</div>
                           <Input
                             type="text"
-                            style={{ fontSize: getFontSize(cellValue) }}
-                            className={`p-1 h-full w-full text-center transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50' : 'bg-slate-800 text-white'}`}
-                            value={cellValue}
+                            className={`p-1 h-14 w-full text-center transition-colors duration-300 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50' : 'bg-slate-800 text-white'}`}
+                            value={currentData[key] || ''}
                             onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
                             onBlur={() => handleCellBlur(rowIndex, colIndex)}
                             aria-label={`Cell ${displayCellNumber}`}
@@ -942,11 +931,10 @@ const handleHarupApply = () => {
                         </div>
                       )
                     })}
-                    <div className="flex items-center justify-center p-0 font-medium aspect-square">
+                    <div className="flex items-center justify-center p-0 font-medium">
                       <Input
                         type="text"
-                        style={{ fontSize: getFontSize(getRowTotal(rowIndex)) }}
-                        className="text-base font-medium text-center h-full w-full p-1 min-w-0"
+                        className="text-lg font-medium text-center h-14 w-full p-1"
                         value={getRowTotal(rowIndex)}
                         onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
                         onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
@@ -1015,12 +1003,12 @@ const handleHarupApply = () => {
                   <h3 className="font-semibold mb-2 text-sm">Laddi</h3>
                   <div className="grid grid-cols-5 items-center gap-2 mb-2">
                       <Input
-                        id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-8 text-xs" placeholder="Num 1"
+                        id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-10 text-base" placeholder="Num 1"
                         value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
                       />
                       <span className="font-bold text-center">x</span>
                       <Input
-                        id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-8 text-xs" placeholder="Num 2"
+                        id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-10 text-base" placeholder="Num 2"
                         value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
                       />
                   </div>
@@ -1028,13 +1016,13 @@ const handleHarupApply = () => {
                     <div className="col-span-3 flex items-center gap-2">
                       <span className="font-bold text-center">=</span>
                       <Input
-                        id="amount" type="text" className="text-center font-bold h-8 text-xs"
+                        id="amount" type="text" className="text-center font-bold h-10 text-base"
                         value={laddiAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
                         placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
                       />
                     </div>
                     <div className="col-span-2 flex justify-end">
-                      <Button onClick={handleLaddiApply} disabled={isDataEntryDisabled} size="sm">Apply</Button>
+                      <Button onClick={handleLaddiApply} disabled={isDataEntryDisabled}>Apply</Button>
                     </div>
                   </div>
                   <div className="flex justify-between items-center gap-2 mt-2">
@@ -1131,7 +1119,6 @@ const handleHarupApply = () => {
                             <Input
                               type="text"
                               readOnly
-                              style={{fontSize: getFontSize(masterSheetData[key] || '')}}
                               className="pt-4 text-center bg-muted min-w-0"
                               value={masterSheetData[key] || ''}
                               aria-label={`Cell ${displayCellNumber}`}
@@ -1143,7 +1130,6 @@ const handleHarupApply = () => {
                         <Input
                           type="text"
                           readOnly
-                           style={{fontSize: getFontSize(masterSheetRowTotal(rowIndex))}}
                           className="text-sm font-medium text-center bg-muted min-w-0"
                           value={masterSheetRowTotal(rowIndex)}
                           aria-label={`Row ${rowIndex} Total`}
