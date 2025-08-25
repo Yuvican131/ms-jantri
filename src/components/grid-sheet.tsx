@@ -588,89 +588,89 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 };
 
 const handleHarupApply = () => {
-    if (isDataEntryDisabled) {
-      showClientSelectionToast();
-      return;
-    }
-    const amountValue = parseFloat(harupAmount);
-    if (!harupAmount || isNaN(amountValue)) {
-      toast({ title: "HARUP Error", description: "Please provide a valid amount.", variant: "destructive" });
-      return;
-    }
+  if (isDataEntryDisabled) {
+    showClientSelectionToast();
+    return;
+  }
+  const amountValue = parseFloat(harupAmount);
+  if (!harupAmount || isNaN(amountValue)) {
+    toast({ title: "HARUP Error", description: "Please provide a valid amount.", variant: "destructive" });
+    return;
+  }
 
-    const harupADigits = [...new Set(harupA.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d))))];
-    const harupBDigits = [...new Set(harupB.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d))))];
-  
-    if (harupADigits.length === 0 && harupBDigits.length === 0) {
-      toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
-      return;
+  const harupADigits = [...new Set(harupA.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d))))];
+  const harupBDigits = [...new Set(harupB.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d))))];
+
+  if (harupADigits.length === 0 && harupBDigits.length === 0) {
+    toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
+    return;
+  }
+
+  saveDataForUndo();
+  const affectedCells = new Set<string>();
+
+  harupADigits.forEach(digit => {
+    for (let i = 0; i < 10; i++) {
+      // HARUP A (andar) -> cells START with the digit
+      const cellNum = parseInt(`${digit}${i}`, 10);
+      const rowIndex = Math.floor(cellNum / GRID_COLS);
+      const colIndex = cellNum % GRID_COLS;
+      affectedCells.add(`${rowIndex}_${colIndex}`);
     }
-  
-    saveDataForUndo();
-    const affectedCells = new Set<string>();
-  
-    harupADigits.forEach(digit => {
-      for (let i = 0; i < 10; i++) {
-        // HARUP A (andar) -> cells START with the digit
-        const cellNum = parseInt(`${digit}${i}`, 10);
-        const rowIndex = Math.floor(cellNum / GRID_COLS);
-        const colIndex = cellNum % GRID_COLS;
-        affectedCells.add(`${rowIndex}_${colIndex}`);
-      }
-    });
-  
-    harupBDigits.forEach(digit => {
-      for (let i = 0; i < 10; i++) {
-        // HARUP B (bahar) -> cells END with the digit
-        const cellNum = parseInt(`${i}${digit}`, 10);
-        const rowIndex = Math.floor(cellNum / GRID_COLS);
-        const colIndex = cellNum % GRID_COLS;
-        affectedCells.add(`${rowIndex}_${colIndex}`);
-      }
-    });
-  
-    if (affectedCells.size === 0) {
-      toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
-      return;
+  });
+
+  harupBDigits.forEach(digit => {
+    for (let i = 0; i < 10; i++) {
+      // HARUP B (bahar) -> cells END with the digit
+      const cellNum = parseInt(`${i}${digit}`, 10);
+      const rowIndex = Math.floor(cellNum / GRID_COLS);
+      const colIndex = cellNum % GRID_COLS;
+      affectedCells.add(`${rowIndex}_${colIndex}`);
     }
+  });
+
+  if (affectedCells.size === 0) {
+    toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
+    return;
+  }
+
+  const amountPerCell = amountValue / affectedCells.size;
+  const updates: { [key: string]: string } = {};
+
+  affectedCells.forEach(key => {
+    updates[key] = String(amountPerCell);
+  });
   
-    const amountPerCell = amountValue / affectedCells.size;
-    const updates: { [key: string]: string } = {};
-  
-    affectedCells.forEach(key => {
-      updates[key] = String(amountPerCell);
-    });
-    
-    let lastEntryString = "";
-    if (harupADigits.length > 0) lastEntryString += `A: ${harupA}=${harupAmount}\n`;
-    if (harupBDigits.length > 0) lastEntryString += `B: ${harupB}=${harupAmount}\n`;
-  
-    const newData = { ...currentData };
-    const updatedKeys = Object.keys(updates);
-  
-    updatedKeys.forEach(key => {
-        const currentValue = parseFloat(newData[key]) || 0;
-        const addedValue = parseFloat(updates[key]) || 0;
-        newData[key] = String(currentValue + addedValue);
-    });
-  
-    if (selectedClientId) {
-        updateClientData(selectedClientId, newData, currentRowTotals);
-    } else {
-        setSheets(prevSheets => prevSheets.map(sheet =>
-            sheet.id === activeSheetId ? { ...sheet, data: newData } : sheet
-        ));
-    }
-  
-    setUpdatedCells(updatedKeys);
-    props.setLastEntry(lastEntryString.trim());
-    setTimeout(() => setUpdatedCells([]), 2000);
-    toast({ title: "HARUP Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
-  
-    setHarupA('');
-    setHarupB('');
-    setHarupAmount('');
-  };
+  let lastEntryString = "";
+  if (harupADigits.length > 0) lastEntryString += `A: ${harupA}=${harupAmount}\n`;
+  if (harupBDigits.length > 0) lastEntryString += `B: ${harupB}=${harupAmount}\n`;
+
+  const newData = { ...currentData };
+  const updatedKeys = Object.keys(updates);
+
+  updatedKeys.forEach(key => {
+      const currentValue = parseFloat(newData[key]) || 0;
+      const addedValue = parseFloat(updates[key]) || 0;
+      newData[key] = String(currentValue + addedValue);
+  });
+
+  if (selectedClientId) {
+      updateClientData(selectedClientId, newData, currentRowTotals);
+  } else {
+      setSheets(prevSheets => prevSheets.map(sheet =>
+          sheet.id === activeSheetId ? { ...sheet, data: newData } : sheet
+      ));
+  }
+
+  setUpdatedCells(updatedKeys);
+  props.setLastEntry(lastEntryString.trim());
+  setTimeout(() => setUpdatedCells([]), 2000);
+  toast({ title: "HARUP Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
+
+  setHarupA('');
+  setHarupB('');
+  setHarupAmount('');
+};
 
 
 
@@ -938,194 +938,174 @@ const handleHarupApply = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto w-full">
-            <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, minWidth: '600px'}}>
-               {/* Header for Total column */}
-               <div className="col-start-1" style={{gridColumn: `span ${GRID_COLS}`}}></div>
-               <div className="flex items-center justify-center font-semibold text-muted-foreground min-w-[80px] sm:min-w-[100px]">Total</div>
- 
+          <div className="grid lg:grid-cols-2 gap-6">
+            <div className="overflow-x-auto w-full">
+              <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`}}>
+                {/* Header for Total column */}
+                <div className="col-start-1" style={{gridColumn: `span ${GRID_COLS}`}}></div>
+                <div className="flex items-center justify-center font-semibold text-muted-foreground text-xs p-1">Total</div>
+  
+                {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
+                  <React.Fragment key={rowIndex}>
+                    {Array.from({ length: GRID_COLS }, (_, colIndex) => {
+                      const cellNumber = rowIndex * GRID_COLS + colIndex;
+                      let displayCellNumber = String(cellNumber).padStart(2, '0');
 
-              {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
-                <React.Fragment key={rowIndex}>
-                  {Array.from({ length: GRID_COLS }, (_, colIndex) => {
-                    const cellNumber = rowIndex * GRID_COLS + colIndex;
-                    let displayCellNumber = String(cellNumber).padStart(2, '0');
+                      const key = `${rowIndex}_${colIndex}`
+                      const validation = validations[key]
+                      const isUpdated = updatedCells.includes(key);
 
-                    const key = `${rowIndex}_${colIndex}`
-                    const validation = validations[key]
-                    const isUpdated = updatedCells.includes(key);
-
-                    return (
-                      <div key={key} className="relative">
-                        <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{displayCellNumber}</div>
-                        <Input
-                          type="text"
-                          className={`pt-5 text-sm transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50' : 'bg-slate-800 text-white'}`}
-                          value={currentData[key] || ''}
-                          onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
-                          onBlur={() => handleCellBlur(rowIndex, colIndex)}
-                          aria-label={`Cell ${displayCellNumber}`}
-                          disabled={isDataEntryDisabled}
-                        />
-                         {(validation?.isLoading || (validation && !validation.isValid)) && (
-                          <div className="absolute top-1/2 right-2 -translate-y-1/2 z-10">
-                            {validation.isLoading ? (
-                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                            ) : (
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                   <button aria-label="Show validation error">
-                                    <AlertCircle className="h-4 w-4 text-destructive" />
-                                  </button>
-                                </PopoverTrigger>
-                                <PopoverContent className="text-sm">{validation.recommendation}</PopoverContent>
-                              </Popover>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                  <div className="flex items-center justify-center p-2 font-medium min-w-[80px] sm:min-w-[100px] rounded-md">
-                     <Input
-                      type="text"
-                      className="text-sm font-medium text-center min-w-0"
-                      value={getRowTotal(rowIndex)}
-                      onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
-                      onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
-                      aria-label={`Row ${rowIndex} Total`}
-                      disabled={isDataEntryDisabled}
-                    />
+                      return (
+                        <div key={key} className="relative">
+                          <div className="absolute top-0 left-0.5 text-[10px] text-muted-foreground/80 select-none pointer-events-none z-10">{displayCellNumber}</div>
+                          <Input
+                            type="text"
+                            className={`p-1 text-xs h-8 text-center transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50' : 'bg-slate-800 text-white'}`}
+                            value={currentData[key] || ''}
+                            onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
+                            onBlur={() => handleCellBlur(rowIndex, colIndex)}
+                            aria-label={`Cell ${displayCellNumber}`}
+                            disabled={isDataEntryDisabled}
+                          />
+                          {(validation?.isLoading || (validation && !validation.isValid)) && (
+                            <div className="absolute top-1/2 right-1 -translate-y-1/2 z-10">
+                              {validation.isLoading ? (
+                                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                              ) : (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button aria-label="Show validation error">
+                                      <AlertCircle className="h-3 w-3 text-destructive" />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="text-sm">{validation.recommendation}</PopoverContent>
+                                </Popover>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                    <div className="flex items-center justify-center p-0 font-medium">
+                      <Input
+                        type="text"
+                        className="text-xs font-medium text-center h-8 p-1 min-w-0"
+                        value={getRowTotal(rowIndex)}
+                        onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
+                        onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
+                        aria-label={`Row ${rowIndex} Total`}
+                        disabled={isDataEntryDisabled}
+                      />
+                    </div>
+                  </React.Fragment>
+                ))}
+                <div style={{ gridColumn: `span ${GRID_COLS}` }} className="flex items-center justify-end p-2 font-bold mt-1 pr-4">Total</div>
+                <div className="flex items-center justify-center p-2 font-bold bg-primary/20 rounded-md mt-1 text-sm">
+                    {calculateGrandTotal(currentData, currentRowTotals)}
                   </div>
-                </React.Fragment>
-              ))}
-               <div style={{ gridColumn: `span ${GRID_COLS}` }} className="flex items-center justify-end p-2 font-bold min-w-[80px] sm:min-w-[100px] mt-1 pr-4">Total</div>
-               <div className="flex items-center justify-center p-2 font-bold min-w-[80px] sm:min-w-[100px] bg-primary/20 rounded-md mt-1">
-                  {calculateGrandTotal(currentData, currentRowTotals)}
-                </div>
+              </div>
+            </div>
+
+            {/* Controls Section */}
+            <div className="flex flex-col gap-4">
+              <div className="border rounded-lg p-3 flex flex-col gap-2 justify-center">
+                  <h3 className="font-semibold text-sm">Client</h3>
+                  <div className="flex items-center gap-2">
+                    <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
+                        <SelectTrigger className="flex-grow">
+                            <SelectValue placeholder="Select Client" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="None">None (Master Sheet)</SelectItem>
+                            {props.clients.map(client => (
+                                <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                      <Button onClick={handleSaveSheet} size="sm" disabled={!selectedClientId}>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save
+                    </Button>
+                    <Button onClick={handleRevertLastEntry} size="sm" variant="outline" disabled={!previousSheetState || isDataEntryDisabled}>
+                      <Undo2 className="h-4 w-4 mr-2" />
+                      Revert
+                    </Button>
+                  </div>
+              </div>
+
+              <div className="border rounded-lg p-3 flex flex-col gap-2">
+                  <h3 className="font-semibold">Multi-Text</h3>
+                  <Textarea
+                      placeholder="e.g. 01,02,03=50 or 10=20#45=50"
+                      rows={3}
+                      value={multiText}
+                      onChange={handleMultiTextChange}
+                      onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
+                      className="w-full text-sm"
+                      disabled={isDataEntryDisabled}
+                  />
+                  <div className="flex flex-wrap gap-2 mt-1 items-start">
+                      <Button onClick={handleMultiTextApply} size="sm" className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled}>Apply to Sheet</Button>
+                      <Button onClick={handleGenerateSheet} size="sm" variant="outline" className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled}>
+                          Generate Sheet
+                      </Button>
+                      <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0 !w-9 !h-9" disabled={isDataEntryDisabled}>
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Clear Sheet</span>
+                      </Button>
+                  </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="border rounded-lg p-3">
+                      <h3 className="font-semibold mb-2">HARUP</h3>
+                      <div className="flex items-center gap-2 mb-2">
+                          <Label htmlFor="harupA" className="w-6 text-center shrink-0">A</Label>
+                          <Input id="harupA" placeholder="e.g. 123" className="min-w-0 h-9" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                      </div>
+                      <div className="flex items-center gap-2 mb-2">
+                          <Label htmlFor="harupB" className="w-6 text-center shrink-0">B</Label>
+                          <Input id="harupB" placeholder="e.g. 456" className="min-w-0 h-9" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                      </div>
+                       <div className="flex items-center gap-2">
+                          <Label htmlFor="harupAmount" className="w-6 text-center shrink-0">=</Label>
+                          <Input id="harupAmount" placeholder="Amt" className="h-9 font-bold" value={harupAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                          <Button onClick={handleHarupApply} size="sm" disabled={isDataEntryDisabled}>Apply</Button>
+                      </div>
+                  </div>
+                   <div className="border rounded-lg p-3">
+                    <h3 className="font-semibold mb-2">Laddi</h3>
+                    <div className="flex items-center gap-2 mb-2">
+                        <Input
+                          id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 h-9" placeholder="Num 1"
+                          value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
+                        />
+                        <span className="font-bold">x</span>
+                        <Input
+                           id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 h-9" placeholder="Num 2"
+                          value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
+                        />
+                        <span className="font-bold">=</span>
+                        <Input
+                          id="amount" type="text" className="h-9 text-center font-bold"
+                          value={laddiAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
+                          placeholder="Amt" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
+                        />
+                      </div>
+                      <div className="flex justify-between items-center gap-2 mt-3">
+                          <div className="flex items-center gap-2">
+                              <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={isDataEntryDisabled}/>
+                              <Label htmlFor="remove-jodda" className="text-xs">Jodda</Label>
+                          </div>
+                          <div className="text-xs font-bold text-primary">{combinationCount} Combos</div>
+                          <Button onClick={handleLaddiApply} size="sm" disabled={isDataEntryDisabled}>Apply</Button>
+                      </div>
+                  </div>
+              </div>
             </div>
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4 pt-2">
-            <div className="w-full flex flex-col xl:flex-row gap-4">
-              <div className="w-full xl:w-1/2 flex flex-col gap-2">
-                <div className="border rounded-lg p-2 flex flex-col gap-2 justify-center">
-                    <h3 className="font-semibold text-sm">Client</h3>
-                    <div className="flex items-center gap-2">
-                      <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
-                          <SelectTrigger className="flex-grow">
-                              <SelectValue placeholder="Select Client" />
-                          </SelectTrigger>
-                          <SelectContent>
-                              <SelectItem value="None">None (Master Sheet)</SelectItem>
-                              {props.clients.map(client => (
-                                  <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                              ))}
-                          </SelectContent>
-                      </Select>
-                       <Button onClick={handleSaveSheet} size="sm" disabled={!selectedClientId}>
-                        <Save className="h-4 w-4 mr-2" />
-                        Save
-                      </Button>
-                      <Button onClick={handleRevertLastEntry} size="sm" variant="outline" disabled={!previousSheetState || isDataEntryDisabled}>
-                        <Undo2 className="h-4 w-4 mr-2" />
-                        Revert
-                      </Button>
-                    </div>
-                </div>
-                <div className="border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
-                    <h3 className="font-semibold">Multi - Text</h3>
-                    <Textarea
-                        placeholder="Enter cell data like: 01,02,03=50 or 10=20#45=50"
-                        rows={4}
-                        value={multiText}
-                        onChange={handleMultiTextChange}
-                        onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
-                        className="w-full"
-                        disabled={isDataEntryDisabled}
-                    />
-                    <div className="flex flex-wrap gap-2 mt-2 items-start">
-                        <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled}>Apply to Sheet</Button>
-                        <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled}>
-                            Generate Sheet
-                        </Button>
-                        <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0" disabled={isDataEntryDisabled}>
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Clear Sheet</span>
-                        </Button>
-                    </div>
-                </div>
-              </div>
-
-              <div className="w-full xl:w-1/2 flex flex-col gap-4">
-                <div className="border rounded-lg p-2 sm:p-4">
-                    <h3 className="font-semibold mb-2">HARUP</h3>
-                    <div className="flex flex-col sm:flex-row items-stretch gap-2">
-                      <div className="flex items-center gap-2 flex-grow">
-                        <Label htmlFor="harupA" className="w-8 text-center shrink-0">A</Label>
-                        <Input id="harupA" placeholder="0123.." className="min-w-0" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
-                      </div>
-                      <div className="flex items-center gap-2 flex-grow">
-                        <Label htmlFor="harupB" className="w-8 text-center shrink-0">B</Label>
-                        <Input id="harupB" placeholder="0123.." className="min-w-0" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl font-bold mx-2">=</span>
-                        <Input id="harupAmount" placeholder="Amount" className="w-24 font-bold shrink-0" value={harupAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
-                      </div>
-                    </div>
-                    <div className="flex justify-end mt-2">
-                        <Button onClick={handleHarupApply} disabled={isDataEntryDisabled}>Apply</Button>
-                    </div>
-                </div>
-                <div className="border rounded-lg p-2 sm:p-4">
-                  <h3 className="font-semibold mb-2">Laddi</h3>
-                  <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
-                      <Input
-                        id="laddiNum1"
-                        type="text"
-                        pattern="[0-9]*"
-                        className="text-center min-w-0 flex-grow"
-                        placeholder="Num 1"
-                        value={laddiNum1}
-                        onChange={(e) => handleLaddiNum1Change(e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
-                        disabled={isDataEntryDisabled}
-                      />
-                      <Input
-                        id="laddiNum2"
-                        type="text"
-                        pattern="[0-9]*"
-                        className="text-center min-w-0 flex-grow"
-                        placeholder="Num 2"
-                        value={laddiNum2}
-                        onChange={(e) => handleLaddiNum2Change(e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
-                        disabled={isDataEntryDisabled}
-                      />
-                      <span className="text-xl font-bold mx-2">=</span>
-                      <Input
-                        id="amount"
-                        type="text"
-                        className="w-24 text-center font-bold shrink-0"
-                        value={laddiAmount}
-                        onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
-                        placeholder="Amount"
-                        onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)}
-                        disabled={isDataEntryDisabled}
-                      />
-                    </div>
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-2 mt-2">
-                        <div className="flex items-center gap-2">
-                            <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={isDataEntryDisabled}/>
-                            <Label htmlFor="remove-jodda" className="text-xs">Remove Jodda</Label>
-                        </div>
-                        <div className="text-sm font-bold text-primary">{combinationCount} Combinations</div>
-                        <Button onClick={handleLaddiApply} disabled={isDataEntryDisabled}>Apply</Button>
-                    </div>
-                </div>
-              </div>
-            </div>
             <div className="w-full flex flex-row gap-2 mt-4">
               <Button onClick={openMasterSheetDialog} variant="outline" className="w-full">
                   Master Sheet
