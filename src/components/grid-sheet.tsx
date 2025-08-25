@@ -588,88 +588,89 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 };
 
 const handleHarupApply = () => {
-  if (isDataEntryDisabled) {
-    showClientSelectionToast();
-    return;
-  }
-  const amountValue = parseFloat(harupAmount);
-  if (!harupAmount || isNaN(amountValue)) {
-    toast({ title: "HARUP Error", description: "Please provide a valid amount.", variant: "destructive" });
-    return;
-  }
-
-  const harupADigits = [...new Set(harupA.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d))))];
-  const harupBDigits = [...new Set(harupB.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d))))];
-
-  if (harupADigits.length === 0 && harupBDigits.length === 0) {
-    toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
-    return;
-  }
-
-  saveDataForUndo();
-  const affectedCells = new Set<string>();
-
-  harupADigits.forEach(digit => {
-    for (let i = 0; i < 10; i++) {
-      // HARUP A (andar) -> cells START with the digit
-      const cellNum = parseInt(`${digit}${i}`, 10);
-      const rowIndex = Math.floor(cellNum / GRID_COLS);
-      const colIndex = cellNum % GRID_COLS;
-      affectedCells.add(`${rowIndex}_${colIndex}`);
+    if (isDataEntryDisabled) {
+        showClientSelectionToast();
+        return;
     }
-  });
-
-  harupBDigits.forEach(digit => {
-    for (let i = 0; i < 10; i++) {
-      // HARUP B (bahar) -> cells END with the digit
-      const cellNum = parseInt(`${i}${digit}`, 10);
-      const rowIndex = Math.floor(cellNum / GRID_COLS);
-      const colIndex = cellNum % GRID_COLS;
-      affectedCells.add(`${rowIndex}_${colIndex}`);
+    const amountValue = parseFloat(harupAmount);
+    if (!harupAmount || isNaN(amountValue)) {
+        toast({ title: "HARUP Error", description: "Please provide a valid amount.", variant: "destructive" });
+        return;
     }
-  });
 
-  if (affectedCells.size === 0) {
-    toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
-    return;
-  }
+    const harupADigits = harupA.replace(/[^0-9]/g, '').split('');
+    const harupBDigits = harupB.replace(/[^0-9]/g, '').split('');
 
-  const amountPerCell = amountValue / affectedCells.size;
-  const updates: { [key: string]: string } = {};
+    if (harupADigits.length === 0 && harupBDigits.length === 0) {
+        toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
+        return;
+    }
 
-  affectedCells.forEach(key => {
-    updates[key] = String(amountPerCell);
-  });
-  
-  let lastEntryString = "";
-  if (harupADigits.length > 0) lastEntryString += `A: ${harupA}=${harupAmount}\n`;
-  if (harupBDigits.length > 0) lastEntryString += `B: ${harupB}=${harupAmount}\n`;
+    saveDataForUndo();
+    const affectedCells = new Set<string>();
 
-  const newData = { ...currentData };
-  const updatedKeys = Object.keys(updates);
+    harupADigits.forEach(digit => {
+        for (let i = 0; i < 10; i++) {
+            // HARUP A (andar) -> cells START with the digit
+            const cellNum = parseInt(`${digit}${i}`, 10);
+            const rowIndex = Math.floor(cellNum / GRID_COLS);
+            const colIndex = cellNum % GRID_COLS;
+            affectedCells.add(`${rowIndex}_${colIndex}`);
+        }
+    });
 
-  updatedKeys.forEach(key => {
-      const currentValue = parseFloat(newData[key]) || 0;
-      const addedValue = parseFloat(updates[key]) || 0;
-      newData[key] = String(currentValue + addedValue);
-  });
+    harupBDigits.forEach(digit => {
+        for (let i = 0; i < 10; i++) {
+            // HARUP B (bahar) -> cells END with the digit
+            const cellNum = parseInt(`${i}${digit}`, 10);
+            const rowIndex = Math.floor(cellNum / GRID_COLS);
+            const colIndex = cellNum % GRID_COLS;
+            affectedCells.add(`${rowIndex}_${colIndex}`);
+        }
+    });
 
-  if (selectedClientId) {
-      updateClientData(selectedClientId, newData, currentRowTotals);
-  } else {
-      setSheets(prevSheets => prevSheets.map(sheet =>
-          sheet.id === activeSheetId ? { ...sheet, data: newData } : sheet
-      ));
-  }
+    if (affectedCells.size === 0) {
+        toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
+        return;
+    }
 
-  setUpdatedCells(updatedKeys);
-  props.setLastEntry(lastEntryString.trim());
-  setTimeout(() => setUpdatedCells([]), 2000);
-  toast({ title: "HARUP Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
+    const amountPerCell = amountValue / affectedCells.size;
+    const updates: { [key: string]: string } = {};
 
-  setHarupA('');
-  setHarupB('');
-  setHarupAmount('');
+    affectedCells.forEach(key => {
+        const currentValueInUpdate = parseFloat(updates[key]) || 0;
+        updates[key] = String(currentValueInUpdate + amountPerCell);
+    });
+
+    let lastEntryString = "";
+    if (harupADigits.length > 0) lastEntryString += `A: ${harupA}=${harupAmount}\n`;
+    if (harupBDigits.length > 0) lastEntryString += `B: ${harupB}=${harupAmount}\n`;
+
+    const newData = { ...currentData };
+    const updatedKeys = Array.from(affectedCells);
+
+    updatedKeys.forEach(key => {
+        const currentValue = parseFloat(newData[key]) || 0;
+        const addedValue = parseFloat(updates[key]) || 0;
+        newData[key] = String(currentValue + addedValue);
+    });
+
+    if (selectedClientId) {
+        updateClientData(selectedClientId, newData, currentRowTotals);
+    } else {
+        setSheets(prevSheets => prevSheets.map(sheet =>
+            sheet.id === activeSheetId ? { ...sheet, data: newData } : sheet
+        ));
+    }
+
+    setUpdatedCells(updatedKeys);
+    props.setLastEntry(lastEntryString.trim());
+    setTimeout(() => setUpdatedCells([]), 2000);
+    toast({ title: "HARUP Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
+
+    setHarupA('');
+    setHarupB('');
+    setHarupAmount('');
 };
 
 
@@ -960,7 +961,7 @@ const handleHarupApply = () => {
                           <div className="absolute top-0 left-0.5 text-[10px] text-muted-foreground/80 select-none pointer-events-none z-10">{displayCellNumber}</div>
                           <Input
                             type="text"
-                            className={`p-1 text-xs h-8 text-center transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50' : 'bg-slate-800 text-white'}`}
+                            className={`p-2 text-sm h-10 text-center transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50' : 'bg-slate-800 text-white'}`}
                             value={currentData[key] || ''}
                             onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
                             onBlur={() => handleCellBlur(rowIndex, colIndex)}
@@ -989,7 +990,7 @@ const handleHarupApply = () => {
                     <div className="flex items-center justify-center p-0 font-medium">
                       <Input
                         type="text"
-                        className="text-xs font-medium text-center h-8 p-1 min-w-0"
+                        className="text-sm font-medium text-center h-10 p-2 min-w-0"
                         value={getRowTotal(rowIndex)}
                         onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
                         onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
@@ -1276,3 +1277,4 @@ export default GridSheet;
     
 
     
+
