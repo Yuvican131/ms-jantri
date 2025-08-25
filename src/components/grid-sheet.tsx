@@ -440,7 +440,7 @@ const handleMultiTextApply = () => {
         return;
     }
     saveDataForUndo();
-    const lines = multiText.split('\n');
+    const lines = multiText.split(/[\n#]+/).filter(line => line.trim() !== '');
     let lastEntryString = "";
 
     const evaluateExpression = (expression: string): string => {
@@ -1049,7 +1049,7 @@ const handleHarupApply = () => {
                 <div className="border rounded-lg p-2 sm:p-4 flex flex-col gap-2">
                     <h3 className="font-semibold">Multi - Text</h3>
                     <Textarea
-                        placeholder="Enter cell data like: 01,02,03=50 or 01 02 03=50"
+                        placeholder="Enter cell data like: 01,02,03=50 or 10=20#45=50"
                         rows={4}
                         value={multiText}
                         onChange={handleMultiTextChange}
