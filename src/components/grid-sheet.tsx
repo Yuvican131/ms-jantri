@@ -605,13 +605,13 @@ const handleHarupApply = () => {
         toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
         return;
     }
-
+    
     saveDataForUndo();
+
     const affectedCells = new Set<string>();
 
     harupADigits.forEach(digit => {
         for (let i = 0; i < 10; i++) {
-            // HARUP A (andar) -> cells START with the digit
             const cellNum = parseInt(`${digit}${i}`, 10);
             const rowIndex = Math.floor(cellNum / GRID_COLS);
             const colIndex = cellNum % GRID_COLS;
@@ -621,7 +621,6 @@ const handleHarupApply = () => {
 
     harupBDigits.forEach(digit => {
         for (let i = 0; i < 10; i++) {
-            // HARUP B (bahar) -> cells END with the digit
             const cellNum = parseInt(`${i}${digit}`, 10);
             const rowIndex = Math.floor(cellNum / GRID_COLS);
             const colIndex = cellNum % GRID_COLS;
@@ -939,8 +938,8 @@ const handleHarupApply = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 overflow-x-auto">
+          <div className="grid grid-cols-1 xl:grid-cols-3">
+            <div className="xl:col-span-2 overflow-x-auto pr-2">
               <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`}}>
                 {/* Header for Total column */}
                 <div className="col-start-1" style={{gridColumn: `span ${GRID_COLS}`}}></div>
@@ -961,7 +960,7 @@ const handleHarupApply = () => {
                           <div className="absolute top-0 left-0.5 text-xs text-muted-foreground/80 select-none pointer-events-none z-10">{displayCellNumber}</div>
                           <Input
                             type="text"
-                            className={`p-2 text-lg h-14 text-center transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50' : 'bg-slate-800 text-white'}`}
+                            className={`p-2 text-xl h-16 text-center transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50' : 'bg-slate-800 text-white'}`}
                             value={currentData[key] || ''}
                             onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
                             onBlur={() => handleCellBlur(rowIndex, colIndex)}
@@ -990,7 +989,7 @@ const handleHarupApply = () => {
                     <div className="flex items-center justify-center p-0 font-medium">
                       <Input
                         type="text"
-                        className="text-lg font-medium text-center h-14 p-2 min-w-0"
+                        className="text-lg font-medium text-center h-16 p-2 min-w-0"
                         value={getRowTotal(rowIndex)}
                         onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
                         onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
@@ -1008,7 +1007,7 @@ const handleHarupApply = () => {
             </div>
 
             {/* Controls Section */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 pl-2">
               <div className="border rounded-lg p-3 flex flex-col gap-2 justify-center">
                   <h3 className="font-semibold">Client</h3>
                   <div className="flex items-center gap-2">
@@ -1023,11 +1022,11 @@ const handleHarupApply = () => {
                             ))}
                         </SelectContent>
                     </Select>
-                      <Button onClick={handleSaveSheet} disabled={!selectedClientId}>
+                      <Button onClick={handleSaveSheet} disabled={!selectedClientId} size="sm">
                       <Save className="h-4 w-4 mr-2" />
                       Save
                     </Button>
-                    <Button onClick={handleRevertLastEntry} variant="outline" disabled={!previousSheetState || isDataEntryDisabled}>
+                    <Button onClick={handleRevertLastEntry} variant="outline" disabled={!previousSheetState || isDataEntryDisabled} size="sm">
                       <Undo2 className="h-4 w-4 mr-2" />
                       Revert
                     </Button>
@@ -1042,15 +1041,15 @@ const handleHarupApply = () => {
                       value={multiText}
                       onChange={handleMultiTextChange}
                       onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
-                      className="w-full"
+                      className="w-full text-sm"
                       disabled={isDataEntryDisabled}
                   />
                   <div className="flex flex-wrap gap-2 mt-1 items-start">
-                      <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled}>Apply</Button>
-                      <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled}>
+                      <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled} size="sm">Apply</Button>
+                      <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled} size="sm">
                           Generate
                       </Button>
-                      <Button onClick={handleClearSheet} variant="destructive" className="shrink-0" disabled={isDataEntryDisabled}>
+                      <Button onClick={handleClearSheet} variant="destructive" className="shrink-0" disabled={isDataEntryDisabled} size="sm">
                           <Trash2 className="h-4 w-4 mr-2" />
                           Clear
                       </Button>
@@ -1079,27 +1078,27 @@ const handleHarupApply = () => {
                   <div className="flex justify-between items-center gap-2 mt-3">
                       <div className="flex items-center gap-2">
                           <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={isDataEntryDisabled}/>
-                          <Label htmlFor="remove-jodda">Jodda</Label>
+                          <Label htmlFor="remove-jodda" className="text-sm">Jodda</Label>
                       </div>
                       <div className="text-sm font-bold text-primary">{combinationCount} Combos</div>
-                      <Button onClick={handleLaddiApply} disabled={isDataEntryDisabled}>Apply</Button>
+                      <Button onClick={handleLaddiApply} disabled={isDataEntryDisabled} size="sm">Apply</Button>
                   </div>
               </div>
               
               <div className="border rounded-lg p-4">
                   <h3 className="font-semibold mb-2">HARUP</h3>
                   <div className="flex items-center gap-2 mb-2">
-                      <Label htmlFor="harupA" className="w-8 text-center shrink-0">A</Label>
+                      <Label htmlFor="harupA" className="w-8 text-center shrink-0 text-sm">A</Label>
                       <Input id="harupA" placeholder="e.g. 123" className="min-w-0" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
                   </div>
                   <div className="flex items-center gap-2 mb-2">
-                      <Label htmlFor="harupB" className="w-8 text-center shrink-0">B</Label>
+                      <Label htmlFor="harupB" className="w-8 text-center shrink-0 text-sm">B</Label>
                       <Input id="harupB" placeholder="e.g. 456" className="min-w-0" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
                   </div>
                    <div className="flex items-center gap-2">
-                      <Label htmlFor="harupAmount" className="w-8 text-center shrink-0">=</Label>
+                      <Label htmlFor="harupAmount" className="w-8 text-center shrink-0 text-sm">=</Label>
                       <Input id="harupAmount" placeholder="Amount" className="font-bold" value={harupAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
-                      <Button onClick={handleHarupApply} disabled={isDataEntryDisabled}>Apply</Button>
+                      <Button onClick={handleHarupApply} disabled={isDataEntryDisabled} size="sm">Apply</Button>
                   </div>
               </div>
 
@@ -1279,5 +1278,7 @@ export default GridSheet;
     
 
 
+
+    
 
     
