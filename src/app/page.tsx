@@ -86,27 +86,31 @@ export default function Home() {
       </header>
       <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8">
         <Tabs defaultValue="sheet" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 md:w-[400px]">
-            <TabsTrigger value="sheet">
-              <GridIcon className="mr-2 h-4 w-4" />
-              SHEET
-            </TabsTrigger>
-            <TabsTrigger value="clients">
-              <Users className="mr-2 h-4 w-4" />
-              CLIENTS
-            </TabsTrigger>
-            <TabsTrigger value="accounts">
-              <Building className="mr-2 h-4 w-4" />
-              ACCOUNTS
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between">
+            <TabsList className="grid w-full grid-cols-3 md:w-[400px]">
+              <TabsTrigger value="sheet">
+                <GridIcon className="mr-2 h-4 w-4" />
+                SHEET
+              </TabsTrigger>
+              <TabsTrigger value="clients">
+                <Users className="mr-2 h-4 w-4" />
+                CLIENTS
+              </TabsTrigger>
+              <TabsTrigger value="accounts">
+                <Building className="mr-2 h-4 w-4" />
+                ACCOUNTS
+              </TabsTrigger>
+            </TabsList>
+            {selectedInfo && (
+              <Button onClick={handleBackToDraws} variant="outline">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Draws
+              </Button>
+            )}
+          </div>
           <TabsContent value="sheet" className="mt-4">
             {selectedInfo ? (
               <div>
-                 <Button onClick={handleBackToDraws} variant="outline" className="mb-4">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Draws
-                </Button>
                 <GridSheet 
                   ref={gridSheetRef} 
                   draw={selectedInfo.draw} 
