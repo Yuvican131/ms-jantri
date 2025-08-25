@@ -638,8 +638,7 @@ const handleHarupApply = () => {
     const updates: { [key: string]: string } = {};
 
     affectedCells.forEach(key => {
-        const currentValueInUpdate = parseFloat(updates[key]) || 0;
-        updates[key] = String(currentValueInUpdate + amountPerCell);
+        updates[key] = String(amountPerCell);
     });
 
     let lastEntryString = "";
@@ -939,8 +938,8 @@ const handleHarupApply = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid lg:grid-cols-2 gap-6">
-            <div className="overflow-x-auto w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="overflow-x-auto w-full lg:col-span-2">
               <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`}}>
                 {/* Header for Total column */}
                 <div className="col-start-1" style={{gridColumn: `span ${GRID_COLS}`}}></div>
@@ -961,7 +960,7 @@ const handleHarupApply = () => {
                           <div className="absolute top-0 left-0.5 text-[10px] text-muted-foreground/80 select-none pointer-events-none z-10">{displayCellNumber}</div>
                           <Input
                             type="text"
-                            className={`p-2 text-sm h-10 text-center transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50' : 'bg-slate-800 text-white'}`}
+                            className={`p-2 text-base h-12 text-center transition-colors duration-300 min-w-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50' : 'bg-slate-800 text-white'}`}
                             value={currentData[key] || ''}
                             onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
                             onBlur={() => handleCellBlur(rowIndex, colIndex)}
@@ -990,7 +989,7 @@ const handleHarupApply = () => {
                     <div className="flex items-center justify-center p-0 font-medium">
                       <Input
                         type="text"
-                        className="text-sm font-medium text-center h-10 p-2 min-w-0"
+                        className="text-base font-medium text-center h-12 p-2 min-w-0"
                         value={getRowTotal(rowIndex)}
                         onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
                         onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
@@ -1013,7 +1012,7 @@ const handleHarupApply = () => {
                   <h3 className="font-semibold text-sm">Client</h3>
                   <div className="flex items-center gap-2">
                     <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
-                        <SelectTrigger className="flex-grow">
+                        <SelectTrigger className="flex-grow h-9">
                             <SelectValue placeholder="Select Client" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1035,10 +1034,10 @@ const handleHarupApply = () => {
               </div>
 
               <div className="border rounded-lg p-3 flex flex-col gap-2">
-                  <h3 className="font-semibold">Multi-Text</h3>
+                  <h3 className="font-semibold text-sm">Multi-Text</h3>
                   <Textarea
                       placeholder="e.g. 01,02,03=50 or 10=20#45=50"
-                      rows={3}
+                      rows={2}
                       value={multiText}
                       onChange={handleMultiTextChange}
                       onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
@@ -1046,49 +1045,49 @@ const handleHarupApply = () => {
                       disabled={isDataEntryDisabled}
                   />
                   <div className="flex flex-wrap gap-2 mt-1 items-start">
-                      <Button onClick={handleMultiTextApply} size="sm" className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled}>Apply to Sheet</Button>
+                      <Button onClick={handleMultiTextApply} size="sm" className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled}>Apply</Button>
                       <Button onClick={handleGenerateSheet} size="sm" variant="outline" className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled}>
-                          Generate Sheet
+                          Generate
                       </Button>
-                      <Button onClick={handleClearSheet} variant="outline" size="icon" className="shrink-0 !w-9 !h-9" disabled={isDataEntryDisabled}>
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Clear Sheet</span>
+                      <Button onClick={handleClearSheet} variant="destructive" size="sm" className="shrink-0" disabled={isDataEntryDisabled}>
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Clear
                       </Button>
                   </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="border rounded-lg p-3">
-                      <h3 className="font-semibold mb-2">HARUP</h3>
+                      <h3 className="font-semibold text-sm mb-2">HARUP</h3>
                       <div className="flex items-center gap-2 mb-2">
-                          <Label htmlFor="harupA" className="w-6 text-center shrink-0">A</Label>
-                          <Input id="harupA" placeholder="e.g. 123" className="min-w-0 h-9" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                          <Label htmlFor="harupA" className="w-6 text-center shrink-0 text-xs">A</Label>
+                          <Input id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-sm" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
                       </div>
                       <div className="flex items-center gap-2 mb-2">
-                          <Label htmlFor="harupB" className="w-6 text-center shrink-0">B</Label>
-                          <Input id="harupB" placeholder="e.g. 456" className="min-w-0 h-9" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                          <Label htmlFor="harupB" className="w-6 text-center shrink-0 text-xs">B</Label>
+                          <Input id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-sm" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
                       </div>
                        <div className="flex items-center gap-2">
-                          <Label htmlFor="harupAmount" className="w-6 text-center shrink-0">=</Label>
-                          <Input id="harupAmount" placeholder="Amt" className="h-9 font-bold" value={harupAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                          <Label htmlFor="harupAmount" className="w-6 text-center shrink-0 text-xs">=</Label>
+                          <Input id="harupAmount" placeholder="Amt" className="h-8 font-bold text-sm" value={harupAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
                           <Button onClick={handleHarupApply} size="sm" disabled={isDataEntryDisabled}>Apply</Button>
                       </div>
                   </div>
                    <div className="border rounded-lg p-3">
-                    <h3 className="font-semibold mb-2">Laddi</h3>
+                    <h3 className="font-semibold text-sm mb-2">Laddi</h3>
                     <div className="flex items-center gap-2 mb-2">
                         <Input
-                          id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 h-9" placeholder="Num 1"
+                          id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder="Num 1"
                           value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
                         />
-                        <span className="font-bold">x</span>
+                        <span className="font-bold text-sm">x</span>
                         <Input
-                           id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 h-9" placeholder="Num 2"
+                           id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder="Num 2"
                           value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
                         />
-                        <span className="font-bold">=</span>
+                        <span className="font-bold text-sm">=</span>
                         <Input
-                          id="amount" type="text" className="h-9 text-center font-bold"
+                          id="amount" type="text" className="h-8 text-center font-bold text-sm"
                           value={laddiAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
                           placeholder="Amt" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
                         />
@@ -1278,3 +1277,6 @@ export default GridSheet;
 
     
 
+
+
+    
