@@ -574,7 +574,7 @@ const handleHarupApply = () => {
         toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
         return;
     }
-
+    
     saveDataForUndo();
 
     const affectedCells = new Set<string>();
@@ -596,17 +596,17 @@ const handleHarupApply = () => {
             affectedCells.add(`${rowIndex}_${colIndex}`);
         }
     });
-
+    
     if (affectedCells.size === 0) {
         toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
         return;
     }
 
     const amountPerCell = harupAmountValue / affectedCells.size;
-    const updates: { [key: string]: string } = {};
+    const updates: { [key: string]: number } = {};
 
     affectedCells.forEach(key => {
-        updates[key] = String(amountPerCell);
+        updates[key] = (updates[key] || 0) + amountPerCell;
     });
 
     let lastEntryString = "";
@@ -618,7 +618,7 @@ const handleHarupApply = () => {
 
     updatedKeys.forEach(key => {
         const currentValue = parseFloat(newData[key]) || 0;
-        const addedValue = parseFloat(updates[key]) || 0;
+        const addedValue = updates[key] || 0;
         newData[key] = String(currentValue + addedValue);
     });
 
@@ -875,25 +875,26 @@ const handleHarupApply = () => {
 
   const getFontSize = (text: string) => {
     const length = text.length;
-    if (length > 8) return '0.6rem';
-    if (length > 6) return '0.75rem';
-    if (length > 4) return '1rem';
-    return '1.25rem';
+    if (length > 8) return '0.5rem';
+    if (length > 6) return '0.6rem';
+    if (length > 4) return '0.7rem';
+    if (length > 3) return '0.8rem';
+    return '1rem';
   };
 
   return (
     <>
       <Card>
-        <CardHeader className="p-4">
+        <CardHeader className="p-2 md:p-4">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
             <div>
-              <CardTitle className="text-lg md:text-xl">{props.draw} Sheet ({format(props.date, "PPP")})</CardTitle>
+              <CardTitle className="text-base md:text-lg">{props.draw} Sheet ({format(props.date, "PPP")})</CardTitle>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-2">
-            <div className="overflow-x-auto pr-2">
+          <div className="grid grid-cols-1 md:grid-cols-2">
+            <div className="overflow-x-auto w-[600px] max-w-[600px]">
               <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, 1fr)`}}>
                 <div className="col-start-1" style={{gridColumn: `span ${GRID_COLS}`}}></div>
                 <div className="flex items-center justify-center font-semibold text-muted-foreground text-sm p-1">Total</div>
@@ -944,6 +945,7 @@ const handleHarupApply = () => {
                     <div className="flex items-center justify-center p-0 font-medium aspect-square">
                       <Input
                         type="text"
+                        style={{ fontSize: getFontSize(getRowTotal(rowIndex)) }}
                         className="text-base font-medium text-center h-full w-full p-1 min-w-0"
                         value={getRowTotal(rowIndex)}
                         onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
@@ -963,7 +965,6 @@ const handleHarupApply = () => {
 
             <div className="flex flex-col gap-2 pl-2 mt-4 lg:mt-0">
                 <div className="border rounded-lg p-3 flex flex-col gap-2">
-                    <h3 className="font-semibold">Client</h3>
                     <div className="flex items-center gap-2">
                         <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
                             <SelectTrigger className="flex-grow">
@@ -988,14 +989,14 @@ const handleHarupApply = () => {
                 </div>
 
                 <div className="border rounded-lg p-3 flex flex-col gap-2">
-                    <h3 className="font-semibold">Multi-Text</h3>
+                    <h3 className="font-semibold text-sm">Multi-Text</h3>
                     <Textarea
                         placeholder="e.g. 01,02,03=50 or 10=20#45=50"
                         rows={1}
                         value={multiText}
                         onChange={handleMultiTextChange}
                         onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
-                        className="w-full text-sm"
+                        className="w-full text-xs"
                         disabled={isDataEntryDisabled}
                     />
                     <div className="flex flex-wrap gap-2 mt-1 items-start">
@@ -1009,17 +1010,17 @@ const handleHarupApply = () => {
                         </Button>
                     </div>
                 </div>
-
-                <div className="border rounded-lg p-4">
-                  <h3 className="font-semibold mb-2">Laddi</h3>
+                
+                <div className="border rounded-lg p-3">
+                  <h3 className="font-semibold mb-2 text-sm">Laddi</h3>
                   <div className="grid grid-cols-5 items-center gap-2 mb-2">
                       <Input
-                        id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2" placeholder="Num 1"
+                        id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-8 text-xs" placeholder="Num 1"
                         value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
                       />
                       <span className="font-bold text-center">x</span>
                       <Input
-                        id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2" placeholder="Num 2"
+                        id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-8 text-xs" placeholder="Num 2"
                         value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
                       />
                   </div>
@@ -1027,7 +1028,7 @@ const handleHarupApply = () => {
                     <div className="col-span-3 flex items-center gap-2">
                       <span className="font-bold text-center">=</span>
                       <Input
-                        id="amount" type="text" className="text-center font-bold"
+                        id="amount" type="text" className="text-center font-bold h-8 text-xs"
                         value={laddiAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
                         placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
                       />
@@ -1036,30 +1037,30 @@ const handleHarupApply = () => {
                       <Button onClick={handleLaddiApply} disabled={isDataEntryDisabled} size="sm">Apply</Button>
                     </div>
                   </div>
-                  <div className="flex justify-between items-center gap-2 mt-3">
+                  <div className="flex justify-between items-center gap-2 mt-2">
                       <div className="flex items-center gap-2">
                           <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={isDataEntryDisabled}/>
-                          <Label htmlFor="remove-jodda" className="text-sm">Jodda</Label>
+                          <Label htmlFor="remove-jodda" className="text-xs">Jodda</Label>
                       </div>
-                      <div className="text-sm font-bold text-primary">{combinationCount} Combos</div>
+                      <div className="text-xs font-bold text-primary">{combinationCount} Combos</div>
                   </div>
                 </div>
               
-              <div className="border rounded-lg p-4">
-                  <h3 className="font-semibold mb-2">HARUP</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="border rounded-lg p-3">
+                  <h3 className="font-semibold mb-2 text-sm">HARUP</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <div className="flex items-center gap-2">
-                        <Label htmlFor="harupA" className="w-8 text-center shrink-0 text-sm">A</Label>
-                        <Input id="harupA" placeholder="e.g. 123" className="min-w-0" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                        <Label htmlFor="harupA" className="w-6 text-center shrink-0 text-xs">A</Label>
+                        <Input id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Label htmlFor="harupB" className="w-8 text-center shrink-0 text-sm">B</Label>
-                        <Input id="harupB" placeholder="e.g. 456" className="min-w-0" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                        <Label htmlFor="harupB" className="w-6 text-center shrink-0 text-xs">B</Label>
+                        <Input id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
                     </div>
                   </div>
                    <div className="flex items-center gap-2 mt-2">
-                      <Label htmlFor="harupAmount" className="w-8 text-center shrink-0 text-sm">=</Label>
-                      <Input id="harupAmount" placeholder="Amount" className="font-bold" value={harupAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                      <Label htmlFor="harupAmount" className="w-6 text-center shrink-0 text-xs">=</Label>
+                      <Input id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
                       <Button onClick={handleHarupApply} disabled={isDataEntryDisabled} size="sm">Apply</Button>
                   </div>
               </div>
@@ -1130,7 +1131,8 @@ const handleHarupApply = () => {
                             <Input
                               type="text"
                               readOnly
-                              className="pt-5 text-sm bg-muted min-w-0"
+                              style={{fontSize: getFontSize(masterSheetData[key] || '')}}
+                              className="pt-4 text-center bg-muted min-w-0"
                               value={masterSheetData[key] || ''}
                               aria-label={`Cell ${displayCellNumber}`}
                             />
@@ -1141,6 +1143,7 @@ const handleHarupApply = () => {
                         <Input
                           type="text"
                           readOnly
+                           style={{fontSize: getFontSize(masterSheetRowTotal(rowIndex))}}
                           className="text-sm font-medium text-center bg-muted min-w-0"
                           value={masterSheetRowTotal(rowIndex)}
                           aria-label={`Row ${rowIndex} Total`}
@@ -1234,3 +1237,6 @@ GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
 
+
+
+    
