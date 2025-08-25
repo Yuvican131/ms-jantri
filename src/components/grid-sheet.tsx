@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, X, Save, RotateCcw } from "lucide-react"
+import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, X, Save, RotateCcw, Undo2 } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -91,6 +91,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [lessValue, setLessValue] = useState("");
   const [dabbaValue, setDabbaValue] = useState("");
   const [masterSheetData, setMasterSheetData] = useState<CellData>({});
+
+  const [previousSheetState, setPreviousSheetState] = useState<{ data: CellData, rowTotals: { [key: number]: string } } | null>(null);
   
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
   
@@ -129,7 +131,26 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       }
     }
   };
+
+  const saveDataForUndo = () => {
+    setPreviousSheetState({ data: { ...currentData }, rowTotals: { ...currentRowTotals } });
+  };
   
+  const handleRevertLastEntry = () => {
+    if (previousSheetState) {
+      if (selectedClientId) {
+        updateClientData(selectedClientId, previousSheetState.data, previousSheetState.rowTotals);
+      } else {
+        setSheets(prevSheets => prevSheets.map(sheet =>
+          sheet.id === activeSheetId ? { ...sheet, data: previousSheetState.data, rowTotals: previousSheetState.rowTotals } : sheet
+        ));
+      }
+      toast({ title: "Last Entry Reverted", description: "The last change has been undone." });
+      setPreviousSheetState(null); // Clear previous state after reverting
+    } else {
+      toast({ title: "No Entry to Revert", description: "There is no previous action to revert.", variant: "destructive" });
+    }
+  };
 
   useImperativeHandle(ref, () => ({
     handleClientUpdate: (client: Client) => {
@@ -138,6 +159,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         return;
       }
       if (client.pair === '90') {
+        saveDataForUndo();
         const cellNum = parseInt(client.name, 10);
         const commission = parseFloat(client.comm);
 
@@ -255,6 +277,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       showClientSelectionToast();
       return;
     }
+    saveDataForUndo();
     const key = `${rowIndex}_${colIndex}`
     const newData = { ...currentData, [key]: value };
     const newRowTotals = { ...currentRowTotals };
@@ -364,6 +387,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       showClientSelectionToast();
       return;
     }
+    saveDataForUndo();
     const newRowTotals = { ...currentRowTotals, [rowIndex]: value };
     if (selectedClientId) {
       updateClientData(selectedClientId, currentData, newRowTotals);
@@ -386,6 +410,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       showClientSelectionToast();
       return;
     }
+    saveDataForUndo();
     const updatedData = { ...currentData };
     const updatedCellKeys = Object.keys(updates);
 
@@ -414,6 +439,7 @@ const handleMultiTextApply = () => {
         showClientSelectionToast();
         return;
     }
+    saveDataForUndo();
     const lines = multiText.split('\n');
     let lastEntryString = "";
 
@@ -519,6 +545,7 @@ const handleMultiTextApply = () => {
         return;
     }
     
+    saveDataForUndo();
     const updates: { [key: string]: string } = {};
     const amountValue = parseFloat(laddiAmount);
      if (isNaN(amountValue)) {
@@ -596,7 +623,8 @@ const handleHarupApply = () => {
       toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
       return;
     }
-  
+    
+    saveDataForUndo();
     const affectedCells = new Set<string>();
   
     harupADigits.forEach(digit => {
@@ -630,8 +658,8 @@ const handleHarupApply = () => {
     });
     
     let lastEntryString = "";
-    if (harupA) lastEntryString += `A: ${harupA}=${harupAmount}\n`;
-    if (harupB) lastEntryString += `B: ${harupB}=${harupAmount}\n`;
+    if (harupADigits.length > 0) lastEntryString += `A: ${harupA}=${harupAmount}\n`;
+    if (harupBDigits.length > 0) lastEntryString += `B: ${harupB}=${harupAmount}\n`;
 
     const updateWithBaseValues: { [key: string]: string } = {};
     Object.keys(updates).forEach(key => {
@@ -664,6 +692,7 @@ const handleHarupApply = () => {
         showClientSelectionToast();
         return;
     }
+    saveDataForUndo();
     const emptyData = {};
     const emptyRowTotals = {};
 
@@ -798,6 +827,7 @@ const handleHarupApply = () => {
 
     // Clear client's sheet
     updateClientData(selectedClientId, {}, {});
+    setPreviousSheetState(null);
 
     toast({
       title: "Sheet Saved",
@@ -1008,7 +1038,11 @@ const handleHarupApply = () => {
                       </Select>
                        <Button onClick={handleSaveSheet} size="sm" disabled={!selectedClientId}>
                         <Save className="h-4 w-4 mr-2" />
-                        Save Sheet
+                        Save
+                      </Button>
+                      <Button onClick={handleRevertLastEntry} size="sm" variant="outline" disabled={!previousSheetState || isDataEntryDisabled}>
+                        <Undo2 className="h-4 w-4 mr-2" />
+                        Revert
                       </Button>
                     </div>
                 </div>
@@ -1271,6 +1305,8 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
 
     
 
