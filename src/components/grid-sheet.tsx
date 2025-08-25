@@ -588,10 +588,10 @@ const handleHarupApply = () => {
       toast({ title: "HARUP Error", description: "Please provide a valid amount.", variant: "destructive" });
       return;
     }
-  
-    const harupADigits = harupA.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d)));
-    const harupBDigits = harupB.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d)));
-  
+
+    const harupADigits = [...new Set(harupA.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d))))];
+    const harupBDigits = [...new Set(harupB.replace(/\s/g, '').split('').filter(d => !isNaN(parseInt(d))))];
+    
     if (harupADigits.length === 0 && harupBDigits.length === 0) {
       toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
       return;
@@ -624,43 +624,38 @@ const handleHarupApply = () => {
   
     const amountPerCell = amountValue / affectedCells.size;
     const updates: { [key: string]: string } = {};
-    let lastEntryString = "";
   
     affectedCells.forEach(key => {
-      const currentValueInUpdate = parseFloat(updates[key]) || 0;
-      updates[key] = String(currentValueInUpdate + amountPerCell);
+        updates[key] = String(amountPerCell);
     });
     
+    let lastEntryString = "";
     if (harupA) lastEntryString += `A: ${harupA}=${harupAmount}\n`;
     if (harupB) lastEntryString += `B: ${harupB}=${harupAmount}\n`;
-  
-    if (Object.keys(updates).length > 0) {
-        const updateWithBaseValues: { [key: string]: string } = {};
-        Object.keys(updates).forEach(key => {
-            const currentValue = parseFloat(currentData[key]) || 0;
-            const addedValue = parseFloat(updates[key]) || 0;
-            updateWithBaseValues[key] = String(currentValue + addedValue);
-        });
 
-        if (selectedClientId) {
-            updateClientData(selectedClientId, updateWithBaseValues, currentRowTotals);
-        } else {
-            setSheets(prevSheets => prevSheets.map(sheet =>
-                sheet.id === activeSheetId ? { ...sheet, data: updateWithBaseValues } : sheet
-            ));
-        }
+    const updateWithBaseValues: { [key: string]: string } = {};
+    Object.keys(updates).forEach(key => {
+        const currentValue = parseFloat(currentData[key]) || 0;
+        const addedValue = parseFloat(updates[key]) || 0;
+        updateWithBaseValues[key] = String(currentValue + addedValue);
+    });
 
-        setUpdatedCells(Object.keys(updates));
-        props.setLastEntry(lastEntryString.trim());
-        setTimeout(() => setUpdatedCells([]), 2000);
-        toast({ title: "HARUP Updated", description: `${Object.keys(updates).length} cell(s) have been updated.` });
-
-        setHarupA('');
-        setHarupB('');
-        setHarupAmount('');
+    if (selectedClientId) {
+        updateClientData(selectedClientId, updateWithBaseValues, currentRowTotals);
     } else {
-        toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
+        setSheets(prevSheets => prevSheets.map(sheet =>
+            sheet.id === activeSheetId ? { ...sheet, data: updateWithBaseValues } : sheet
+        ));
     }
+
+    setUpdatedCells(Object.keys(updates));
+    props.setLastEntry(lastEntryString.trim());
+    setTimeout(() => setUpdatedCells([]), 2000);
+    toast({ title: "HARUP Updated", description: `${Object.keys(updates).length} cell(s) have been updated.` });
+
+    setHarupA('');
+    setHarupB('');
+    setHarupAmount('');
   };
 
 
@@ -1276,6 +1271,8 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
 
     
 
