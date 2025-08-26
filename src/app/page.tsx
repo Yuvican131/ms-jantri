@@ -86,7 +86,7 @@ export default function Home() {
       </header>
       <main className="flex-1 p-2 sm:p-4">
         <Tabs defaultValue="sheet" className="w-full">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center">
               <TabsList className="grid grid-cols-3 md:w-auto p-0.5 gap-0.5">
                 <TabsTrigger value="sheet" className="gap-1 rounded-sm">
@@ -110,7 +110,7 @@ export default function Home() {
               )}
             </div>
           </div>
-          <TabsContent value="sheet" className="mt-2">
+          <TabsContent value="sheet">
             {selectedInfo ? (
               <div>
                 <GridSheet 
