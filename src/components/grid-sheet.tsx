@@ -163,10 +163,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const cellNum = parseInt(client.name, 10);
         const commission = parseFloat(client.comm);
 
-        if (!isNaN(cellNum) && cellNum >= 0 && cellNum <= 99 && !isNaN(commission)) {
-          const rowIndex = Math.floor(cellNum / GRID_COLS);
-          const colIndex = cellNum % GRID_COLS;
-          const key = `${rowIndex}_${colIndex}`;
+        if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= 100 && !isNaN(commission)) {
+          const key = (cellNum - 1).toString();
           
           const newData = { ...currentData };
           const currentValue = parseFloat(newData[key]) || 0;
@@ -284,7 +282,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       return;
     }
     saveDataForUndo();
-    const key = `${rowIndex}_${colIndex}`
+    const cellIndex = rowIndex * GRID_COLS + colIndex;
+    const key = cellIndex.toString();
     const newData = { ...currentData, [key]: value };
     const newRowTotals = { ...currentRowTotals };
 
@@ -300,7 +299,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const handleCellBlur = async (rowIndex: number, colIndex: number) => {
     if (isDataEntryDisabled) return;
 
-    const key = `${rowIndex}_${colIndex}`
+    const cellIndex = rowIndex * GRID_COLS + colIndex;
+    const key = cellIndex.toString();
     const cellContent = currentData[key]
 
     if (!cellContent || cellContent.trim() === "") {
@@ -329,7 +329,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const calculateRowTotal = (rowIndex: number, data: CellData) => {
     let total = 0;
     for (let colIndex = 0; colIndex < GRID_COLS; colIndex++) {
-        const key = `${rowIndex}_${colIndex}`;
+        const cellIndex = rowIndex * GRID_COLS + colIndex;
+        const key = cellIndex.toString();
         const value = data[key];
         if (value && !isNaN(Number(value))) {
             total += Number(value);
@@ -422,10 +423,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
         const formattedCells = cellNumbers
           .map(s => {
-            if (s === '00') return '00';
             const num = parseInt(s, 10);
-            if(s.length === 1) return String(num).padStart(2, '0');
-            if (num >= 0 && num <= 99) return String(num).padStart(2, '0');
+            if (num >= 1 && num <= 100) return String(num);
             return null;
           })
           .filter((s): s is string => s !== null)
@@ -434,18 +433,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         formattedLines.push(`${formattedCells}=${valueStr}`);
 
         cellNumbers.forEach(numStr => {
-            let cellNum;
-            if (numStr === '00') {
-                cellNum = 0;
-            } else {
-                cellNum = parseInt(numStr, 10);
-            }
+            let cellNum = parseInt(numStr, 10);
             
-            if (isNaN(cellNum) || cellNum < 0 || cellNum > 99) return;
-
-            const rowIndex = Math.floor(cellNum / GRID_COLS);
-            const colIndex = cellNum % GRID_COLS;
-            const key = `${rowIndex}_${colIndex}`;
+            if (isNaN(cellNum) || cellNum < 1 || cellNum > 100) return;
+            const key = (cellNum - 1).toString();
             
             const currentValueInUpdate = parseFloat(updates[key]) || 0;
             updates[key] = String(currentValueInUpdate + newValue);
@@ -510,11 +501,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
             let cellNumStr = `${d1}${d2}`;
             let cellNum = parseInt(cellNumStr, 10);
+             if (cellNum === 0) cellNum = 100;
             
-            if (!isNaN(cellNum) && cellNum >= 0 && cellNum <= 99) {
-                const rowIndex = Math.floor(cellNum / GRID_COLS);
-                const colIndex = cellNum % GRID_COLS;
-                const key = `${rowIndex}_${colIndex}`;
+            if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= 100) {
+                const key = (cellNum - 1).toString();
                 
                 const currentValueInUpdate = parseFloat(updates[key]) || 0;
                 updates[key] = String(currentValueInUpdate + amountValue);
@@ -581,19 +571,17 @@ const handleHarupApply = () => {
 
     harupADigits.forEach(digit => {
         for (let i = 0; i < 10; i++) {
-            const cellNum = parseInt(`${digit}${i}`, 10);
-            const rowIndex = Math.floor(cellNum / GRID_COLS);
-            const colIndex = cellNum % GRID_COLS;
-            affectedCells.add(`${rowIndex}_${colIndex}`);
+            let cellNum = parseInt(`${digit}${i}`, 10);
+            if (cellNum === 0) cellNum = 100;
+            affectedCells.add((cellNum - 1).toString());
         }
     });
 
     harupBDigits.forEach(digit => {
         for (let i = 0; i < 10; i++) {
-            const cellNum = parseInt(`${i}${digit}`, 10);
-            const rowIndex = Math.floor(cellNum / GRID_COLS);
-            const colIndex = cellNum % GRID_COLS;
-            affectedCells.add(`${rowIndex}_${colIndex}`);
+            let cellNum = parseInt(`${i}${digit}`, 10);
+            if (cellNum === 0) cellNum = 100;
+            affectedCells.add((cellNum - 1).toString());
         }
     });
     
@@ -682,8 +670,7 @@ const handleHarupApply = () => {
     for (const key in currentData) {
       const value = currentData[key];
       if (value && value.trim() !== '' && !isNaN(Number(value)) && Number(value) !== 0) {
-        const [rowIndex, colIndex] = key.split('_').map(Number);
-        let cellNumber = rowIndex * GRID_COLS + colIndex;
+        let cellNumber = parseInt(key) + 1;
         
         let displayCellNumber = cellNumber;
         
@@ -698,7 +685,7 @@ const handleHarupApply = () => {
       .map(([value, cells]) => {
         cells.sort((a, b) => a - b);
         const formattedCells = cells.map(cell => {
-           return String(cell).padStart(2, '0')
+           return String(cell)
         });
         return `${formattedCells.join(',')}=${value}`;
       })
@@ -748,7 +735,7 @@ const handleHarupApply = () => {
       .split(',')
       .map(s => s.trim())
       .filter(s => s)
-      .flatMap(s => (s.length > 2 && /^\d+$/.test(s) && s !== '100') ? s.match(/.{1,2}/g) || [] : s)
+      .flatMap(s => (s.length > 3 && /^\d+$/.test(s) && !s.includes(',')) ? s.match(/.{1,2}/g)?.map(n => n.padStart(2,'0')) || [] : s)
       .join(',');
 
     setMultiText(`${autoFormattedNumbers}${valuePart}`);
@@ -877,33 +864,32 @@ const handleHarupApply = () => {
     <>
       <Card>
         <CardHeader className="p-2 md:p-4">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
-          </div>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto]">
-            <div className="overflow-x-auto">
-              <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(60px, 1fr))`}}>
-                <div className="col-start-1" style={{gridColumn: `span ${GRID_COLS}`}}></div>
-                
-  
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-0">
+            <div className="overflow-x-auto w-full md:w-[calc(100%-350px)]">
+              <div className="grid gap-0 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(60px, 1fr))`}}>
                 {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                   <React.Fragment key={rowIndex}>
                     {Array.from({ length: GRID_COLS }, (_, colIndex) => {
-                      const cellNumber = rowIndex * GRID_COLS + colIndex;
-                      let displayCellNumber = String(cellNumber).padStart(2, '0');
+                      const cellIndex = rowIndex * GRID_COLS + colIndex;
+                      const cellNumber = cellIndex + 1;
+                      let displayCellNumber = String(cellNumber);
 
-                      const key = `${rowIndex}_${colIndex}`
+                      const key = cellIndex.toString();
                       const validation = validations[key]
                       const isUpdated = updatedCells.includes(key);
 
                       return (
-                        <div key={key} className="relative aspect-square">
-                          <div className="absolute top-0 left-0.5 text-xs text-muted-foreground/80 select-none pointer-events-none z-10">{displayCellNumber}</div>
+                        <div key={key} className="relative aspect-square border-red-500 border">
+                          <div className="absolute top-0 left-0.5 text-xs text-red-500 select-none pointer-events-none z-10">{displayCellNumber}</div>
                           <Input
                             type="text"
-                            style={{ fontSize: 'clamp(0.75rem, 4vw, 1.25rem)'}}
-                            className={`p-1 h-full w-full text-center transition-colors duration-300 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50' : 'bg-slate-800 text-white'}`}
+                            style={{ 
+                                fontSize: 'clamp(0.6rem, 2vw, 1rem)',
+                                color: 'red'
+                            }}
+                            className={`p-1 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50' : 'bg-transparent'}`}
                             value={currentData[key] || ''}
                             onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
                             onBlur={() => handleCellBlur(rowIndex, colIndex)}
@@ -929,10 +915,10 @@ const handleHarupApply = () => {
                         </div>
                       )
                     })}
-                    <div className="flex items-center justify-center p-0 font-medium aspect-square">
+                    <div className="flex items-center justify-center p-0 font-medium aspect-square border-red-500 border">
                       <Input
                         type="text"
-                        className="text-lg font-medium text-center h-full w-full p-1"
+                        className="text-lg font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-red-500"
                         value={getRowTotal(rowIndex)}
                         onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
                         onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
@@ -976,7 +962,7 @@ const handleHarupApply = () => {
                 <div className="border rounded-lg p-2 flex flex-col gap-2">
                     <h3 className="font-semibold text-xs">Multi-Text</h3>
                     <Textarea
-                        placeholder="e.g. 01,02,03=50 or 10=20#45=50"
+                        placeholder="e.g. 1,2,3=50 or 10=20#45=50"
                         rows={1}
                         value={multiText}
                         onChange={handleMultiTextChange}
@@ -996,7 +982,7 @@ const handleHarupApply = () => {
                     </div>
                 </div>
                 
-                <div className="border rounded-lg p-2">
+                <div className="border rounded-lg p-2 flex flex-col gap-2">
                   <h3 className="font-semibold mb-1 text-xs">Laddi</h3>
                   <div className="grid grid-cols-5 items-center gap-1 mb-1">
                       <Input
@@ -1031,7 +1017,7 @@ const handleHarupApply = () => {
                   </div>
                 </div>
               
-                <div className="border rounded-lg p-2">
+                <div className="border rounded-lg p-2 flex flex-col gap-2">
                   <h3 className="font-semibold mb-1 text-xs">HARUP</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                     <div className="flex items-center gap-1">
@@ -1101,15 +1087,14 @@ const handleHarupApply = () => {
           <ScrollArea className="flex-grow pr-6">
             <div className="overflow-x-auto w-full my-4">
                 <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, minWidth: '600px'}}>
-                  <div className="col-start-1" style={{gridColumn: `span ${GRID_COLS}`}}></div>
-                  <div className="flex items-center justify-center font-semibold text-muted-foreground min-w-[80px] sm:min-w-[100px]">Total</div>
                   {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                     <React.Fragment key={`master-row-${rowIndex}`}>
                       {Array.from({ length: GRID_COLS }, (_, colIndex) => {
-                        const cellNumber = rowIndex * GRID_COLS + colIndex;
-                        let displayCellNumber = String(cellNumber).padStart(2, '0');
+                        const cellIndex = rowIndex * GRID_COLS + colIndex;
+                        const cellNumber = cellIndex + 1;
+                        let displayCellNumber = String(cellNumber);
                         
-                        const key = `${rowIndex}_${colIndex}`
+                        const key = cellIndex.toString();
                         return (
                           <div key={`master-cell-${key}`} className="relative">
                             <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{displayCellNumber}</div>
@@ -1221,6 +1206,8 @@ GridSheet.displayName = 'GridSheet';
 export default GridSheet;
 
 
+
+    
 
     
 
