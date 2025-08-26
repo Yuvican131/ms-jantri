@@ -866,9 +866,9 @@ const handleHarupApply = () => {
         <CardHeader className="p-2 md:p-4">
         </CardHeader>
         <CardContent className="p-0 pt-0">
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto]">
-            <div className="overflow-x-auto">
-              <div className="grid gap-0 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(60px, 1fr))`}}>
+          <div className="flex flex-col md:flex-row gap-2">
+            <div className="flex-grow">
+              <div className="grid gap-0 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`}}>
                 {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                   <React.Fragment key={rowIndex}>
                     {Array.from({ length: GRID_COLS }, (_, colIndex) => {
@@ -1213,4 +1213,3 @@ export default GridSheet;
     
 
     
-
