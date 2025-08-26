@@ -865,16 +865,17 @@ const handleHarupApply = () => {
       <Card>
         <CardHeader className="p-2 md:p-4">
         </CardHeader>
-        <CardContent className="pt-0">
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-0">
-            <div className="overflow-x-auto w-full md:w-[calc(100%-350px)]">
+        <CardContent className="p-2 pt-0">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2">
+            <div className="overflow-x-auto">
               <div className="grid gap-0 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(60px, 1fr))`}}>
                 {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                   <React.Fragment key={rowIndex}>
                     {Array.from({ length: GRID_COLS }, (_, colIndex) => {
                       const cellIndex = rowIndex * GRID_COLS + colIndex;
                       const cellNumber = cellIndex + 1;
-                      let displayCellNumber = String(cellNumber);
+                      let displayCellNumber = String(cellNumber).padStart(2, '0');
+                      if (cellNumber === 100) displayCellNumber = '00';
 
                       const key = cellIndex.toString();
                       const validation = validations[key]
@@ -936,29 +937,29 @@ const handleHarupApply = () => {
             </div>
 
             <div className="flex flex-col gap-2 w-full md:w-[350px]">
-               <div className="border rounded-lg p-2">
-                  <div className="flex items-center gap-2">
-                      <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
-                          <SelectTrigger className="flex-grow h-8 text-xs">
-                              <SelectValue placeholder="Select Client" />
-                          </SelectTrigger>
-                          <SelectContent>
-                              <SelectItem value="None">None (Master Sheet)</SelectItem>
-                              {props.clients.map(client => (
-                                  <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                              ))}
-                          </SelectContent>
-                      </Select>
-                      <Button onClick={handleSaveSheet} disabled={!selectedClientId} size="sm" className="h-8 text-xs">
-                          <Save className="h-3 w-3 mr-1" />
-                          Save
-                      </Button>
-                      <Button onClick={handleRevertLastEntry} variant="outline" disabled={!previousSheetState || isDataEntryDisabled} size="sm" className="h-8 text-xs">
-                          <Undo2 className="h-3 w-3 mr-1" />
-                          Revert
-                      </Button>
-                  </div>
-              </div>
+                <div className="border rounded-lg p-2">
+                    <div className="flex items-center gap-2">
+                        <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
+                            <SelectTrigger className="flex-grow h-8 text-xs">
+                                <SelectValue placeholder="Select Client" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="None">None (Master Sheet)</SelectItem>
+                                {props.clients.map(client => (
+                                    <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Button onClick={handleSaveSheet} disabled={!selectedClientId} size="sm" className="h-8 text-xs">
+                            <Save className="h-3 w-3 mr-1" />
+                            Save
+                        </Button>
+                        <Button onClick={handleRevertLastEntry} variant="outline" disabled={!previousSheetState || isDataEntryDisabled} size="sm" className="h-8 text-xs">
+                            <Undo2 className="h-3 w-3 mr-1" />
+                            Revert
+                        </Button>
+                    </div>
+                </div>
                 <div className="border rounded-lg p-2 flex flex-col gap-2">
                     <h3 className="font-semibold text-xs">Multi-Text</h3>
                     <Textarea
