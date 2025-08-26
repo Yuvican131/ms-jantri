@@ -865,8 +865,8 @@ const handleHarupApply = () => {
       <Card>
         <CardHeader className="p-2 md:p-4">
         </CardHeader>
-        <CardContent className="p-2 pt-0">
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2">
+        <CardContent className="p-0 pt-0">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto]">
             <div className="overflow-x-auto">
               <div className="grid gap-0 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(60px, 1fr))`}}>
                 {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
@@ -883,12 +883,12 @@ const handleHarupApply = () => {
 
                       return (
                         <div key={key} className="relative aspect-square border-red-500 border">
-                          <div className="absolute top-0 left-0.5 text-xs text-red-500 select-none pointer-events-none z-10">{displayCellNumber}</div>
+                          <div className="absolute top-0 left-0.5 text-xs text-blue-900 select-none pointer-events-none z-10">{displayCellNumber}</div>
                           <Input
                             type="text"
                             style={{ 
                                 fontSize: 'clamp(0.6rem, 2vw, 1rem)',
-                                color: 'red'
+                                color: 'darkblue'
                             }}
                             className={`p-1 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50' : 'bg-transparent'}`}
                             value={currentData[key] || ''}
@@ -929,7 +929,7 @@ const handleHarupApply = () => {
                     </div>
                   </React.Fragment>
                 ))}
-                <div style={{ gridColumn: `span ${GRID_COLS}` }} className="flex items-center justify-end p-2 font-bold mt-1 pr-4 text-lg">Total</div>
+                <div style={{ gridColumn: `span ${GRID_COLS}` }} className="flex items-center justify-end p-2 font-bold mt-1 pr-4 text-lg"></div>
                 <div className="flex items-center justify-center p-2 font-bold bg-primary/20 rounded-md mt-1 text-lg">
                     {calculateGrandTotal(currentData, currentRowTotals)}
                   </div>
@@ -1213,3 +1213,4 @@ export default GridSheet;
     
 
     
+
