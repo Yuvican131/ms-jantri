@@ -878,15 +878,12 @@ const handleHarupApply = () => {
       <Card>
         <CardHeader className="p-2 md:p-4">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
-            <div>
-              <CardTitle className="text-xl md:text-2xl">{props.draw} Sheet ({format(props.date, "PPP")})</CardTitle>
-            </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_400px]">
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
             <div className="overflow-x-auto">
-              <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(50px, 1fr))`}}>
+              <div className="grid gap-1 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(60px, 1fr))`}}>
                 <div className="col-start-1" style={{gridColumn: `span ${GRID_COLS}`}}></div>
                 <div className="flex items-center justify-center font-semibold text-muted-foreground text-sm p-1">Total</div>
   
@@ -901,11 +898,12 @@ const handleHarupApply = () => {
                       const isUpdated = updatedCells.includes(key);
 
                       return (
-                        <div key={key} className="relative">
+                        <div key={key} className="relative aspect-square">
                           <div className="absolute top-0 left-0.5 text-xs text-muted-foreground/80 select-none pointer-events-none z-10">{displayCellNumber}</div>
                           <Input
                             type="text"
-                            className={`p-1 h-14 w-full text-center transition-colors duration-300 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50' : 'bg-slate-800 text-white'}`}
+                            style={{ fontSize: 'clamp(0.75rem, 4vw, 1.25rem)'}}
+                            className={`p-1 h-full w-full text-center transition-colors duration-300 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50' : 'bg-slate-800 text-white'}`}
                             value={currentData[key] || ''}
                             onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
                             onBlur={() => handleCellBlur(rowIndex, colIndex)}
@@ -931,10 +929,10 @@ const handleHarupApply = () => {
                         </div>
                       )
                     })}
-                    <div className="flex items-center justify-center p-0 font-medium">
+                    <div className="flex items-center justify-center p-0 font-medium aspect-square">
                       <Input
                         type="text"
-                        className="text-lg font-medium text-center h-14 w-full p-1"
+                        className="text-lg font-medium text-center h-full w-full p-1"
                         value={getRowTotal(rowIndex)}
                         onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
                         onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
@@ -951,33 +949,32 @@ const handleHarupApply = () => {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 pl-2 mt-4 lg:mt-0">
-                <div className="border rounded-lg p-3 flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                        <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
-                            <SelectTrigger className="flex-grow">
-                                <SelectValue placeholder="Select Client" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="None">None (Master Sheet)</SelectItem>
-                                {props.clients.map(client => (
-                                    <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Button onClick={handleSaveSheet} disabled={!selectedClientId} size="sm">
-                            <Save className="h-4 w-4 mr-2" />
-                            Save
-                        </Button>
-                        <Button onClick={handleRevertLastEntry} variant="outline" disabled={!previousSheetState || isDataEntryDisabled} size="sm">
-                            <Undo2 className="h-4 w-4 mr-2" />
-                            Revert
-                        </Button>
-                    </div>
-                </div>
-
-                <div className="border rounded-lg p-3 flex flex-col gap-2">
-                    <h3 className="font-semibold text-sm">Multi-Text</h3>
+            <div className="flex flex-col gap-2 w-full md:w-[350px]">
+               <div className="border rounded-lg p-2">
+                  <div className="flex items-center gap-2">
+                      <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
+                          <SelectTrigger className="flex-grow h-8 text-xs">
+                              <SelectValue placeholder="Select Client" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="None">None (Master Sheet)</SelectItem>
+                              {props.clients.map(client => (
+                                  <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
+                      <Button onClick={handleSaveSheet} disabled={!selectedClientId} size="sm" className="h-8 text-xs">
+                          <Save className="h-3 w-3 mr-1" />
+                          Save
+                      </Button>
+                      <Button onClick={handleRevertLastEntry} variant="outline" disabled={!previousSheetState || isDataEntryDisabled} size="sm" className="h-8 text-xs">
+                          <Undo2 className="h-3 w-3 mr-1" />
+                          Revert
+                      </Button>
+                  </div>
+              </div>
+                <div className="border rounded-lg p-2 flex flex-col gap-2">
+                    <h3 className="font-semibold text-xs">Multi-Text</h3>
                     <Textarea
                         placeholder="e.g. 01,02,03=50 or 10=20#45=50"
                         rows={1}
@@ -988,44 +985,44 @@ const handleHarupApply = () => {
                         disabled={isDataEntryDisabled}
                     />
                     <div className="flex flex-wrap gap-2 mt-1 items-start">
-                        <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled} size="sm">Apply</Button>
-                        <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0" disabled={isDataEntryDisabled} size="sm">
+                        <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={isDataEntryDisabled} size="sm">Apply</Button>
+                        <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={isDataEntryDisabled} size="sm">
                             Generate
                         </Button>
-                        <Button onClick={handleClearSheet} variant="destructive" className="shrink-0" disabled={isDataEntryDisabled} size="sm">
-                            <Trash2 className="h-4 w-4 mr-2" />
+                        <Button onClick={handleClearSheet} variant="destructive" className="shrink-0 text-xs h-8" disabled={isDataEntryDisabled} size="sm">
+                            <Trash2 className="h-3 w-3 mr-1" />
                             Clear
                         </Button>
                     </div>
                 </div>
                 
-                <div className="border rounded-lg p-3">
-                  <h3 className="font-semibold mb-2 text-sm">Laddi</h3>
-                  <div className="grid grid-cols-5 items-center gap-2 mb-2">
+                <div className="border rounded-lg p-2">
+                  <h3 className="font-semibold mb-1 text-xs">Laddi</h3>
+                  <div className="grid grid-cols-5 items-center gap-1 mb-1">
                       <Input
-                        id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-10 text-base" placeholder="Num 1"
+                        id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-8 text-sm" placeholder="Num 1"
                         value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
                       />
-                      <span className="font-bold text-center">x</span>
+                      <span className="font-bold text-center text-sm">x</span>
                       <Input
-                        id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-10 text-base" placeholder="Num 2"
+                        id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-8 text-sm" placeholder="Num 2"
                         value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
                       />
                   </div>
-                  <div className="grid grid-cols-5 items-center gap-2">
-                    <div className="col-span-3 flex items-center gap-2">
+                  <div className="grid grid-cols-5 items-center gap-1">
+                    <div className="col-span-3 flex items-center gap-1">
                       <span className="font-bold text-center">=</span>
                       <Input
-                        id="amount" type="text" className="text-center font-bold h-10 text-base"
+                        id="amount" type="text" className="text-center font-bold h-8 text-sm"
                         value={laddiAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
                         placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
                       />
                     </div>
                     <div className="col-span-2 flex justify-end">
-                      <Button onClick={handleLaddiApply} disabled={isDataEntryDisabled}>Apply</Button>
+                      <Button onClick={handleLaddiApply} disabled={isDataEntryDisabled} size="sm" className="h-8 text-xs">Apply</Button>
                     </div>
                   </div>
-                  <div className="flex justify-between items-center gap-2 mt-2">
+                  <div className="flex justify-between items-center gap-2 mt-1">
                       <div className="flex items-center gap-2">
                           <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={isDataEntryDisabled}/>
                           <Label htmlFor="remove-jodda" className="text-xs">Jodda</Label>
@@ -1034,22 +1031,22 @@ const handleHarupApply = () => {
                   </div>
                 </div>
               
-                <div className="border rounded-lg p-3">
-                  <h3 className="font-semibold mb-2 text-sm">HARUP</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <div className="flex items-center gap-2">
+                <div className="border rounded-lg p-2">
+                  <h3 className="font-semibold mb-1 text-xs">HARUP</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                    <div className="flex items-center gap-1">
                         <Label htmlFor="harupA" className="w-6 text-center shrink-0 text-xs">A</Label>
                         <Input id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                         <Label htmlFor="harupB" className="w-6 text-center shrink-0 text-xs">B</Label>
                         <Input id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
                     </div>
                   </div>
-                   <div className="flex items-center gap-2 mt-2">
+                   <div className="flex items-center gap-2 mt-1">
                       <Label htmlFor="harupAmount" className="w-6 text-center shrink-0 text-xs">=</Label>
                       <Input id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
-                      <Button onClick={handleHarupApply} disabled={isDataEntryDisabled} size="sm">Apply</Button>
+                      <Button onClick={handleHarupApply} disabled={isDataEntryDisabled} size="sm" className="h-8 text-xs">Apply</Button>
                   </div>
               </div>
             </div>
