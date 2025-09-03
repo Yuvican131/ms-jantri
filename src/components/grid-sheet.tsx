@@ -868,11 +868,11 @@ const handleHarupApply = () => {
 
   return (
     <>
-      <Card>
-        <CardContent className="p-2">
-          <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-2">
-            <div className="flex flex-col min-w-0">
-              <div className="grid gap-0.5 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`}}>
+      <Card className="h-[calc(100vh-2rem)] flex flex-col">
+        <CardContent className="p-2 flex-grow flex flex-col">
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-2 flex-grow">
+            <div className="flex flex-col min-w-0 h-full">
+              <div className="grid gap-0.5 w-full h-full" style={{gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`}}>
                 {Array.from({ length: GRID_ROWS * GRID_COLS }, (_, index) => {
                     const rowIndex = Math.floor(index / GRID_COLS);
                     const colIndex = index % GRID_COLS;
@@ -883,11 +883,11 @@ const handleHarupApply = () => {
                     const isUpdated = updatedCells.includes(key);
 
                     return (
-                        <div key={key} className="relative aspect-square border border-primary/30 rounded-sm">
+                        <div key={key} className="relative border border-primary/30 rounded-sm flex">
                           <div className="absolute top-0 left-0.5 text-xs text-cyan-400/80 select-none pointer-events-none z-10" style={{fontSize: '0.5rem'}}>{displayCellNumber}</div>
                           <Input
                               type="text"
-                              style={{ fontSize: 'clamp(0.5rem, 1vw, 0.65rem)'}}
+                              style={{ fontSize: 'clamp(0.5rem, 1.2vh, 0.75rem)'}}
                               className={`p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent text-sky-200'}`}
                               value={currentData[key] || ''}
                               onChange={(e) => handleCellChange(key, e.target.value)}
@@ -917,7 +917,7 @@ const handleHarupApply = () => {
                 })}
               </div>
 
-               {/* Row Totals and Column Totals */}
+               {/* Column Totals */}
               <div className="grid gap-0.5 mt-0.5" style={{ gridTemplateColumns: `repeat(${GRID_COLS}, 1fr) auto` }}>
                 {Array.from({ length: GRID_COLS }, (_, colIndex) => {
                     let total = 0;
@@ -926,25 +926,25 @@ const handleHarupApply = () => {
                         total += parseFloat(currentData[key]) || 0;
                     }
                     return (
-                        <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0">
-                           <Input readOnly value={total} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-green-400" style={{ fontSize: 'clamp(0.5rem, 1vw, 0.65rem)'}}/>
+                        <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-8">
+                           <Input readOnly value={total} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-green-400" style={{ fontSize: 'clamp(0.5rem, 1.2vh, 0.75rem)'}}/>
                         </div>
                     );
                 })}
-                <div className="flex items-center justify-center p-1 font-bold bg-primary/20 rounded-sm text-sm">
+                <div className="flex items-center justify-center p-1 font-bold bg-primary/20 rounded-sm text-sm h-8">
                   {calculateGrandTotal(currentData, currentRowTotals)}
                 </div>
               </div>
             </div>
 
             <div className="flex flex-col gap-2">
-                <div className="grid grid-cols-10 gap-0.5">
+                <div className="grid grid-cols-10 gap-0.5 h-[calc(100%-2.25rem)]">
                   {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
-                      <div key={`row-total-${rowIndex}`} className="col-span-1 flex items-center justify-center p-0 font-medium border-transparent border aspect-square">
+                      <div key={`row-total-${rowIndex}`} className="col-span-1 flex items-center justify-center p-0 font-medium border-transparent border">
                         <Input
                           type="text"
                           className={`font-medium text-center h-full w-full p-0 border-0 focus:ring-0 bg-transparent text-red-500 ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent'}`}
-                          style={{ fontSize: 'clamp(0.5rem, 1vw, 0.65rem)'}}
+                          style={{ fontSize: 'clamp(0.5rem, 1.2vh, 0.75rem)'}}
                           value={getRowTotal(rowIndex)}
                           onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
                           onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
@@ -956,7 +956,7 @@ const handleHarupApply = () => {
                   ))}
                 </div>
 
-                <div className="border rounded-lg p-2 flex flex-col gap-2 mt-2">
+                <div className="border rounded-lg p-2 flex flex-col gap-2 mt-auto">
                     <div className="flex items-center gap-2">
                         <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
                             <SelectTrigger className="flex-grow h-8 text-xs">
@@ -1224,7 +1224,3 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-    
-
-    
