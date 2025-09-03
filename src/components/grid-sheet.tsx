@@ -852,7 +852,7 @@ const handleHarupApply = () => {
     <>
       <Card className="h-full flex flex-col">
         <CardContent className="p-2 flex-grow flex flex-col">
-          <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-2 flex-grow">
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-2 flex-grow">
             <div className="flex flex-col min-w-0 h-full">
                <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`}}>
                 {Array.from({ length: GRID_ROWS * GRID_COLS }, (_, index) => {
