@@ -837,9 +837,9 @@ const handleHarupApply = () => {
     setIsMasterSheetDialogOpen(false);
   };
 
-  const columnTotals = Array.from({ length: GRID_COLS }, (_, colIndex) => {
+  const rowTotals = Array.from({ length: GRID_ROWS }, (_, rowIndex) => {
     let total = 0;
-    for (let rowIndex = 0; rowIndex < GRID_ROWS; rowIndex++) {
+    for (let colIndex = 0; colIndex < GRID_COLS; colIndex++) {
       const key = (rowIndex * GRID_COLS + colIndex).toString().padStart(2, '0');
       total += parseFloat(currentData[key]) || 0;
     }
@@ -854,51 +854,51 @@ const handleHarupApply = () => {
         <CardContent className="p-2 flex-grow flex flex-col overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-2 flex-grow overflow-hidden">
             <div className="flex flex-col min-w-0 h-full">
-               <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`}}>
-                {Array.from({ length: GRID_ROWS * GRID_COLS }, (_, index) => {
-                    const key = String(index).padStart(2, '0');
-                    const validation = validations[key]
-                    const isUpdated = updatedCells.includes(key);
+               <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`}}>
+                {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
+                  <React.Fragment key={`row-${rowIndex}`}>
+                    {Array.from({ length: GRID_COLS }, (_, colIndex) => {
+                        const key = String(rowIndex * GRID_COLS + colIndex).padStart(2, '0');
+                        const validation = validations[key]
+                        const isUpdated = updatedCells.includes(key);
 
-                    return (
-                        <div key={key} className="relative border border-primary/30 rounded-sm flex">
-                          <div className="absolute top-0 left-0.5 text-xs text-cyan-400/80 select-none pointer-events-none z-10" style={{fontSize: '0.5rem'}}>{key}</div>
-                          <Input
-                              type="text"
-                              style={{ fontSize: 'clamp(0.5rem, 1vh, 0.65rem)'}}
-                              className={`p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent text-sky-200'}`}
-                              value={currentData[key] || ''}
-                              onChange={(e) => handleCellChange(key, e.target.value)}
-                              onBlur={() => handleCellBlur(key)}
-                              aria-label={`Cell ${key}`}
-                              disabled={selectedClientId === null}
-                              onClick={selectedClientId === null ? showClientSelectionToast : undefined}
-                          />
-                          {(validation?.isLoading || (validation && !validation.isValid)) && (
-                              <div className="absolute top-1/2 right-1 -translate-y-1/2 z-10">
-                              {validation.isLoading ? (
-                                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                              ) : (
-                                  <Popover>
-                                  <PopoverTrigger asChild>
-                                      <button aria-label="Show validation error">
-                                      <AlertCircle className="h-3 w-3 text-destructive" />
-                                      </button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="text-sm">{validation.recommendation}</PopoverContent>
-                                  </Popover>
+                        return (
+                            <div key={key} className="relative border border-primary/30 rounded-sm flex">
+                              <div className="absolute top-0 left-0.5 text-xs text-cyan-400/80 select-none pointer-events-none z-10" style={{fontSize: '0.5rem'}}>{key}</div>
+                              <Input
+                                  type="text"
+                                  style={{ fontSize: 'clamp(0.5rem, 1vh, 0.65rem)'}}
+                                  className={`p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent text-sky-200'}`}
+                                  value={currentData[key] || ''}
+                                  onChange={(e) => handleCellChange(key, e.target.value)}
+                                  onBlur={() => handleCellBlur(key)}
+                                  aria-label={`Cell ${key}`}
+                                  disabled={selectedClientId === null}
+                                  onClick={selectedClientId === null ? showClientSelectionToast : undefined}
+                              />
+                              {(validation?.isLoading || (validation && !validation.isValid)) && (
+                                  <div className="absolute top-1/2 right-1 -translate-y-1/2 z-10">
+                                  {validation.isLoading ? (
+                                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                  ) : (
+                                      <Popover>
+                                      <PopoverTrigger asChild>
+                                          <button aria-label="Show validation error">
+                                          <AlertCircle className="h-3 w-3 text-destructive" />
+                                          </button>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="text-sm">{validation.recommendation}</PopoverContent>
+                                      </Popover>
+                                  )}
+                                  </div>
                               )}
-                              </div>
-                          )}
-                        </div>
-                    )
-                })}
-              </div>
-               <div className="grid gap-0.5 w-full mt-0.5" style={{gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`}}>
-                {columnTotals.map((total, colIndex) => (
-                  <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full bg-primary/20 rounded-sm">
-                    <Input readOnly value={total} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-green-400" style={{ fontSize: 'clamp(0.5rem, 1vh, 0.65rem)'}}/>
-                  </div>
+                            </div>
+                        )
+                    })}
+                     <div key={`row-total-${rowIndex}`} className="flex items-center justify-center font-medium p-0 h-full bg-primary/20 rounded-sm">
+                        <Input readOnly value={rowTotals[rowIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-green-400" style={{ fontSize: 'clamp(0.5rem, 1vh, 0.65rem)'}}/>
+                      </div>
+                  </React.Fragment>
                 ))}
               </div>
             </div>
