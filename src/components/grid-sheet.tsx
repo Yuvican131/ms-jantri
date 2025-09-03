@@ -337,47 +337,18 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     return total;
   };
 
-  const getRowTotal = (rowIndex: number) => {
-    if (currentRowTotals[rowIndex] !== undefined) {
-      return currentRowTotals[rowIndex];
-    }
-    return calculateRowTotal(rowIndex, currentData).toString();
-  }
-
   const calculateGrandTotal = (data: CellData, totals: { [key: number]: string }) => {
     let total = 0;
     for (let i = 0; i < GRID_ROWS; i++) {
-        if (totals[i] !== undefined) {
-            total += Number(totals[i]);
-        } else {
-            total += calculateRowTotal(i, data);
+      for (let j = 0; j < GRID_COLS; j++) {
+        const key = (i * GRID_COLS + j).toString().padStart(2, '0');
+        if (data[key] && !isNaN(Number(data[key]))) {
+          total += Number(data[key]);
         }
+      }
     }
     return total;
   };
-
-  const handleRowTotalChange = (rowIndex: number, value: string) => {
-    if (selectedClientId === null) {
-      showClientSelectionToast();
-      return;
-    }
-    saveDataForUndo();
-    const newRowTotals = { ...currentRowTotals, [rowIndex]: value };
-    if (selectedClientId) {
-      updateClientData(selectedClientId, currentData, newRowTotals);
-    } else {
-      setSheets(prevSheets => prevSheets.map(sheet => 
-        sheet.id === activeSheetId ? { ...sheet, rowTotals: newRowTotals } : sheet
-      ));
-    }
-  };
-
-  const handleRowTotalBlur = (rowIndex: number, value: string) => {
-    if (isDataEntryDisabled) return;
-    if(value.trim() === '') {
-      handleRowTotalChange(rowIndex, '0');
-    }
-  }
 
   const handleMultiTextApply = () => {
     if (selectedClientId === null) {
@@ -881,7 +852,7 @@ const handleHarupApply = () => {
     <>
       <Card className="h-full flex flex-col">
         <CardContent className="p-2 flex-grow flex flex-col">
-          <div className="grid grid-cols-1 xl:grid-cols-[1fr_350px] gap-2 flex-grow">
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-2 flex-grow">
             <div className="flex flex-col min-w-0 h-full">
                <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`}}>
                 {Array.from({ length: GRID_ROWS * GRID_COLS }, (_, index) => {
@@ -1201,3 +1172,5 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
