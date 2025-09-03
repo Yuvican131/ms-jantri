@@ -96,8 +96,8 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <main className="flex-1 p-2">
-        <Tabs defaultValue="sheet" className="w-full">
+      <main className="flex-1 p-2 flex flex-col">
+        <Tabs defaultValue="sheet" className="w-full flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center">
               <TabsList className="grid grid-cols-3 md:w-auto p-0.5 gap-0.5">
@@ -128,9 +128,9 @@ export default function Home() {
               )}
             </div>
           </div>
-          <TabsContent value="sheet">
+          <TabsContent value="sheet" className="flex-1 flex flex-col">
             {selectedInfo ? (
-              <div>
+              <div className="flex-1">
                 <GridSheet 
                   ref={gridSheetRef} 
                   draw={selectedInfo.draw} 
