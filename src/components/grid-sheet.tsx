@@ -850,9 +850,9 @@ const handleHarupApply = () => {
 
   return (
     <>
-      <Card className="h-full flex flex-col">
-        <CardContent className="p-2 flex-grow flex flex-col">
-          <div className="grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-2 flex-grow">
+      <Card className="h-full flex flex-col overflow-hidden">
+        <CardContent className="p-2 flex-grow flex flex-col overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-2 flex-grow overflow-hidden">
             <div className="flex flex-col min-w-0 h-full">
                <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`}}>
                 {Array.from({ length: GRID_ROWS * GRID_COLS }, (_, index) => {
@@ -903,7 +903,7 @@ const handleHarupApply = () => {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 w-full lg:w-[260px] xl:w-[280px]">
                 <div className="border rounded-lg p-2 flex flex-col gap-2 mt-auto">
                     <div className="flex items-center gap-2">
                         <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
@@ -1172,5 +1172,7 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
 
     
