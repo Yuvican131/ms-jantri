@@ -870,9 +870,9 @@ const handleHarupApply = () => {
     <>
       <Card>
         <CardContent className="p-2">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-2">
-            <div className="lg:col-span-3">
-              <div className="grid gap-0.5 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr)) auto`}}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div className="flex flex-col">
+              <div className="grid gap-0.5 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`}}>
                 {Array.from({ length: GRID_ROWS * GRID_COLS }, (_, index) => {
                     const rowIndex = Math.floor(index / GRID_COLS);
                     const colIndex = index % GRID_COLS;
@@ -883,68 +883,68 @@ const handleHarupApply = () => {
                     const isUpdated = updatedCells.includes(key);
 
                     return (
-                        <div key={key} className="relative aspect-square border border-primary/30 rounded-md">
-                        <div className="absolute top-0.5 left-1 text-xs text-cyan-400 select-none pointer-events-none z-10">{displayCellNumber}</div>
-                        <Input
-                            type="text"
-                            style={{ 
-                                fontSize: 'clamp(0.6rem, 1.5vw, 0.875rem)',
-                                color: '#e0f2fe'
-                            }}
-                            className={`p-1 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent'}`}
-                            value={currentData[key] || ''}
-                            onChange={(e) => handleCellChange(key, e.target.value)}
-                            onBlur={() => handleCellBlur(key)}
-                            aria-label={`Cell ${displayCellNumber}`}
-                            disabled={selectedClientId === null}
-                            onClick={selectedClientId === null ? showClientSelectionToast : undefined}
-                        />
-                        {(validation?.isLoading || (validation && !validation.isValid)) && (
-                            <div className="absolute top-1/2 right-1 -translate-y-1/2 z-10">
-                            {validation.isLoading ? (
-                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                            ) : (
-                                <Popover>
-                                <PopoverTrigger asChild>
-                                    <button aria-label="Show validation error">
-                                    <AlertCircle className="h-4 w-4 text-destructive" />
-                                    </button>
-                                </PopoverTrigger>
-                                <PopoverContent className="text-sm">{validation.recommendation}</PopoverContent>
-                                </Popover>
-                            )}
-                            </div>
-                        )}
+                        <div key={key} className="relative aspect-square border border-primary/30 rounded-sm">
+                          <div className="absolute top-0 left-0.5 text-xs text-cyan-400/80 select-none pointer-events-none z-10" style={{fontSize: '0.6rem'}}>{displayCellNumber}</div>
+                          <Input
+                              type="text"
+                              style={{ fontSize: 'clamp(0.5rem, 1.2vw, 0.75rem)'}}
+                              className={`p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent text-sky-200'}`}
+                              value={currentData[key] || ''}
+                              onChange={(e) => handleCellChange(key, e.target.value)}
+                              onBlur={() => handleCellBlur(key)}
+                              aria-label={`Cell ${displayCellNumber}`}
+                              disabled={selectedClientId === null}
+                              onClick={selectedClientId === null ? showClientSelectionToast : undefined}
+                          />
+                          {(validation?.isLoading || (validation && !validation.isValid)) && (
+                              <div className="absolute top-1/2 right-1 -translate-y-1/2 z-10">
+                              {validation.isLoading ? (
+                                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                              ) : (
+                                  <Popover>
+                                  <PopoverTrigger asChild>
+                                      <button aria-label="Show validation error">
+                                      <AlertCircle className="h-3 w-3 text-destructive" />
+                                      </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="text-sm">{validation.recommendation}</PopoverContent>
+                                  </Popover>
+                              )}
+                              </div>
+                          )}
                         </div>
                     )
                 })}
               </div>
 
-               {/* Row Totals Column */}
-              <div className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${GRID_COLS}, 1fr) auto`, marginTop: '0.125rem' }}>
-                {Array.from({ length: GRID_COLS }, (_, rowIndex) => {
+               {/* Row Totals and Column Totals */}
+              <div className="grid gap-0.5 mt-0.5" style={{ gridTemplateColumns: `repeat(${GRID_COLS}, 1fr) auto` }}>
+                {Array.from({ length: GRID_COLS }, (_, colIndex) => {
                     let total = 0;
-                    for (let colIndex = 0; colIndex < GRID_COLS; colIndex++) {
+                    for (let rowIndex = 0; rowIndex < GRID_ROWS; rowIndex++) {
                         const key = (rowIndex * GRID_COLS + colIndex).toString().padStart(2, '0');
                         total += parseFloat(currentData[key]) || 0;
                     }
                     return (
-                        <div key={`col-total-${rowIndex}`} className="col-span-1 flex items-center justify-center font-medium p-0">
-                           <Input readOnly value={total} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-green-400" style={{ fontSize: 'clamp(0.6rem, 1.5vw, 0.875rem)'}}/>
+                        <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0">
+                           <Input readOnly value={total} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-green-400" style={{ fontSize: 'clamp(0.5rem, 1.2vw, 0.75rem)'}}/>
                         </div>
                     );
                 })}
-                <div className="flex items-center justify-center p-2 font-bold bg-primary/20 rounded-md text-lg">
+                <div className="flex items-center justify-center p-1 font-bold bg-primary/20 rounded-sm text-base">
                   {calculateGrandTotal(currentData, currentRowTotals)}
                 </div>
               </div>
-              <div className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${GRID_COLS}, 1fr) auto` }}>
-                {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
-                      <div key={`row-total-${rowIndex}`} className="row-span-1 flex items-center justify-center p-0 font-medium border-transparent border">
+            </div>
+
+            <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-10 gap-0.5">
+                  {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
+                      <div key={`row-total-${rowIndex}`} className="col-span-1 flex items-center justify-center p-0 font-medium border-transparent border aspect-square">
                         <Input
                           type="text"
-                          className={`font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-red-500 ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent'}`}
-                          style={{ fontSize: 'clamp(0.6rem, 1.5vw, 0.875rem)'}}
+                          className={`font-medium text-center h-full w-full p-0 border-0 focus:ring-0 bg-transparent text-red-500 ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent'}`}
+                          style={{ fontSize: 'clamp(0.5rem, 1.2vw, 0.75rem)'}}
                           value={getRowTotal(rowIndex)}
                           onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
                           onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
@@ -954,11 +954,9 @@ const handleHarupApply = () => {
                         />
                       </div>
                   ))}
-              </div>
-            </div>
+                </div>
 
-            <div className="lg:col-span-2 flex flex-col gap-2">
-                <div className="border rounded-lg p-2">
+                <div className="border rounded-lg p-2 flex flex-col gap-2 mt-2">
                     <div className="flex items-center gap-2">
                         <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
                             <SelectTrigger className="flex-grow h-8 text-xs">
@@ -1060,16 +1058,14 @@ const handleHarupApply = () => {
                       <Input id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
                       <Button onClick={handleHarupApply} disabled={selectedClientId === null} size="sm" className="h-8 text-xs">Apply</Button>                  </div>
               </div>
+              <div className="w-full flex flex-row gap-2 mt-auto pt-2">
+                <Button onClick={openMasterSheetDialog} variant="outline" className="w-full">
+                    Master Sheet
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col gap-4 pt-2">
-            <div className="w-full flex flex-row gap-2 mt-4">
-              <Button onClick={openMasterSheetDialog} variant="outline" className="w-full">
-                  Master Sheet
-              </Button>
-            </div>
-        </CardFooter>
       </Card>
       <Dialog open={isGeneratedSheetDialogOpen} onOpenChange={setIsGeneratedSheetDialogOpen}>
         <DialogContent>

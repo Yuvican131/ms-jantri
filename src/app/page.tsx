@@ -96,7 +96,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <main className="flex-1 p-2 sm:p-4">
+      <main className="flex-1 p-2">
         <Tabs defaultValue="sheet" className="w-full">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center">
