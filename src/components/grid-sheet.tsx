@@ -132,6 +132,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   };
 
   const saveDataForUndo = () => {
+    if (isDataEntryDisabled) return;
     const dataToSave = selectedClientId ? clientSheetData[selectedClientId] : activeSheet;
     setPreviousSheetState({ data: { ...(dataToSave?.data || {}) }, rowTotals: { ...(dataToSave?.rowTotals || {}) } });
   };
@@ -888,12 +889,13 @@ const handleHarupApply = () => {
                                 fontSize: 'clamp(0.6rem, 2vw, 1rem)',
                                 color: 'darkblue'
                             }}
-                            className={`p-1 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50' : 'bg-transparent'}`}
+                            className={`p-1 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent'}`}
                             value={currentData[key] || ''}
                             onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
                             onBlur={() => handleCellBlur(rowIndex, colIndex)}
                             aria-label={`Cell ${displayCellNumber}`}
                             disabled={isDataEntryDisabled}
+                            onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
                           />
                           {(validation?.isLoading || (validation && !validation.isValid)) && (
                             <div className="absolute top-1/2 right-1 -translate-y-1/2 z-10">
@@ -917,12 +919,13 @@ const handleHarupApply = () => {
                     <div className="flex items-center justify-center p-0 font-medium aspect-square border-red-500 border">
                       <Input
                         type="text"
-                        className="text-lg font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-red-500"
+                        className={`text-lg font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-red-500 ${isDataEntryDisabled ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent'}`}
                         value={getRowTotal(rowIndex)}
                         onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
                         onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
                         aria-label={`Row ${rowIndex} Total`}
                         disabled={isDataEntryDisabled}
+                        onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
                       />
                     </div>
                   </React.Fragment>
@@ -968,6 +971,7 @@ const handleHarupApply = () => {
                         onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
                         className="w-full text-xs"
                         disabled={isDataEntryDisabled}
+                        onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
                     />
                     <div className="flex flex-wrap gap-2 mt-1 items-start">
                         <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={isDataEntryDisabled} size="sm">Apply</Button>
@@ -987,11 +991,13 @@ const handleHarupApply = () => {
                       <Input
                         id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-8 text-sm" placeholder="Num 1"
                         value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
+                        onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
                       />
                       <span className="font-bold text-center text-sm">x</span>
                       <Input
                         id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-8 text-sm" placeholder="Num 2"
                         value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
+                        onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
                       />
                   </div>
                   <div className="grid grid-cols-5 items-center gap-1">
@@ -1001,6 +1007,7 @@ const handleHarupApply = () => {
                         id="amount" type="text" className="text-center font-bold h-8 text-sm"
                         value={laddiAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
                         placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
+                        onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
                       />
                     </div>
                     <div className="col-span-2 flex justify-end">
@@ -1009,8 +1016,8 @@ const handleHarupApply = () => {
                   </div>
                   <div className="flex justify-between items-center gap-2 mt-1">
                       <div className="flex items-center gap-2">
-                          <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={isDataEntryDisabled}/>
-                          <Label htmlFor="remove-jodda" className="text-xs">Jodda</Label>
+                          <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
+                          <Label htmlFor="remove-jodda" className={`text-xs ${isDataEntryDisabled ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Jodda</Label>
                       </div>
                       <div className="text-xs font-bold text-primary">{combinationCount} Combos</div>
                   </div>
@@ -1021,16 +1028,16 @@ const handleHarupApply = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                     <div className="flex items-center gap-1">
                         <Label htmlFor="harupA" className="w-6 text-center shrink-0 text-xs">A</Label>
-                        <Input id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                        <Input id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
                     </div>
                     <div className="flex items-center gap-1">
                         <Label htmlFor="harupB" className="w-6 text-center shrink-0 text-xs">B</Label>
-                        <Input id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                        <Input id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
                     </div>
                   </div>
                    <div className="flex items-center gap-2 mt-1">
                       <Label htmlFor="harupAmount" className="w-6 text-center shrink-0 text-xs">=</Label>
-                      <Input id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled}/>
+                      <Input id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
                       <Button onClick={handleHarupApply} disabled={isDataEntryDisabled} size="sm" className="h-8 text-xs">Apply</Button>
                   </div>
               </div>
@@ -1205,6 +1212,8 @@ GridSheet.displayName = 'GridSheet';
 export default GridSheet;
 
 
+
+    
 
     
 
