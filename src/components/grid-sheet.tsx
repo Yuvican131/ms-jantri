@@ -846,6 +846,15 @@ const handleHarupApply = () => {
     return total;
   });
 
+  const columnTotals = Array.from({ length: GRID_COLS }, (_, colIndex) => {
+    let total = 0;
+    for (let rowIndex = 0; rowIndex < GRID_ROWS; rowIndex++) {
+      const key = (rowIndex * GRID_COLS + colIndex).toString().padStart(2, '0');
+      total += parseFloat(currentData[key]) || 0;
+    }
+    return total;
+  });
+
   const grandTotal = calculateGrandTotal(currentData, currentRowTotals);
 
   return (
@@ -854,7 +863,7 @@ const handleHarupApply = () => {
         <CardContent className="p-2 flex-grow flex flex-col overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-2 flex-grow overflow-hidden">
             <div className="flex flex-col min-w-0 h-full">
-               <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`}}>
+               <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${GRID_ROWS + 1}, minmax(0, 1fr))`}}>
                 {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                   <React.Fragment key={`row-${rowIndex}`}>
                     {Array.from({ length: GRID_COLS }, (_, colIndex) => {
@@ -895,15 +904,18 @@ const handleHarupApply = () => {
                             </div>
                         )
                     })}
-                     <div key={`row-total-${rowIndex}`} className="flex items-center justify-center font-medium p-0 h-full bg-primary/20 rounded-sm">
-                        <Input readOnly value={rowTotals[rowIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-green-400" style={{ fontSize: 'clamp(0.5rem, 1vh, 0.65rem)'}}/>
-                      </div>
                   </React.Fragment>
+                ))}
+                {/* Column Totals */}
+                {Array.from({ length: GRID_COLS }, (_, colIndex) => (
+                  <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full bg-primary/20 rounded-sm">
+                    <Input readOnly value={columnTotals[colIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-green-400" style={{ fontSize: 'clamp(0.5rem, 1vh, 0.65rem)'}}/>
+                  </div>
                 ))}
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 w-full lg:w-[220px] xl:w-[240px]">
+            <div className="flex flex-col gap-2 w-full lg:w-[300px] xl:w-[320px]">
                 <div className="border rounded-lg p-2 flex flex-col gap-2 mt-auto">
                     <div className="flex items-center gap-2">
                         <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
@@ -1172,9 +1184,5 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-    
-
-    
 
     
