@@ -873,7 +873,7 @@ const handleHarupApply = () => {
 
                         return (
                             <div key={key} className="relative border border-primary/30 rounded-sm flex">
-                              <div className="absolute top-0 left-0.5 text-xs text-cyan-400/80 select-none pointer-events-none z-10" style={{fontSize: '0.5rem'}}>{key}</div>
+                               <div className="absolute top-0 left-0.5 text-lg font-bold text-cyan-400/80 select-none pointer-events-none z-10" style={{ textShadow: '0 0 5px rgba(0, 255, 255, 0.5)' }}>{key}</div>
                               <Input
                                   type="text"
                                   style={{ fontSize: 'clamp(0.5rem, 1vh, 0.65rem)'}}
