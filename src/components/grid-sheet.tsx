@@ -166,7 +166,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const commission = parseFloat(client.comm);
 
         if (!isNaN(cellNum) && cellNum >= 0 && cellNum <= 99 && !isNaN(commission)) {
-          const key = (cellNum).toString();
+          const key = (cellNum).toString().padStart(2, '0');
           
           const newData = { ...currentData };
           const currentValue = parseFloat(newData[key]) || 0;
@@ -327,8 +327,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const calculateRowTotal = (rowIndex: number, data: CellData) => {
     let total = 0;
     for (let colIndex = 0; colIndex < GRID_COLS; colIndex++) {
-        const cellNumber = colIndex * GRID_ROWS + rowIndex;
-        const key = cellNumber.toString();
+        const cellNumber = rowIndex * GRID_COLS + colIndex;
+        const key = cellNumber.toString().padStart(2, '0');
         const value = data[key];
         if (value && !isNaN(Number(value))) {
             total += Number(value);
@@ -422,7 +422,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const formattedCells = cellNumbers
           .map(s => {
             const num = parseInt(s, 10);
-            if (num >= 0 && num <= 99) return String(num);
+            if (num >= 0 && num <= 99) return String(num).padStart(2, '0');
             return null;
           })
           .filter((s): s is string => s !== null)
@@ -434,7 +434,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
             let cellNum = parseInt(numStr, 10);
             
             if (isNaN(cellNum) || cellNum < 0 || cellNum > 99) return;
-            const key = (cellNum).toString();
+            const key = (cellNum).toString().padStart(2, '0');
             
             const currentValueInUpdate = parseFloat(updates[key]) || 0;
             updates[key] = String(currentValueInUpdate + newValue);
@@ -501,7 +501,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
             let cellNum = parseInt(cellNumStr, 10);
             
             if (!isNaN(cellNum) && cellNum >= 0 && cellNum <= 99) {
-                const key = (cellNum).toString();
+                const key = (cellNum).toString().padStart(2, '0');
                 
                 const currentValueInUpdate = parseFloat(updates[key]) || 0;
                 updates[key] = String(currentValueInUpdate + amountValue);
@@ -569,14 +569,14 @@ const handleHarupApply = () => {
     harupADigits.forEach(digit => {
         for (let i = 0; i < 10; i++) {
             let cellNum = parseInt(`${digit}${i}`, 10);
-            affectedCells.add((cellNum).toString());
+            affectedCells.add((cellNum).toString().padStart(2, '0'));
         }
     });
 
     harupBDigits.forEach(digit => {
         for (let i = 0; i < 10; i++) {
             let cellNum = parseInt(`${i}${digit}`, 10);
-            affectedCells.add((cellNum).toString());
+            affectedCells.add((cellNum).toString().padStart(2, '0'));
         }
     });
     
@@ -762,9 +762,10 @@ const handleHarupApply = () => {
           newMasterData[key] = String(masterValue + clientValue);
         });
         const newMasterRowTotals = { ...sheet.rowTotals };
-        Object.keys(newMasterRowTotals).forEach(rowIndexStr => {
+        Object.keys(clientRowTotals).forEach(rowIndexStr => {
             const rowIndex = parseInt(rowIndexStr, 10);
-            newMasterRowTotals[rowIndex] = calculateRowTotal(rowIndex, newMasterData).toString();
+            const masterRowTotal = calculateRowTotal(rowIndex, newMasterData);
+            newMasterRowTotals[rowIndex] = masterRowTotal.toString();
         });
 
         return { ...sheet, data: newMasterData, rowTotals: newMasterRowTotals };
@@ -869,22 +870,22 @@ const handleHarupApply = () => {
     <>
       <Card>
         <CardContent className="p-2">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
-            <div className="lg:col-span-2">
-              <div className="grid gap-0 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`}}>
-                {Array.from({ length: GRID_COLS }, (_, colIndex) => (
-                  <React.Fragment key={colIndex}>
-                    {Array.from({ length: GRID_ROWS }, (_, rowIndex) => {
-                      const cellNumber = colIndex * GRID_ROWS + rowIndex;
-                      const displayCellNumber = String(cellNumber).padStart(2, '0');
-                      const key = cellNumber.toString();
-                      const validation = validations[key]
-                      const isUpdated = updatedCells.includes(key);
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-2">
+            <div className="lg:col-span-3">
+              <div className="grid gap-0.5 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr)) auto`}}>
+                {Array.from({ length: GRID_ROWS * GRID_COLS }, (_, index) => {
+                    const rowIndex = Math.floor(index / GRID_COLS);
+                    const colIndex = index % GRID_COLS;
+                    const cellNumber = rowIndex * GRID_COLS + colIndex;
+                    const displayCellNumber = String(cellNumber).padStart(2, '0');
+                    const key = displayCellNumber;
+                    const validation = validations[key]
+                    const isUpdated = updatedCells.includes(key);
 
-                      return (
+                    return (
                         <div key={key} className="relative aspect-square border border-primary/30 rounded-md">
-                          <div className="absolute top-0.5 left-1 text-xs text-cyan-400 select-none pointer-events-none z-10">{displayCellNumber}</div>
-                          <Input
+                        <div className="absolute top-0.5 left-1 text-xs text-cyan-400 select-none pointer-events-none z-10">{displayCellNumber}</div>
+                        <Input
                             type="text"
                             style={{ 
                                 fontSize: 'clamp(0.6rem, 1.5vw, 0.875rem)',
@@ -897,32 +898,49 @@ const handleHarupApply = () => {
                             aria-label={`Cell ${displayCellNumber}`}
                             disabled={selectedClientId === null}
                             onClick={selectedClientId === null ? showClientSelectionToast : undefined}
-                          />
-                          {(validation?.isLoading || (validation && !validation.isValid)) && (
+                        />
+                        {(validation?.isLoading || (validation && !validation.isValid)) && (
                             <div className="absolute top-1/2 right-1 -translate-y-1/2 z-10">
-                              {validation.isLoading ? (
+                            {validation.isLoading ? (
                                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                              ) : (
+                            ) : (
                                 <Popover>
-                                  <PopoverTrigger asChild>
+                                <PopoverTrigger asChild>
                                     <button aria-label="Show validation error">
-                                      <AlertCircle className="h-4 w-4 text-destructive" />
+                                    <AlertCircle className="h-4 w-4 text-destructive" />
                                     </button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="text-sm">{validation.recommendation}</PopoverContent>
+                                </PopoverTrigger>
+                                <PopoverContent className="text-sm">{validation.recommendation}</PopoverContent>
                                 </Popover>
-                              )}
+                            )}
                             </div>
-                          )}
+                        )}
                         </div>
-                      )
-                    })}
-                  </React.Fragment>
-                ))}
-                 {/* Row Totals Column */}
-                 <div className="flex flex-col">
-                  {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
-                      <div key={`row-total-${rowIndex}`} className="flex items-center justify-center p-0 font-medium aspect-square border-transparent border">
+                    )
+                })}
+              </div>
+
+               {/* Row Totals Column */}
+              <div className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${GRID_COLS}, 1fr) auto`, marginTop: '0.125rem' }}>
+                {Array.from({ length: GRID_COLS }, (_, rowIndex) => {
+                    let total = 0;
+                    for (let colIndex = 0; colIndex < GRID_COLS; colIndex++) {
+                        const key = (rowIndex * GRID_COLS + colIndex).toString().padStart(2, '0');
+                        total += parseFloat(currentData[key]) || 0;
+                    }
+                    return (
+                        <div key={`col-total-${rowIndex}`} className="col-span-1 flex items-center justify-center font-medium p-0">
+                           <Input readOnly value={total} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-green-400" style={{ fontSize: 'clamp(0.6rem, 1.5vw, 0.875rem)'}}/>
+                        </div>
+                    );
+                })}
+                <div className="flex items-center justify-center p-2 font-bold bg-primary/20 rounded-md text-lg">
+                  {calculateGrandTotal(currentData, currentRowTotals)}
+                </div>
+              </div>
+              <div className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${GRID_COLS}, 1fr) auto` }}>
+                {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
+                      <div key={`row-total-${rowIndex}`} className="row-span-1 flex items-center justify-center p-0 font-medium border-transparent border">
                         <Input
                           type="text"
                           className={`font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-red-500 ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent'}`}
@@ -936,18 +954,10 @@ const handleHarupApply = () => {
                         />
                       </div>
                   ))}
-                 </div>
-              </div>
-              <div className="grid gap-0 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`}}>
-                  {/* Grand total row */}
-                  <div style={{ gridColumn: `span ${GRID_COLS}` }} className="flex items-center justify-end p-2 font-bold mt-1 pr-4 text-lg"></div>
-                  <div className="flex items-center justify-center p-2 font-bold bg-primary/20 rounded-md mt-1 text-lg">
-                      {calculateGrandTotal(currentData, currentRowTotals)}
-                  </div>
               </div>
             </div>
 
-            <div className="lg:col-span-1 flex flex-col gap-2">
+            <div className="lg:col-span-2 flex flex-col gap-2">
                 <div className="border rounded-lg p-2">
                     <div className="flex items-center gap-2">
                         <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
@@ -1105,10 +1115,10 @@ const handleHarupApply = () => {
                   {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                     <React.Fragment key={`master-row-${rowIndex}`}>
                       {Array.from({ length: GRID_COLS }, (_, colIndex) => {
-                        const cellNumber = colIndex * GRID_ROWS + rowIndex;
+                        const cellNumber = rowIndex * GRID_COLS + colIndex;
                         const displayCellNumber = String(cellNumber).padStart(2, '0');
                         
-                        const key = cellNumber.toString();
+                        const key = displayCellNumber;
                         return (
                           <div key={`master-cell-${key}`} className="relative">
                             <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{displayCellNumber}</div>
