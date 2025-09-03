@@ -156,7 +156,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
   useImperativeHandle(ref, () => ({
     handleClientUpdate: (client: Client) => {
-      if (isDataEntryDisabled) {
+      if (selectedClientId === null) {
         showClientSelectionToast();
         return;
       }
@@ -218,7 +218,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   }, [laddiNum1, laddiNum2, removeJodda]);
 
   const handleLaddiNum1Change = (value: string) => {
-    if (isDataEntryDisabled) {
+    if (selectedClientId === null) {
       showClientSelectionToast();
       return;
     }
@@ -236,7 +236,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   }
 
   const handleLaddiNum2Change = (value: string) => {
-    if (isDataEntryDisabled) {
+    if (selectedClientId === null) {
       showClientSelectionToast();
       return;
     }
@@ -253,7 +253,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   }
 
   const handleHarupAChange = (value: string) => {
-    if (isDataEntryDisabled) {
+    if (selectedClientId === null) {
       showClientSelectionToast();
       return;
     }
@@ -266,7 +266,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   };
   
   const handleHarupBChange = (value: string) => {
-    if (isDataEntryDisabled) {
+    if (selectedClientId === null) {
       showClientSelectionToast();
       return;
     }
@@ -279,7 +279,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   };
 
   const handleCellChange = (key: string, value: string) => {
-    if (isDataEntryDisabled) {
+    if (selectedClientId === null) {
       showClientSelectionToast();
       return;
     }
@@ -357,7 +357,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   };
 
   const handleRowTotalChange = (rowIndex: number, value: string) => {
-    if (isDataEntryDisabled) {
+    if (selectedClientId === null) {
       showClientSelectionToast();
       return;
     }
@@ -380,7 +380,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   }
 
   const handleMultiTextApply = () => {
-    if (isDataEntryDisabled) {
+    if (selectedClientId === null) {
       showClientSelectionToast();
       return;
     }
@@ -473,7 +473,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 };
   
   const handleLaddiApply = () => {
-    if (isDataEntryDisabled) {
+    if (selectedClientId === null) {
       showClientSelectionToast();
       return;
     }
@@ -543,7 +543,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 };
 
 const handleHarupApply = () => {
-    if (isDataEntryDisabled) {
+    if (selectedClientId === null) {
         showClientSelectionToast();
         return;
     }
@@ -626,7 +626,7 @@ const handleHarupApply = () => {
 
 
   const handleClearSheet = () => {
-    if (isDataEntryDisabled) {
+    if (selectedClientId === null) {
         showClientSelectionToast();
         return;
     }
@@ -656,7 +656,7 @@ const handleHarupApply = () => {
   };
   
   const handleGenerateSheet = () => {
-    if (isDataEntryDisabled) {
+    if (selectedClientId === null) {
       showClientSelectionToast();
       return;
     }
@@ -701,7 +701,7 @@ const handleHarupApply = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, handler: () => void) => {
-    if (isDataEntryDisabled) {
+    if (selectedClientId === null) {
       showClientSelectionToast();
       e.preventDefault();
       return;
@@ -713,7 +713,7 @@ const handleHarupApply = () => {
   };
 
   const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (isDataEntryDisabled) {
+    if (selectedClientId === null) {
       showClientSelectionToast();
       return;
     }
@@ -869,8 +869,8 @@ const handleHarupApply = () => {
     <>
       <Card>
         <CardContent className="p-2">
-          <div className="flex flex-col xl:flex-row gap-2">
-            <div className="flex-grow">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+            <div className="lg:col-span-2">
               <div className="grid gap-0 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`}}>
                 {Array.from({ length: GRID_COLS }, (_, colIndex) => (
                   <React.Fragment key={colIndex}>
@@ -887,16 +887,16 @@ const handleHarupApply = () => {
                           <Input
                             type="text"
                             style={{ 
-                                fontSize: 'clamp(0.6rem, 2vw, 1rem)',
+                                fontSize: 'clamp(0.6rem, 1.5vw, 0.875rem)',
                                 color: '#e0f2fe'
                             }}
-                            className={`p-1 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-transparent' : (isDataEntryDisabled ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent')}`}
+                            className={`p-1 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent'}`}
                             value={currentData[key] || ''}
                             onChange={(e) => handleCellChange(key, e.target.value)}
                             onBlur={() => handleCellBlur(key)}
                             aria-label={`Cell ${displayCellNumber}`}
-                            disabled={selectedClientId !== null && isDataEntryDisabled}
-                            onClick={selectedClientId !== null && isDataEntryDisabled ? showClientSelectionToast : undefined}
+                            disabled={selectedClientId === null}
+                            onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                           />
                           {(validation?.isLoading || (validation && !validation.isValid)) && (
                             <div className="absolute top-1/2 right-1 -translate-y-1/2 z-10">
@@ -925,13 +925,14 @@ const handleHarupApply = () => {
                       <div key={`row-total-${rowIndex}`} className="flex items-center justify-center p-0 font-medium aspect-square border-transparent border">
                         <Input
                           type="text"
-                          className={`text-lg font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-red-500 ${selectedClientId !== null && isDataEntryDisabled ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent'}`}
+                          className={`font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-red-500 ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent'}`}
+                          style={{ fontSize: 'clamp(0.6rem, 1.5vw, 0.875rem)'}}
                           value={getRowTotal(rowIndex)}
                           onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
                           onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
                           aria-label={`Row ${rowIndex} Total`}
-                          disabled={selectedClientId !== null && isDataEntryDisabled}
-                          onClick={selectedClientId !== null && isDataEntryDisabled ? showClientSelectionToast : undefined}
+                          disabled={selectedClientId === null}
+                          onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                         />
                       </div>
                   ))}
@@ -946,7 +947,7 @@ const handleHarupApply = () => {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 w-full xl:w-[350px]">
+            <div className="lg:col-span-1 flex flex-col gap-2">
                 <div className="border rounded-lg p-2">
                     <div className="flex items-center gap-2">
                         <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
@@ -964,7 +965,7 @@ const handleHarupApply = () => {
                             <Save className="h-3 w-3 mr-1" />
                             Save
                         </Button>
-                        <Button onClick={handleRevertLastEntry} variant="outline" disabled={!previousSheetState || isDataEntryDisabled} size="sm" className="h-8 text-xs">
+                        <Button onClick={handleRevertLastEntry} variant="outline" disabled={!previousSheetState || selectedClientId === null} size="sm" className="h-8 text-xs">
                             <Undo2 className="h-3 w-3 mr-1" />
                             Revert
                         </Button>
@@ -979,15 +980,15 @@ const handleHarupApply = () => {
                         onChange={handleMultiTextChange}
                         onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
                         className="w-full text-xs"
-                        disabled={isDataEntryDisabled}
-                        onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
+                        disabled={selectedClientId === null}
+                        onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                     />
                     <div className="flex flex-wrap gap-2 mt-1 items-start">
-                        <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={isDataEntryDisabled} size="sm">Apply</Button>
-                        <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={isDataEntryDisabled} size="sm">
+                        <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={selectedClientId === null} size="sm">Apply</Button>
+                        <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={selectedClientId === null} size="sm">
                             Generate
                         </Button>
-                        <Button onClick={handleClearSheet} variant="destructive" className="shrink-0 text-xs h-8" disabled={isDataEntryDisabled} size="sm">
+                        <Button onClick={handleClearSheet} variant="destructive" className="shrink-0 text-xs h-8" disabled={selectedClientId === null} size="sm">
                             <Trash2 className="h-3 w-3 mr-1" />
                             Clear
                         </Button>
@@ -999,14 +1000,14 @@ const handleHarupApply = () => {
                   <div className="grid grid-cols-5 items-center gap-1 mb-1">
                       <Input
                         id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-8 text-sm" placeholder="Num 1"
-                        value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
-                        onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
+                        value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
+                        onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                       />
                       <span className="font-bold text-center text-sm">x</span>
                       <Input
                         id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-8 text-sm" placeholder="Num 2"
-                        value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
-                        onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
+                        value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
+                        onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                       />
                   </div>
                   <div className="grid grid-cols-5 items-center gap-1">
@@ -1014,19 +1015,19 @@ const handleHarupApply = () => {
                       <span className="font-bold text-center">=</span>
                       <Input
                         id="amount" type="text" className="text-center font-bold h-8 text-sm"
-                        value={laddiAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
-                        placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
-                        onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
+                        value={laddiAmount} onChange={(e) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
+                        placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
+                        onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                       />
                     </div>
                     <div className="col-span-2 flex justify-end">
-                      <Button onClick={handleLaddiApply} disabled={isDataEntryDisabled} size="sm" className="h-8 text-xs">Apply</Button>
+                      <Button onClick={handleLaddiApply} disabled={selectedClientId === null} size="sm" className="h-8 text-xs">Apply</Button>
                     </div>
                   </div>
                   <div className="flex justify-between items-center gap-2 mt-1">
                       <div className="flex items-center gap-2">
-                          <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
-                          <Label htmlFor="remove-jodda" className={`text-xs ${isDataEntryDisabled ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Jodda</Label>
+                          <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                          <Label htmlFor="remove-jodda" className={`text-xs ${selectedClientId === null ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Jodda</Label>
                       </div>
                       <div className="text-xs font-bold text-primary">{combinationCount} Combos</div>
                   </div>
@@ -1037,17 +1038,17 @@ const handleHarupApply = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                     <div className="flex items-center gap-1">
                         <Label htmlFor="harupA" className="w-6 text-center shrink-0 text-xs">A</Label>
-                        <Input id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
+                        <Input id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
                     </div>
                     <div className="flex items-center gap-1">
                         <Label htmlFor="harupB" className="w-6 text-center shrink-0 text-xs">B</Label>
-                        <Input id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
+                        <Input id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
                     </div>
                   </div>
                    <div className="flex items-center gap-2 mt-1">
                       <Label htmlFor="harupAmount" className="w-6 text-center shrink-0 text-xs">=</Label>
-                      <Input id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
-                      <Button onClick={handleHarupApply} disabled={isDataEntryDisabled} size="sm" className="h-8 text-xs">Apply</Button>                  </div>
+                      <Input id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                      <Button onClick={handleHarupApply} disabled={selectedClientId === null} size="sm" className="h-8 text-xs">Apply</Button>                  </div>
               </div>
             </div>
           </div>
@@ -1104,11 +1105,10 @@ const handleHarupApply = () => {
                   {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                     <React.Fragment key={`master-row-${rowIndex}`}>
                       {Array.from({ length: GRID_COLS }, (_, colIndex) => {
-                        const cellIndex = rowIndex * GRID_COLS + colIndex;
-                        const cellNumber = cellIndex + 1;
-                        let displayCellNumber = String(cellNumber);
+                        const cellNumber = colIndex * GRID_ROWS + rowIndex;
+                        const displayCellNumber = String(cellNumber).padStart(2, '0');
                         
-                        const key = cellIndex.toString();
+                        const key = cellNumber.toString();
                         return (
                           <div key={`master-cell-${key}`} className="relative">
                             <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{displayCellNumber}</div>
