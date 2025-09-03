@@ -165,8 +165,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const cellNum = parseInt(client.name, 10);
         const commission = parseFloat(client.comm);
 
-        if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= 100 && !isNaN(commission)) {
-          const key = (cellNum - 1).toString();
+        if (!isNaN(cellNum) && cellNum >= 0 && cellNum <= 99 && !isNaN(commission)) {
+          const key = (cellNum).toString();
           
           const newData = { ...currentData };
           const currentValue = parseFloat(newData[key]) || 0;
@@ -278,14 +278,12 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     setHarupB(newHarupB);
   };
 
-  const handleCellChange = (rowIndex: number, colIndex: number, value: string) => {
+  const handleCellChange = (key: string, value: string) => {
     if (isDataEntryDisabled) {
       showClientSelectionToast();
       return;
     }
     saveDataForUndo();
-    const cellIndex = rowIndex * GRID_COLS + colIndex;
-    const key = cellIndex.toString();
     const newData = { ...currentData, [key]: value };
     const newRowTotals = { ...currentRowTotals };
 
@@ -298,11 +296,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     }
   }
 
-  const handleCellBlur = async (rowIndex: number, colIndex: number) => {
+  const handleCellBlur = async (key: string) => {
     if (isDataEntryDisabled) return;
 
-    const cellIndex = rowIndex * GRID_COLS + colIndex;
-    const key = cellIndex.toString();
     const cellContent = currentData[key]
 
     if (!cellContent || cellContent.trim() === "") {
@@ -331,8 +327,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const calculateRowTotal = (rowIndex: number, data: CellData) => {
     let total = 0;
     for (let colIndex = 0; colIndex < GRID_COLS; colIndex++) {
-        const cellIndex = rowIndex * GRID_COLS + colIndex;
-        const key = cellIndex.toString();
+        const cellNumber = colIndex * GRID_ROWS + rowIndex;
+        const key = cellNumber.toString();
         const value = data[key];
         if (value && !isNaN(Number(value))) {
             total += Number(value);
@@ -426,7 +422,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const formattedCells = cellNumbers
           .map(s => {
             const num = parseInt(s, 10);
-            if (num >= 1 && num <= 100) return String(num);
+            if (num >= 0 && num <= 99) return String(num);
             return null;
           })
           .filter((s): s is string => s !== null)
@@ -437,8 +433,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         cellNumbers.forEach(numStr => {
             let cellNum = parseInt(numStr, 10);
             
-            if (isNaN(cellNum) || cellNum < 1 || cellNum > 100) return;
-            const key = (cellNum - 1).toString();
+            if (isNaN(cellNum) || cellNum < 0 || cellNum > 99) return;
+            const key = (cellNum).toString();
             
             const currentValueInUpdate = parseFloat(updates[key]) || 0;
             updates[key] = String(currentValueInUpdate + newValue);
@@ -503,10 +499,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
             let cellNumStr = `${d1}${d2}`;
             let cellNum = parseInt(cellNumStr, 10);
-             if (cellNum === 0) cellNum = 100;
             
-            if (!isNaN(cellNum) && cellNum >= 1 && cellNum <= 100) {
-                const key = (cellNum - 1).toString();
+            if (!isNaN(cellNum) && cellNum >= 0 && cellNum <= 99) {
+                const key = (cellNum).toString();
                 
                 const currentValueInUpdate = parseFloat(updates[key]) || 0;
                 updates[key] = String(currentValueInUpdate + amountValue);
@@ -574,16 +569,14 @@ const handleHarupApply = () => {
     harupADigits.forEach(digit => {
         for (let i = 0; i < 10; i++) {
             let cellNum = parseInt(`${digit}${i}`, 10);
-            if (cellNum === 0) cellNum = 100;
-            affectedCells.add((cellNum - 1).toString());
+            affectedCells.add((cellNum).toString());
         }
     });
 
     harupBDigits.forEach(digit => {
         for (let i = 0; i < 10; i++) {
             let cellNum = parseInt(`${i}${digit}`, 10);
-            if (cellNum === 0) cellNum = 100;
-            affectedCells.add((cellNum - 1).toString());
+            affectedCells.add((cellNum).toString());
         }
     });
     
@@ -672,7 +665,7 @@ const handleHarupApply = () => {
     for (const key in currentData) {
       const value = currentData[key];
       if (value && value.trim() !== '' && !isNaN(Number(value)) && Number(value) !== 0) {
-        let cellNumber = parseInt(key) + 1;
+        let cellNumber = parseInt(key);
         
         let displayCellNumber = cellNumber;
         
@@ -687,7 +680,7 @@ const handleHarupApply = () => {
       .map(([value, cells]) => {
         cells.sort((a, b) => a - b);
         const formattedCells = cells.map(cell => {
-           return String(cell)
+           return String(cell).padStart(2, '0');
         });
         return `${formattedCells.join(',')}=${value}`;
       })
@@ -879,31 +872,28 @@ const handleHarupApply = () => {
           <div className="flex flex-col xl:flex-row gap-2">
             <div className="flex-grow">
               <div className="grid gap-0 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`}}>
-                {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
-                  <React.Fragment key={rowIndex}>
-                    {Array.from({ length: GRID_COLS }, (_, colIndex) => {
-                      const cellIndex = rowIndex * GRID_COLS + colIndex;
-                      const cellNumber = cellIndex + 1;
-                      let displayCellNumber = String(cellNumber).padStart(2, '0');
-                      if (cellNumber === 100) displayCellNumber = '00';
-
-                      const key = cellIndex.toString();
+                {Array.from({ length: GRID_COLS }, (_, colIndex) => (
+                  <React.Fragment key={colIndex}>
+                    {Array.from({ length: GRID_ROWS }, (_, rowIndex) => {
+                      const cellNumber = colIndex * GRID_ROWS + rowIndex;
+                      const displayCellNumber = String(cellNumber).padStart(2, '0');
+                      const key = cellNumber.toString();
                       const validation = validations[key]
                       const isUpdated = updatedCells.includes(key);
 
                       return (
-                        <div key={key} className="relative aspect-square border-red-500 border">
-                          <div className="absolute top-0 left-0.5 text-xs text-blue-900 select-none pointer-events-none z-10">{displayCellNumber}</div>
+                        <div key={key} className="relative aspect-square border border-primary/30 rounded-md">
+                          <div className="absolute top-0.5 left-1 text-xs text-cyan-400 select-none pointer-events-none z-10">{displayCellNumber}</div>
                           <Input
                             type="text"
                             style={{ 
                                 fontSize: 'clamp(0.6rem, 2vw, 1rem)',
-                                color: 'darkblue'
+                                color: '#e0f2fe'
                             }}
-                            className={`p-1 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-transparent' : (isDataEntryDisabled ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent')}`}
+                            className={`p-1 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-transparent' : (isDataEntryDisabled ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent')}`}
                             value={currentData[key] || ''}
-                            onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
-                            onBlur={() => handleCellBlur(rowIndex, colIndex)}
+                            onChange={(e) => handleCellChange(key, e.target.value)}
+                            onBlur={() => handleCellBlur(key)}
                             aria-label={`Cell ${displayCellNumber}`}
                             disabled={selectedClientId !== null && isDataEntryDisabled}
                             onClick={selectedClientId !== null && isDataEntryDisabled ? showClientSelectionToast : undefined}
@@ -927,23 +917,31 @@ const handleHarupApply = () => {
                         </div>
                       )
                     })}
-                    <div className="flex items-center justify-center p-0 font-medium aspect-square border-red-500 border">
-                      <Input
-                        type="text"
-                        className={`text-lg font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-red-500 ${selectedClientId !== null && isDataEntryDisabled ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent'}`}
-                        value={getRowTotal(rowIndex)}
-                        onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
-                        onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
-                        aria-label={`Row ${rowIndex} Total`}
-                        disabled={selectedClientId !== null && isDataEntryDisabled}
-                        onClick={selectedClientId !== null && isDataEntryDisabled ? showClientSelectionToast : undefined}
-                      />
-                    </div>
                   </React.Fragment>
                 ))}
-                <div style={{ gridColumn: `span ${GRID_COLS}` }} className="flex items-center justify-end p-2 font-bold mt-1 pr-4 text-lg"></div>
-                <div className="flex items-center justify-center p-2 font-bold bg-primary/20 rounded-md mt-1 text-lg">
-                    {calculateGrandTotal(currentData, currentRowTotals)}
+                 {/* Row Totals Column */}
+                 <div className="flex flex-col">
+                  {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
+                      <div key={`row-total-${rowIndex}`} className="flex items-center justify-center p-0 font-medium aspect-square border-transparent border">
+                        <Input
+                          type="text"
+                          className={`text-lg font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-red-500 ${selectedClientId !== null && isDataEntryDisabled ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent'}`}
+                          value={getRowTotal(rowIndex)}
+                          onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
+                          onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
+                          aria-label={`Row ${rowIndex} Total`}
+                          disabled={selectedClientId !== null && isDataEntryDisabled}
+                          onClick={selectedClientId !== null && isDataEntryDisabled ? showClientSelectionToast : undefined}
+                        />
+                      </div>
+                  ))}
+                 </div>
+              </div>
+              <div className="grid gap-0 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`}}>
+                  {/* Grand total row */}
+                  <div style={{ gridColumn: `span ${GRID_COLS}` }} className="flex items-center justify-end p-2 font-bold mt-1 pr-4 text-lg"></div>
+                  <div className="flex items-center justify-center p-2 font-bold bg-primary/20 rounded-md mt-1 text-lg">
+                      {calculateGrandTotal(currentData, currentRowTotals)}
                   </div>
               </div>
             </div>
@@ -1049,8 +1047,7 @@ const handleHarupApply = () => {
                    <div className="flex items-center gap-2 mt-1">
                       <Label htmlFor="harupAmount" className="w-6 text-center shrink-0 text-xs">=</Label>
                       <Input id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
-                      <Button onClick={handleHarupApply} disabled={isDataEntryDisabled} size="sm" className="h-8 text-xs">Apply</Button>
-                  </div>
+                      <Button onClick={handleHarupApply} disabled={isDataEntryDisabled} size="sm" className="h-8 text-xs">Apply</Button>                  </div>
               </div>
             </div>
           </div>
@@ -1221,13 +1218,3 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-
-
-    
-
-    
-
-    
-
-    

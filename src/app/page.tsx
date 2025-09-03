@@ -51,6 +51,7 @@ export default function Home() {
 
   useEffect(() => {
     setDate(new Date());
+    document.body.classList.add('dark');
   }, []);
 
   const handleClientUpdateForSheet = (client: Client) => {
@@ -180,7 +181,7 @@ export default function Home() {
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4">
                     {draws.map((draw) => (
-                      <Button key={draw} onClick={() => handleSelectDraw(draw)} className="h-16 sm:h-20 text-lg sm:text-xl font-bold">
+                      <Button key={draw} onClick={() => handleSelectDraw(draw)} className="h-16 sm:h-20 text-lg sm:text-xl font-bold bg-gradient-to-br from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white shadow-lg">
                         {draw}
                       </Button>
                     ))}
