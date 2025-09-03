@@ -870,7 +870,7 @@ const handleHarupApply = () => {
     <>
       <Card>
         <CardContent className="p-2">
-          <div className="grid grid-cols-1 xl:grid-cols-[1fr_450px] gap-2">
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-2">
             <div className="flex flex-col min-w-0">
               <div className="grid gap-0.5 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`}}>
                 {Array.from({ length: GRID_ROWS * GRID_COLS }, (_, index) => {
@@ -1224,3 +1224,5 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
