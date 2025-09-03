@@ -885,17 +885,13 @@ const handleHarupApply = () => {
             <div className="flex flex-col min-w-0 h-full">
                <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`}}>
                 {Array.from({ length: GRID_ROWS * GRID_COLS }, (_, index) => {
-                    const rowIndex = Math.floor(index / GRID_COLS);
-                    const colIndex = index % GRID_COLS;
-                    const cellNumber = colIndex * GRID_ROWS + rowIndex;
-                    const displayCellNumber = String(cellNumber).padStart(2, '0');
-                    const key = displayCellNumber;
+                    const key = String(index).padStart(2, '0');
                     const validation = validations[key]
                     const isUpdated = updatedCells.includes(key);
 
                     return (
                         <div key={key} className="relative border border-primary/30 rounded-sm flex">
-                          <div className="absolute top-0 left-0.5 text-xs text-cyan-400/80 select-none pointer-events-none z-10" style={{fontSize: '0.5rem'}}>{displayCellNumber}</div>
+                          <div className="absolute top-0 left-0.5 text-xs text-cyan-400/80 select-none pointer-events-none z-10" style={{fontSize: '0.5rem'}}>{key}</div>
                           <Input
                               type="text"
                               style={{ fontSize: 'clamp(0.5rem, 1vh, 0.65rem)'}}
@@ -903,7 +899,7 @@ const handleHarupApply = () => {
                               value={currentData[key] || ''}
                               onChange={(e) => handleCellChange(key, e.target.value)}
                               onBlur={() => handleCellBlur(key)}
-                              aria-label={`Cell ${displayCellNumber}`}
+                              aria-label={`Cell ${key}`}
                               disabled={selectedClientId === null}
                               onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                           />
@@ -937,29 +933,6 @@ const handleHarupApply = () => {
             </div>
 
             <div className="flex flex-col gap-2">
-                <div className="grid grid-cols-1 gap-0.5 h-full">
-                   <div className="flex flex-col gap-0.5 flex-grow">
-                    {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
-                      <div key={`row-total-${rowIndex}`} className="flex items-center justify-center p-0 font-medium border-transparent border h-full bg-primary/20 rounded-sm">
-                        <Input
-                          type="text"
-                          className={`font-medium text-center h-full w-full p-0 border-0 focus:ring-0 bg-transparent text-red-500 ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent'}`}
-                          style={{ fontSize: 'clamp(0.5rem, 1vh, 0.65rem)'}}
-                          value={getRowTotal(rowIndex)}
-                          onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
-                          onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
-                          aria-label={`Row ${rowIndex} Total`}
-                          disabled={selectedClientId === null}
-                          onClick={selectedClientId === null ? showClientSelectionToast : undefined}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex items-center justify-center p-1 font-bold bg-primary/20 rounded-sm text-sm h-full mt-0.5">
-                      {grandTotal}
-                  </div>
-                </div>
-
                 <div className="border rounded-lg p-2 flex flex-col gap-2 mt-auto">
                     <div className="flex items-center gap-2">
                         <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
@@ -1115,7 +1088,7 @@ const handleHarupApply = () => {
                   {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                     <React.Fragment key={`master-row-${rowIndex}`}>
                       {Array.from({ length: GRID_COLS }, (_, colIndex) => {
-                        const cellNumber = colIndex * GRID_ROWS + rowIndex;
+                        const cellNumber = rowIndex * GRID_COLS + colIndex;
                         const displayCellNumber = String(cellNumber).padStart(2, '0');
                         
                         const key = displayCellNumber;
