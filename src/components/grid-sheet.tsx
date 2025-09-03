@@ -903,7 +903,7 @@ const handleHarupApply = () => {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 w-full lg:w-[240px] xl:w-[260px]">
+            <div className="flex flex-col gap-2 w-full lg:w-[220px] xl:w-[240px]">
                 <div className="border rounded-lg p-2 flex flex-col gap-2 mt-auto">
                     <div className="flex items-center gap-2">
                         <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
@@ -1172,6 +1172,8 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
 
     
 
