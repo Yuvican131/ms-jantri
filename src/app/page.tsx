@@ -96,18 +96,6 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6">
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2">
-          <GridIcon className="h-6 w-6 text-primary" />
-          GridSheet Manager
-        </h1>
-        <div className="ml-auto">
-          <Button onClick={() => setIsLastEntryDialogOpen(true)} variant="outline" size="sm">
-              <History className="mr-2 h-4 w-4" />
-              Last Entry
-          </Button>
-        </div>
-      </header>
       <main className="flex-1 p-2 sm:p-4">
         <Tabs defaultValue="sheet" className="w-full">
           <div className="flex items-center justify-between mb-2">
@@ -127,10 +115,16 @@ export default function Home() {
                 </TabsTrigger>
               </TabsList>
                {selectedInfo && (
-                <Button onClick={handleBackToDraws} variant="ghost" className="ml-2">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Draws
-                </Button>
+                 <div className="flex items-center">
+                    <Button onClick={handleBackToDraws} variant="ghost" className="ml-2">
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      Back to Draws
+                    </Button>
+                    <Button onClick={() => setIsLastEntryDialogOpen(true)} variant="outline" size="sm" className="ml-2">
+                        <History className="mr-2 h-4 w-4" />
+                        Last Entry
+                    </Button>
+                </div>
               )}
             </div>
           </div>
