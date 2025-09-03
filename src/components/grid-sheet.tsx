@@ -768,7 +768,13 @@ const handleHarupApply = () => {
           const clientValue = parseFloat(clientData[key]) || 0;
           newMasterData[key] = String(masterValue + clientValue);
         });
-        return { ...sheet, data: newMasterData };
+        const newMasterRowTotals = { ...sheet.rowTotals };
+        Object.keys(newMasterRowTotals).forEach(rowIndexStr => {
+            const rowIndex = parseInt(rowIndexStr, 10);
+            newMasterRowTotals[rowIndex] = calculateRowTotal(rowIndex, newMasterData).toString();
+        });
+
+        return { ...sheet, data: newMasterData, rowTotals: newMasterRowTotals };
       }
       return sheet;
     }));
@@ -894,13 +900,13 @@ const handleHarupApply = () => {
                                 fontSize: 'clamp(0.6rem, 2vw, 1rem)',
                                 color: 'darkblue'
                             }}
-                            className={`p-1 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${isDataEntryDisabled ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent'}`}
+                            className={`p-1 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-transparent' : (isDataEntryDisabled ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent')}`}
                             value={currentData[key] || ''}
                             onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
                             onBlur={() => handleCellBlur(rowIndex, colIndex)}
                             aria-label={`Cell ${displayCellNumber}`}
-                            disabled={isDataEntryDisabled}
-                            onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
+                            disabled={selectedClientId !== null && isDataEntryDisabled}
+                            onClick={selectedClientId !== null && isDataEntryDisabled ? showClientSelectionToast : undefined}
                           />
                           {(validation?.isLoading || (validation && !validation.isValid)) && (
                             <div className="absolute top-1/2 right-1 -translate-y-1/2 z-10">
@@ -924,13 +930,13 @@ const handleHarupApply = () => {
                     <div className="flex items-center justify-center p-0 font-medium aspect-square border-red-500 border">
                       <Input
                         type="text"
-                        className={`text-lg font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-red-500 ${isDataEntryDisabled ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent'}`}
+                        className={`text-lg font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-red-500 ${selectedClientId !== null && isDataEntryDisabled ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent'}`}
                         value={getRowTotal(rowIndex)}
                         onChange={(e) => handleRowTotalChange(rowIndex, e.target.value)}
                         onBlur={(e) => handleRowTotalBlur(rowIndex, e.target.value)}
                         aria-label={`Row ${rowIndex} Total`}
-                        disabled={isDataEntryDisabled}
-                        onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
+                        disabled={selectedClientId !== null && isDataEntryDisabled}
+                        onClick={selectedClientId !== null && isDataEntryDisabled ? showClientSelectionToast : undefined}
                       />
                     </div>
                   </React.Fragment>
