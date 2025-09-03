@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GridSheet from "@/components/grid-sheet"
 import ClientsManager, { Client } from "@/components/clients-manager"
-import AccountsManager from "@/components/accounts-manager"
+import AccountsManager, { Account } from "@/components/accounts-manager"
 import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -47,6 +47,7 @@ export default function Home() {
   const [lastEntry, setLastEntry] = useState('');
   const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
 
   useEffect(() => {
     setDate(new Date());
@@ -66,6 +67,28 @@ export default function Home() {
 
   const handleBackToDraws = () => {
     setSelectedInfo(null);
+  };
+  
+  const handleClientSheetSave = (clientName: string, gameTotal: number) => {
+    setAccounts(prevAccounts => {
+      const existingAccount = prevAccounts.find(acc => acc.clientName === clientName);
+      if (existingAccount) {
+        return prevAccounts.map(acc => 
+          acc.clientName === clientName 
+            ? { ...acc, gameTotal: String(parseFloat(acc.gameTotal) + gameTotal) } 
+            : acc
+        );
+      } else {
+        const newAccount: Account = {
+          id: Date.now().toString(),
+          clientName,
+          gameTotal: String(gameTotal),
+          commission: '0',
+          balance: '0'
+        };
+        return [...prevAccounts, newAccount];
+      }
+    });
   };
 
   const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
@@ -122,6 +145,7 @@ export default function Home() {
                   isLastEntryDialogOpen={isLastEntryDialogOpen} 
                   setIsLastEntryDialogOpen={setIsLastEntryDialogOpen}
                   clients={clients}
+                  onClientSheetSave={handleClientSheetSave}
                 />
               </div>
             ) : (
@@ -169,7 +193,7 @@ export default function Home() {
             <ClientsManager clients={clients} setClients={setClients} onClientUpdateForSheet={handleClientUpdateForSheet} />
           </TabsContent>
           <TabsContent value="accounts" className="mt-2">
-            <AccountsManager />
+            <AccountsManager accounts={accounts} setAccounts={setAccounts} />
           </TabsContent>
         </Tabs>
       </main>

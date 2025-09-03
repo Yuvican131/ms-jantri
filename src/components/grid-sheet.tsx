@@ -61,6 +61,7 @@ type GridSheetProps = {
   isLastEntryDialogOpen: boolean;
   setIsLastEntryDialogOpen: (open: boolean) => void;
   clients: Client[];
+  onClientSheetSave: (clientName: string, gameTotal: number) => void;
 }
 
 
@@ -753,7 +754,11 @@ const handleHarupApply = () => {
     }
 
     const clientData = clientSheetData[selectedClientId]?.data || {};
+    const clientRowTotals = clientSheetData[selectedClientId]?.rowTotals || {};
     const clientName = props.clients.find(c => c.id === selectedClientId)?.name || "Unknown Client";
+    
+    const gameTotal = calculateGrandTotal(clientData, clientRowTotals);
+    props.onClientSheetSave(clientName, gameTotal);
 
     setSheets(prevSheets => prevSheets.map(sheet => {
       if (sheet.id === activeSheetId) {

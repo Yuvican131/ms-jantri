@@ -1,3 +1,4 @@
+
 "use client"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -10,7 +11,7 @@ import { PlusCircle, MoreHorizontal, Edit, Trash2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
-type Account = {
+export type Account = {
   id: string
   clientName: string
   gameTotal: string
@@ -18,10 +19,12 @@ type Account = {
   balance: string
 }
 
-const initialAccounts: Account[] = []
+type AccountsManagerProps = {
+  accounts: Account[];
+  setAccounts: (accounts: Account[]) => void;
+};
 
-export default function AccountsManager() {
-  const [accounts, setAccounts] = useState<Account[]>(initialAccounts)
+export default function AccountsManager({ accounts, setAccounts }: AccountsManagerProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingAccount, setEditingAccount] = useState<Account | null>(null)
   
