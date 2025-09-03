@@ -48,6 +48,7 @@ export default function Home() {
   const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [activeTab, setActiveTab] = useState("sheet");
 
   useEffect(() => {
     setDate(new Date());
@@ -97,7 +98,7 @@ export default function Home() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <main className="flex-1 p-2 flex flex-col">
-        <Tabs defaultValue="sheet" className="w-full flex-1 flex flex-col">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center">
               <TabsList className="grid grid-cols-3 md:w-auto p-0.5 gap-0.5">
@@ -114,7 +115,7 @@ export default function Home() {
                   ACCOUNTS
                 </TabsTrigger>
               </TabsList>
-               {selectedInfo && (
+               {selectedInfo && activeTab === 'sheet' && (
                  <div className="flex items-center">
                     <Button onClick={handleBackToDraws} variant="ghost" className="ml-2">
                       <ArrowLeft className="mr-2 h-4 w-4" />
@@ -128,68 +129,70 @@ export default function Home() {
               )}
             </div>
           </div>
-          <TabsContent value="sheet" className="flex-1 flex flex-col">
-            {selectedInfo ? (
-              <div className="flex-1">
-                <GridSheet 
-                  ref={gridSheetRef} 
-                  draw={selectedInfo.draw} 
-                  date={selectedInfo.date} 
-                  lastEntry={lastEntry} 
-                  setLastEntry={setLastEntry} 
-                  isLastEntryDialogOpen={isLastEntryDialogOpen} 
-                  setIsLastEntryDialogOpen={setIsLastEntryDialogOpen}
-                  clients={clients}
-                  onClientSheetSave={handleClientSheetSave}
-                />
-              </div>
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Select a Date and Draw</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <div>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full sm:w-[280px] justify-start text-left font-normal",
-                            !date && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {date ? format(date, "PPP") : <span>Pick a date</span>}
+          <div className="flex-1 flex flex-col">
+            <TabsContent value="sheet" className="flex-1 flex flex-col">
+              {selectedInfo ? (
+                <div className="flex-1">
+                  <GridSheet 
+                    ref={gridSheetRef} 
+                    draw={selectedInfo.draw} 
+                    date={selectedInfo.date} 
+                    lastEntry={lastEntry} 
+                    setLastEntry={setLastEntry} 
+                    isLastEntryDialogOpen={isLastEntryDialogOpen} 
+                    setIsLastEntryDialogOpen={setIsLastEntryDialogOpen}
+                    clients={clients}
+                    onClientSheetSave={handleClientSheetSave}
+                  />
+                </div>
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Select a Date and Draw</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-4">
+                    <div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full sm:w-[280px] justify-start text-left font-normal",
+                              !date && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {date ? format(date, "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={date}
+                            onSelect={setDate}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4">
+                      {draws.map((draw) => (
+                        <Button key={draw} onClick={() => handleSelectDraw(draw)} className="h-16 sm:h-20 text-lg sm:text-xl font-bold bg-gradient-to-br from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white shadow-lg">
+                          {draw}
                         </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={date}
-                          onSelect={setDate}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4">
-                    {draws.map((draw) => (
-                      <Button key={draw} onClick={() => handleSelectDraw(draw)} className="h-16 sm:h-20 text-lg sm:text-xl font-bold bg-gradient-to-br from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white shadow-lg">
-                        {draw}
-                      </Button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-          <TabsContent value="clients" className="mt-2">
-            <ClientsManager clients={clients} setClients={setClients} onClientUpdateForSheet={handleClientUpdateForSheet} />
-          </TabsContent>
-          <TabsContent value="accounts" className="mt-2">
-            <AccountsManager accounts={accounts} setAccounts={setAccounts} />
-          </TabsContent>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+            <TabsContent value="clients" className="flex-1">
+              <ClientsManager clients={clients} setClients={setClients} onClientUpdateForSheet={handleClientUpdateForSheet} />
+            </TabsContent>
+            <TabsContent value="accounts" className="flex-1">
+              <AccountsManager accounts={accounts} setAccounts={setAccounts} />
+            </TabsContent>
+          </div>
         </Tabs>
       </main>
     </div>
