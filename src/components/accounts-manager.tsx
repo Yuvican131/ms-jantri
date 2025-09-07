@@ -63,7 +63,10 @@ const DrawDetailsPanel = ({
         <span className="text-right font-semibold">: ₹{totalAmount.toFixed(2)}</span>
         <span className="text-foreground/80">{clientCommissionPercent*100}% Commission Amt</span><span className="text-right font-semibold">: ₹{commission.toFixed(2)}</span>
         <span className="text-foreground/80">After Commission</span><span className="text-right font-semibold">: ₹{afterCommission.toFixed(2)}</span>
-        <span className="text-foreground/80">Passing</span><span className="text-right font-semibold">: {passingAmount} = ₹{passingTotal.toFixed(2)} (x{passingMultiplier})</span>
+        <span className="text-foreground/80">Passing</span>
+        <span className="text-right font-semibold">
+          : {passingAmount} = ₹{passingTotal.toFixed(2)} {passingAmount > 0 ? `(x${passingMultiplier})` : ''}
+        </span>
       </div>
       <Separator className="my-2 bg-border/50" />
       <div className="grid grid-cols-2 gap-x-4">
