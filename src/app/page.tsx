@@ -42,6 +42,10 @@ function GridIcon(props: React.SVGProps<SVGSVGElement>) {
   )
 }
 
+export type SavedSheetInfo = {
+  clientName: string;
+  gameTotal: number;
+};
 
 export default function Home() {
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any }>(null);
@@ -58,6 +62,7 @@ export default function Home() {
   const [declarationNumber, setDeclarationNumber] = useState("");
   const { toast } = useToast();
   const [declaredNumbers, setDeclaredNumbers] = useState<{ [draw: string]: string }>({});
+  const [savedSheetLog, setSavedSheetLog] = useState<SavedSheetInfo[]>([]);
 
 
   useEffect(() => {
@@ -74,6 +79,7 @@ export default function Home() {
   const handleSelectDraw = (draw: string) => {
     if (date) {
       setSelectedInfo({ draw, date });
+      setSavedSheetLog([]); // Clear log when a new draw is selected
     }
   };
 
@@ -118,6 +124,7 @@ export default function Home() {
             return acc;
         });
     });
+    setSavedSheetLog(prev => [...prev, { clientName, gameTotal }]);
 };
 
   const handleAddClient = (client: Client) => {
@@ -258,6 +265,7 @@ export default function Home() {
                     setIsLastEntryDialogOpen={setIsLastEntryDialogOpen}
                     clients={clients}
                     onClientSheetSave={handleClientSheetSave}
+                    savedSheetLog={savedSheetLog}
                   />
                 </div>
               ) : (
@@ -353,5 +361,3 @@ export default function Home() {
     </div>
   )
 }
-
-    

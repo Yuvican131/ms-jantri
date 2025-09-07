@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import type { Client } from "./clients-manager"
 import { format } from "date-fns"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import type { SavedSheetInfo } from "@/app/page";
 
 type CellData = { [key: string]: string }
 type ValidationResult = {
@@ -63,6 +64,7 @@ type GridSheetProps = {
   setIsLastEntryDialogOpen: (open: boolean) => void;
   clients: Client[];
   onClientSheetSave: (clientName: string, gameTotal: number, draw: string) => void;
+  savedSheetLog: SavedSheetInfo[];
 }
 
 
@@ -1178,6 +1180,27 @@ const handleHarupApply = () => {
                       </Button>
                   </div>
               </div>
+            </div>
+            <div className="mt-4 p-4 border-t">
+              <h4 className="font-semibold mb-2">Saved Sheets Summary</h4>
+              <Card>
+                <CardContent className="p-2">
+                  <ScrollArea className="h-32">
+                    <div className="space-y-1">
+                      {props.savedSheetLog.length > 0 ? (
+                        props.savedSheetLog.map((log, index) => (
+                          <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/50 text-sm">
+                            <span>{index + 1}. {log.clientName}</span>
+                            <span className="font-mono font-semibold">₹{log.gameTotal.toFixed(2)}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground p-2">No sheets have been saved for this draw yet.</p>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
             </div>
           </ScrollArea>
         </DialogContent>
