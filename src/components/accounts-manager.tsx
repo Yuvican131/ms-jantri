@@ -64,7 +64,7 @@ export default function AccountsManager({ accounts, setAccounts }: AccountsManag
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Manage Accounts</CardTitle>
+        <CardTitle>Manage Account Ledger</CardTitle>
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
           if(!open) {
             setEditingAccount(null)
@@ -74,12 +74,12 @@ export default function AccountsManager({ accounts, setAccounts }: AccountsManag
           <DialogTrigger asChild>
             <Button size="sm" onClick={openAddDialog}>
               <PlusCircle className="h-4 w-4 mr-2" />
-              Add Account
+              Add Account Ledger
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{editingAccount ? "Edit Account" : "Add New Account"}</DialogTitle>
+              <DialogTitle>{editingAccount ? "Edit Account Ledger" : "Add New Account Ledger"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSaveAccount} className="space-y-4">
               <div>

@@ -112,7 +112,7 @@ export default function Home() {
                 </TabsTrigger>
                 <TabsTrigger value="accounts" className="gap-1 rounded-sm">
                   <Building className="h-4 w-4" />
-                  ACCOUNTS
+                  ACCOUNT LEDGER
                 </TabsTrigger>
               </TabsList>
                {selectedInfo && activeTab === 'sheet' && (
