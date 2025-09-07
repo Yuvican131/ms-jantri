@@ -178,7 +178,8 @@ export default function Home() {
             const clientCommissionPercent = parseFloat(client.comm) / 100;
             const clientData = gridSheetRef.current?.getClientData(client.id);
 
-            if (!clientData) return acc; // Skip if client has no sheet data
+            // This check is important. If a client has no data, we should not proceed.
+            if (!clientData) return acc;
             
             const currentDraws = { ...(acc.draws || {}) };
             const currentDrawData = { ...(currentDraws[declarationDraw] || { totalAmount: 0, passingAmount: 0 }) };
@@ -193,11 +194,17 @@ export default function Home() {
 
             const updatedDraws = { ...currentDraws, [declarationDraw]: updatedDrawData };
 
+            // Correctly recalculate the total balance from scratch
             const newBalance = Object.values(updatedDraws).reduce((balance, drawDetails) => {
                 const drawTotalAmount = drawDetails.totalAmount || 0;
                 const drawCommission = drawTotalAmount * clientCommissionPercent;
                 const drawNet = drawTotalAmount - drawCommission;
-                const drawPassingTotal = (drawDetails.passingAmount || 0) * (parseFloat(client.pair) || 90);
+                
+                const passingMultiplier = parseFloat(client.pair) || 90;
+                const drawPassingTotal = (drawDetails.passingAmount || 0) * passingMultiplier;
+                
+                // The balance for a draw is net amount - passing total.
+                // We sum this for all draws.
                 return balance + (drawNet - drawPassingTotal);
             }, 0);
 
@@ -208,7 +215,7 @@ export default function Home() {
             };
         });
     });
-  };
+};
 
   const handleDeclare = () => {
     updateAllClientsDraw(false);
@@ -370,5 +377,5 @@ export default function Home() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
