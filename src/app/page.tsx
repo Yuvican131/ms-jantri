@@ -103,7 +103,7 @@ export default function Home() {
                 
                 const updatedDrawData = {
                     ...currentDrawData,
-                    totalAmount: currentDrawData.totalAmount + gameTotal,
+                    totalAmount: gameTotal, // Use the new gameTotal directly, not cumulative
                 };
                 
                 const updatedDraws = { ...currentDraws, [draw]: updatedDrawData };
@@ -126,10 +126,25 @@ export default function Home() {
             return acc;
         });
     });
-    setSavedSheetLog(prev => ({
-        ...prev,
-        [draw]: [...(prev[draw] || []), { clientName, clientId, gameTotal, data }]
-    }));
+    setSavedSheetLog(prev => {
+        const existingLogForDraw = prev[draw] || [];
+        const clientLogIndex = existingLogForDraw.findIndex(log => log.clientId === clientId);
+
+        let newLogForDraw;
+        if (clientLogIndex > -1) {
+            // Update existing entry
+            newLogForDraw = [...existingLogForDraw];
+            newLogForDraw[clientLogIndex] = { clientName, clientId, gameTotal, data };
+        } else {
+            // Add new entry
+            newLogForDraw = [...existingLogForDraw, { clientName, clientId, gameTotal, data }];
+        }
+
+        return {
+            ...prev,
+            [draw]: newLogForDraw,
+        };
+    });
 };
 
   const handleAddClient = (client: Client) => {
@@ -383,7 +398,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
-
-    
