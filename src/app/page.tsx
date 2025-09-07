@@ -51,7 +51,7 @@ export type SavedSheetInfo = {
 
 
 export default function Home() {
-  const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any }>(null);
+  const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any, getClientCurrentData: (clientId: string) => any | undefined }>(null);
   const [selectedInfo, setSelectedInfo] = useState<{ draw: string; date: Date } | null>(null);
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [lastEntry, setLastEntry] = useState('');
@@ -113,7 +113,7 @@ export default function Home() {
                     const drawCommission = drawTotal * clientCommissionPercent;
                     const drawNet = drawTotal - drawCommission;
                     const passingMultiplier = parseFloat(client.pair) || 90;
-                    const drawPassingTotal = (drawDetails.passingAmount || 0) * passingMultiplier;
+                    const drawPassingTotal = (drawDetails.passingAmount || 0);
                     return balance + (drawNet - drawPassingTotal);
                 }, 0);
 
@@ -126,10 +126,28 @@ export default function Home() {
             return acc;
         });
     });
-    setSavedSheetLog(prev => ({
-        ...prev,
-        [draw]: [...(prev[draw] || []), { clientName, clientId, gameTotal, data }],
-    }));
+
+    setSavedSheetLog(prev => {
+        const existingLogs = prev[draw] || [];
+        const existingLogIndex = existingLogs.findIndex(log => log.clientId === clientId);
+        let newLogs;
+
+        const newLogEntry = { clientName, clientId, gameTotal, data };
+
+        if (existingLogIndex !== -1) {
+            // Update existing log
+            newLogs = [...existingLogs];
+            newLogs[existingLogIndex] = newLogEntry;
+        } else {
+            // Add new log
+            newLogs = [...existingLogs, newLogEntry];
+        }
+
+        return {
+            ...prev,
+            [draw]: newLogs,
+        };
+    });
 };
 
   const handleAddClient = (client: Client) => {
@@ -170,46 +188,48 @@ export default function Home() {
   };
   
   const updateAllClientsDraw = (isUndeclare = false) => {
-    const updatedAccounts = accounts.map(acc => {
-      const client = clients.find(c => c.id === acc.id);
-      if (!client) return acc;
-  
-      const clientSheetData = gridSheetRef.current?.getClientData(client.id);
-      if (!clientSheetData) return acc;
-  
-      const amountInCell = parseFloat(clientSheetData[declarationNumber]) || 0;
-      const passingMultiplier = parseFloat(client.pair) || 80;
-  
-      const currentDraws = { ...(acc.draws || {}) };
-      const currentDrawData = { ...(currentDraws[declarationDraw] || { totalAmount: 0, passingAmount: 0 }) };
-  
-      const newPassingAmount = isUndeclare ? 0 : amountInCell * passingMultiplier;
-  
-      const updatedDrawDataForDeclaration = {
-        ...currentDrawData,
-        passingAmount: newPassingAmount,
-      };
-  
-      const updatedDraws = { ...currentDraws, [declarationDraw]: updatedDrawDataForDeclaration };
-  
-      const clientCommissionPercent = parseFloat(client.comm) / 100;
-      const totalBalanceAfterUpdate = Object.values(updatedDraws).reduce((total, drawDetails) => {
-        const drawTotal = drawDetails.totalAmount || 0;
-        const drawCommission = drawTotal * clientCommissionPercent;
-        const drawNet = drawTotal - drawCommission;
-        const drawPassingTotal = drawDetails.passingAmount || 0;
-        return total + (drawNet - drawPassingTotal);
-      }, 0);
-  
-      return {
-        ...acc,
-        draws: updatedDraws,
-        balance: totalBalanceAfterUpdate.toFixed(2),
-      };
-    });
-  
-    setAccounts(updatedAccounts);
-  };
+      const currentDrawLogs = savedSheetLog[declarationDraw] || [];
+
+      const updatedAccounts = accounts.map(acc => {
+        const client = clients.find(c => c.id === acc.id);
+        if (!client) return acc;
+    
+        const clientLog = currentDrawLogs.find(log => log.clientId === client.id);
+        const clientSheetData = clientLog?.data || {};
+
+        const amountInCell = parseFloat(clientSheetData[declarationNumber]) || 0;
+        const passingMultiplier = parseFloat(client.pair) || 80;
+    
+        const currentDraws = { ...(acc.draws || {}) };
+        const currentDrawData = { ...(currentDraws[declarationDraw] || { totalAmount: 0, passingAmount: 0 }) };
+    
+        const newPassingAmount = isUndeclare ? 0 : amountInCell;
+    
+        const updatedDrawDataForDeclaration = {
+          ...currentDrawData,
+          passingAmount: newPassingAmount,
+        };
+    
+        const updatedDraws = { ...currentDraws, [declarationDraw]: updatedDrawDataForDeclaration };
+    
+        const clientCommissionPercent = parseFloat(client.comm) / 100;
+        const totalBalanceAfterUpdate = Object.values(updatedDraws).reduce((total, drawDetails) => {
+            const drawTotal = drawDetails.totalAmount || 0;
+            const drawCommission = drawTotal * clientCommissionPercent;
+            const drawNet = drawTotal - drawCommission;
+            const drawPassingAmount = (drawDetails.passingAmount || 0) * passingMultiplier;
+            return total + (drawNet - drawPassingAmount);
+        }, 0);
+
+        return {
+          ...acc,
+          draws: updatedDraws,
+          balance: totalBalanceAfterUpdate.toFixed(2),
+        };
+      });
+    
+      setAccounts(updatedAccounts);
+    };
 
 
   const handleDeclare = () => {
@@ -279,6 +299,7 @@ export default function Home() {
                     clients={clients}
                     onClientSheetSave={handleClientSheetSave}
                     savedSheetLog={savedSheetLog[selectedInfo.draw] || []}
+                    accounts={accounts}
                   />
                 </div>
               ) : (

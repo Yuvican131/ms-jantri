@@ -17,6 +17,8 @@ import type { Client } from "./clients-manager"
 import { format } from "date-fns"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { SavedSheetInfo } from "@/app/page";
+import type { Account } from "./accounts-manager";
+
 
 type CellData = { [key: string]: string }
 type ValidationResult = {
@@ -53,6 +55,7 @@ type GridSheetHandle = {
   handleClientUpdate: (client: Client) => void;
   clearSheet: () => void;
   getClientData: (clientId: string) => CellData | undefined;
+  getClientCurrentData: (clientId: string) => CellData | undefined;
 };
 
 type GridSheetProps = {
@@ -65,6 +68,7 @@ type GridSheetProps = {
   clients: Client[];
   onClientSheetSave: (clientName: string, clientId: string, gameTotal: number, data: CellData, draw: string) => void;
   savedSheetLog: SavedSheetInfo[];
+  accounts: Account[];
 }
 
 
@@ -220,6 +224,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     clearSheet: () => handleClearSheet(),
     getClientData: (clientId: string) => {
       return clientSheetData[clientId]?.data;
+    },
+    getClientCurrentData: (clientId: string) => {
+        return clientSheetData[clientId]?.data;
     },
   }));
 
@@ -901,6 +908,13 @@ const handleHarupApply = () => {
 
   const grandTotal = rowTotals.reduce((acc, total) => acc + total, 0);
 
+  const getClientDisplay = (client: Client) => {
+    const account = props.accounts.find(acc => acc.id === client.id);
+    const drawData = account?.draws?.[props.draw];
+    const totalAmount = drawData?.totalAmount || 0;
+    return `${client.name} - ${totalAmount}`;
+  };
+
   return (
     <>
       <Card className="h-full flex flex-col overflow-hidden">
@@ -970,12 +984,16 @@ const handleHarupApply = () => {
                     <div className="flex items-center gap-2">
                         <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
                             <SelectTrigger className="flex-grow h-8 text-xs">
-                                <SelectValue placeholder="Select Client" />
+                                <SelectValue>
+                                  {selectedClientId ? getClientDisplay(props.clients.find(c => c.id === selectedClientId)!) : "Select Client"}
+                                </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="None">None (Master Sheet)</SelectItem>
                                 {props.clients.map(client => (
-                                    <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                                    <SelectItem key={client.id} value={client.id}>
+                                      {getClientDisplay(client)}
+                                    </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>

@@ -32,6 +32,10 @@ type AccountsManagerProps = {
 
 const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
 
+const formatNumber = (num: number) => {
+    return num % 1 === 0 ? num.toString() : num.toFixed(2);
+};
+
 const DrawDetailsPanel = ({
   client,
   account,
@@ -54,23 +58,24 @@ const DrawDetailsPanel = ({
   const passingTotal = passingAmount * passingMultiplier;
 
   const finalTotal = afterCommission - passingTotal;
+  const finalTotalColor = finalTotal < 0 ? 'text-red-500' : 'text-green-400';
   
   return (
     <div className="p-4 bg-muted/50 rounded-lg text-sm font-mono">
       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
         <span className="text-foreground/80">User Name</span><span className="text-right font-semibold text-primary">: {client?.name || 'N/A'}</span>
-        <span className="text-foreground/80">Draw Name ({drawName}) Total</span><span className="text-right font-semibold">: ₹{totalAmount.toFixed(2)}</span>
-        <span className="text-foreground/80">{clientCommissionPercent*100}% Commission Amt</span><span className="text-right font-semibold">: ₹{commission.toFixed(2)}</span>
-        <span className="text-foreground/80">After Commission</span><span className="text-right font-semibold">: ₹{afterCommission.toFixed(2)}</span>
+        <span className="text-foreground/80">Draw Name ({drawName}) Total</span><span className="text-right font-semibold">: ₹{formatNumber(totalAmount)}</span>
+        <span className="text-foreground/80">{clientCommissionPercent*100}% Commission Amt</span><span className="text-right font-semibold">: ₹{formatNumber(commission)}</span>
+        <span className="text-foreground/80">After Commission</span><span className="text-right font-semibold">: ₹{formatNumber(afterCommission)}</span>
         <span className="text-foreground/80">Passing</span>
         <span className="text-right font-semibold">
-          : {passingAmount > 0 ? `${passingAmount} = ` : ''}₹{passingTotal.toFixed(2)} {passingAmount > 0 ? `(x${passingMultiplier})` : ''}
+          : {passingAmount > 0 ? `${formatNumber(passingAmount)} = ` : ''}₹{formatNumber(passingTotal)} {passingAmount > 0 ? `(x${passingMultiplier})` : ''}
         </span>
       </div>
       <Separator className="my-2 bg-border/50" />
       <div className="grid grid-cols-2 gap-x-4">
         <span className="font-bold text-base">Final Total</span>
-        <span className="text-right font-bold text-base">: ₹{finalTotal.toFixed(2)}</span>
+        <span className={`text-right font-bold text-base ${finalTotalColor}`}>: ₹{formatNumber(finalTotal)}</span>
       </div>
       <Separator className="my-2 bg-border/50" />
     </div>
@@ -95,7 +100,7 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
                 <AccordionTrigger>
                     <div className="flex justify-between w-full pr-4">
                         <span>{index + 1}. {account.clientName}</span>
-                        <span className={`font-bold ${balanceColor}`}>₹{balanceValue.toFixed(2)}</span>
+                        <span className={`font-bold ${balanceColor}`}>₹{formatNumber(balanceValue)}</span>
                     </div>
                 </AccordionTrigger>
                 <AccordionContent>
