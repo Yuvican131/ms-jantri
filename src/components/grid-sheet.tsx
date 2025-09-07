@@ -63,7 +63,7 @@ type GridSheetProps = {
   isLastEntryDialogOpen: boolean;
   setIsLastEntryDialogOpen: (open: boolean) => void;
   clients: Client[];
-  onClientSheetSave: (clientName: string, gameTotal: number, draw: string) => void;
+  onClientSheetSave: (clientName: string, clientId: string, gameTotal: number, data: CellData, draw: string) => void;
   savedSheetLog: SavedSheetInfo[];
 }
 
@@ -98,6 +98,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [masterSheetData, setMasterSheetData] = useState<CellData>({});
 
   const [previousSheetState, setPreviousSheetState] = useState<{ data: CellData, rowTotals: { [key: number]: string } } | null>(null);
+  const [selectedLogIndices, setSelectedLogIndices] = useState<number[]>([]);
+
   
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
   
@@ -110,6 +112,27 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     : activeSheet.rowTotals;
 
   const isDataEntryDisabled = !selectedClientId;
+
+  useEffect(() => {
+    // When the log changes (e.g., new client saved), select all logs by default.
+    setSelectedLogIndices(props.savedSheetLog.map((_, index) => index));
+  }, [props.savedSheetLog]);
+
+  useEffect(() => {
+    // Recalculate master sheet data when selected logs change
+    const newMasterData: CellData = {};
+    selectedLogIndices.forEach(index => {
+      const logEntry = props.savedSheetLog[index];
+      if (logEntry) {
+        Object.entries(logEntry.data).forEach(([key, value]) => {
+          const numericValue = parseFloat(value) || 0;
+          newMasterData[key] = String((parseFloat(newMasterData[key]) || 0) + numericValue);
+        });
+      }
+    });
+    setMasterSheetData(newMasterData);
+  }, [selectedLogIndices, props.savedSheetLog]);
+
 
   const showClientSelectionToast = () => {
     toast({
@@ -768,40 +791,17 @@ const handleHarupApply = () => {
     const clientName = props.clients.find(c => c.id === selectedClientId)?.name || "Unknown Client";
     const gameTotal = calculateGrandTotal(clientData);
 
-    props.onClientSheetSave(clientName, gameTotal, props.draw);
+    props.onClientSheetSave(clientName, selectedClientId, gameTotal, clientData, props.draw);
 
-    setSheets(prevSheets => {
-      return prevSheets.map(sheet => {
-        if (sheet.id === activeSheetId) {
-          const newMasterData = { ...sheet.data };
-          Object.keys(clientData).forEach(key => {
-            const masterValue = parseFloat(newMasterData[key]) || 0;
-            const clientValue = parseFloat(clientData[key]) || 0;
-            newMasterData[key] = String(masterValue + clientValue);
-          });
-          return { ...sheet, data: newMasterData };
-        }
-        return sheet;
-      });
-    });
-
+    // Don't update master sheet here directly, it's handled by the log aggregation
+    
     updateClientData(selectedClientId, {}, {});
     setPreviousSheetState(null);
 
     toast({
       title: "Sheet Saved",
-      description: `${clientName}'s data has been saved to the master sheet and their sheet has been cleared.`,
+      description: `${clientName}'s data has been logged. View totals in the Master Sheet.`,
     });
-  };
-
-  const handleClearMasterSheet = () => {
-    setSheets(prevSheets => prevSheets.map(sheet => {
-      if (sheet.id === activeSheetId) {
-        return { ...sheet, data: {}, rowTotals: {} };
-      }
-      return sheet;
-    }));
-    toast({ title: "Master Sheet Cleared", description: "All data from the master sheet has been removed." });
   };
 
 
@@ -857,26 +857,18 @@ const handleHarupApply = () => {
   };
 
   const openMasterSheetDialog = () => {
-    setMasterSheetData({ ...activeSheet.data });
+    // Master sheet data is now calculated via useEffect from selected logs
     setIsMasterSheetDialogOpen(true);
   };
-  
-  const handleResetMasterSheetChanges = () => {
-    setMasterSheetData({ ...activeSheet.data });
-    setCuttingValue("");
-    setLessValue("");
-    setDabbaValue("");
-    toast({ title: "Changes Reset", description: "Cutting, Less, and Dabba changes have been reverted." });
-  };
-  
-  const handleSaveMasterSheetChanges = () => {
-    setSheets(prevSheets => prevSheets.map(sheet =>
-      sheet.id === activeSheetId ? { ...sheet, data: masterSheetData } : sheet
-    ));
-    toast({ title: "Master Sheet Updated", description: "Changes have been saved." });
-    setIsMasterSheetDialogOpen(false);
-  };
 
+  const handleLogSelectionChange = (index: number) => {
+    setSelectedLogIndices(prev => 
+      prev.includes(index) 
+        ? prev.filter(i => i !== index) 
+        : [...prev, index]
+    );
+  };
+  
   const rowTotals = Array.from({ length: GRID_ROWS }, (_, rowIndex) => {
     let total = 0;
     for (let colIndex = 0; colIndex < GRID_COLS; colIndex++) {
@@ -1172,13 +1164,6 @@ const handleHarupApply = () => {
                       <Input id="master-dabba" placeholder="Value" className="text-sm text-center w-24" />
                       <Button size="sm">Apply</Button>
                   </div>
-                   <div className="flex items-center gap-2">
-                      <Label htmlFor="master-reset" className="text-sm">Reset</Label>
-                      <Button onClick={handleResetMasterSheetChanges} size="sm" id="master-reset" variant="destructive">
-                        <RotateCcw className="mr-2 h-4 w-4" />
-                        Reset
-                      </Button>
-                  </div>
               </div>
             </div>
             <div className="mt-4 p-4 border-t">
@@ -1190,7 +1175,14 @@ const handleHarupApply = () => {
                       {props.savedSheetLog.length > 0 ? (
                         props.savedSheetLog.map((log, index) => (
                           <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/50 text-sm">
-                            <span>{index + 1}. {log.clientName}</span>
+                            <div className="flex items-center gap-2">
+                                <Checkbox 
+                                  id={`log-${index}`} 
+                                  checked={selectedLogIndices.includes(index)}
+                                  onCheckedChange={() => handleLogSelectionChange(index)}
+                                />
+                                <label htmlFor={`log-${index}`} className="cursor-pointer">{index + 1}. {log.clientName}</label>
+                            </div>
                             <span className="font-mono font-semibold">₹{log.gameTotal.toFixed(2)}</span>
                           </div>
                         ))

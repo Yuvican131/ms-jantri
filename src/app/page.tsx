@@ -44,8 +44,11 @@ function GridIcon(props: React.SVGProps<SVGSVGElement>) {
 
 export type SavedSheetInfo = {
   clientName: string;
+  clientId: string;
   gameTotal: number;
+  data: { [key: string]: string };
 };
+
 
 export default function Home() {
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any }>(null);
@@ -62,7 +65,7 @@ export default function Home() {
   const [declarationNumber, setDeclarationNumber] = useState("");
   const { toast } = useToast();
   const [declaredNumbers, setDeclaredNumbers] = useState<{ [draw: string]: string }>({});
-  const [savedSheetLog, setSavedSheetLog] = useState<SavedSheetInfo[]>([]);
+  const [savedSheetLog, setSavedSheetLog] = useState<{ [draw: string]: SavedSheetInfo[] }>({});
 
 
   useEffect(() => {
@@ -79,7 +82,6 @@ export default function Home() {
   const handleSelectDraw = (draw: string) => {
     if (date) {
       setSelectedInfo({ draw, date });
-      setSavedSheetLog([]); // Clear log when a new draw is selected
     }
   };
 
@@ -87,15 +89,15 @@ export default function Home() {
     setSelectedInfo(null);
   };
   
-  const handleClientSheetSave = (clientName: string, gameTotal: number, draw: string) => {
+  const handleClientSheetSave = (clientName: string, clientId: string, gameTotal: number, data: { [key: string]: string }, draw: string) => {
     setAccounts(prevAccounts => {
-        const client = clients.find(c => c.name === clientName);
+        const client = clients.find(c => c.id === clientId);
         if (!client) return prevAccounts;
 
         const clientCommissionPercent = parseFloat(client.comm) / 100;
         
         return prevAccounts.map(acc => {
-            if (acc.clientName === clientName) {
+            if (acc.id === clientId) {
                 const currentDraws = acc.draws || {};
                 const currentDrawData = currentDraws[draw] || { totalAmount: 0, passingAmount: 0 };
                 
@@ -124,7 +126,10 @@ export default function Home() {
             return acc;
         });
     });
-    setSavedSheetLog(prev => [...prev, { clientName, gameTotal }]);
+    setSavedSheetLog(prev => ({
+        ...prev,
+        [draw]: [...(prev[draw] || []), { clientName, clientId, gameTotal, data }]
+    }));
 };
 
   const handleAddClient = (client: Client) => {
@@ -171,16 +176,18 @@ export default function Home() {
             if (!client) return acc;
 
             const clientCommissionPercent = parseFloat(client.comm) / 100;
-            
-            const currentDraws = acc.draws || {};
-            
             const clientData = gridSheetRef.current?.getClientData(client.id);
-            const amountInCell = parseFloat(clientData?.[declarationNumber]) || 0;
+
+            if (!clientData) return acc; // Skip if client has no sheet data
             
+            const currentDraws = { ...(acc.draws || {}) };
+            const currentDrawData = { ...(currentDraws[declarationDraw] || { totalAmount: 0, passingAmount: 0 }) };
+            
+            const amountInCell = parseFloat(clientData[declarationNumber]) || 0;
             const newPassingAmount = isUndeclare ? 0 : amountInCell;
 
             const updatedDrawData = {
-              ...(currentDraws[declarationDraw] || { totalAmount: 0 }),
+              ...currentDrawData,
               passingAmount: newPassingAmount,
             };
 
@@ -211,7 +218,11 @@ export default function Home() {
   
   const handleUndeclare = () => {
     updateAllClientsDraw(true);
-    setDeclaredNumbers(prev => ({ ...prev, [declarationDraw]: '' }));
+    setDeclaredNumbers(prev => {
+        const newDeclared = { ...prev };
+        delete newDeclared[declarationDraw];
+        return newDeclared;
+    });
     toast({ title: "Success", description: `Result undeclared for draw ${declarationDraw} for all clients.` });
     setDeclarationDialogOpen(false);
   };
@@ -265,7 +276,7 @@ export default function Home() {
                     setIsLastEntryDialogOpen={setIsLastEntryDialogOpen}
                     clients={clients}
                     onClientSheetSave={handleClientSheetSave}
-                    savedSheetLog={savedSheetLog}
+                    savedSheetLog={savedSheetLog[selectedInfo.draw] || []}
                   />
                 </div>
               ) : (
