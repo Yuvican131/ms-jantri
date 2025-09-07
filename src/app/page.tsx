@@ -166,17 +166,18 @@ export default function Home() {
             const clientCommissionPercent = parseFloat(client.comm) / 100;
             
             const currentDraws = acc.draws || {};
-            const currentDrawData = currentDraws[declarationDraw] || { totalAmount: 0, passingAmount: 0 };
             
             const clientData = gridSheetRef.current?.getClientData(client.id);
             const amountInCell = parseFloat(clientData?.[declarationNumber]) || 0;
             
-            const newDrawData = {
-                ...currentDrawData,
-                passingAmount: isUndeclare ? 0 : amountInCell,
+            const newPassingAmount = isUndeclare ? 0 : amountInCell;
+
+            const updatedDrawData = {
+              ...(currentDraws[declarationDraw] || { totalAmount: 0 }),
+              passingAmount: newPassingAmount,
             };
 
-            const updatedDraws = { ...currentDraws, [declarationDraw]: newDrawData };
+            const updatedDraws = { ...currentDraws, [declarationDraw]: updatedDrawData };
 
             const newBalance = Object.values(updatedDraws).reduce((balance, drawDetails) => {
                 const drawTotalAmount = drawDetails.totalAmount || 0;
@@ -352,3 +353,5 @@ export default function Home() {
     </div>
   )
 }
+
+    
