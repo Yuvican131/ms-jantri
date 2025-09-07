@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -11,8 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import type { Client } from "./clients-manager"
 import { useToast } from "@/hooks/use-toast"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Checkbox } from "@/components/ui/checkbox"
 
 export type Account = {
   id: string
@@ -76,47 +74,6 @@ const DrawDetailsPanel = ({
   )
 }
 
-const ClientDetailsDialog = ({ client, account, children }: { client: Client | undefined; account: Account, children: React.ReactNode }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Account Details: {account.clientName}</DialogTitle>
-        </DialogHeader>
-        <div className="py-4">
-            <Tabs defaultValue={draws[0]} className="w-full">
-              <TabsList className="grid w-full grid-cols-6 h-auto">
-                {draws.map(draw => (
-                   <TabsTrigger key={draw} value={draw} className="text-xs px-1">{draw}</TabsTrigger>
-                ))}
-              </TabsList>
-              {draws.map(draw => (
-                <TabsContent key={draw} value={draw}>
-                   <DrawDetailsPanel 
-                      client={client}
-                      account={account}
-                      drawName={draw} 
-                      drawData={account.draws ? account.draws[draw] : undefined}
-                   />
-                </TabsContent>
-              ))}
-            </Tabs>
-        </div>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">Close</Button>
-          </DialogClose>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-
 export default function AccountsManager({ accounts, clients, setAccounts }: AccountsManagerProps) {
   
   return (
@@ -125,33 +82,40 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
         <CardTitle>Manage Account Ledger</CardTitle>
       </CardHeader>
       <CardContent>
-         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>SI.No</TableHead>
-              <TableHead>Client Name</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead><Checkbox /></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {accounts.map((account, index) => {
-              const client = clients.find(c => c.id === account.id);
-              return (
-                 <ClientDetailsDialog key={account.id} client={client} account={account}>
-                    <TableRow className="cursor-pointer">
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>{account.clientName}</TableCell>
-                      <TableCell className="font-bold text-green-400">₹{account.balance}</TableCell>
-                      <TableCell>
-                        <Checkbox onClick={(e) => e.stopPropagation()} />
-                      </TableCell>
-                    </TableRow>
-                  </ClientDetailsDialog>
-              )
-            })}
-          </TableBody>
-         </Table>
+        <Accordion type="single" collapsible className="w-full">
+          {accounts.map((account, index) => {
+            const client = clients.find(c => c.id === account.id);
+            return (
+              <AccordionItem value={`item-${index}`} key={account.id}>
+                <AccordionTrigger>
+                    <div className="flex justify-between w-full pr-4">
+                        <span>{index + 1}. {account.clientName}</span>
+                        <span className="font-bold text-green-400">₹{account.balance}</span>
+                    </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                   <Tabs defaultValue={draws[0]} className="w-full">
+                     <TabsList className="grid w-full grid-cols-6 h-auto">
+                        {draws.map(draw => (
+                           <TabsTrigger key={draw} value={draw} className="text-xs px-1">{draw}</TabsTrigger>
+                        ))}
+                     </TabsList>
+                      {draws.map(draw => (
+                        <TabsContent key={draw} value={draw}>
+                           <DrawDetailsPanel 
+                              client={client}
+                              account={account}
+                              drawName={draw} 
+                              drawData={account.draws ? account.draws[draw] : undefined}
+                           />
+                        </TabsContent>
+                      ))}
+                   </Tabs>
+                </AccordionContent>
+              </AccordionItem>
+            )
+          })}
+        </Accordion>
       </CardContent>
     </Card>
   )
