@@ -39,8 +39,8 @@ export default function AccountsManager({ accounts, setAccounts }: AccountsManag
     if (editingAccount) {
       setAccounts(accounts.map(a => a.id === editingAccount.id ? { ...a, clientName, gameTotal, commission, balance } : a))
     } else {
-      const newAccount: Account = { id: Date.now().toString(), clientName, gameTotal, commission, balance }
-      setAccounts([...accounts, newAccount])
+      // This part is now handled when a client is created. 
+      // Manual creation can be removed or repurposed if needed.
     }
     setEditingAccount(null)
     setIsDialogOpen(false)
@@ -72,10 +72,13 @@ export default function AccountsManager({ accounts, setAccounts }: AccountsManag
           setIsDialogOpen(open)
         }}>
           <DialogTrigger asChild>
-            <Button size="sm" onClick={openAddDialog}>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Add Account Ledger
-            </Button>
+             {/* The "Add" button can be hidden if manual account creation is no longer desired */}
+             {/* 
+              <Button size="sm" onClick={openAddDialog}>
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Add Account Ledger
+              </Button>
+             */}
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>

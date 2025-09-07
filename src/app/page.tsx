@@ -93,6 +93,32 @@ export default function Home() {
     });
   };
 
+  const handleAddClient = (client: Client) => {
+    setClients(prev => [...prev, client]);
+    const newAccount: Account = {
+      id: client.id, // Use client id for linking
+      clientName: client.name,
+      gameTotal: '0',
+      commission: '0',
+      balance: '0',
+    };
+    setAccounts(prev => [...prev, newAccount]);
+  };
+  
+  const handleUpdateClient = (updatedClient: Client) => {
+    setClients(clients.map(c => c.id === updatedClient.id ? updatedClient : c));
+    setAccounts(accounts.map(a => a.id === updatedClient.id ? { ...a, clientName: updatedClient.name } : a));
+    if (updatedClient.pair === "90") {
+      onClientUpdateForSheet(updatedClient);
+    }
+  };
+  
+  const handleDeleteClient = (clientId: string) => {
+    setClients(clients.filter(c => c.id !== clientId));
+    setAccounts(accounts.filter(a => a.id !== clientId));
+  };
+
+
   const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
 
   return (
@@ -187,7 +213,12 @@ export default function Home() {
               )}
             </TabsContent>
             <TabsContent value="clients" className="flex-1" style={{ display: activeTab === 'clients' ? 'block' : 'none' }}>
-              <ClientsManager clients={clients} setClients={setClients} onClientUpdateForSheet={handleClientUpdateForSheet} />
+              <ClientsManager 
+                clients={clients} 
+                onAddClient={handleAddClient} 
+                onUpdateClient={handleUpdateClient} 
+                onDeleteClient={handleDeleteClient}
+              />
             </TabsContent>
             <TabsContent value="accounts" className="flex-1" style={{ display: activeTab === 'accounts' ? 'block' : 'none' }}>
               <AccountsManager accounts={accounts} setAccounts={setAccounts} />

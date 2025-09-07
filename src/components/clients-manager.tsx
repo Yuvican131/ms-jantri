@@ -22,11 +22,12 @@ export type Client = {
 
 type ClientsManagerProps = {
   clients: Client[];
-  setClients: (clients: Client[]) => void;
-  onClientUpdateForSheet: (client: Client) => void;
+  onAddClient: (client: Client) => void;
+  onUpdateClient: (client: Client) => void;
+  onDeleteClient: (id: string) => void;
 }
 
-export default function ClientsManager({ clients, setClients, onClientUpdateForSheet }: ClientsManagerProps) {
+export default function ClientsManager({ clients, onAddClient, onUpdateClient, onDeleteClient }: ClientsManagerProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
 
@@ -41,16 +42,10 @@ export default function ClientsManager({ clients, setClients, onClientUpdateForS
 
     if (editingClient) {
       const updatedClient = { ...editingClient, name, pair, comm, inOut, patti };
-      setClients(clients.map(c => c.id === editingClient.id ? updatedClient : c))
-       if (pair === "90") {
-        onClientUpdateForSheet(updatedClient);
-      }
+      onUpdateClient(updatedClient);
     } else {
       const newClient: Client = { id: Date.now().toString(), name, pair, comm, inOut, patti }
-      setClients([...clients, newClient])
-       if (pair === "90") {
-        onClientUpdateForSheet(newClient);
-      }
+      onAddClient(newClient);
     }
     setEditingClient(null)
     setIsDialogOpen(false)
@@ -63,7 +58,7 @@ export default function ClientsManager({ clients, setClients, onClientUpdateForS
   }
 
   const handleDeleteClient = (id: string) => {
-    setClients(clients.filter(c => c.id !== id))
+    onDeleteClient(id);
   }
 
   const openAddDialog = () => {
@@ -129,16 +124,6 @@ export default function ClientsManager({ clients, setClients, onClientUpdateForS
       <CardContent>
         <ScrollArea className="w-full whitespace-nowrap">
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Pair</TableHead>
-                <TableHead>Comm</TableHead>
-                <TableHead>In/Out</TableHead>
-                <TableHead>Patti</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
             <TableBody>
               {clients.map(client => (
                 <TableRow key={client.id}>
