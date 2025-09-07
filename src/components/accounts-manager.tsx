@@ -65,7 +65,7 @@ const DrawDetailsPanel = ({
         <span className="text-foreground/80">After Commission</span><span className="text-right font-semibold">: ₹{afterCommission.toFixed(2)}</span>
         <span className="text-foreground/80">Passing</span>
         <span className="text-right font-semibold">
-          : {passingAmount} = ₹{passingTotal.toFixed(2)} {passingAmount > 0 ? `(x${passingMultiplier})` : ''}
+          : {passingAmount > 0 ? `${passingAmount} = ` : ''}₹{passingTotal.toFixed(2)} {passingAmount > 0 ? `(x${passingMultiplier})` : ''}
         </span>
       </div>
       <Separator className="my-2 bg-border/50" />
@@ -123,3 +123,5 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
     </Card>
   )
 }
+
+    
