@@ -170,13 +170,16 @@ export default function Home() {
   };
   
   const updateAllClientsDraw = (isUndeclare = false) => {
+    const logForDraw = savedSheetLog[declarationDraw] || [];
+
     const updatedAccounts = accounts.map(acc => {
         const client = clients.find(c => c.id === acc.id);
         if (!client) return acc;
 
-        const clientDataForDraw = gridSheetRef.current?.getClientData(client.id);
-        
-        // This is important: If a client hasn't played (no data), we shouldn't penalize them.
+        const clientLogEntry = logForDraw.find(log => log.clientId === client.id);
+        const clientDataForDraw = clientLogEntry?.data;
+
+        // If a client hasn't played in this draw (no log entry), we don't need to update them.
         if (!clientDataForDraw) return acc;
 
         const clientCommissionPercent = parseFloat(client.comm) / 100;
@@ -380,5 +383,7 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
