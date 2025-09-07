@@ -111,15 +111,6 @@ export default function AccountsManager({ accounts, setAccounts }: AccountsManag
       <CardContent>
         <ScrollArea className="w-full whitespace-nowrap">
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Client Name</TableHead>
-                <TableHead>Game Total</TableHead>
-                <TableHead>Commission</TableHead>
-                <TableHead>Balance</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
             <TableBody>
               {accounts.map(account => (
                 <TableRow key={account.id}>
