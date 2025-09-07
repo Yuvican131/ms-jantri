@@ -70,7 +70,10 @@ const DrawDetailsPanel = ({
       </div>
       <Separator className="my-2 bg-border/50" />
       <div className="grid grid-cols-2 gap-x-4">
-        <span className="font-bold text-base">Final Total</span><span className="text-right font-bold text-base text-green-400">: ₹{finalTotal.toFixed(2)}</span>
+        <span className="font-bold text-base">Final Total</span>
+        <span className={`text-right font-bold text-base ${finalTotal >= 0 ? 'text-green-400' : 'text-red-500'}`}>
+          : ₹{finalTotal.toFixed(2)}
+        </span>
       </div>
       <Separator className="my-2 bg-border/50" />
     </div>
@@ -88,12 +91,13 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
         <Accordion type="single" collapsible className="w-full">
           {accounts.map((account, index) => {
             const client = clients.find(c => c.id === account.id);
+            const balanceColor = parseFloat(account.balance) >= 0 ? 'text-green-400' : 'text-red-500';
             return (
               <AccordionItem value={`item-${index}`} key={account.id}>
                 <AccordionTrigger>
                     <div className="flex justify-between w-full pr-4">
                         <span>{index + 1}. {account.clientName}</span>
-                        <span className="font-bold text-green-400">₹{account.balance}</span>
+                        <span className={`font-bold ${balanceColor}`}>₹{account.balance}</span>
                     </div>
                 </AccordionTrigger>
                 <AccordionContent>
@@ -123,5 +127,3 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
     </Card>
   )
 }
-
-    
