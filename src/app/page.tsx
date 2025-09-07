@@ -130,7 +130,7 @@ export default function Home() {
             </div>
           </div>
           <div className="flex-1 flex flex-col">
-            <TabsContent value="sheet" className="flex-1 flex flex-col">
+            <TabsContent value="sheet" className="flex-1 flex flex-col" style={{ display: activeTab === 'sheet' ? 'flex' : 'none' }}>
               {selectedInfo ? (
                 <div className="flex-1">
                   <GridSheet 
@@ -186,10 +186,10 @@ export default function Home() {
                 </Card>
               )}
             </TabsContent>
-            <TabsContent value="clients" className="flex-1">
+            <TabsContent value="clients" className="flex-1" style={{ display: activeTab === 'clients' ? 'block' : 'none' }}>
               <ClientsManager clients={clients} setClients={setClients} onClientUpdateForSheet={handleClientUpdateForSheet} />
             </TabsContent>
-            <TabsContent value="accounts" className="flex-1">
+            <TabsContent value="accounts" className="flex-1" style={{ display: activeTab === 'accounts' ? 'block' : 'none' }}>
               <AccountsManager accounts={accounts} setAccounts={setAccounts} />
             </TabsContent>
           </div>
