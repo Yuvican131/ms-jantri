@@ -57,6 +57,7 @@ export default function Home() {
   const [declarationDraw, setDeclarationDraw] = useState("");
   const [declarationNumber, setDeclarationNumber] = useState("");
   const { toast } = useToast();
+  const [declaredNumbers, setDeclaredNumbers] = useState<{ [draw: string]: string }>({});
 
 
   useEffect(() => {
@@ -90,7 +91,7 @@ export default function Home() {
         return prevAccounts.map(acc => {
             if (acc.clientName === clientName) {
                 const currentDraws = acc.draws || {};
-                const currentDrawData = currentDraws[draw] || { totalAmount: 0, passingAmount: 0, multiplier: 0 };
+                const currentDrawData = currentDraws[draw] || { totalAmount: 0, passingAmount: 0 };
                 
                 const updatedDrawData = {
                     ...currentDrawData,
@@ -149,6 +150,7 @@ export default function Home() {
 
   const handleDeclarationInputChange = (draw: string, value: string) => {
     const numValue = value.replace(/[^0-9]/g, "").slice(0, 2);
+    setDeclaredNumbers(prev => ({ ...prev, [draw]: numValue }));
     if (numValue.length === 2) {
       setDeclarationDraw(draw);
       setDeclarationNumber(numValue);
@@ -156,7 +158,7 @@ export default function Home() {
     }
   };
   
-  const updateAllClientsDraw = (passingValue: number, isUndeclare = false) => {
+  const updateAllClientsDraw = (isUndeclare = false) => {
     setAccounts(prevAccounts => {
         return prevAccounts.map(acc => {
             const client = clients.find(c => c.id === acc.id);
@@ -166,7 +168,7 @@ export default function Home() {
             const passingMultiplier = parseFloat(client.pair) || 90;
             
             const currentDraws = acc.draws || {};
-            const currentDrawData = currentDraws[declarationDraw] || { totalAmount: 0, passingAmount: 0, multiplier: passingMultiplier };
+            const currentDrawData = currentDraws[declarationDraw] || { totalAmount: 0, passingAmount: 0 };
             
             const clientData = gridSheetRef.current?.getClientData(client.id);
             const amountInCell = parseFloat(clientData?.[declarationNumber]) || 0;
@@ -196,13 +198,14 @@ export default function Home() {
   };
 
   const handleDeclare = () => {
-    updateAllClientsDraw(parseFloat(declarationNumber));
+    updateAllClientsDraw(false);
     toast({ title: "Success", description: `Number ${declarationNumber} has been declared for draw ${declarationDraw} for all clients.` });
     setDeclarationDialogOpen(false);
   };
   
   const handleUndeclare = () => {
-    updateAllClientsDraw(0, true);
+    updateAllClientsDraw(true);
+    setDeclaredNumbers(prev => ({ ...prev, [declarationDraw]: '' }));
     toast({ title: "Success", description: `Result undeclared for draw ${declarationDraw} for all clients.` });
     setDeclarationDialogOpen(false);
   };
@@ -299,14 +302,16 @@ export default function Home() {
                                 placeholder="00"
                                 className="w-full h-8 text-center"
                                 maxLength={2}
+                                value={declaredNumbers[draw] || ''}
                                 onChange={(e) => {
-                                  const inputElement = e.target as HTMLInputElement;
-                                  handleDeclarationInputChange(draw, inputElement.value);
+                                  handleDeclarationInputChange(draw, e.target.value);
                                 }}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                         const inputElement = e.target as HTMLInputElement;
-                                        handleDeclarationInputChange(draw, inputElement.value);
+                                        if(inputElement.value.length === 2) {
+                                          handleDeclarationInputChange(draw, inputElement.value);
+                                        }
                                     }
                                 }}
                             />
@@ -349,3 +354,5 @@ export default function Home() {
     </div>
   )
 }
+
+    

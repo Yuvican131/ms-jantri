@@ -22,7 +22,6 @@ export type Account = {
 type DrawData = {
   totalAmount: number;
   passingAmount: number;
-  multiplier: number;
 }
 
 type AccountsManagerProps = {
@@ -153,3 +152,5 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
     </Card>
   )
 }
+
+    
