@@ -126,6 +126,7 @@ export default function ClientsManager({ clients, onAddClient, onUpdateClient, o
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>SI.No</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Pair</TableHead>
                 <TableHead>Comm</TableHead>
@@ -135,8 +136,9 @@ export default function ClientsManager({ clients, onAddClient, onUpdateClient, o
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clients.map(client => (
+              {clients.map((client, index) => (
                 <TableRow key={client.id}>
+                  <TableCell>{index + 1}</TableCell>
                   <TableCell className="font-medium">{client.name}</TableCell>
                   <TableCell>{client.pair}</TableCell>
                   <TableCell>{client.comm}</TableCell>
