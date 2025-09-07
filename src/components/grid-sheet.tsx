@@ -889,9 +889,14 @@ const handleHarupApply = () => {
 
   const grandTotal = calculateGrandTotal(currentData);
   
-  const getClientDisplay = (client: Client) => {
-    const clientData = clientSheetData[client.id]?.data || {};
-    const total = calculateGrandTotal(clientData);
+  const getClientDisplay = (client: Client, inTrigger: boolean = false) => {
+    let data;
+    if (inTrigger && selectedClientId) {
+      data = clientSheetData[selectedClientId]?.data || {};
+    } else {
+      data = clientSheetData[client.id]?.data || {};
+    }
+    const total = calculateGrandTotal(data);
     return `${client.name} - ${total}`;
   };
 
@@ -965,7 +970,7 @@ const handleHarupApply = () => {
                         <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
                             <SelectTrigger className="flex-grow h-8 text-xs">
                                 <SelectValue placeholder="Select Client" >
-                                    {selectedClientId ? getClientDisplay(props.clients.find(c => c.id === selectedClientId)!) : "Select Client"}
+                                    {selectedClientId ? getClientDisplay(props.clients.find(c => c.id === selectedClientId)!, true) : "Select Client"}
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
@@ -1107,7 +1112,7 @@ const handleHarupApply = () => {
       <Dialog open={isMasterSheetDialogOpen} onOpenChange={setIsMasterSheetDialogOpen}>
         <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Master Sheet - {activeSheet.name}</DialogTitle>
+            <DialogTitle>Master Sheet - {props.draw}</DialogTitle>
              <DialogClose asChild>
                 <Button type="button" variant="ghost" size="icon" className="absolute top-4 right-4">
                   <X className="h-4 w-4" />
