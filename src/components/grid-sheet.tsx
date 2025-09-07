@@ -51,6 +51,7 @@ const MAX_COMBINATIONS = 100;
 type GridSheetHandle = {
   handleClientUpdate: (client: Client) => void;
   clearSheet: () => void;
+  getClientData: (clientId: string) => CellData | undefined;
 };
 
 type GridSheetProps = {
@@ -192,6 +193,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       }
     },
     clearSheet: () => handleClearSheet(),
+    getClientData: (clientId: string) => {
+      return clientSheetData[clientId]?.data;
+    },
   }));
 
   const calculateCombinations = (num1: string, num2: string, removeJoddaFlag: boolean, reverseFlag: boolean, runningFlag: boolean): number => {
@@ -1244,3 +1248,4 @@ export default GridSheet;
     
 
     
+

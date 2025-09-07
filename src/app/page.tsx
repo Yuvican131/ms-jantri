@@ -44,7 +44,7 @@ function GridIcon(props: React.SVGProps<SVGSVGElement>) {
 
 
 export default function Home() {
-  const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void }>(null);
+  const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any }>(null);
   const [selectedInfo, setSelectedInfo] = useState<{ draw: string; date: Date } | null>(null);
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [lastEntry, setLastEntry] = useState('');
@@ -156,7 +156,7 @@ export default function Home() {
     }
   };
   
-  const updateAllClientsDraw = (passingAmount: number) => {
+  const updateAllClientsDraw = (passingValue: number, isUndeclare = false) => {
     setAccounts(prevAccounts => {
         return prevAccounts.map(acc => {
             const client = clients.find(c => c.id === acc.id);
@@ -167,10 +167,13 @@ export default function Home() {
             
             const currentDraws = acc.draws || {};
             const currentDrawData = currentDraws[declarationDraw] || { totalAmount: 0, passingAmount: 0, multiplier: passingMultiplier };
-
+            
+            const clientData = gridSheetRef.current?.getClientData(client.id);
+            const amountInCell = parseFloat(clientData?.[declarationNumber]) || 0;
+            
             const newDrawData = {
                 ...currentDrawData,
-                passingAmount: passingAmount,
+                passingAmount: isUndeclare ? 0 : amountInCell,
             };
 
             const updatedDraws = { ...currentDraws, [declarationDraw]: newDrawData };
@@ -193,16 +196,13 @@ export default function Home() {
   };
 
   const handleDeclare = () => {
-    const newPassingAmount = parseFloat(declarationNumber);
-    if (!isNaN(newPassingAmount)) {
-      updateAllClientsDraw(newPassingAmount);
-      toast({ title: "Success", description: `Number ${declarationNumber} has been declared for draw ${declarationDraw} for all clients.` });
-    }
+    updateAllClientsDraw(parseFloat(declarationNumber));
+    toast({ title: "Success", description: `Number ${declarationNumber} has been declared for draw ${declarationDraw} for all clients.` });
     setDeclarationDialogOpen(false);
   };
   
   const handleUndeclare = () => {
-    updateAllClientsDraw(0);
+    updateAllClientsDraw(0, true);
     toast({ title: "Success", description: `Result undeclared for draw ${declarationDraw} for all clients.` });
     setDeclarationDialogOpen(false);
   };
