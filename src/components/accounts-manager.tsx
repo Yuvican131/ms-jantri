@@ -32,6 +32,13 @@ type AccountsManagerProps = {
 
 const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
 
+const formatCurrency = (value: number) => {
+  if (value % 1 === 0) {
+    return value.toString();
+  }
+  return value.toFixed(2);
+};
+
 const DrawDetailsPanel = ({
   client,
   account,
@@ -60,19 +67,19 @@ const DrawDetailsPanel = ({
       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
         <span className="text-foreground/80">User Name</span><span className="text-right font-semibold text-primary">: {client?.name || 'N/A'}</span>
         <span className="text-foreground/80">Draw Name ({drawName}) Total</span>
-        <span className="text-right font-semibold">: ₹{totalAmount.toFixed(2)}</span>
-        <span className="text-foreground/80">{clientCommissionPercent*100}% Commission Amt</span><span className="text-right font-semibold">: ₹{commission.toFixed(2)}</span>
-        <span className="text-foreground/80">After Commission</span><span className="text-right font-semibold">: ₹{afterCommission.toFixed(2)}</span>
+        <span className="text-right font-semibold">: ₹{formatCurrency(totalAmount)}</span>
+        <span className="text-foreground/80">{clientCommissionPercent*100}% Commission Amt</span><span className="text-right font-semibold">: ₹{formatCurrency(commission)}</span>
+        <span className="text-foreground/80">After Commission</span><span className="text-right font-semibold">: ₹{formatCurrency(afterCommission)}</span>
         <span className="text-foreground/80">Passing</span>
         <span className="text-right font-semibold">
-          : {passingAmount > 0 ? `${passingAmount} = ` : ''}₹{passingTotal.toFixed(2)} {passingAmount > 0 ? `(x${passingMultiplier})` : ''}
+          : {passingAmount > 0 ? `${formatCurrency(passingAmount)} = ` : ''}₹{formatCurrency(passingTotal)} {passingAmount > 0 ? `(x${passingMultiplier})` : ''}
         </span>
       </div>
       <Separator className="my-2 bg-border/50" />
       <div className="grid grid-cols-2 gap-x-4">
         <span className="font-bold text-base">Final Total</span>
         <span className={`text-right font-bold text-base ${finalTotal >= 0 ? 'text-green-400' : 'text-red-500'}`}>
-          : ₹{finalTotal.toFixed(2)}
+          : ₹{formatCurrency(finalTotal)}
         </span>
       </div>
       <Separator className="my-2 bg-border/50" />
@@ -91,13 +98,14 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
         <Accordion type="single" collapsible className="w-full">
           {accounts.map((account, index) => {
             const client = clients.find(c => c.id === account.id);
-            const balanceColor = parseFloat(account.balance) >= 0 ? 'text-green-400' : 'text-red-500';
+            const balanceValue = parseFloat(account.balance) || 0;
+            const balanceColor = balanceValue >= 0 ? 'text-green-400' : 'text-red-500';
             return (
               <AccordionItem value={`item-${index}`} key={account.id}>
                 <AccordionTrigger>
                     <div className="flex justify-between w-full pr-4">
                         <span>{index + 1}. {account.clientName}</span>
-                        <span className={`font-bold ${balanceColor}`}>₹{account.balance}</span>
+                        <span className={`font-bold ${balanceColor}`}>₹{formatCurrency(balanceValue)}</span>
                     </div>
                 </AccordionTrigger>
                 <AccordionContent>
