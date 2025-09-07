@@ -889,13 +889,8 @@ const handleHarupApply = () => {
 
   const grandTotal = calculateGrandTotal(currentData);
   
-  const getClientDisplay = (client: Client, inTrigger: boolean = false) => {
-    let data;
-    if (inTrigger && selectedClientId) {
-      data = clientSheetData[selectedClientId]?.data || {};
-    } else {
-      data = clientSheetData[client.id]?.data || {};
-    }
+  const getClientDisplay = (client: Client) => {
+    const data = clientSheetData[client.id]?.data || {};
     const total = calculateGrandTotal(data);
     return `${client.name} - ${total}`;
   };
@@ -970,7 +965,7 @@ const handleHarupApply = () => {
                         <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
                             <SelectTrigger className="flex-grow h-8 text-xs">
                                 <SelectValue placeholder="Select Client" >
-                                    {selectedClientId ? getClientDisplay(props.clients.find(c => c.id === selectedClientId)!, true) : "Select Client"}
+                                    {selectedClientId ? getClientDisplay(props.clients.find(c => c.id === selectedClientId)!) : "Select Client"}
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
