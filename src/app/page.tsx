@@ -71,27 +71,40 @@ export default function Home() {
     setSelectedInfo(null);
   };
   
-  const handleClientSheetSave = (clientName: string, gameTotal: number) => {
+  const handleClientSheetSave = (clientName: string, gameTotal: number, draw: string) => {
     setAccounts(prevAccounts => {
-      const existingAccount = prevAccounts.find(acc => acc.clientName === clientName);
-      if (existingAccount) {
-        return prevAccounts.map(acc => 
-          acc.clientName === clientName 
-            ? { ...acc, gameTotal: String(parseFloat(acc.gameTotal) + gameTotal) } 
-            : acc
-        );
-      } else {
-        const newAccount: Account = {
-          id: Date.now().toString(),
-          clientName,
-          gameTotal: String(gameTotal),
-          commission: '0',
-          balance: '0'
-        };
-        return [...prevAccounts, newAccount];
-      }
+        const client = clients.find(c => c.name === clientName);
+        if (!client) return prevAccounts;
+
+        const clientCommissionPercent = parseFloat(client.comm) / 100;
+        const commissionAmount = gameTotal * clientCommissionPercent;
+        const netAmount = gameTotal - commissionAmount;
+
+        return prevAccounts.map(acc => {
+            if (acc.clientName === clientName) {
+                const currentDraws = acc.draws || {};
+                const currentDrawData = currentDraws[draw] || { totalAmount: 0, passingAmount: 0, multiplier: 0 };
+                
+                const updatedDrawData = {
+                    ...currentDrawData,
+                    totalAmount: currentDrawData.totalAmount + gameTotal,
+                };
+                
+                const updatedDraws = { ...currentDraws, [draw]: updatedDrawData };
+                
+                const finalTotalForDraw = netAmount - (currentDrawData.passingAmount * (parseFloat(client.pair) || 90));
+                const newBalance = (parseFloat(acc.balance) + finalTotalForDraw).toFixed(2);
+
+                return {
+                    ...acc,
+                    draws: updatedDraws,
+                    balance: String(newBalance)
+                };
+            }
+            return acc;
+        });
     });
-  };
+};
 
   const handleAddClient = (client: Client) => {
     setClients(prev => [...prev, client]);
@@ -101,6 +114,7 @@ export default function Home() {
       gameTotal: '0',
       commission: '0',
       balance: '0',
+      draws: {}
     };
     setAccounts(prev => [...prev, newAccount]);
   };
