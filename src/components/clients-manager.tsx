@@ -124,6 +124,16 @@ export default function ClientsManager({ clients, onAddClient, onUpdateClient, o
       <CardContent>
         <ScrollArea className="w-full whitespace-nowrap">
           <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Pair</TableHead>
+                <TableHead>Comm</TableHead>
+                <TableHead>In/Out</TableHead>
+                <TableHead>Patti</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
             <TableBody>
               {clients.map(client => (
                 <TableRow key={client.id}>
