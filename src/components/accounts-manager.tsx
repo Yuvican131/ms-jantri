@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
+import type { Client } from "./clients-manager"
 
 export type Account = {
   id: string
@@ -27,26 +28,28 @@ type DrawData = {
 
 type AccountsManagerProps = {
   accounts: Account[];
+  clients: Client[];
   setAccounts: (accounts: Account[]) => void;
 };
 
 const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
 
-const DrawDetailsPanel = ({ clientName, drawName, drawData }: { clientName: string, drawName: string, drawData: DrawData | undefined }) => {
+const DrawDetailsPanel = ({ client, drawName, drawData }: { client: Client | undefined, drawName: string, drawData: DrawData | undefined }) => {
   const totalAmount = drawData?.totalAmount || 0;
-  const commission = totalAmount * 0.10;
+  const clientCommissionPercent = client ? parseFloat(client.comm) / 100 : 0.10;
+  const commission = totalAmount * clientCommissionPercent;
   const afterCommission = totalAmount - commission;
   const passingAmount = drawData?.passingAmount || 0;
-  const passingMultiplier = drawData?.multiplier || 90;
+  const passingMultiplier = client ? parseFloat(client.pair) : 90;
   const passingTotal = passingAmount * passingMultiplier;
   const finalTotal = afterCommission - passingTotal;
 
   return (
     <div className="p-4 bg-muted/50 rounded-lg text-sm font-mono">
       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-        <span className="text-foreground/80">User Name</span><span className="text-right font-semibold text-primary">: {clientName}</span>
+        <span className="text-foreground/80">User Name</span><span className="text-right font-semibold text-primary">: {client?.name || 'N/A'}</span>
         <span className="text-foreground/80">Draw Name (Total)</span><span className="text-right font-semibold">: ₹{totalAmount.toFixed(2)}</span>
-        <span className="text-foreground/80">10% Commission Amt</span><span className="text-right font-semibold">: ₹{commission.toFixed(2)}</span>
+        <span className="text-foreground/80">{clientCommissionPercent*100}% Commission Amt</span><span className="text-right font-semibold">: ₹{commission.toFixed(2)}</span>
         <span className="text-foreground/80">After Commission</span><span className="text-right font-semibold">: ₹{afterCommission.toFixed(2)}</span>
         <span className="text-foreground/80">Passing</span><span className="text-right font-semibold">: {passingAmount} = ₹{passingTotal.toFixed(2)} (x{passingMultiplier})</span>
       </div>
@@ -60,7 +63,7 @@ const DrawDetailsPanel = ({ clientName, drawName, drawData }: { clientName: stri
 }
 
 
-export default function AccountsManager({ accounts, setAccounts }: AccountsManagerProps) {
+export default function AccountsManager({ accounts, clients, setAccounts }: AccountsManagerProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingAccount, setEditingAccount] = useState<Account | null>(null)
   
@@ -96,34 +99,37 @@ export default function AccountsManager({ accounts, setAccounts }: AccountsManag
       </CardHeader>
       <CardContent>
          <Accordion type="single" collapsible className="w-full space-y-2">
-            {accounts.map((account, index) => (
-              <AccordionItem value={account.id} key={account.id} className="border bg-card rounded-lg px-4">
-                <AccordionTrigger className="hover:no-underline">
-                  <div className="flex justify-between w-full">
-                    <span>{index + 1}. {account.clientName}</span>
-                    <span className="font-bold text-green-400 mr-4">₹{account.balance}</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <Tabs defaultValue={draws[0]} className="w-full">
-                    <TabsList className="grid w-full grid-cols-6 h-auto">
+            {accounts.map((account, index) => {
+              const client = clients.find(c => c.id === account.id);
+              return (
+                <AccordionItem value={account.id} key={account.id} className="border bg-card rounded-lg px-4">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex justify-between w-full">
+                      <span>{index + 1}. {account.clientName}</span>
+                      <span className="font-bold text-green-400 mr-4">₹{account.balance}</span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <Tabs defaultValue={draws[0]} className="w-full">
+                      <TabsList className="grid w-full grid-cols-6 h-auto">
+                        {draws.map(draw => (
+                           <TabsTrigger key={draw} value={draw} className="text-xs px-1">{draw}</TabsTrigger>
+                        ))}
+                      </TabsList>
                       {draws.map(draw => (
-                         <TabsTrigger key={draw} value={draw} className="text-xs px-1">{draw}</TabsTrigger>
+                        <TabsContent key={draw} value={draw}>
+                           <DrawDetailsPanel 
+                              client={client}
+                              drawName={draw} 
+                              drawData={account.draws ? account.draws[draw] : undefined}
+                           />
+                        </TabsContent>
                       ))}
-                    </TabsList>
-                    {draws.map(draw => (
-                      <TabsContent key={draw} value={draw}>
-                         <DrawDetailsPanel 
-                            clientName={account.clientName} 
-                            drawName={draw} 
-                            drawData={account.draws ? account.draws[draw] : undefined}
-                         />
-                      </TabsContent>
-                    ))}
-                  </Tabs>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
+                    </Tabs>
+                  </AccordionContent>
+                </AccordionItem>
+              )
+            })}
         </Accordion>
       </CardContent>
     </Card>

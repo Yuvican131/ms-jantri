@@ -108,8 +108,11 @@ export default function Home() {
   const handleUpdateClient = (updatedClient: Client) => {
     setClients(clients.map(c => c.id === updatedClient.id ? updatedClient : c));
     setAccounts(accounts.map(a => a.id === updatedClient.id ? { ...a, clientName: updatedClient.name } : a));
-    if (updatedClient.pair === "90") {
-      onClientUpdateForSheet(updatedClient);
+    // This logic might need review. It triggers on any update.
+    // Consider if it should only trigger on specific changes.
+    // For now, it seems to be related to a specific feature (pair === '90').
+    if (gridSheetRef.current) {
+      gridSheetRef.current.handleClientUpdate(updatedClient);
     }
   };
   
@@ -221,7 +224,7 @@ export default function Home() {
               />
             </TabsContent>
             <TabsContent value="accounts" className="flex-1" style={{ display: activeTab === 'accounts' ? 'block' : 'none' }}>
-              <AccountsManager accounts={accounts} setAccounts={setAccounts} />
+              <AccountsManager accounts={accounts} clients={clients} setAccounts={setAccounts} />
             </TabsContent>
           </div>
         </Tabs>
