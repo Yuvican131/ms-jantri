@@ -1180,21 +1180,6 @@ const handleHarupApply = () => {
               </div>
             </div>
           </ScrollArea>
-          <DialogFooter className="mt-4 sm:justify-between">
-             <Button variant="outline" onClick={handleClearMasterSheet}>
-              <Trash2 className="mr-2 h-4 w-4" />
-              Clear Master Sheet
-            </Button>
-            <div>
-              <DialogClose asChild>
-                <Button type="button" variant="secondary" className="mr-2">Close</Button>
-              </DialogClose>
-              <Button onClick={handleSaveMasterSheetChanges}>
-                <Save className="mr-2 h-4 w-4" />
-                Save Changes
-              </Button>
-            </div>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
