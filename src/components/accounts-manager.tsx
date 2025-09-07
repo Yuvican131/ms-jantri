@@ -40,7 +40,7 @@ export default function AccountsManager({ accounts, setAccounts }: AccountsManag
       setAccounts(accounts.map(a => a.id === editingAccount.id ? { ...a, clientName, gameTotal, commission, balance } : a))
     } else {
       // This part is now handled when a client is created. 
-      // Manual creation can be removed or repurposed if needed.
+      // Manual creation can be repurposed if needed.
     }
     setEditingAccount(null)
     setIsDialogOpen(false)
@@ -115,9 +115,9 @@ export default function AccountsManager({ accounts, setAccounts }: AccountsManag
         <ScrollArea className="w-full whitespace-nowrap">
           <Table>
             <TableBody>
-              {accounts.map(account => (
+              {accounts.map((account, index) => (
                 <TableRow key={account.id}>
-                  <TableCell className="font-medium">{account.clientName}</TableCell>
+                  <TableCell className="font-medium">{index + 1}. {account.clientName}</TableCell>
                   <TableCell>{account.gameTotal}</TableCell>
                   <TableCell>{account.commission}</TableCell>
                   <TableCell>{account.balance}</TableCell>
