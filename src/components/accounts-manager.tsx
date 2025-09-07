@@ -48,7 +48,7 @@ const DrawDetailsPanel = ({ client, drawName, drawData }: { client: Client | und
     <div className="p-4 bg-muted/50 rounded-lg text-sm font-mono">
       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
         <span className="text-foreground/80">User Name</span><span className="text-right font-semibold text-primary">: {client?.name || 'N/A'}</span>
-        <span className="text-foreground/80">Draw Name (Total)</span><span className="text-right font-semibold">: ₹{totalAmount.toFixed(2)}</span>
+        <span className="text-foreground/80">Draw Name ({drawName}) (Total)</span><span className="text-right font-semibold">: ₹{totalAmount.toFixed(2)}</span>
         <span className="text-foreground/80">{clientCommissionPercent*100}% Commission Amt</span><span className="text-right font-semibold">: ₹{commission.toFixed(2)}</span>
         <span className="text-foreground/80">After Commission</span><span className="text-right font-semibold">: ₹{afterCommission.toFixed(2)}</span>
         <span className="text-foreground/80">Passing</span><span className="text-right font-semibold">: {passingAmount} = ₹{passingTotal.toFixed(2)} (x{passingMultiplier})</span>
@@ -64,34 +64,6 @@ const DrawDetailsPanel = ({ client, drawName, drawData }: { client: Client | und
 
 
 export default function AccountsManager({ accounts, clients, setAccounts }: AccountsManagerProps) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingAccount, setEditingAccount] = useState<Account | null>(null)
-  
-  const handleSaveAccount = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const formData = new FormData(e.currentTarget)
-    const clientName = formData.get("clientName") as string
-    const gameTotal = formData.get("gameTotal") as string
-    const commission = formData.get("commission") as string
-    const balance = formData.get("balance") as string
-
-    if (editingAccount) {
-      setAccounts(accounts.map(a => a.id === editingAccount.id ? { ...a, clientName, gameTotal, commission, balance } : a))
-    }
-    setEditingAccount(null)
-    setIsDialogOpen(false)
-    e.currentTarget.reset();
-  }
-
-  const handleEditAccount = (account: Account) => {
-    setEditingAccount(account)
-    setIsDialogOpen(true)
-  }
-
-  const handleDeleteAccount = (id: string) => {
-    setAccounts(accounts.filter(a => a.id !== id))
-  }
-
   return (
     <Card>
       <CardHeader>
