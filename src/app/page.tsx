@@ -13,6 +13,9 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { useToast } from "@/hooks/use-toast"
 
 function GridIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -49,6 +52,12 @@ export default function Home() {
   const [clients, setClients] = useState<Client[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [activeTab, setActiveTab] = useState("sheet");
+
+  const [declarationDialogOpen, setDeclarationDialogOpen] = useState(false);
+  const [declarationDraw, setDeclarationDraw] = useState("");
+  const [declarationNumber, setDeclarationNumber] = useState("");
+  const { toast } = useToast();
+
 
   useEffect(() => {
     setDate(new Date());
@@ -145,6 +154,67 @@ export default function Home() {
 
   const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
 
+  const handleDeclarationInputChange = (draw: string, value: string) => {
+    const numValue = value.replace(/[^0-9]/g, "").slice(0, 2);
+    if (numValue.length === 2) {
+      setDeclarationDraw(draw);
+      setDeclarationNumber(numValue);
+      setDeclarationDialogOpen(true);
+    }
+  };
+  
+  const updateAllClientsDraw = (passingAmount: number) => {
+    setAccounts(prevAccounts => {
+        return prevAccounts.map(acc => {
+            const client = clients.find(c => c.id === acc.id);
+            if (!client) return acc;
+
+            const clientCommissionPercent = parseFloat(client.comm) / 100;
+            const passingMultiplier = parseFloat(client.pair) || 90;
+            
+            const currentDraws = acc.draws || {};
+            const currentDrawData = currentDraws[declarationDraw] || { totalAmount: 0, passingAmount: 0, multiplier: passingMultiplier };
+
+            const newDrawData = {
+                ...currentDrawData,
+                passingAmount: passingAmount,
+            };
+
+            const updatedDraws = { ...currentDraws, [declarationDraw]: newDrawData };
+
+            const newBalance = Object.values(updatedDraws).reduce((balance, drawDetails) => {
+                const drawTotalAmount = drawDetails.totalAmount || 0;
+                const drawCommission = drawTotalAmount * clientCommissionPercent;
+                const drawNet = drawTotalAmount - drawCommission;
+                const drawPassingTotal = (drawDetails.passingAmount || 0) * (parseFloat(client.pair) || 90);
+                return balance + (drawNet - drawPassingTotal);
+            }, 0);
+
+            return {
+                ...acc,
+                draws: updatedDraws,
+                balance: newBalance.toFixed(2),
+            };
+        });
+    });
+  };
+
+  const handleDeclare = () => {
+    const newPassingAmount = parseFloat(declarationNumber);
+    if (!isNaN(newPassingAmount)) {
+      updateAllClientsDraw(newPassingAmount);
+      toast({ title: "Success", description: `Number ${declarationNumber} has been declared for draw ${declarationDraw} for all clients.` });
+    }
+    setDeclarationDialogOpen(false);
+  };
+  
+  const handleUndeclare = () => {
+    updateAllClientsDraw(0);
+    toast({ title: "Success", description: `Result undeclared for draw ${declarationDraw} for all clients.` });
+    setDeclarationDialogOpen(false);
+  };
+
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <main className="flex-1 p-2 flex flex-col">
@@ -227,9 +297,23 @@ export default function Home() {
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4">
                       {draws.map((draw) => (
-                        <Button key={draw} onClick={() => handleSelectDraw(draw)} className="h-16 sm:h-20 text-lg sm:text-xl font-bold bg-gradient-to-br from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white shadow-lg">
-                          {draw}
-                        </Button>
+                        <div key={draw} className="flex flex-col gap-1">
+                            <Button onClick={() => handleSelectDraw(draw)} className="h-16 sm:h-20 text-lg sm:text-xl font-bold bg-gradient-to-br from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white shadow-lg">
+                              {draw}
+                            </Button>
+                             <Input
+                                type="text"
+                                placeholder="00"
+                                className="w-full h-8 text-center"
+                                onChange={(e) => handleDeclarationInputChange(draw, e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        const inputElement = e.target as HTMLInputElement;
+                                        handleDeclarationInputChange(draw, inputElement.value);
+                                    }
+                                }}
+                            />
+                        </div>
                       ))}
                     </div>
                   </CardContent>
@@ -250,6 +334,21 @@ export default function Home() {
           </div>
         </Tabs>
       </main>
+
+       <Dialog open={declarationDialogOpen} onOpenChange={setDeclarationDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Declare Result for Draw {declarationDraw}</DialogTitle>
+          </DialogHeader>
+          <div className="my-4 text-center">
+            <p className="text-lg">Are you sure you want to declare or undeclare the number <strong className="text-primary">{declarationNumber}</strong>?</p>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleUndeclare} variant="destructive">Undeclare</Button>
+            <Button onClick={handleDeclare}>Declare</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
