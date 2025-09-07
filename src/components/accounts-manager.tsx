@@ -15,8 +15,6 @@ import { useToast } from "@/hooks/use-toast"
 export type Account = {
   id: string
   clientName: string
-  gameTotal: string
-  commission: string
   balance: string
   draws?: { [key: string]: DrawData }
 }
@@ -90,16 +88,7 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
 
         const currentDraws = acc.draws || {};
         const updatedDraws = { ...currentDraws, [drawName]: newDrawData };
-
-        const totalAmount = newDrawData.totalAmount;
-        const commissionAmount = totalAmount * clientCommissionPercent;
-        const netAmount = totalAmount - commissionAmount;
-
-        const passingAmount = newDrawData.passingAmount || 0;
-        const passingTotal = passingAmount * passingMultiplier;
-
-        const finalTotalForDraw = netAmount - passingTotal;
-
+        
         // Re-calculate the grand total balance for the client
         const newBalance = Object.values(updatedDraws).reduce((balance, draw) => {
             const drawTotalAmount = draw.totalAmount || 0;
