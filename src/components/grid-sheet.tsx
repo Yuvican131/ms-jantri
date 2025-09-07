@@ -793,7 +793,12 @@ const handleHarupApply = () => {
 
     props.onClientSheetSave(clientName, selectedClientId, gameTotal, clientData, props.draw);
 
-    // Don't update master sheet here directly, it's handled by the log aggregation
+    const newMasterData = { ...masterSheetData };
+    Object.entries(clientData).forEach(([key, value]) => {
+      const numericValue = parseFloat(value) || 0;
+      newMasterData[key] = String((parseFloat(newMasterData[key]) || 0) + numericValue);
+    });
+    setMasterSheetData(newMasterData);
     
     updateClientData(selectedClientId, {}, {});
     setPreviousSheetState(null);
@@ -857,7 +862,14 @@ const handleHarupApply = () => {
   };
 
   const openMasterSheetDialog = () => {
-    // Master sheet data is now calculated via useEffect from selected logs
+    const newMasterData: CellData = {};
+    props.savedSheetLog.forEach(logEntry => {
+      Object.entries(logEntry.data).forEach(([key, value]) => {
+        const numericValue = parseFloat(value) || 0;
+        newMasterData[key] = String((parseFloat(newMasterData[key]) || 0) + numericValue);
+      });
+    });
+    setMasterSheetData(newMasterData);
     setIsMasterSheetDialogOpen(true);
   };
 
@@ -887,13 +899,7 @@ const handleHarupApply = () => {
     return total;
   });
 
-  const grandTotal = calculateGrandTotal(currentData);
-  
-  const getClientDisplay = (client: Client) => {
-    const data = clientSheetData[client.id]?.data || {};
-    const total = calculateGrandTotal(data);
-    return `${client.name} - ${total}`;
-  };
+  const grandTotal = rowTotals.reduce((acc, total) => acc + total, 0);
 
   return (
     <>
@@ -964,14 +970,12 @@ const handleHarupApply = () => {
                     <div className="flex items-center gap-2">
                         <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
                             <SelectTrigger className="flex-grow h-8 text-xs">
-                                <SelectValue placeholder="Select Client" >
-                                    {selectedClientId ? getClientDisplay(props.clients.find(c => c.id === selectedClientId)!) : "Select Client"}
-                                </SelectValue>
+                                <SelectValue placeholder="Select Client" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="None">None (Master Sheet)</SelectItem>
                                 {props.clients.map(client => (
-                                    <SelectItem key={client.id} value={client.id}>{getClientDisplay(client)}</SelectItem>
+                                    <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>

@@ -103,7 +103,7 @@ export default function Home() {
                 
                 const updatedDrawData = {
                     ...currentDrawData,
-                    totalAmount: gameTotal, // Use the new gameTotal directly, not cumulative
+                    totalAmount: currentDrawData.totalAmount + gameTotal,
                 };
                 
                 const updatedDraws = { ...currentDraws, [draw]: updatedDrawData };
@@ -126,25 +126,10 @@ export default function Home() {
             return acc;
         });
     });
-    setSavedSheetLog(prev => {
-        const existingLogForDraw = prev[draw] || [];
-        const clientLogIndex = existingLogForDraw.findIndex(log => log.clientId === clientId);
-
-        let newLogForDraw;
-        if (clientLogIndex > -1) {
-            // Update existing entry
-            newLogForDraw = [...existingLogForDraw];
-            newLogForDraw[clientLogIndex] = { clientName, clientId, gameTotal, data };
-        } else {
-            // Add new entry
-            newLogForDraw = [...existingLogForDraw, { clientName, clientId, gameTotal, data }];
-        }
-
-        return {
-            ...prev,
-            [draw]: newLogForDraw,
-        };
-    });
+    setSavedSheetLog(prev => ({
+        ...prev,
+        [draw]: [...(prev[draw] || []), { clientName, clientId, gameTotal, data }],
+    }));
 };
 
   const handleAddClient = (client: Client) => {
@@ -185,55 +170,46 @@ export default function Home() {
   };
   
   const updateAllClientsDraw = (isUndeclare = false) => {
-    const logForDraw = savedSheetLog[declarationDraw] || [];
-
     const updatedAccounts = accounts.map(acc => {
-        const client = clients.find(c => c.id === acc.id);
-        if (!client) return acc;
-
-        const clientLogEntry = logForDraw.find(log => log.clientId === client.id);
-        const clientDataForDraw = clientLogEntry?.data;
-
-        // If a client hasn't played in this draw (no log entry), we don't need to update them.
-        if (!clientDataForDraw) return acc;
-
-        const clientCommissionPercent = parseFloat(client.comm) / 100;
-        const passingMultiplier = parseFloat(client.pair) || 90;
-
-        const currentDraws = { ...(acc.draws || {}) };
-        const currentDrawData = { ...(currentDraws[declarationDraw] || { totalAmount: 0, passingAmount: 0 }) };
-
-        const amountInCell = parseFloat(clientDataForDraw[declarationNumber]) || 0;
-        const newPassingAmount = isUndeclare ? 0 : amountInCell;
-
-        const updatedDrawDataForDeclaration = {
-          ...currentDrawData,
-          passingAmount: newPassingAmount,
-        };
-
-        const updatedDraws = { ...currentDraws, [declarationDraw]: updatedDrawDataForDeclaration };
-        
-        // Recalculate the entire balance from scratch based on all draws for this client
-        const newBalance = Object.entries(updatedDraws).reduce((balance, [drawKey, drawDetails]) => {
-            const drawTotalAmount = drawDetails.totalAmount || 0;
-            const drawCommission = drawTotalAmount * clientCommissionPercent;
-            const drawNet = drawTotalAmount - drawCommission;
-            
-            const drawPassingAmount = drawDetails.passingAmount || 0;
-            const drawPassingTotal = drawPassingAmount * passingMultiplier;
-            
-            return balance + (drawNet - drawPassingTotal);
-        }, 0);
-
-        return {
-            ...acc,
-            draws: updatedDraws,
-            balance: newBalance.toFixed(2),
-        };
+      const client = clients.find(c => c.id === acc.id);
+      if (!client) return acc;
+  
+      const clientSheetData = gridSheetRef.current?.getClientData(client.id);
+      if (!clientSheetData) return acc;
+  
+      const amountInCell = parseFloat(clientSheetData[declarationNumber]) || 0;
+      const passingMultiplier = parseFloat(client.pair) || 80;
+  
+      const currentDraws = { ...(acc.draws || {}) };
+      const currentDrawData = { ...(currentDraws[declarationDraw] || { totalAmount: 0, passingAmount: 0 }) };
+  
+      const newPassingAmount = isUndeclare ? 0 : amountInCell * passingMultiplier;
+  
+      const updatedDrawDataForDeclaration = {
+        ...currentDrawData,
+        passingAmount: newPassingAmount,
+      };
+  
+      const updatedDraws = { ...currentDraws, [declarationDraw]: updatedDrawDataForDeclaration };
+  
+      const clientCommissionPercent = parseFloat(client.comm) / 100;
+      const totalBalanceAfterUpdate = Object.values(updatedDraws).reduce((total, drawDetails) => {
+        const drawTotal = drawDetails.totalAmount || 0;
+        const drawCommission = drawTotal * clientCommissionPercent;
+        const drawNet = drawTotal - drawCommission;
+        const drawPassingTotal = drawDetails.passingAmount || 0;
+        return total + (drawNet - drawPassingTotal);
+      }, 0);
+  
+      return {
+        ...acc,
+        draws: updatedDraws,
+        balance: totalBalanceAfterUpdate.toFixed(2),
+      };
     });
-
+  
     setAccounts(updatedAccounts);
-};
+  };
 
 
   const handleDeclare = () => {
