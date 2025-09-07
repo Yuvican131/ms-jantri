@@ -170,11 +170,13 @@ export default function Home() {
   };
   
   const updateAllClientsDraw = (isUndeclare = false) => {
-    const newAccounts = accounts.map(acc => {
+    const updatedAccounts = accounts.map(acc => {
         const client = clients.find(c => c.id === acc.id);
         if (!client) return acc;
 
         const clientDataForDraw = gridSheetRef.current?.getClientData(client.id);
+        
+        // This is important: If a client hasn't played (no data), we shouldn't penalize them.
         if (!clientDataForDraw) return acc;
 
         const clientCommissionPercent = parseFloat(client.comm) / 100;
@@ -186,13 +188,14 @@ export default function Home() {
         const amountInCell = parseFloat(clientDataForDraw[declarationNumber]) || 0;
         const newPassingAmount = isUndeclare ? 0 : amountInCell;
 
-        const updatedDrawData = {
+        const updatedDrawDataForDeclaration = {
           ...currentDrawData,
           passingAmount: newPassingAmount,
         };
 
-        const updatedDraws = { ...currentDraws, [declarationDraw]: updatedDrawData };
-
+        const updatedDraws = { ...currentDraws, [declarationDraw]: updatedDrawDataForDeclaration };
+        
+        // Recalculate the entire balance from scratch based on all draws for this client
         const newBalance = Object.entries(updatedDraws).reduce((balance, [drawKey, drawDetails]) => {
             const drawTotalAmount = drawDetails.totalAmount || 0;
             const drawCommission = drawTotalAmount * clientCommissionPercent;
@@ -211,7 +214,7 @@ export default function Home() {
         };
     });
 
-    setAccounts(newAccounts);
+    setAccounts(updatedAccounts);
 };
 
 
