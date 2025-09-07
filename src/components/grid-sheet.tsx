@@ -195,23 +195,19 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   }));
 
   const calculateCombinations = (num1: string, num2: string, removeJoddaFlag: boolean, reverseFlag: boolean, runningFlag: boolean): number => {
+    if (runningFlag) {
+      const start = parseInt(num1, 10);
+      const end = parseInt(num2, 10);
+      if (!isNaN(start) && !isNaN(end) && end >= start) {
+          return end - start + 1;
+      }
+      return 0;
+    }
+
     const digits1 = num1.split('');
     const digits2 = num2.split('');
     let combinations = new Set<string>();
-
-    if (runningFlag) {
-        const allDigits = [...new Set([...digits1, ...digits2])];
-        for (let i = 0; i < allDigits.length; i++) {
-            for (let j = 0; j < allDigits.length; j++) {
-                const d1 = allDigits[i];
-                const d2 = allDigits[j];
-                if (removeJoddaFlag && d1 === d2) continue;
-                combinations.add(`${d1}${d2}`);
-            }
-        }
-        return combinations.size;
-    }
-
+    
     if (digits1.length > 0 && digits2.length > 0) {
         for (const d1 of digits1) {
             for (const d2 of digits2) {
@@ -237,17 +233,24 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       showClientSelectionToast();
       return;
     }
-    const newLaddiNum1 = value.replace(/[^0-9]/g, '');
-    if (new Set(newLaddiNum1.split('')).size !== newLaddiNum1.length) {
-      toast({ title: "Validation Error", description: "Duplicate digits are not allowed in this field.", variant: "destructive" });
-      return;
+    let newLaddiNum1 = value.replace(/[^0-9]/g, '');
+
+    if (runningLaddi) {
+        if (newLaddiNum1.length > 2) {
+            newLaddiNum1 = newLaddiNum1.slice(0, 2);
+        }
+    } else {
+        if (new Set(newLaddiNum1.split('')).size !== newLaddiNum1.length) {
+            toast({ title: "Validation Error", description: "Duplicate digits are not allowed in this field.", variant: "destructive" });
+            return;
+        }
     }
+
     if (calculateCombinations(newLaddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi) > MAX_COMBINATIONS) {
         toast({ title: "Combination Limit Exceeded", description: `You cannot create more than ${MAX_COMBINATIONS} combinations.`, variant: "destructive" });
         return;
     }
     setLaddiNum1(newLaddiNum1);
-    setLaddiNum2(newLaddiNum1);
   }
 
   const handleLaddiNum2Change = (value: string) => {
@@ -255,10 +258,17 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       showClientSelectionToast();
       return;
     }
-    const newLaddiNum2 = value.replace(/[^0-9]/g, '');
-    if (new Set(newLaddiNum2.split('')).size !== newLaddiNum2.length) {
-        toast({ title: "Validation Error", description: "Duplicate digits are not allowed in this field.", variant: "destructive" });
-        return;
+    let newLaddiNum2 = value.replace(/[^0-9]/g, '');
+
+    if (runningLaddi) {
+        if (newLaddiNum2.length > 2) {
+            newLaddiNum2 = newLaddiNum2.slice(0, 2);
+        }
+    } else {
+        if (new Set(newLaddiNum2.split('')).size !== newLaddiNum2.length) {
+            toast({ title: "Validation Error", description: "Duplicate digits are not allowed in this field.", variant: "destructive" });
+            return;
+        }
     }
     if (calculateCombinations(laddiNum1, newLaddiNum2, removeJodda, reverseLaddi, runningLaddi) > MAX_COMBINATIONS) {
         toast({ title: "Combination Limit Exceeded", description: `You cannot create more than ${MAX_COMBINATIONS} combinations.`, variant: "destructive" });
@@ -479,14 +489,14 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     const combinations = new Set<string>();
     
     if (runningLaddi) {
-        const allDigits = [...new Set(laddiNum1.split(''))];
-        for (let i = 0; i < allDigits.length; i++) {
-            for (let j = 0; j < allDigits.length; j++) {
-                const d1 = allDigits[i];
-                const d2 = allDigits[j];
-                if (removeJodda && d1 === d2) continue;
-                combinations.add(`${d1}${d2}`);
-            }
+        const start = parseInt(laddiNum1, 10);
+        const end = parseInt(laddiNum2, 10);
+        if (isNaN(start) || isNaN(end) || start < 0 || end > 99 || start > end) {
+            toast({ title: "Running Error", description: "Invalid range. Please enter two-digit numbers (00-99) with start <= end.", variant: "destructive" });
+            return;
+        }
+        for (let i = start; i <= end; i++) {
+            combinations.add(i.toString().padStart(2, '0'));
         }
     } else {
         const digits1 = laddiNum1.split('');
@@ -1007,14 +1017,14 @@ const handleHarupApply = () => {
                   <h3 className="font-semibold mb-1 text-xs">Laddi</h3>
                   <div className="grid grid-cols-5 items-center gap-1 mb-1">
                       <Input
-                        id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-8 text-sm" placeholder="Num 1"
-                        value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null || runningLaddi}
+                        id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-8 text-sm" placeholder={runningLaddi ? "Start" : "Num 1"}
+                        value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
                         onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                       />
                       <span className="font-bold text-center text-sm">x</span>
                       <Input
-                        id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-8 text-sm" placeholder="Num 2"
-                        value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null || runningLaddi}
+                        id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-8 text-sm" placeholder={runningLaddi ? "End" : "Num 2"}
+                        value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
                         onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                       />
                   </div>
@@ -1034,11 +1044,11 @@ const handleHarupApply = () => {
                   </div>
                   <div className="flex justify-between items-center gap-2 mt-1">
                       <div className="flex items-center gap-2">
-                          <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
-                          <Label htmlFor="remove-jodda" className={`text-xs ${selectedClientId === null ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Jodda</Label>
-                           <Checkbox id="reverse-laddi" checked={reverseLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setReverseLaddi(Boolean(checked)) }} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
-                          <Label htmlFor="reverse-laddi" className={`text-xs ${selectedClientId === null ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Reverse</Label>
-                          <Checkbox id="running-laddi" checked={runningLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRunningLaddi(Boolean(checked)) }} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                          <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={selectedClientId === null || runningLaddi} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                          <Label htmlFor="remove-jodda" className={`text-xs ${selectedClientId === null || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Jodda</Label>
+                           <Checkbox id="reverse-laddi" checked={reverseLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setReverseLaddi(Boolean(checked)) }} disabled={selectedClientId === null || runningLaddi} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                          <Label htmlFor="reverse-laddi" className={`text-xs ${selectedClientId === null || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Reverse</Label>
+                          <Checkbox id="running-laddi" checked={runningLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRunningLaddi(Boolean(checked)); setLaddiNum1(''); setLaddiNum2(''); }} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
                           <Label htmlFor="running-laddi" className={`text-xs ${selectedClientId === null ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Running</Label>
                       </div>
                       <div className="text-xs font-bold text-primary">{combinationCount} Combos</div>
@@ -1234,3 +1244,4 @@ export default GridSheet;
     
 
     
+
