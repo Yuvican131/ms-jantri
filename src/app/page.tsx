@@ -92,13 +92,20 @@ export default function Home() {
                 
                 const updatedDraws = { ...currentDraws, [draw]: updatedDrawData };
                 
-                const finalTotalForDraw = netAmount - (currentDrawData.passingAmount * (parseFloat(client.pair) || 90));
-                const newBalance = (parseFloat(acc.balance) + finalTotalForDraw).toFixed(2);
+                // Recalculate balance based on all draws for this client
+                const newBalance = Object.values(updatedDraws).reduce((balance, drawDetails) => {
+                    const drawTotal = drawDetails.totalAmount || 0;
+                    const drawCommission = drawTotal * clientCommissionPercent;
+                    const drawNet = drawTotal - drawCommission;
+                    const passingMultiplier = parseFloat(client.pair) || 90;
+                    const drawPassingTotal = (drawDetails.passingAmount || 0) * passingMultiplier;
+                    return balance + (drawNet - drawPassingTotal);
+                }, 0);
 
                 return {
                     ...acc,
                     draws: updatedDraws,
-                    balance: String(newBalance)
+                    balance: String(newBalance.toFixed(2))
                 };
             }
             return acc;
