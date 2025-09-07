@@ -3,13 +3,12 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { PlusCircle, MoreHorizontal, Edit, Trash2 } from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Separator } from "@/components/ui/separator"
 
 export type Account = {
   id: string
@@ -17,12 +16,49 @@ export type Account = {
   gameTotal: string
   commission: string
   balance: string
+  draws?: { [key: string]: DrawData }
+}
+
+type DrawData = {
+  totalAmount: number;
+  passingAmount: number;
+  multiplier: number;
 }
 
 type AccountsManagerProps = {
   accounts: Account[];
   setAccounts: (accounts: Account[]) => void;
 };
+
+const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
+
+const DrawDetailsPanel = ({ clientName, drawName, drawData }: { clientName: string, drawName: string, drawData: DrawData | undefined }) => {
+  const totalAmount = drawData?.totalAmount || 0;
+  const commission = totalAmount * 0.10;
+  const afterCommission = totalAmount - commission;
+  const passingAmount = drawData?.passingAmount || 0;
+  const passingMultiplier = drawData?.multiplier || 90;
+  const passingTotal = passingAmount * passingMultiplier;
+  const finalTotal = afterCommission - passingTotal;
+
+  return (
+    <div className="p-4 bg-muted/50 rounded-lg text-sm font-mono">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+        <span className="text-foreground/80">User Name</span><span className="text-right font-semibold text-primary">: {clientName}</span>
+        <span className="text-foreground/80">Draw Name (Total)</span><span className="text-right font-semibold">: ₹{totalAmount.toFixed(2)}</span>
+        <span className="text-foreground/80">10% Commission Amt</span><span className="text-right font-semibold">: ₹{commission.toFixed(2)}</span>
+        <span className="text-foreground/80">After Commission</span><span className="text-right font-semibold">: ₹{afterCommission.toFixed(2)}</span>
+        <span className="text-foreground/80">Passing</span><span className="text-right font-semibold">: {passingAmount} = ₹{passingTotal.toFixed(2)} (x{passingMultiplier})</span>
+      </div>
+      <Separator className="my-2 bg-border/50" />
+      <div className="grid grid-cols-2 gap-x-4">
+        <span className="font-bold text-base">Final Total</span><span className="text-right font-bold text-base text-green-400">: ₹{finalTotal.toFixed(2)}</span>
+      </div>
+       <Separator className="my-2 bg-border/50" />
+    </div>
+  )
+}
+
 
 export default function AccountsManager({ accounts, setAccounts }: AccountsManagerProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -38,9 +74,6 @@ export default function AccountsManager({ accounts, setAccounts }: AccountsManag
 
     if (editingAccount) {
       setAccounts(accounts.map(a => a.id === editingAccount.id ? { ...a, clientName, gameTotal, commission, balance } : a))
-    } else {
-      // This part is now handled when a client is created. 
-      // Manual creation can be repurposed if needed.
     }
     setEditingAccount(null)
     setIsDialogOpen(false)
@@ -56,96 +89,42 @@ export default function AccountsManager({ accounts, setAccounts }: AccountsManag
     setAccounts(accounts.filter(a => a.id !== id))
   }
 
-  const openAddDialog = () => {
-    setEditingAccount(null)
-    setIsDialogOpen(true)
-  }
-
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader>
         <CardTitle>Manage Account Ledger</CardTitle>
-        <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          if(!open) {
-            setEditingAccount(null)
-          }
-          setIsDialogOpen(open)
-        }}>
-          <DialogTrigger asChild>
-             {/* The "Add" button can be hidden if manual account creation is no longer desired */}
-             {/* 
-              <Button size="sm" onClick={openAddDialog}>
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Add Account Ledger
-              </Button>
-             */}
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingAccount ? "Edit Account Ledger" : "Add New Account Ledger"}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSaveAccount} className="space-y-4">
-              <div>
-                <Label htmlFor="clientName">Client Name</Label>
-                <Input id="clientName" name="clientName" defaultValue={editingAccount?.clientName} required />
-              </div>
-              <div>
-                <Label htmlFor="gameTotal">Game Total</Label>
-                <Input id="gameTotal" name="gameTotal" defaultValue={editingAccount?.gameTotal} required />
-              </div>
-              <div>
-                <Label htmlFor="commission">Commission</Label>
-                <Input id="commission" name="commission" defaultValue={editingAccount?.commission} required />
-              </div>
-              <div>
-                <Label htmlFor="balance">Balance</Label>
-                <Input id="balance" name="balance" defaultValue={editingAccount?.balance} required />
-              </div>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button" variant="outline">Cancel</Button>
-                </DialogClose>
-                <Button type="submit">Save</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="w-full whitespace-nowrap">
-          <Table>
-            <TableBody>
-              {accounts.map((account, index) => (
-                <TableRow key={account.id}>
-                  <TableCell className="font-medium">{index + 1}. {account.clientName}</TableCell>
-                  <TableCell>{account.gameTotal}</TableCell>
-                  <TableCell>{account.commission}</TableCell>
-                  <TableCell>{account.balance}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEditAccount(account)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          <span>Edit</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive" onClick={() => handleDeleteAccount(account.id)}>
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          <span>Delete</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </ScrollArea>
+         <Accordion type="single" collapsible className="w-full space-y-2">
+            {accounts.map((account, index) => (
+              <AccordionItem value={account.id} key={account.id} className="border bg-card rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex justify-between w-full">
+                    <span>{index + 1}. {account.clientName}</span>
+                    <span className="font-bold text-green-400 mr-4">₹{account.balance}</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <Tabs defaultValue={draws[0]} className="w-full">
+                    <TabsList className="grid w-full grid-cols-6 h-auto">
+                      {draws.map(draw => (
+                         <TabsTrigger key={draw} value={draw} className="text-xs px-1">{draw}</TabsTrigger>
+                      ))}
+                    </TabsList>
+                    {draws.map(draw => (
+                      <TabsContent key={draw} value={draw}>
+                         <DrawDetailsPanel 
+                            clientName={account.clientName} 
+                            drawName={draw} 
+                            drawData={account.draws ? account.draws[draw] : undefined}
+                         />
+                      </TabsContent>
+                    ))}
+                  </Tabs>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+        </Accordion>
       </CardContent>
     </Card>
   )
