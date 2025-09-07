@@ -100,7 +100,6 @@ export default function Home() {
                 
                 const updatedDraws = { ...currentDraws, [draw]: updatedDrawData };
                 
-                // Recalculate balance based on all draws for this client
                 const newBalance = Object.values(updatedDraws).reduce((balance, drawDetails) => {
                     const drawTotal = drawDetails.totalAmount || 0;
                     const drawCommission = drawTotal * clientCommissionPercent;
@@ -165,7 +164,6 @@ export default function Home() {
             if (!client) return acc;
 
             const clientCommissionPercent = parseFloat(client.comm) / 100;
-            const passingMultiplier = parseFloat(client.pair) || 90;
             
             const currentDraws = acc.draws || {};
             const currentDrawData = currentDraws[declarationDraw] || { totalAmount: 0, passingAmount: 0 };
@@ -354,5 +352,3 @@ export default function Home() {
     </div>
   )
 }
-
-    

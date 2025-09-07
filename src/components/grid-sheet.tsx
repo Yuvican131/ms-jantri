@@ -366,16 +366,13 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     return total;
   };
 
-  const calculateGrandTotal = (data: CellData, totals: { [key: number]: string }) => {
+  const calculateGrandTotal = (data: CellData) => {
     let total = 0;
-    for (let i = 0; i < GRID_ROWS; i++) {
-      for (let j = 0; j < GRID_COLS; j++) {
-        const key = (i * GRID_COLS + j).toString().padStart(2, '0');
-        if (data[key] && !isNaN(Number(data[key]))) {
-          total += Number(data[key]);
+    Object.values(data).forEach(value => {
+        if (value && !isNaN(Number(value))) {
+            total += Number(value);
         }
-      }
-    }
+    });
     return total;
   };
 
@@ -759,40 +756,33 @@ const handleHarupApply = () => {
     if (!selectedClientId) {
       toast({
         title: "No Client Selected",
-        description: "Please select a client to save their sheet to the master sheet.",
+        description: "Please select a client to save their sheet.",
         variant: "destructive",
       });
       return;
     }
 
     const clientData = clientSheetData[selectedClientId]?.data || {};
-    const clientRowTotals = clientSheetData[selectedClientId]?.rowTotals || {};
     const clientName = props.clients.find(c => c.id === selectedClientId)?.name || "Unknown Client";
-    
-    const gameTotal = calculateGrandTotal(clientData, clientRowTotals);
+    const gameTotal = calculateGrandTotal(clientData);
+
     props.onClientSheetSave(clientName, gameTotal, props.draw);
 
-    setSheets(prevSheets => prevSheets.map(sheet => {
-      if (sheet.id === activeSheetId) {
-        const newMasterData = { ...sheet.data };
-        Object.keys(clientData).forEach(key => {
-          const masterValue = parseFloat(newMasterData[key]) || 0;
-          const clientValue = parseFloat(clientData[key]) || 0;
-          newMasterData[key] = String(masterValue + clientValue);
-        });
-        const newMasterRowTotals = { ...sheet.rowTotals };
-        Object.keys(clientRowTotals).forEach(rowIndexStr => {
-            const rowIndex = parseInt(rowIndexStr, 10);
-            const masterRowTotal = calculateRowTotal(rowIndex, newMasterData);
-            newMasterRowTotals[rowIndex] = masterRowTotal.toString();
-        });
+    setSheets(prevSheets => {
+      return prevSheets.map(sheet => {
+        if (sheet.id === activeSheetId) {
+          const newMasterData = { ...sheet.data };
+          Object.keys(clientData).forEach(key => {
+            const masterValue = parseFloat(newMasterData[key]) || 0;
+            const clientValue = parseFloat(clientData[key]) || 0;
+            newMasterData[key] = String(masterValue + clientValue);
+          });
+          return { ...sheet, data: newMasterData };
+        }
+        return sheet;
+      });
+    });
 
-        return { ...sheet, data: newMasterData, rowTotals: newMasterRowTotals };
-      }
-      return sheet;
-    }));
-
-    // Clear client's sheet
     updateClientData(selectedClientId, {}, {});
     setPreviousSheetState(null);
 
@@ -822,7 +812,7 @@ const handleHarupApply = () => {
   };
 
   const masterSheetGrandTotal = () => {
-    return calculateGrandTotal(masterSheetData, {});
+    return calculateGrandTotal(masterSheetData);
   };
   
   const handleApplyCutting = () => {
@@ -903,7 +893,7 @@ const handleHarupApply = () => {
     return total;
   });
 
-  const grandTotal = calculateGrandTotal(currentData, currentRowTotals);
+  const grandTotal = calculateGrandTotal(currentData);
 
   return (
     <>
@@ -1242,10 +1232,3 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-    
-
-    
-
-    
-
