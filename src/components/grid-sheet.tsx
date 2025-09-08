@@ -56,6 +56,7 @@ type GridSheetHandle = {
   clearSheet: () => void;
   getClientData: (clientId: string) => CellData | undefined;
   getClientCurrentData: (clientId: string) => CellData | undefined;
+  getClientPreviousData: (clientId: string) => CellData | undefined;
 };
 
 type GridSheetProps = {
@@ -227,6 +228,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     },
     getClientCurrentData: (clientId: string) => {
         return clientSheetData[clientId]?.data;
+    },
+    getClientPreviousData: (clientId: string) => {
+        const log = props.savedSheetLog.find(l => l.clientId === clientId);
+        return log ? log.data : {};
     },
   }));
 
@@ -803,10 +808,19 @@ const handleHarupApply = () => {
         });
         return;
     }
-    
+
     const clientName = props.clients.find(c => c.id === selectedClientId)?.name || "Unknown Client";
 
-    props.onClientSheetSave(clientName, selectedClientId, clientDataToSave, props.draw);
+    const previouslySavedData = props.savedSheetLog.find(l => l.clientId === selectedClientId)?.data || {};
+    const mergedData: CellData = { ...previouslySavedData };
+
+    for (const key in clientDataToSave) {
+        const prevValue = parseFloat(previouslySavedData[key]) || 0;
+        const newValue = parseFloat(clientDataToSave[key]) || 0;
+        mergedData[key] = String(prevValue + newValue);
+    }
+    
+    props.onClientSheetSave(clientName, selectedClientId, mergedData, props.draw);
     
     // Clear the sheet for the current client for the next entry
     updateClientData(selectedClientId, {}, {});

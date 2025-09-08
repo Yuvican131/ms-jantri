@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { PlusCircle, MoreHorizontal, Edit, Trash2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import type { Account } from "./accounts-manager"
 
 export type Client = {
   id: string
@@ -22,12 +23,18 @@ export type Client = {
 
 type ClientsManagerProps = {
   clients: Client[];
+  accounts: Account[];
   onAddClient: (client: Client) => void;
   onUpdateClient: (client: Client) => void;
   onDeleteClient: (id: string) => void;
 }
 
-export default function ClientsManager({ clients, onAddClient, onUpdateClient, onDeleteClient }: ClientsManagerProps) {
+const formatNumber = (num: number | string) => {
+    const number = Number(num);
+    return number % 1 === 0 ? number.toString() : number.toFixed(2);
+};
+
+export default function ClientsManager({ clients, accounts, onAddClient, onUpdateClient, onDeleteClient }: ClientsManagerProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
 
@@ -132,40 +139,49 @@ export default function ClientsManager({ clients, onAddClient, onUpdateClient, o
                 <TableHead>Comm</TableHead>
                 <TableHead>In/Out</TableHead>
                 <TableHead>Patti</TableHead>
+                <TableHead>Active Balance</TableHead>
+                <TableHead>Remaining Balance</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clients.map((client, index) => (
-                <TableRow key={client.id}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell>{client.pair}</TableCell>
-                  <TableCell>{client.comm}</TableCell>
-                  <TableCell>{client.inOut}</TableCell>
-                  <TableCell>{client.patti}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEditClient(client)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          <span>Edit</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive" onClick={() => handleDeleteClient(client.id)}>
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          <span>Delete</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {clients.map((client, index) => {
+                const account = accounts.find(acc => acc.id === client.id);
+                const balance = account ? parseFloat(account.balance) : 0;
+                const balanceColor = balance >= 0 ? 'text-green-400' : 'text-red-500';
+                return (
+                  <TableRow key={client.id}>
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell className="font-medium">{client.name}</TableCell>
+                    <TableCell>{client.pair}</TableCell>
+                    <TableCell>{client.comm}</TableCell>
+                    <TableCell>{client.inOut}</TableCell>
+                    <TableCell>{client.patti}</TableCell>
+                    <TableCell className={balanceColor}>{formatNumber(balance)}</TableCell>
+                    <TableCell className={balanceColor}>{formatNumber(balance)}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEditClient(client)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            <span>Edit</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive" onClick={() => handleDeleteClient(client.id)}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            <span>Delete</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </ScrollArea>

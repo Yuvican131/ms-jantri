@@ -51,7 +51,7 @@ export type SavedSheetInfo = {
 
 
 export default function Home() {
-  const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any, getClientCurrentData: (clientId: string) => any | undefined }>(null);
+  const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any, getClientCurrentData: (clientId: string) => any | undefined, getClientPreviousData: (clientId: string) => any | undefined }>(null);
   const [selectedInfo, setSelectedInfo] = useState<{ draw: string; date: Date } | null>(null);
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [lastEntry, setLastEntry] = useState('');
@@ -94,36 +94,25 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
         const drawLogs = prevLog[draw] || [];
         const existingLogIndex = drawLogs.findIndex(log => log.clientId === clientId);
         let updatedLogs;
+        
+        const newTotal = Object.values(newData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
 
         if (existingLogIndex > -1) {
-            const existingLog = drawLogs[existingLogIndex];
-            const mergedData = { ...existingLog.data };
-
-            Object.entries(newData).forEach(([key, value]) => {
-                const numericValue = parseFloat(value) || 0;
-                mergedData[key] = String((parseFloat(mergedData[key]) || 0) + numericValue);
-            });
-            
-            const newTotal = Object.values(mergedData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
-
             const updatedLogEntry = {
-                ...existingLog,
-                data: mergedData,
+                clientName,
+                clientId,
                 gameTotal: newTotal,
+                data: newData,
             };
             updatedLogs = [...drawLogs];
             updatedLogs[existingLogIndex] = updatedLogEntry;
         } else {
-            const newTotal = Object.values(newData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
             const newLogEntry = { clientName, clientId, gameTotal: newTotal, data: newData };
             updatedLogs = [...drawLogs, newLogEntry];
         }
 
         const newLog = { ...prevLog, [draw]: updatedLogs };
-
-        // This needs to be done after the log is updated.
         updateAccountsFromLog(newLog);
-
         return newLog;
     });
 
@@ -397,6 +386,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
             <TabsContent value="clients" className="flex-1" style={{ display: activeTab === 'clients' ? 'block' : 'none' }}>
               <ClientsManager 
                 clients={clients} 
+                accounts={accounts}
                 onAddClient={handleAddClient} 
                 onUpdateClient={handleUpdateClient} 
                 onDeleteClient={handleDeleteClient}
