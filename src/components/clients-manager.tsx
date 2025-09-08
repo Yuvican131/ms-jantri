@@ -19,6 +19,7 @@ export type Client = {
   comm: string
   inOut: string
   patti: string
+  activeBalance: string;
 }
 
 type ClientsManagerProps = {
@@ -46,12 +47,13 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
     const comm = formData.get("comm") as string
     const inOut = formData.get("inOut") as string
     const patti = formData.get("patti") as string
+    const activeBalance = formData.get("activeBalance") as string;
 
     if (editingClient) {
-      const updatedClient = { ...editingClient, name, pair, comm, inOut, patti };
+      const updatedClient = { ...editingClient, name, pair, comm, inOut, patti, activeBalance };
       onUpdateClient(updatedClient);
     } else {
-      const newClient: Client = { id: Date.now().toString(), name, pair, comm, inOut, patti }
+      const newClient: Client = { id: Date.now().toString(), name, pair, comm, inOut, patti, activeBalance }
       onAddClient(newClient);
     }
     setEditingClient(null)
@@ -118,6 +120,10 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                   <Input id="patti" name="patti" defaultValue={editingClient?.patti} placeholder="Patti" required />
                 </div>
               </div>
+              <div>
+                <Label htmlFor="activeBalance">Active Balance</Label>
+                <Input id="activeBalance" name="activeBalance" defaultValue={editingClient?.activeBalance} placeholder="e.g. 1000" />
+              </div>
               <DialogFooter>
                 <DialogClose asChild>
                   <Button type="button" variant="outline">Cancel</Button>
@@ -147,8 +153,13 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
             <TableBody>
               {clients.map((client, index) => {
                 const account = accounts.find(acc => acc.id === client.id);
-                const balance = account ? parseFloat(account.balance) : 0;
-                const balanceColor = balance >= 0 ? 'text-green-400' : 'text-red-500';
+                const activeBalance = parseFloat(client.activeBalance) || 0;
+
+                const totalPlayed = account ? Object.values(account.draws || {}).reduce((sum, draw) => sum + (draw.totalAmount || 0), 0) : 0;
+                
+                const remainingBalance = activeBalance > 0 ? activeBalance - totalPlayed : 0;
+                const balanceColor = remainingBalance >= 0 ? 'text-green-400' : 'text-red-500';
+
                 return (
                   <TableRow key={client.id}>
                     <TableCell>{index + 1}</TableCell>
@@ -157,8 +168,8 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                     <TableCell>{client.comm}</TableCell>
                     <TableCell>{client.inOut}</TableCell>
                     <TableCell>{client.patti}</TableCell>
-                    <TableCell className={balanceColor}>{formatNumber(balance)}</TableCell>
-                    <TableCell className={balanceColor}>{formatNumber(balance)}</TableCell>
+                    <TableCell>{activeBalance > 0 ? formatNumber(activeBalance) : '-'}</TableCell>
+                    <TableCell className={balanceColor}>{activeBalance > 0 ? formatNumber(remainingBalance) : '-'}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

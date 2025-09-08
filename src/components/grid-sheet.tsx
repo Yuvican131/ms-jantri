@@ -413,14 +413,38 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     return total;
   };
 
+  const checkBalance = (entryTotal: number): boolean => {
+    if (!selectedClientId) return true;
+
+    const client = props.clients.find(c => c.id === selectedClientId);
+    if (!client || !client.activeBalance || client.activeBalance === '0') return true;
+
+    const activeBalance = parseFloat(client.activeBalance);
+    const account = props.accounts.find(acc => acc.id === client.id);
+    const totalPlayed = account ? Object.values(account.draws || {}).reduce((sum, draw) => sum + (draw.totalAmount || 0), 0) : 0;
+    
+    const remainingBalance = activeBalance - totalPlayed;
+
+    if (entryTotal > remainingBalance) {
+      toast({
+        title: "Balance Limit Exceeded",
+        description: `This entry of ${entryTotal} exceeds the remaining balance of ${remainingBalance.toFixed(2)}.`,
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
+
   const handleMultiTextApply = () => {
     if (selectedClientId === null) {
       showClientSelectionToast();
       return;
     }
-    saveDataForUndo();
+
     const lines = multiText.split(/[\n#]+/).filter(line => line.trim() !== '');
     let lastEntryString = "";
+    let entryTotal = 0;
 
     const evaluateExpression = (expression: string): string => {
         try {
@@ -452,6 +476,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         let cellNumbersStr = parts[0].trim();
         
         const cellNumbers = cellNumbersStr.split(/[\s,]+/).filter(s => s);
+        entryTotal += newValue * cellNumbers.length;
 
         const formattedCells = cellNumbers
           .map(s => {
@@ -474,6 +499,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
             updates[key] = String(currentValueInUpdate + newValue);
         });
     });
+
+    if (!checkBalance(entryTotal)) return;
+    saveDataForUndo();
 
     if (Object.keys(updates).length > 0) {
         const newData = { ...currentData };
@@ -516,8 +544,6 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         return;
     }
     
-    saveDataForUndo();
-    const updates: { [key: string]: string } = {};
     const amountValue = parseFloat(laddiAmount);
     if (isNaN(amountValue)) {
         toast({ title: "Laddi Error", description: "Invalid amount.", variant: "destructive" });
@@ -549,6 +575,12 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
             }
         }
     }
+
+    const entryTotal = combinations.size * amountValue;
+    if (!checkBalance(entryTotal)) return;
+    saveDataForUndo();
+
+    const updates: { [key: string]: string } = {};
 
     combinations.forEach(cellNumStr => {
         let cellNum = parseInt(cellNumStr, 10);
@@ -615,8 +647,6 @@ const handleHarupApply = () => {
         return;
     }
     
-    saveDataForUndo();
-
     const affectedCells = new Set<string>();
 
     harupADigits.forEach(digit => {
@@ -637,6 +667,9 @@ const handleHarupApply = () => {
         toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
         return;
     }
+
+    if (!checkBalance(harupAmountValue)) return;
+    saveDataForUndo();
 
     const amountPerCell = harupAmountValue / affectedCells.size;
     const updates: { [key: string]: number } = {};
@@ -810,17 +843,8 @@ const handleHarupApply = () => {
     }
 
     const clientName = props.clients.find(c => c.id === selectedClientId)?.name || "Unknown Client";
-
-    const previouslySavedData = props.savedSheetLog.find(l => l.clientId === selectedClientId)?.data || {};
-    const mergedData: CellData = { ...previouslySavedData };
-
-    for (const key in clientDataToSave) {
-        const prevValue = parseFloat(previouslySavedData[key]) || 0;
-        const newValue = parseFloat(clientDataToSave[key]) || 0;
-        mergedData[key] = String(prevValue + newValue);
-    }
     
-    props.onClientSheetSave(clientName, selectedClientId, mergedData, props.draw);
+    props.onClientSheetSave(clientName, selectedClientId, clientDataToSave, props.draw);
     
     // Clear the sheet for the current client for the next entry
     updateClientData(selectedClientId, {}, {});
@@ -922,7 +946,7 @@ const handleHarupApply = () => {
   const getClientDisplay = (client: Client) => {
     const account = props.accounts.find(acc => acc.id === client.id);
     const drawData = account?.draws?.[props.draw];
-    const totalAmount = drawData?.totalAmount || 0;
+    const totalAmount = grandTotal || drawData?.totalAmount || 0;
     return `${client.name} - ${totalAmount}`;
   };
 
@@ -996,7 +1020,7 @@ const handleHarupApply = () => {
                         <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
                             <SelectTrigger className="flex-grow h-8 text-xs">
                                 <SelectValue>
-                                  {selectedClientId ? getClientDisplay(props.clients.find(c => c.id === selectedClientId)!) : "Select Client"}
+                                  {selectedClientId && props.clients.find(c => c.id === selectedClientId) ? getClientDisplay(props.clients.find(c => c.id === selectedClientId)!) : "Select Client"}
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>

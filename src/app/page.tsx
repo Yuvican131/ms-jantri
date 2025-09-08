@@ -95,19 +95,27 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
         const existingLogIndex = drawLogs.findIndex(log => log.clientId === clientId);
         let updatedLogs;
         
-        const newTotal = Object.values(newData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+        const newEntryTotal = Object.values(newData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
 
         if (existingLogIndex > -1) {
+            const existingLog = drawLogs[existingLogIndex];
+            const mergedData: { [key: string]: string } = { ...existingLog.data };
+
+            Object.entries(newData).forEach(([key, value]) => {
+                mergedData[key] = String((parseFloat(mergedData[key]) || 0) + (parseFloat(value) || 0));
+            });
+
+            const newTotal = Object.values(mergedData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+
             const updatedLogEntry = {
-                clientName,
-                clientId,
+                ...existingLog,
                 gameTotal: newTotal,
-                data: newData,
+                data: mergedData,
             };
             updatedLogs = [...drawLogs];
             updatedLogs[existingLogIndex] = updatedLogEntry;
         } else {
-            const newLogEntry = { clientName, clientId, gameTotal: newTotal, data: newData };
+            const newLogEntry = { clientName, clientId, gameTotal: newEntryTotal, data: newData };
             updatedLogs = [...drawLogs, newLogEntry];
         }
 
@@ -118,7 +126,7 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
 
     toast({
         title: "Sheet Saved",
-        description: `${clientName}'s data has been logged. View totals in the Master Sheet.`,
+        description: `${clientName}'s data has been logged.`,
     });
 };
 
@@ -149,6 +157,8 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
                 } else if(acc.draws && acc.draws[drawName]) {
                     // Keep existing draw data if no new log
                     updatedDraws[drawName] = acc.draws[drawName];
+                } else {
+                    updatedDraws[drawName] = { totalAmount: 0, passingAmount: 0 };
                 }
             });
 
