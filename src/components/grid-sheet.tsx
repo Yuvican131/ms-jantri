@@ -989,7 +989,7 @@ const handleHarupApply = () => {
 
                         return (
                             <div key={key} className="notched-cell flex items-center">
-                               <div className="absolute left-1.5 text-xs cell-number select-none pointer-events-none z-10">{key}</div>
+                               <div className="absolute top-1/2 left-1.5 -translate-y-1/2 text-xs cell-number select-none pointer-events-none z-10 font-bold">{key}</div>
                               <Input
                                   type="text"
                                   style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)'}}
