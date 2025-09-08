@@ -988,8 +988,8 @@ const handleHarupApply = () => {
                         const isUpdated = updatedCells.includes(key);
 
                         return (
-                            <div key={key} className="relative flex items-center border border-[hsl(var(--grid-cell-border-color))] rounded-sm">
-                               <div className="absolute top-1 left-1.5 text-xs select-none pointer-events-none z-10 text-[hsl(var(--grid-cell-number-color))]">{key}</div>
+                            <div key={key} className="relative flex items-center border border-white rounded-sm">
+                               <div className="absolute top-1 left-1.5 text-xs select-none pointer-events-none z-10 text-white">{key}</div>
                               <Input
                                   type="text"
                                   style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)'}}
