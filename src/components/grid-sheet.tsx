@@ -988,8 +988,8 @@ const handleHarupApply = () => {
                         const isUpdated = updatedCells.includes(key);
 
                         return (
-                            <div key={key} className="notched-cell flex">
-                               <div className="absolute top-0 left-0.5 text-xs font-bold cell-number select-none pointer-events-none z-10">{key}</div>
+                            <div key={key} className="notched-cell flex items-center">
+                               <div className="absolute left-1.5 text-xs cell-number select-none pointer-events-none z-10">{key}</div>
                               <Input
                                   type="text"
                                   style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)'}}
