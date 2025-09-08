@@ -103,7 +103,7 @@ export default function Home() {
                 
                 const updatedDrawData = {
                     ...currentDrawData,
-                    totalAmount: currentDrawData.totalAmount + gameTotal,
+                    totalAmount: gameTotal, // Replace instead of adding
                 };
                 
                 const updatedDraws = { ...currentDraws, [draw]: updatedDrawData };
@@ -112,8 +112,8 @@ export default function Home() {
                     const drawTotal = drawDetails.totalAmount || 0;
                     const drawCommission = drawTotal * clientCommissionPercent;
                     const drawNet = drawTotal - drawCommission;
-                    const passingMultiplier = parseFloat(client.pair) || 90;
-                    const drawPassingTotal = (drawDetails.passingAmount || 0);
+                    const passingMultiplier = parseFloat(client.pair) || 80;
+                    const drawPassingTotal = (drawDetails.passingAmount || 0) * passingMultiplier;
                     return balance + (drawNet - drawPassingTotal);
                 }, 0);
 
