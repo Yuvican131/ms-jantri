@@ -49,6 +49,14 @@ const DrawDetailsPanel = ({
 }) => {
 
   const totalAmount = drawData?.totalAmount || 0;
+  if (totalAmount === 0) {
+    return (
+      <div className="p-4 bg-muted/50 rounded-lg text-sm font-mono text-center text-muted-foreground">
+        No entries for this draw.
+      </div>
+    )
+  }
+
   const clientCommissionPercent = client ? parseFloat(client.comm) / 100 : 0.10;
   const commission = totalAmount * clientCommissionPercent;
   const afterCommission = totalAmount - commission;
@@ -59,12 +67,24 @@ const DrawDetailsPanel = ({
 
   const finalTotal = afterCommission - passingTotal;
   const finalTotalColor = finalTotal < 0 ? 'text-red-500' : 'text-green-400';
+
+  const activeBalance = client ? parseFloat(client.activeBalance) || 0 : 0;
+  const totalPlayed = account.draws ? Object.values(account.draws).reduce((sum, d) => sum + (d?.totalAmount || 0), 0) : 0;
+  const remainingBalance = activeBalance - totalPlayed;
   
   return (
     <div className="p-4 bg-muted/50 rounded-lg text-sm font-mono">
       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
         <span className="text-foreground/80">User Name</span><span className="text-right font-semibold text-primary">: {client?.name || 'N/A'}</span>
-        <span className="text-foreground/80">Draw Name ({drawName}) Total</span><span className="text-right font-semibold">: ₹{formatNumber(totalAmount)}</span>
+        {activeBalance > 0 && (
+          <>
+            <span className="text-foreground/80">Active Balance</span><span className="text-right font-semibold">: ₹{formatNumber(activeBalance)}</span>
+            <span className="text-foreground/80">Total Played</span><span className="text-right font-semibold">: ₹{formatNumber(totalPlayed)}</span>
+            <span className="text-foreground/80">Remaining Balance</span><span className={`text-right font-semibold ${remainingBalance < 0 ? 'text-red-500' : 'text-green-400'}`}>: ₹{formatNumber(remainingBalance)}</span>
+            <Separator className="my-1 col-span-2 bg-border/50" />
+          </>
+        )}
+        <span className="text-foreground/80">Draw ({drawName}) Total</span><span className="text-right font-semibold">: ₹{formatNumber(totalAmount)}</span>
         <span className="text-foreground/80">{clientCommissionPercent*100}% Commission Amt</span><span className="text-right font-semibold">: ₹{formatNumber(commission)}</span>
         <span className="text-foreground/80">After Commission</span><span className="text-right font-semibold">: ₹{formatNumber(afterCommission)}</span>
         <span className="text-foreground/80">Passing</span>
@@ -74,10 +94,9 @@ const DrawDetailsPanel = ({
       </div>
       <Separator className="my-2 bg-border/50" />
       <div className="grid grid-cols-2 gap-x-4">
-        <span className="font-bold text-base">Final Total</span>
+        <span className="font-bold text-base">Final Total ({drawName})</span>
         <span className={`text-right font-bold text-base ${finalTotalColor}`}>: ₹{formatNumber(finalTotal)}</span>
       </div>
-      <Separator className="my-2 bg-border/50" />
     </div>
   )
 }
