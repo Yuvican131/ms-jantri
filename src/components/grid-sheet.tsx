@@ -1020,18 +1020,18 @@ const handleHarupApply = () => {
                             </div>
                         )
                     })}
-                     <div className="flex items-center justify-center font-medium bg-primary/20 rounded-sm">
-                      <Input readOnly value={rowTotals[rowIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-blue-500" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
+                     <div className="flex items-center justify-center font-medium bg-blue-500 border border-white rounded-sm">
+                      <Input readOnly value={rowTotals[rowIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-white" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
                     </div>
                   </React.Fragment>
                 ))}
                 {/* Column Totals */}
                 {Array.from({ length: GRID_COLS }, (_, colIndex) => (
-                  <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full bg-primary/20 rounded-sm">
-                    <Input readOnly value={columnTotals[colIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-blue-500" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
+                  <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full bg-blue-500 border border-white rounded-sm">
+                    <Input readOnly value={columnTotals[colIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-white" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
                   </div>
                 ))}
-                <div className="flex items-center justify-center font-bold text-lg bg-primary/30 rounded-sm text-blue-500">
+                <div className="flex items-center justify-center font-bold text-lg bg-blue-500 border border-white rounded-sm text-white">
                     {grandTotal}
                 </div>
               </div>
