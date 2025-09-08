@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GridSheet from "@/components/grid-sheet"
 import ClientsManager, { Client } from "@/components/clients-manager"
 import AccountsManager, { Account } from "@/components/accounts-manager"
-import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History } from 'lucide-react';
+import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, LogOut } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/use-auth"
+import { useRouter } from "next/navigation"
 
 function GridIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -51,6 +53,8 @@ export type SavedSheetInfo = {
 
 
 export default function Home() {
+  const { user, loading, signOut } = useAuth();
+  const router = useRouter();
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any, getClientCurrentData: (clientId: string) => any | undefined, getClientPreviousData: (clientId: string) => any | undefined }>(null);
   const [selectedInfo, setSelectedInfo] = useState<{ draw: string; date: Date } | null>(null);
   const [date, setDate] = useState<Date | undefined>(undefined)
@@ -71,6 +75,13 @@ export default function Home() {
   useEffect(() => {
     setDate(new Date());
   }, []);
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
 
   const handleClientUpdateForSheet = (client: Client) => {
     if (gridSheetRef.current) {
@@ -288,6 +299,14 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
     setDeclarationDialogOpen(false);
   };
 
+  if (loading || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -322,6 +341,10 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
                 </div>
               )}
             </div>
+            <Button onClick={signOut} variant="ghost" size="sm">
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign Out
+            </Button>
           </div>
           <div className="flex-1 flex flex-col">
             <TabsContent value="sheet" className="flex-1 flex flex-col" style={{ display: activeTab === 'sheet' ? 'flex' : 'none' }}>
@@ -435,5 +458,3 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
     </div>
   );
 }
-
-    
