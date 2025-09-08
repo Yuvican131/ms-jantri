@@ -70,7 +70,6 @@ export default function Home() {
 
   useEffect(() => {
     setDate(new Date());
-    document.body.classList.add('dark');
   }, []);
 
   const handleClientUpdateForSheet = (client: Client) => {
@@ -95,16 +94,16 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
         const existingLogIndex = drawLogs.findIndex(log => log.clientId === clientId);
         let updatedLogs;
         
-        const newEntryTotal = Object.values(newData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
-
         if (existingLogIndex > -1) {
+            // Client has saved data before in this draw, so we merge
             const existingLog = drawLogs[existingLogIndex];
             const mergedData: { [key: string]: string } = { ...existingLog.data };
 
+            // Add new values to existing values
             Object.entries(newData).forEach(([key, value]) => {
                 mergedData[key] = String((parseFloat(mergedData[key]) || 0) + (parseFloat(value) || 0));
             });
-
+            
             const newTotal = Object.values(mergedData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
 
             const updatedLogEntry = {
@@ -115,12 +114,14 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
             updatedLogs = [...drawLogs];
             updatedLogs[existingLogIndex] = updatedLogEntry;
         } else {
+            // First time this client is saving in this draw
+            const newEntryTotal = Object.values(newData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
             const newLogEntry = { clientName, clientId, gameTotal: newEntryTotal, data: newData };
             updatedLogs = [...drawLogs, newLogEntry];
         }
 
         const newLog = { ...prevLog, [draw]: updatedLogs };
-        updateAccountsFromLog(newLog);
+        updateAccountsFromLog(newLog); // Update accounts after log is updated
         return newLog;
     });
 
@@ -142,7 +143,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
 
             const updatedDraws: { [key: string]: { totalAmount: number; passingAmount: number } } = {};
 
-            // Iterate over all draws for this account
+            // Iterate over all draws to calculate totals
             draws.forEach(drawName => {
                 const drawLogs = currentSavedSheetLog[drawName] || [];
                 const clientLog = drawLogs.find(log => log.clientId === client.id);
@@ -156,13 +157,14 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
                         passingAmount: amountInCell
                     };
                 } else if(acc.draws && acc.draws[drawName]) {
-                    // Keep existing draw data if no new log
+                    // Keep existing draw data if no new log for this draw
                     updatedDraws[drawName] = acc.draws[drawName];
                 } else {
                     updatedDraws[drawName] = { totalAmount: 0, passingAmount: 0 };
                 }
             });
 
+            // Calculate the final balance
             const netFromDraws = Object.values(updatedDraws).reduce((balance, drawDetails) => {
                 const drawTotal = drawDetails.totalAmount || 0;
                 const drawCommission = drawTotal * clientCommissionPercent;
@@ -172,7 +174,6 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
             }, 0);
             
             const newBalance = activeBalance - netFromDraws;
-
 
             return {
                 ...acc,

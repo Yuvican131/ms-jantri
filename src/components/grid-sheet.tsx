@@ -420,8 +420,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     if (!client || !client.activeBalance || client.activeBalance === '0') return true;
 
     const activeBalance = parseFloat(client.activeBalance);
-    const account = props.accounts.find(acc => acc.id === client.id);
-    const totalPlayed = account ? Object.values(account.draws || {}).reduce((sum, draw) => sum + (draw.totalAmount || 0), 0) : 0;
+    const logEntry = props.savedSheetLog.find(log => log.clientId === selectedClientId);
+    const totalPlayed = logEntry?.gameTotal || 0;
     
     const remainingBalance = activeBalance - totalPlayed;
 
@@ -648,6 +648,7 @@ const handleHarupApply = () => {
     }
     
     const affectedCells = new Set<string>();
+    let entryTotal = 0;
 
     harupADigits.forEach(digit => {
         for (let i = 0; i < 10; i++) {
@@ -655,6 +656,7 @@ const handleHarupApply = () => {
             affectedCells.add((cellNum).toString().padStart(2, '0'));
         }
     });
+    if (harupADigits.length > 0) entryTotal += harupAmountValue;
 
     harupBDigits.forEach(digit => {
         for (let i = 0; i < 10; i++) {
@@ -662,28 +664,47 @@ const handleHarupApply = () => {
             affectedCells.add((cellNum).toString().padStart(2, '0'));
         }
     });
+    if (harupBDigits.length > 0) entryTotal += harupAmountValue;
     
     if (affectedCells.size === 0) {
         toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
         return;
     }
 
-    if (!checkBalance(harupAmountValue)) return;
+    if (!checkBalance(entryTotal)) return;
     saveDataForUndo();
 
-    const amountPerCell = harupAmountValue / affectedCells.size;
     const updates: { [key: string]: number } = {};
 
-    affectedCells.forEach(key => {
-        updates[key] = (updates[key] || 0) + amountPerCell;
-    });
+    if (harupADigits.length > 0) {
+        const cellsForA = new Set<string>();
+        harupADigits.forEach(digit => {
+            for (let i = 0; i < 10; i++) {
+                cellsForA.add(parseInt(`${digit}${i}`).toString().padStart(2, '0'));
+            }
+        });
+        const amountPerCellA = harupAmountValue / cellsForA.size;
+        cellsForA.forEach(key => updates[key] = (updates[key] || 0) + amountPerCellA);
+    }
+    
+    if (harupBDigits.length > 0) {
+        const cellsForB = new Set<string>();
+        harupBDigits.forEach(digit => {
+            for (let i = 0; i < 10; i++) {
+                cellsForB.add(parseInt(`${i}${digit}`).toString().padStart(2, '0'));
+            }
+        });
+        const amountPerCellB = harupAmountValue / cellsForB.size;
+        cellsForB.forEach(key => updates[key] = (updates[key] || 0) + amountPerCellB);
+    }
+
 
     let lastEntryString = "";
     if (harupADigits.length > 0) lastEntryString += `A: ${harupA}=${harupAmount}\n`;
     if (harupBDigits.length > 0) lastEntryString += `B: ${harupB}=${harupAmount}\n`;
 
     const newData = { ...currentData };
-    const updatedKeys = Array.from(affectedCells);
+    const updatedKeys = Object.keys(updates);
 
     updatedKeys.forEach(key => {
         const currentValue = parseFloat(newData[key]) || 0;
@@ -944,9 +965,8 @@ const handleHarupApply = () => {
   const grandTotal = rowTotals.reduce((acc, total) => acc + total, 0);
 
   const getClientDisplay = (client: Client) => {
-    const account = props.accounts.find(acc => acc.id === client.id);
-    const drawData = account?.draws?.[props.draw];
-    const totalAmount = grandTotal || drawData?.totalAmount || 0;
+    const logEntry = props.savedSheetLog.find(log => log.clientId === client.id);
+    const totalAmount = logEntry?.gameTotal || 0;
     return `${client.name} - ${totalAmount}`;
   };
 
@@ -970,7 +990,7 @@ const handleHarupApply = () => {
                               <Input
                                   type="text"
                                   style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)'}}
-                                  className={`p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent text-sky-200'}`}
+                                  className={`p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent text-foreground'}`}
                                   value={currentData[key] || ''}
                                   onChange={(e) => handleCellChange(key, e.target.value)}
                                   onBlur={() => handleCellBlur(key)}
