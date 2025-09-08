@@ -845,29 +845,30 @@ const handleHarupApply = () => {
 
   const handleSaveSheet = () => {
     if (!selectedClientId) {
-        toast({
-            title: "No Client Selected",
-            description: "Please select a client to save their sheet.",
-            variant: "destructive",
-        });
-        return;
+      toast({
+        title: "No Client Selected",
+        description: "Please select a client to save their sheet.",
+        variant: "destructive",
+      });
+      return;
     }
-
+  
     const clientDataToSave = clientSheetData[selectedClientId]?.data || {};
     if (Object.keys(clientDataToSave).length === 0) {
-        toast({
-            title: "No Data to Save",
-            description: "The sheet is empty. Please enter some data before saving.",
-            variant: "destructive",
-        });
-        return;
+      toast({
+        title: "No Data to Save",
+        description: "The sheet is empty. Please enter some data before saving.",
+        variant: "destructive",
+      });
+      return;
     }
-
+  
     const clientName = props.clients.find(c => c.id === selectedClientId)?.name || "Unknown Client";
     
+    // Pass only the new entries to the parent
     props.onClientSheetSave(clientName, selectedClientId, clientDataToSave, props.draw);
-    
-    // Clear the sheet for the current client for the next entry
+  
+    // Clear the sheet for the current client for the next entry AFTER saving
     updateClientData(selectedClientId, {}, {});
     setPreviousSheetState(null);
   };
@@ -967,7 +968,7 @@ const handleHarupApply = () => {
   const getClientDisplay = (client: Client) => {
     const logEntry = props.savedSheetLog.find(log => log.clientId === client.id);
     const totalAmount = logEntry?.gameTotal || 0;
-    return `${client.name} - ${totalAmount}`;
+    return `${client.name} - ${totalAmount.toFixed(2)}`;
   };
 
   return (
@@ -986,11 +987,11 @@ const handleHarupApply = () => {
 
                         return (
                             <div key={key} className="relative border border-primary/30 rounded-sm flex">
-                               <div className="absolute top-0 left-0.5 text-xs font-bold text-cyan-400/80 select-none pointer-events-none z-10" style={{ textShadow: '0 0 5px rgba(0, 255, 255, 0.5)' }}>{key}</div>
+                               <div className="absolute top-0 left-0.5 text-xs font-bold text-red-500 select-none pointer-events-none z-10">{key}</div>
                               <Input
                                   type="text"
                                   style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)'}}
-                                  className={`p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'bg-transparent text-foreground'}`}
+                                  className={`p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'text-foreground'}`}
                                   value={currentData[key] || ''}
                                   onChange={(e) => handleCellChange(key, e.target.value)}
                                   onBlur={() => handleCellBlur(key)}
