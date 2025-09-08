@@ -799,13 +799,6 @@ const handleHarupApply = () => {
     const gameTotal = calculateGrandTotal(clientData);
 
     props.onClientSheetSave(clientName, selectedClientId, gameTotal, clientData, props.draw);
-
-    const newMasterData = { ...masterSheetData };
-    Object.entries(clientData).forEach(([key, value]) => {
-      const numericValue = parseFloat(value) || 0;
-      newMasterData[key] = String((parseFloat(newMasterData[key]) || 0) + numericValue);
-    });
-    setMasterSheetData(newMasterData);
     
     updateClientData(selectedClientId, {}, {});
     setPreviousSheetState(null);
@@ -1262,3 +1255,5 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    

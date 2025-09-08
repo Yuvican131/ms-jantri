@@ -103,7 +103,7 @@ export default function Home() {
                 
                 const updatedDrawData = {
                     ...currentDrawData,
-                    totalAmount: gameTotal, // Replace instead of adding
+                    totalAmount: gameTotal, // This is correct, it should be the new total.
                 };
                 
                 const updatedDraws = { ...currentDraws, [draw]: updatedDrawData };
@@ -395,3 +395,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
