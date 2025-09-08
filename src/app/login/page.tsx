@@ -28,17 +28,15 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if ('recaptchaVerifier' in window) {
-        window.recaptchaVerifier.clear();
+    // Only create a new verifier if one doesn't exist
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+        'callback': (response: any) => {
+          // reCAPTCHA solved, allow signInWithPhoneNumber.
+        }
+      });
     }
-    
-    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-      'size': 'invisible',
-      'callback': (response: any) => {
-        // reCAPTCHA solved, allow signInWithPhoneNumber.
-      }
-    });
-
   }, []);
 
   const handleSendOtp = async (e: React.FormEvent) => {
@@ -60,14 +58,13 @@ export default function LoginPage() {
         description: error.message,
         variant: 'destructive',
       });
-      // Reset reCAPTCHA
-       if ('recaptchaVerifier' in window) {
-        window.recaptchaVerifier.clear();
+      // Reset reCAPTCHA on error
+       if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.render().then((widgetId) => {
+          // @ts-ignore
+          window.grecaptcha.reset(widgetId);
+        });
        }
-       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-        'callback': (response: any) => {},
-       });
     }
   };
 
@@ -143,6 +140,7 @@ export default function LoginPage() {
               <Button variant="link" size="sm" onClick={() => {
                 setOtpSent(false);
                 setPhoneNumber('');
+                setOtp('');
               }}>
                 Change phone number
               </Button>
