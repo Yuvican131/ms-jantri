@@ -852,9 +852,11 @@ const handleHarupApply = () => {
       });
       return;
     }
-
-    const clientDataToSave = { ...(clientSheetData[selectedClientId]?.data || {}) };
-    if (Object.keys(clientDataToSave).length === 0) {
+    
+    // Pass only the new data to be merged in page.tsx
+    const newEntries = { ...(clientSheetData[selectedClientId]?.data || {}) };
+    
+    if (Object.keys(newEntries).length === 0) {
       toast({
         title: "No Data to Save",
         description: "The sheet is empty. Please enter some data before saving.",
@@ -865,8 +867,10 @@ const handleHarupApply = () => {
     
     const clientName = props.clients.find(c => c.id === selectedClientId)?.name || "Unknown Client";
     
-    props.onClientSheetSave(clientName, selectedClientId, clientDataToSave, props.draw);
+    // Let page.tsx handle the merging logic
+    props.onClientSheetSave(clientName, selectedClientId, newEntries, props.draw);
     
+    // Clear the sheet for the next entry for this client
     updateClientData(selectedClientId, {}, {});
     setPreviousSheetState(null);
   };
@@ -984,8 +988,8 @@ const handleHarupApply = () => {
                         const isUpdated = updatedCells.includes(key);
 
                         return (
-                            <div key={key} className="relative border border-primary/30 rounded-sm flex">
-                               <div className="absolute top-0 left-0.5 text-xs font-bold text-red-500 select-none pointer-events-none z-10">{key}</div>
+                            <div key={key} className="notched-cell flex">
+                               <div className="absolute top-0 left-0.5 text-xs font-bold cell-number select-none pointer-events-none z-10">{key}</div>
                               <Input
                                   type="text"
                                   style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)'}}

@@ -41,6 +41,8 @@ body {
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 0 0% 98%;
+    --grid-cell-border-color: 240 4% 30%;
+    --grid-cell-number-color: 198 93% 78%;
   }
   .light {
     --background: 0 0% 100%;
@@ -75,6 +77,8 @@ body {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 240 5.9% 90%;
     --sidebar-ring: 240 10% 3.9%;
+    --grid-cell-border-color: 240 5.9% 90%;
+    --grid-cell-number-color: 240 5.9% 10%;
   }
 }
 
@@ -95,4 +99,28 @@ input[type="number"]::-webkit-outer-spin-button {
 
 input[type="number"] {
   -moz-appearance: textfield;
+}
+
+.notched-cell {
+  @apply relative rounded-md border-0;
+}
+.notched-cell::before,
+.notched-cell::after {
+  content: '';
+  @apply absolute top-0 left-0 w-full h-full rounded-md;
+  box-sizing: border-box;
+  border-color: hsl(var(--grid-cell-border-color));
+}
+
+.notched-cell::before {
+  @apply border-t border-b;
+}
+
+.notched-cell::after {
+  @apply border-l border-r;
+  clip-path: polygon(0% 0%, 100% 0%, 100% 35%, 99% 35%, 99% 65%, 100% 65%, 100% 100%, 0% 100%, 0% 65%, 1% 65%, 1% 35%, 0% 35%);
+}
+
+.notched-cell .cell-number {
+  color: hsl(var(--grid-cell-number-color));
 }
