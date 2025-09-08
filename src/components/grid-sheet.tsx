@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, X, Save, RotateCcw, Undo2 } from "lucide-react"
+import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, X, Save, RotateCcw, Undo2, Eye } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -72,6 +72,68 @@ type GridSheetProps = {
   accounts: Account[];
 }
 
+const SavedSheetViewer = ({ log, isOpen, onClose }: { log: SavedSheetInfo | null, isOpen: boolean, onClose: () => void }) => {
+  if (!log) return null;
+
+  const calculateRowTotal = (rowIndex: number, data: CellData) => {
+    let total = 0;
+    for (let colIndex = 0; colIndex < GRID_COLS; colIndex++) {
+        const key = (rowIndex * GRID_COLS + colIndex).toString().padStart(2, '0');
+        total += parseFloat(data[key]) || 0;
+    }
+    return total.toString();
+  };
+
+  const grandTotal = Object.values(log.data).reduce((sum, value) => sum + (parseFloat(value) || 0), 0);
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Viewing Sheet for {log.clientName}</DialogTitle>
+          <DialogDescription>
+            Draw: {log.clientName} | Total: ₹{log.gameTotal.toFixed(2)}
+          </DialogDescription>
+        </DialogHeader>
+        <ScrollArea className="max-h-[70vh] pr-4">
+           <div className="grid gap-0.5 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`}}>
+            {Array.from({ length: GRID_ROWS }).map((_, rowIndex) => (
+              <React.Fragment key={`row-${rowIndex}`}>
+                {Array.from({ length: GRID_COLS }).map((_, colIndex) => {
+                  const key = (rowIndex * GRID_COLS + colIndex).toString().padStart(2, '0');
+                  const value = log.data[key];
+                  return (
+                    <div key={key} className="relative flex items-center border border-white rounded-sm aspect-square">
+                      <div className="absolute top-1 left-1.5 text-xs text-white select-none pointer-events-none z-10">{key}</div>
+                      <Input
+                        readOnly
+                        type="text"
+                        style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)'}}
+                        className={`p-0 h-full w-full text-center border-0 focus:ring-0 bg-transparent font-bold text-white`}
+                        value={value || ''}
+                      />
+                    </div>
+                  );
+                })}
+                <div className="flex items-center justify-center p-2 font-medium bg-transparent border border-white text-white rounded-sm">
+                  {calculateRowTotal(rowIndex, log.data)}
+                </div>
+              </React.Fragment>
+            ))}
+             <div className="col-span-10 flex items-center justify-end p-2 font-bold text-white pr-4">Grand Total:</div>
+              <div className="flex items-center justify-center p-2 font-bold bg-transparent border border-white text-white rounded-sm">
+                {grandTotal.toFixed(2)}
+              </div>
+          </div>
+        </ScrollArea>
+        <DialogFooter>
+          <Button onClick={onClose} variant="outline">Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 
 const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const { toast } = useToast()
@@ -104,6 +166,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
   const [previousSheetState, setPreviousSheetState] = useState<{ data: CellData, rowTotals: { [key: number]: string } } | null>(null);
   const [selectedLogIndices, setSelectedLogIndices] = useState<number[]>([]);
+  const [viewingLog, setViewingLog] = useState<SavedSheetInfo | null>(null);
+
 
   
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
@@ -993,7 +1057,7 @@ const handleHarupApply = () => {
                               <Input
                                   type="text"
                                   style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)'}}
-                                  className={`p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'text-foreground'}`}
+                                  className={`p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'text-white'}`}
                                   value={currentData[key] || ''}
                                   onChange={(e) => handleCellChange(key, e.target.value)}
                                   onBlur={() => handleCellBlur(key)}
@@ -1020,14 +1084,14 @@ const handleHarupApply = () => {
                             </div>
                         )
                     })}
-                     <div className="flex items-center justify-center font-medium border border-white rounded-sm">
+                     <div className="flex items-center justify-center font-medium border border-white rounded-sm bg-transparent text-white">
                       <Input readOnly value={rowTotals[rowIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-white" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
                     </div>
                   </React.Fragment>
                 ))}
                 {/* Column Totals */}
                 {Array.from({ length: GRID_COLS }, (_, colIndex) => (
-                  <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border border-white rounded-sm">
+                  <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border border-white rounded-sm bg-transparent text-white">
                     <Input readOnly value={columnTotals[colIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-white" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
                   </div>
                 ))}
@@ -1271,7 +1335,12 @@ const handleHarupApply = () => {
                                 />
                                 <label htmlFor={`log-${index}`} className="cursor-pointer">{index + 1}. {log.clientName}</label>
                             </div>
-                            <span className="font-mono font-semibold">₹{log.gameTotal.toFixed(2)}</span>
+                            <div className="flex items-center gap-2">
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setViewingLog(log)}>
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <span className="font-mono font-semibold w-24 text-right">₹{log.gameTotal.toFixed(2)}</span>
+                            </div>
                           </div>
                         ))
                       ) : (
@@ -1285,6 +1354,12 @@ const handleHarupApply = () => {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+      
+      <SavedSheetViewer
+        log={viewingLog}
+        isOpen={!!viewingLog}
+        onClose={() => setViewingLog(null)}
+      />
 
 
       <Dialog open={props.isLastEntryDialogOpen} onOpenChange={props.setIsLastEntryDialogOpen}>
