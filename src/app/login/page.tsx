@@ -16,6 +16,7 @@ declare global {
   interface Window {
     recaptchaVerifier?: RecaptchaVerifier;
     confirmationResult?: ConfirmationResult;
+    grecaptcha?: any;
   }
 }
 
@@ -55,17 +56,16 @@ export default function LoginPage() {
       setOtpSent(true);
       toast({ title: 'OTP Sent', description: 'An OTP has been sent to your phone.' });
     } catch (error: any) {
-      console.error(error);
+      console.error("Error sending OTP:", error);
       toast({
         title: 'Failed to Send OTP',
-        description: 'Please try again. Ensure the phone number is correct and includes the country code.',
+        description: error.message || 'Please try again. Ensure the phone number is correct and includes the country code.',
         variant: 'destructive',
       });
-       // Important: Reset the reCAPTCHA on error. 
+       // Important: Reset the reCAPTCHA on error.
        // This renders a new reCAPTCHA widget, getting it out of a broken state.
        if (window.recaptchaVerifier) {
          window.recaptchaVerifier.render().then((widgetId) => {
-            // @ts-ignore - grecaptcha is available on the window
             if (window.grecaptcha) {
               window.grecaptcha.reset(widgetId);
             }
