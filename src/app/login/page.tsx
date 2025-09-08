@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -13,8 +14,8 @@ import { auth } from '@/lib/firebase';
 
 declare global {
   interface Window {
-    recaptchaVerifier: RecaptchaVerifier;
-    confirmationResult: ConfirmationResult;
+    recaptchaVerifier?: RecaptchaVerifier;
+    confirmationResult?: ConfirmationResult;
   }
 }
 
@@ -28,12 +29,14 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Only create a new verifier if one doesn't exist
+    // This effect ensures the reCAPTCHA verifier is initialized when the component mounts.
+    // The verifier is attached to a DOM element, so it needs to run on the client.
     if (!window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'invisible',
         'callback': (response: any) => {
           // reCAPTCHA solved, allow signInWithPhoneNumber.
+          // This callback is sometimes useful for debugging, but not essential for the flow.
         }
       });
     }
@@ -46,7 +49,7 @@ export default function LoginPage() {
         return;
     }
     try {
-      const appVerifier = window.recaptchaVerifier;
+      const appVerifier = window.recaptchaVerifier!;
       const result = await signInWithPhone(`+${phoneNumber}`, appVerifier);
       setConfirmationResult(result);
       setOtpSent(true);
@@ -55,15 +58,18 @@ export default function LoginPage() {
       console.error(error);
       toast({
         title: 'Failed to Send OTP',
-        description: error.message,
+        description: 'Please try again. Ensure the phone number is correct and includes the country code.',
         variant: 'destructive',
       });
-      // Reset reCAPTCHA on error
+       // Important: Reset the reCAPTCHA on error. 
+       // This renders a new reCAPTCHA widget, getting it out of a broken state.
        if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.render().then((widgetId) => {
-          // @ts-ignore
-          window.grecaptcha.reset(widgetId);
-        });
+         window.recaptchaVerifier.render().then((widgetId) => {
+            // @ts-ignore - grecaptcha is available on the window
+            if (window.grecaptcha) {
+              window.grecaptcha.reset(widgetId);
+            }
+         });
        }
     }
   };
@@ -72,8 +78,8 @@ export default function LoginPage() {
     e.preventDefault();
     if (!confirmationResult) {
       toast({ title: 'Please send OTP first.', variant: 'destructive'});
-      return
-    };
+      return;
+    }
     if (!otp) {
         toast({ title: 'OTP is required.', variant: 'destructive'});
         return;
@@ -104,11 +110,11 @@ export default function LoginPage() {
           <form onSubmit={handleSendOtp}>
             <CardContent className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone">Phone Number (with country code)</Label>
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="911234567890"
+                  placeholder="e.g. 911234567890"
                   required
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
@@ -148,6 +154,7 @@ export default function LoginPage() {
           </form>
         )}
       </Card>
+      {/* This empty div is where the invisible reCAPTCHA widget will be rendered by Firebase */}
       <div id="recaptcha-container"></div>
     </div>
   );
