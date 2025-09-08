@@ -138,6 +138,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
 
             const clientCommissionPercent = parseFloat(client.comm) / 100;
             const passingMultiplier = parseFloat(client.pair) || 80;
+            const activeBalance = parseFloat(client.activeBalance) || 0;
 
             const updatedDraws: { [key: string]: { totalAmount: number; passingAmount: number } } = {};
 
@@ -162,13 +163,16 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
                 }
             });
 
-            const newBalance = Object.values(updatedDraws).reduce((balance, drawDetails) => {
+            const netFromDraws = Object.values(updatedDraws).reduce((balance, drawDetails) => {
                 const drawTotal = drawDetails.totalAmount || 0;
                 const drawCommission = drawTotal * clientCommissionPercent;
                 const drawNet = drawTotal - drawCommission;
                 const drawPassingTotal = (drawDetails.passingAmount || 0) * passingMultiplier;
                 return balance + (drawNet - drawPassingTotal);
             }, 0);
+            
+            const newBalance = activeBalance - netFromDraws;
+
 
             return {
                 ...acc,
@@ -243,13 +247,17 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
         const updatedDraws = { ...currentDraws, [declarationDraw]: updatedDrawDataForDeclaration };
     
         const clientCommissionPercent = parseFloat(client.comm) / 100;
-        const totalBalanceAfterUpdate = Object.values(updatedDraws).reduce((total, drawDetails) => {
+        const activeBalance = parseFloat(client.activeBalance) || 0;
+
+        const netFromDraws = Object.values(updatedDraws).reduce((total, drawDetails) => {
             const drawTotal = drawDetails.totalAmount || 0;
             const drawCommission = drawTotal * clientCommissionPercent;
             const drawNet = drawTotal - drawCommission;
             const drawPassingAmount = (drawDetails.passingAmount || 0) * passingMultiplier;
             return total + (drawNet - drawPassingAmount);
         }, 0);
+        
+        const totalBalanceAfterUpdate = activeBalance - netFromDraws;
 
         return {
           ...acc,
