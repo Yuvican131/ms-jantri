@@ -297,7 +297,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
               <TabsList className="grid grid-cols-3 md:w-auto p-0.5 gap-0.5">
                 <TabsTrigger value="sheet" className="gap-1 rounded-sm">
                   <GridIcon className="h-4 w-4" />
-                  SHEET
+                  Home
                 </TabsTrigger>
                 <TabsTrigger value="clients" className="gap-1 rounded-sm">
                   <Users className="h-4 w-4" />
@@ -434,3 +434,5 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
     </div>
   );
 }
+
+    
