@@ -852,8 +852,8 @@ const handleHarupApply = () => {
       });
       return;
     }
-  
-    const clientDataToSave = clientSheetData[selectedClientId]?.data || {};
+
+    const clientDataToSave = { ...(clientSheetData[selectedClientId]?.data || {}) };
     if (Object.keys(clientDataToSave).length === 0) {
       toast({
         title: "No Data to Save",
@@ -862,13 +862,11 @@ const handleHarupApply = () => {
       });
       return;
     }
-  
+    
     const clientName = props.clients.find(c => c.id === selectedClientId)?.name || "Unknown Client";
     
-    // Pass only the new entries to the parent
     props.onClientSheetSave(clientName, selectedClientId, clientDataToSave, props.draw);
-  
-    // Clear the sheet for the current client for the next entry AFTER saving
+    
     updateClientData(selectedClientId, {}, {});
     setPreviousSheetState(null);
   };
@@ -1019,17 +1017,17 @@ const handleHarupApply = () => {
                         )
                     })}
                      <div className="flex items-center justify-center font-medium bg-primary/20 rounded-sm">
-                      <Input readOnly value={rowTotals[rowIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-green-400" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
+                      <Input readOnly value={rowTotals[rowIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-blue-500" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
                     </div>
                   </React.Fragment>
                 ))}
                 {/* Column Totals */}
                 {Array.from({ length: GRID_COLS }, (_, colIndex) => (
                   <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full bg-primary/20 rounded-sm">
-                    <Input readOnly value={columnTotals[colIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-green-400" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
+                    <Input readOnly value={columnTotals[colIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-blue-500" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
                   </div>
                 ))}
-                <div className="flex items-center justify-center font-bold text-lg bg-primary/30 rounded-sm text-green-300">
+                <div className="flex items-center justify-center font-bold text-lg bg-primary/30 rounded-sm text-blue-500">
                     {grandTotal}
                 </div>
               </div>
