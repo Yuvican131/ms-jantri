@@ -66,7 +66,7 @@ type GridSheetProps = {
   isLastEntryDialogOpen: boolean;
   setIsLastEntryDialogOpen: (open: boolean) => void;
   clients: Client[];
-  onClientSheetSave: (clientName: string, clientId: string, gameTotal: number, data: CellData, draw: string) => void;
+  onClientSheetSave: (clientName: string, clientId: string, data: CellData, draw: string) => void;
   savedSheetLog: SavedSheetInfo[];
   accounts: Account[];
 }
@@ -786,27 +786,31 @@ const handleHarupApply = () => {
 
   const handleSaveSheet = () => {
     if (!selectedClientId) {
-      toast({
-        title: "No Client Selected",
-        description: "Please select a client to save their sheet.",
-        variant: "destructive",
-      });
-      return;
+        toast({
+            title: "No Client Selected",
+            description: "Please select a client to save their sheet.",
+            variant: "destructive",
+        });
+        return;
     }
 
-    const clientData = clientSheetData[selectedClientId]?.data || {};
-    const clientName = props.clients.find(c => c.id === selectedClientId)?.name || "Unknown Client";
-    const gameTotal = calculateGrandTotal(clientData);
-
-    props.onClientSheetSave(clientName, selectedClientId, gameTotal, clientData, props.draw);
+    const clientDataToSave = clientSheetData[selectedClientId]?.data || {};
+    if (Object.keys(clientDataToSave).length === 0) {
+        toast({
+            title: "No Data to Save",
+            description: "The sheet is empty. Please enter some data before saving.",
+            variant: "destructive",
+        });
+        return;
+    }
     
+    const clientName = props.clients.find(c => c.id === selectedClientId)?.name || "Unknown Client";
+
+    props.onClientSheetSave(clientName, selectedClientId, clientDataToSave, props.draw);
+    
+    // Clear the sheet for the current client for the next entry
     updateClientData(selectedClientId, {}, {});
     setPreviousSheetState(null);
-
-    toast({
-      title: "Sheet Saved",
-      description: `${clientName}'s data has been logged. View totals in the Master Sheet.`,
-    });
   };
 
 
@@ -1255,5 +1259,3 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-    
