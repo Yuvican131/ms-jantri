@@ -188,7 +188,7 @@ const MasterSheetViewer = ({
   const masterSheetGrandTotal = calculateGrandTotal(masterSheetData);
   
   return (
-    <div className="h-full flex flex-col p-4 gap-4 bg-background">
+    <div className="h-full flex flex-col p-4 pt-0 gap-4 bg-background">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-grow min-h-0">
         <div className="flex flex-col min-w-0 h-full">
            <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${GRID_ROWS + 1}, minmax(0, 1fr))`}}>
