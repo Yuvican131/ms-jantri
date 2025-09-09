@@ -6,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GridSheet from "@/components/grid-sheet"
 import ClientsManager, { Client } from "@/components/clients-manager"
 import AccountsManager, { Account } from "@/components/accounts-manager"
-import MasterSheetViewer from "@/components/master-sheet-viewer"
 import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, ClipboardCopy } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -297,7 +296,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center">
-              <TabsList className="grid grid-cols-4 md:w-auto p-0.5 gap-0.5">
+              <TabsList className="grid grid-cols-3 md:w-auto p-0.5 gap-0.5">
                 <TabsTrigger value="sheet" className="gap-1 rounded-sm">
                   <GridIcon className="h-4 w-4" />
                   Home
@@ -305,10 +304,6 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
                 <TabsTrigger value="clients" className="gap-1 rounded-sm">
                   <Users className="h-4 w-4" />
                   CLIENTS
-                </TabsTrigger>
-                <TabsTrigger value="master" className="gap-1 rounded-sm">
-                  <ClipboardCopy className="h-4 w-4" />
-                  Master Sheet
                 </TabsTrigger>
                 <TabsTrigger value="accounts" className="gap-1 rounded-sm">
                   <Building className="h-4 w-4" />
@@ -415,12 +410,6 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
                 onAddClient={handleAddClient} 
                 onUpdateClient={handleUpdateClient} 
                 onDeleteClient={handleDeleteClient}
-              />
-            </TabsContent>
-            <TabsContent value="master" className="flex-1 flex flex-col" style={{ display: activeTab === 'master' ? 'flex' : 'none' }}>
-              <MasterSheetViewer
-                savedSheetLog={selectedInfo ? (savedSheetLog[selectedInfo.draw] || []) : []}
-                draw={selectedInfo ? selectedInfo.draw : ""}
               />
             </TabsContent>
             <TabsContent value="accounts" className="flex-1" style={{ display: activeTab === 'accounts' ? 'block' : 'none' }}>
