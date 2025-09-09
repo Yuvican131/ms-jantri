@@ -126,16 +126,20 @@ const MasterSheetViewer = ({
     }
     return total;
   };
-
-  const calculateGrandTotal = (data: CellData) => {
+  
+  const calculateColumnTotal = (colIndex: number, data: CellData) => {
     let total = 0;
-    Object.values(data).forEach(value => {
-      if (value && !isNaN(Number(value))) {
-        total += Number(value);
-      }
-    });
+    for (let rowIndex = 0; rowIndex < GRID_ROWS; rowIndex++) {
+      const key = (rowIndex * GRID_COLS + colIndex).toString().padStart(2, '0');
+      total += parseFloat(data[key]) || 0;
+    }
     return total;
   };
+
+  const calculateGrandTotal = (data: CellData) => {
+    return Object.values(data).reduce((sum, value) => sum + (parseFloat(value) || 0), 0);
+  };
+  
 
   const handleApplyCutting = () => {
     const cutValue = parseFloat(cuttingValue);
@@ -184,20 +188,16 @@ const MasterSheetViewer = ({
     );
   };
 
-  const masterSheetRowTotal = (rowIndex: number) => {
-    return calculateRowTotal(rowIndex, masterSheetData).toString();
-  };
-
-  const masterSheetGrandTotal = () => {
-    return calculateGrandTotal(masterSheetData);
-  };
+  const masterSheetRowTotals = Array.from({ length: GRID_ROWS }, (_, rowIndex) => calculateRowTotal(rowIndex, masterSheetData));
+  const masterSheetColumnTotals = Array.from({ length: GRID_COLS }, (_, colIndex) => calculateColumnTotal(colIndex, masterSheetData));
+  const masterSheetGrandTotal = calculateGrandTotal(masterSheetData);
   
   return (
-    <div className="h-full flex flex-col p-4 gap-4">
-        <Card>
+    <div className="h-full flex flex-col p-4 gap-4 bg-background">
+        <Card className="bg-card">
             <CardContent className="p-4">
                 <div className="flex items-center gap-4">
-                    <Label>Select Draw:</Label>
+                    <Label className="text-card-foreground">Select Draw:</Label>
                     <Select value={selectedDraw} onValueChange={setSelectedDraw}>
                         <SelectTrigger className="w-[180px]">
                             <SelectValue placeholder="Select a draw" />
@@ -210,87 +210,84 @@ const MasterSheetViewer = ({
             </CardContent>
         </Card>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow min-h-0">
-        <Card className="flex flex-col">
-          <CardContent className="p-2 flex-grow overflow-hidden">
-            <ScrollArea className="h-full">
-              <div className="grid gap-1 w-full pr-4" style={{ gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))` }}>
-                {Array.from({ length: GRID_ROWS }).map((_, rowIndex) => (
-                  <React.Fragment key={`master-row-${rowIndex}`}>
-                    {Array.from({ length: GRID_COLS }, (_, colIndex) => {
-                      const cellNumber = rowIndex * GRID_COLS + colIndex;
-                      const displayCellNumber = String(cellNumber).padStart(2, '0');
-                      const key = displayCellNumber;
-                      return (
-                        <div key={`master-cell-${key}`} className="relative">
-                          <div className="absolute top-0.5 left-1 text-xs text-muted-foreground select-none pointer-events-none z-10">{displayCellNumber}</div>
-                          <Input
-                            type="text"
-                            readOnly
-                            className="pt-4 text-center bg-muted min-w-0"
-                            value={masterSheetData[key] || ''}
-                            aria-label={`Cell ${displayCellNumber}`}
-                          />
-                        </div>
-                      );
-                    })}
-                    <div className="flex items-center justify-center p-2 font-medium rounded-md">
+        <div className="flex flex-col min-w-0 h-full">
+           <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${GRID_ROWS + 1}, minmax(0, 1fr))`}}>
+            {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
+              <React.Fragment key={`master-row-${rowIndex}`}>
+                {Array.from({ length: GRID_COLS }, (_, colIndex) => {
+                  const key = String(rowIndex * GRID_COLS + colIndex).padStart(2, '0');
+                  return (
+                    <div key={`master-cell-${key}`} className="relative flex items-center border border-white rounded-sm">
+                      <div className="absolute top-1 left-1.5 text-xs select-none pointer-events-none z-10 text-white">{key}</div>
                       <Input
-                        type="text"
-                        readOnly
-                        className="text-sm font-medium text-center bg-muted min-w-0"
-                        value={masterSheetRowTotal(rowIndex)}
-                        aria-label={`Row ${rowIndex} Total`}
+                          type="text"
+                          readOnly
+                          style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)'}}
+                          className="p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold text-white"
+                          value={masterSheetData[key] || ''}
+                          aria-label={`Cell ${key}`}
                       />
                     </div>
-                  </React.Fragment>
-                ))}
-                <div style={{ gridColumn: `span ${GRID_COLS}` }} className="flex items-center justify-end p-2 font-bold mt-1 pr-4">Total</div>
-                <div className="flex items-center justify-center p-2 font-bold bg-primary/20 rounded-md mt-1">
-                  {masterSheetGrandTotal()}
+                  );
+                })}
+                 <div className="flex items-center justify-center font-medium border border-white rounded-sm bg-transparent text-white">
+                  <Input readOnly value={masterSheetRowTotals[rowIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-white" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
                 </div>
+              </React.Fragment>
+            ))}
+            {/* Column Totals */}
+            {Array.from({ length: GRID_COLS }, (_, colIndex) => (
+              <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border border-white rounded-sm bg-transparent text-white">
+                <Input readOnly value={masterSheetColumnTotals[colIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-white" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
               </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+            ))}
+            <div className="flex items-center justify-center font-bold text-lg border border-white rounded-sm text-white">
+                {masterSheetGrandTotal}
+            </div>
+          </div>
+        </div>
         <div className="flex flex-col gap-4">
-          <Card>
+          <Card className="bg-card">
             <CardContent className="p-4">
               <div className="flex flex-col sm:flex-row justify-around gap-4 items-end">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="master-cutting" className="text-sm">Cutting</Label>
+                  <Label htmlFor="master-cutting" className="text-sm text-card-foreground">Cutting</Label>
                   <Input id="master-cutting" placeholder="Value" className="text-sm text-center w-24" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
                   <Button onClick={handleApplyCutting} size="sm">Apply</Button>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="master-less" className="text-sm">Less (%)</Label>
+                  <Label htmlFor="master-less" className="text-sm text-card-foreground">Less (%)</Label>
                   <Input id="master-less" placeholder="Value" className="text-sm text-center w-24" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
                   <Button onClick={handleApplyLess} size="sm">Apply</Button>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="master-dabba" className="text-sm">Dabba</Label>
+                  <Label htmlFor="master-dabba" className="text-sm text-card-foreground">Dabba</Label>
                   <Input id="master-dabba" placeholder="Value" className="text-sm text-center w-24" />
                   <Button size="sm">Apply</Button>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="flex-grow">
+          <Card className="flex-grow bg-card">
             <CardContent className="p-4 h-full">
               <ScrollArea className="h-full">
                 <div className="space-y-1 pr-4">
-                  {currentDrawLogs.map((log, index) => (
-                    <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/50 text-sm">
+                  {currentDrawLogs.length > 0 ? currentDrawLogs.map((log, index) => (
+                    <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted text-sm">
                       <div className="flex items-center gap-2">
                         <Checkbox
                           id={`log-${selectedDraw}-${index}`}
                           checked={selectedLogIndices.includes(index)}
                           onCheckedChange={() => handleLogSelectionChange(index)}
+                          className="border-primary"
                         />
-                        <label htmlFor={`log-${selectedDraw}-${index}`} className="cursor-pointer">{index + 1}. {log.clientName}</label>
+                        <label htmlFor={`log-${selectedDraw}-${index}`} className="cursor-pointer text-muted-foreground">{index + 1}. {log.clientName}</label>
                       </div>
-                      <span className="font-mono font-semibold">₹{log.gameTotal.toFixed(2)}</span>
+                      <span className="font-mono font-semibold text-foreground">₹{log.gameTotal.toFixed(2)}</span>
                     </div>
-                  ))}
+                  )) : (
+                    <div className="text-center text-muted-foreground italic">No logs for this draw.</div>
+                  )}
                 </div>
               </ScrollArea>
             </CardContent>
@@ -1312,8 +1309,8 @@ const handleHarupApply = () => {
       </Dialog>
       
       <Dialog open={isMasterSheetDialogOpen} onOpenChange={setIsMasterSheetDialogOpen}>
-        <DialogContent className="max-w-full w-full h-full max-h-full sm:max-w-full">
-          <DialogHeader className="flex-row items-center">
+        <DialogContent className="max-w-full w-full h-full max-h-full sm:max-w-full p-0">
+          <DialogHeader className="flex-row items-center p-4 border-b">
             <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="mr-2">
                 <ArrowLeft className="h-4 w-4" />
                 <span className="sr-only">Back</span>
@@ -1362,3 +1359,4 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
