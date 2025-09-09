@@ -1195,7 +1195,7 @@ const handleHarupApply = () => {
                             value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
                             onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                           />
-                          <Label htmlFor="laddiNum1" className="text-xs whitespace-nowrap">{runningLaddi ? "Start" : "Num 1"}</Label>
+                          <Label htmlFor="laddiNum1" className="text-xs whitespace-nowrap">{runningLaddi ? "Start" : "Pair"}</Label>
                       </div>
                        <div className="flex flex-col items-center justify-center px-2 my-1">
                         <div className="text-xs font-bold text-primary">{combinationCount}</div>
@@ -1207,7 +1207,7 @@ const handleHarupApply = () => {
                             value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
                             onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                           />
-                          <Label htmlFor="laddiNum2" className="text-xs whitespace-nowrap">{runningLaddi ? "End" : "Num 2"}</Label>
+                          <Label htmlFor="laddiNum2" className="text-xs whitespace-nowrap">{runningLaddi ? "End" : "Pair"}</Label>
                       </div>
                   </div>
                   <div className="grid grid-cols-5 items-center gap-1">
