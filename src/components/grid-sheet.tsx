@@ -1164,9 +1164,9 @@ const handleHarupApply = () => {
                           />
                           <Label htmlFor="laddiNum1" className="text-xs whitespace-nowrap">{runningLaddi ? "Start" : "Num 1"}</Label>
                       </div>
-                      <div className="flex flex-col items-center justify-center px-1">
+                      <div className="flex flex-col items-center justify-center px-2">
                         <div className="text-xs font-bold text-primary">{combinationCount}</div>
-                        <span className="font-bold text-center text-sm my-0.5">x</span>
+                        <span className="font-bold text-center text-sm my-1">x</span>
                       </div>
                       <div className="flex-1 flex items-center gap-1">
                           <Input
