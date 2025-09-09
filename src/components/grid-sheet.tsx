@@ -1155,21 +1155,27 @@ const handleHarupApply = () => {
                 
                 <div className="border rounded-lg p-2 flex flex-col gap-2">
                   <h3 className="font-semibold mb-1 text-xs">Laddi</h3>
-                  <div className="grid grid-cols-5 items-center gap-1 mb-1">
-                      <Input
-                        id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-8 text-sm" placeholder={runningLaddi ? "Start" : "Num 1"}
-                        value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
-                        onClick={selectedClientId === null ? showClientSelectionToast : undefined}
-                      />
-                      <div className="flex flex-col items-center justify-center">
-                        <div className="text-xs font-bold text-primary">{combinationCount}</div>
-                        <span className="font-bold text-center text-sm -mt-1">x</span>
+                  <div className="flex items-center gap-2 mb-1">
+                      <div className="flex-1 flex items-center gap-1">
+                          <Input
+                            id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "Start" : "Num 1"}
+                            value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
+                            onClick={selectedClientId === null ? showClientSelectionToast : undefined}
+                          />
+                          <Label htmlFor="laddiNum1" className="text-xs whitespace-nowrap">{runningLaddi ? "Start" : "Num 1"}</Label>
                       </div>
-                      <Input
-                        id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-8 text-sm" placeholder={runningLaddi ? "End" : "Num 2"}
-                        value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
-                        onClick={selectedClientId === null ? showClientSelectionToast : undefined}
-                      />
+                      <div className="flex flex-col items-center justify-center px-1">
+                        <div className="text-xs font-bold text-primary">{combinationCount}</div>
+                        <span className="font-bold text-center text-sm my-0.5">x</span>
+                      </div>
+                      <div className="flex-1 flex items-center gap-1">
+                          <Input
+                            id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "End" : "Num 2"}
+                            value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
+                            onClick={selectedClientId === null ? showClientSelectionToast : undefined}
+                          />
+                          <Label htmlFor="laddiNum2" className="text-xs whitespace-nowrap">{runningLaddi ? "End" : "Num 2"}</Label>
+                      </div>
                   </div>
                   <div className="grid grid-cols-5 items-center gap-1">
                     <div className="col-span-3 flex items-center gap-1">
