@@ -12,7 +12,7 @@ import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, X, Save, RotateCcw,
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog"
 import type { Client } from "./clients-manager"
 import { format } from "date-fns"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -1161,7 +1161,10 @@ const handleHarupApply = () => {
                         value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
                         onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                       />
-                      <span className="font-bold text-center text-sm">x</span>
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="text-xs font-bold text-primary">{combinationCount}</div>
+                        <span className="font-bold text-center text-sm -mt-1">x</span>
+                      </div>
                       <Input
                         id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 col-span-2 h-8 text-sm" placeholder={runningLaddi ? "End" : "Num 2"}
                         value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
@@ -1191,7 +1194,6 @@ const handleHarupApply = () => {
                           <Checkbox id="running-laddi" checked={runningLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRunningLaddi(Boolean(checked)); setLaddiNum1(''); setLaddiNum2(''); }} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
                           <Label htmlFor="running-laddi" className={`text-xs ${selectedClientId === null ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Running</Label>
                       </div>
-                      <div className="text-xs font-bold text-primary">{combinationCount} Combos</div>
                   </div>
                 </div>
               
