@@ -76,31 +76,26 @@ type GridSheetProps = {
 const MasterSheetViewer = ({
   savedSheetLog,
   draw,
-  draws,
 }: {
-  savedSheetLog: { [draw: string]: SavedSheetInfo[] };
+  savedSheetLog: SavedSheetInfo[];
   draw: string;
-  draws: string[];
 }) => {
   const { toast } = useToast();
   const [masterSheetData, setMasterSheetData] = useState<CellData>({});
   const [cuttingValue, setCuttingValue] = useState("");
   const [lessValue, setLessValue] = useState("");
   const [dabbaValue, setDabbaValue] = useState("");
-  const [selectedDraw, setSelectedDraw] = useState<string>(draw);
   const [selectedLogIndices, setSelectedLogIndices] = useState<number[]>([]);
 
-  const currentDrawLogs = savedSheetLog[selectedDraw] || [];
-
   useEffect(() => {
-    // When the draw changes, select all logs by default for that draw.
-    setSelectedLogIndices(currentDrawLogs.map((_, index) => index));
-  }, [selectedDraw, savedSheetLog]);
+    // When the draw or logs change, select all logs by default.
+    setSelectedLogIndices(savedSheetLog.map((_, index) => index));
+  }, [draw, savedSheetLog]);
 
   useEffect(() => {
     // Recalculate master sheet data when selected logs or draw change
     const newMasterData: CellData = {};
-    const logsToProcess = savedSheetLog[selectedDraw] || [];
+    const logsToProcess = savedSheetLog || [];
     
     selectedLogIndices.forEach(index => {
       const logEntry = logsToProcess[index];
@@ -112,7 +107,7 @@ const MasterSheetViewer = ({
       }
     });
     setMasterSheetData(newMasterData);
-  }, [selectedLogIndices, selectedDraw, savedSheetLog]);
+  }, [selectedLogIndices, draw, savedSheetLog]);
 
   const calculateRowTotal = (rowIndex: number, data: CellData) => {
     let total = 0;
@@ -194,21 +189,6 @@ const MasterSheetViewer = ({
   
   return (
     <div className="h-full flex flex-col p-4 gap-4 bg-background">
-        <Card className="bg-card">
-            <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                    <Label className="text-card-foreground">Select Draw:</Label>
-                    <Select value={selectedDraw} onValueChange={setSelectedDraw}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Select a draw" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {draws.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
-            </CardContent>
-        </Card>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow min-h-0">
         <div className="flex flex-col min-w-0 h-full">
            <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${GRID_ROWS + 1}, minmax(0, 1fr))`}}>
@@ -242,7 +222,7 @@ const MasterSheetViewer = ({
               </div>
             ))}
             <div className="flex items-center justify-center font-bold text-lg border border-white rounded-sm text-white">
-                {masterSheetGrandTotal}
+                {masterSheetGrandTotal.toFixed(2)}
             </div>
           </div>
         </div>
@@ -269,19 +249,22 @@ const MasterSheetViewer = ({
             </CardContent>
           </Card>
           <Card className="flex-grow bg-card">
+             <CardHeader>
+                <CardTitle className="text-lg">Client Entries</CardTitle>
+            </CardHeader>
             <CardContent className="p-4 h-full">
               <ScrollArea className="h-full">
                 <div className="space-y-1 pr-4">
-                  {currentDrawLogs.length > 0 ? currentDrawLogs.map((log, index) => (
+                  {savedSheetLog.length > 0 ? savedSheetLog.map((log, index) => (
                     <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted text-sm">
                       <div className="flex items-center gap-2">
                         <Checkbox
-                          id={`log-${selectedDraw}-${index}`}
+                          id={`log-${draw}-${index}`}
                           checked={selectedLogIndices.includes(index)}
                           onCheckedChange={() => handleLogSelectionChange(index)}
                           className="border-primary"
                         />
-                        <label htmlFor={`log-${selectedDraw}-${index}`} className="cursor-pointer text-muted-foreground">{index + 1}. {log.clientName}</label>
+                        <label htmlFor={`log-${draw}-${index}`} className="cursor-pointer text-muted-foreground">{index + 1}. {log.clientName}</label>
                       </div>
                       <span className="font-mono font-semibold text-foreground">₹{log.gameTotal.toFixed(2)}</span>
                     </div>
@@ -1146,7 +1129,7 @@ const handleHarupApply = () => {
                   </div>
                 ))}
                 <div className="flex items-center justify-center font-bold text-lg border border-white rounded-sm text-white">
-                    {grandTotal}
+                    {grandTotal.toFixed(2)}
                 </div>
               </div>
             </div>
@@ -1318,9 +1301,8 @@ const handleHarupApply = () => {
             <DialogTitle>Master Sheet for Draw: {props.draw}</DialogTitle>
           </DialogHeader>
            <MasterSheetViewer 
-             savedSheetLog={{ [props.draw]: props.savedSheetLog }}
+             savedSheetLog={props.savedSheetLog}
              draw={props.draw}
-             draws={props.draws}
            />
         </DialogContent>
       </Dialog>
@@ -1359,4 +1341,3 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
