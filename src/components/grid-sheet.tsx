@@ -189,7 +189,7 @@ const MasterSheetViewer = ({
   
   return (
     <div className="h-full flex flex-col p-4 gap-4 bg-background">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-grow min-h-0">
         <div className="flex flex-col min-w-0 h-full">
            <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${GRID_ROWS + 1}, minmax(0, 1fr))`}}>
             {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
@@ -229,26 +229,26 @@ const MasterSheetViewer = ({
         <div className="flex flex-col gap-4">
           <Card className="bg-card">
             <CardContent className="p-4">
-              <div className="flex flex-col sm:flex-row justify-around gap-4 items-end">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <div className="flex items-center gap-2">
                   <Label htmlFor="master-cutting" className="text-sm text-card-foreground">Cutting</Label>
-                  <Input id="master-cutting" placeholder="Value" className="text-sm text-center w-24" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
+                  <Input id="master-cutting" placeholder="Value" className="text-sm text-center" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
                   <Button onClick={handleApplyCutting} size="sm">Apply</Button>
                 </div>
                 <div className="flex items-center gap-2">
                   <Label htmlFor="master-less" className="text-sm text-card-foreground">Less (%)</Label>
-                  <Input id="master-less" placeholder="Value" className="text-sm text-center w-24" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
+                  <Input id="master-less" placeholder="Value" className="text-sm text-center" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
                   <Button onClick={handleApplyLess} size="sm">Apply</Button>
                 </div>
                 <div className="flex items-center gap-2">
                   <Label htmlFor="master-dabba" className="text-sm text-card-foreground">Dabba</Label>
-                  <Input id="master-dabba" placeholder="Value" className="text-sm text-center w-24" />
+                  <Input id="master-dabba" placeholder="Value" className="text-sm text-center" />
                   <Button size="sm">Apply</Button>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="flex-grow bg-card">
+          <Card className="flex-grow bg-card min-h-0">
              <CardHeader>
                 <CardTitle className="text-lg">Client Entries</CardTitle>
             </CardHeader>
@@ -1189,7 +1189,7 @@ const handleHarupApply = () => {
                 <div className="border rounded-lg p-2 flex flex-col gap-2">
                   <h3 className="font-semibold mb-1 text-xs">Laddi</h3>
                   <div className="flex items-center gap-2 mb-1">
-                      <div className="flex-1 flex items-center gap-1">
+                      <div className="flex-1 flex flex-col items-center gap-1">
                           <Input
                             id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "Start" : "Num 1"}
                             value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
@@ -1201,7 +1201,7 @@ const handleHarupApply = () => {
                         <div className="text-xs font-bold text-primary">{combinationCount}</div>
                         <span className="font-bold text-center text-sm">x</span>
                       </div>
-                      <div className="flex-1 flex items-center gap-1">
+                      <div className="flex-1 flex flex-col items-center gap-1">
                           <Input
                             id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "End" : "Num 2"}
                             value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
