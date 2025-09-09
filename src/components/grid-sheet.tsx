@@ -1298,7 +1298,7 @@ const handleHarupApply = () => {
                 <ArrowLeft className="h-4 w-4" />
                 <span className="sr-only">Back</span>
             </Button>
-            <DialogTitle>Master Sheet for Draw: {props.draw}</DialogTitle>
+            <DialogTitle>Master Sheet : {props.draw}</DialogTitle>
           </DialogHeader>
            <MasterSheetViewer 
              savedSheetLog={props.savedSheetLog}
