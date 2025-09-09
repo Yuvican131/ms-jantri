@@ -188,8 +188,8 @@ const MasterSheetViewer = ({
   const masterSheetGrandTotal = calculateGrandTotal(masterSheetData);
   
   return (
-    <div className="h-full flex flex-col p-4 pt-0 gap-4 bg-background">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-grow min-h-0">
+     <div className="h-full flex flex-col p-4 pt-0 gap-4 bg-background">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-2 flex-grow overflow-hidden">
         <div className="flex flex-col min-w-0 h-full">
            <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${GRID_ROWS + 1}, minmax(0, 1fr))`}}>
             {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
@@ -215,7 +215,6 @@ const MasterSheetViewer = ({
                 </div>
               </React.Fragment>
             ))}
-            {/* Column Totals */}
             {Array.from({ length: GRID_COLS }, (_, colIndex) => (
               <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border border-white rounded-sm bg-transparent text-white">
                 <Input readOnly value={masterSheetColumnTotals[colIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-white" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
@@ -226,35 +225,34 @@ const MasterSheetViewer = ({
             </div>
           </div>
         </div>
-        <div className="flex flex-col gap-4">
-          <Card className="bg-card">
-            <CardContent className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="master-cutting" className="text-sm text-card-foreground">Cutting</Label>
-                  <Input id="master-cutting" placeholder="Value" className="text-sm text-center" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
-                  <Button onClick={handleApplyCutting} size="sm">Apply</Button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="master-less" className="text-sm text-card-foreground">Less (%)</Label>
-                  <Input id="master-less" placeholder="Value" className="text-sm text-center" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
-                  <Button onClick={handleApplyLess} size="sm">Apply</Button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="master-dabba" className="text-sm text-card-foreground">Dabba</Label>
-                  <Input id="master-dabba" placeholder="Value" className="text-sm text-center" />
-                  <Button size="sm">Apply</Button>
-                </div>
+        <div className="flex flex-col gap-2 w-full lg:w-[320px] xl:w-[360px]">
+          <div className="border rounded-lg p-2 flex flex-col gap-2">
+            <h3 className="font-semibold text-xs">Master Controls</h3>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="master-cutting" className="text-sm text-card-foreground w-16">Cutting</Label>
+                <Input id="master-cutting" placeholder="Value" className="text-sm text-center flex-grow" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
+                <Button onClick={handleApplyCutting} size="sm">Apply</Button>
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="master-less" className="text-sm text-card-foreground w-16">Less (%)</Label>
+                <Input id="master-less" placeholder="Value" className="text-sm text-center flex-grow" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
+                <Button onClick={handleApplyLess} size="sm">Apply</Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="master-dabba" className="text-sm text-card-foreground w-16">Dabba</Label>
+                <Input id="master-dabba" placeholder="Value" className="text-sm text-center flex-grow" />
+                <Button size="sm">Apply</Button>
+              </div>
+            </div>
+          </div>
           <Card className="flex-grow bg-card min-h-0">
-             <CardHeader>
-                <CardTitle className="text-lg">Client Entries</CardTitle>
+             <CardHeader className="p-2">
+                <CardTitle className="text-sm">Client Entries</CardTitle>
             </CardHeader>
-            <CardContent className="p-4 h-full">
+            <CardContent className="p-2 h-full">
               <ScrollArea className="h-full">
-                <div className="space-y-1 pr-4">
+                <div className="space-y-1 pr-2">
                   {savedSheetLog.length > 0 ? savedSheetLog.map((log, index) => (
                     <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted text-sm">
                       <div className="flex items-center gap-2">
@@ -269,7 +267,7 @@ const MasterSheetViewer = ({
                       <span className="font-mono font-semibold text-foreground">₹{log.gameTotal.toFixed(2)}</span>
                     </div>
                   )) : (
-                    <div className="text-center text-muted-foreground italic">No logs for this draw.</div>
+                    <div className="text-center text-muted-foreground italic h-full flex items-center justify-center">No logs for this draw.</div>
                   )}
                 </div>
               </ScrollArea>
@@ -1341,3 +1339,5 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
