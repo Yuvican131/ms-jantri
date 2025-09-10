@@ -188,7 +188,7 @@ const MasterSheetViewer = ({
   const masterSheetGrandTotal = calculateGrandTotal(masterSheetData);
   
  return (
-    <div className="h-full flex flex-col p-4 pt-0 gap-4 bg-background">
+    <div className="h-full flex flex-col gap-4 bg-background">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 flex-grow overflow-hidden">
         <div className="flex flex-col min-w-0 h-full">
             <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${GRID_ROWS + 1}, minmax(0, 1fr))`}}>
@@ -598,8 +598,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   
   const handleMultiTextApply = () => {
     if (isDataEntryDisabled) {
-      showClientSelectionToast();
-      return;
+        showClientSelectionToast();
+        return;
     }
 
     const lines = multiText.split(/[\n#]/).filter(line => line.trim() !== '');
@@ -745,8 +745,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
 const handleHarupApply = () => {
     if (selectedClientId === null) {
-      showClientSelectionToast();
-      return;
+        showClientSelectionToast();
+        return;
     }
 
     const harupAmountValue = parseFloat(harupAmount);
@@ -762,8 +762,9 @@ const handleHarupApply = () => {
         toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
         return;
     }
-    
-    let entryTotal = (harupADigits.length * 10 * harupAmountValue) + (harupBDigits.length * 10 * harupAmountValue);
+
+    const perCellAmount = harupAmountValue / 10;
+    const entryTotal = (harupADigits.length + harupBDigits.length) * harupAmountValue;
 
     if (!checkBalance(entryTotal)) return;
     saveDataForUndo();
@@ -773,14 +774,14 @@ const handleHarupApply = () => {
     harupADigits.forEach(digitA => {
         for (let i = 0; i < 10; i++) {
             const key = parseInt(`${digitA}${i}`).toString().padStart(2, '0');
-            updates[key] = (updates[key] || 0) + harupAmountValue;
+            updates[key] = (updates[key] || 0) + perCellAmount;
         }
     });
-    
+
     harupBDigits.forEach(digitB => {
         for (let i = 0; i < 10; i++) {
             const key = parseInt(`${i}${digitB}`).toString().padStart(2, '0');
-            updates[key] = (updates[key] || 0) + harupAmountValue;
+            updates[key] = (updates[key] || 0) + perCellAmount;
         }
     });
 
@@ -818,7 +819,6 @@ const handleHarupApply = () => {
         toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
     }
 };
-
 
 
   const handleClearSheet = () => {
@@ -910,25 +910,13 @@ const handleHarupApply = () => {
 
   const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (selectedClientId === null) {
-        showClientSelectionToast();
-        return;
+      showClientSelectionToast();
+      return;
     }
     const value = e.target.value;
-    const parts = value.split('=');
-    let numbersPart = parts[0];
-    const amountPart = parts.length > 1 ? `=${parts.slice(1).join('=')}` : '';
-
-    // Remove non-numeric characters except for comma
-    numbersPart = numbersPart.replace(/[^0-9,]/g, '');
-
-    // Remove existing commas to re-format
-    const numbersOnly = numbersPart.replace(/,/g, '');
-
-    // Add comma after every 2 digits
-    const formattedNumbers = numbersOnly.match(/.{1,2}/g)?.join(',') || '';
-
-    setMultiText(formattedNumbers + amountPart);
+    setMultiText(value);
   };
+  
 
   const handleSaveSheet = () => {
     if (!selectedClientId) {
@@ -1268,3 +1256,5 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
