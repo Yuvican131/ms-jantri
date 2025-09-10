@@ -1,6 +1,6 @@
 
 "use client"
-import React, { useState, useEffect, useImperativeHandle, forwardRef } from "react"
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { validateCellContent, ValidateCellContentOutput } from "@/ai/flows/validate-cell-content"
 import { Button } from "@/components/ui/button"
@@ -226,7 +226,7 @@ const MasterSheetViewer = ({
                 </div>
             </div>
             <div className="flex flex-col gap-4 w-full lg:w-[320px] xl:w-[360px]">
-                <div className="border rounded-lg p-2 flex flex-col gap-2">
+                 <div className="border rounded-lg p-2 flex flex-col gap-2">
                     <h3 className="font-semibold text-xs mb-1">Master Controls</h3>
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2">
@@ -241,7 +241,7 @@ const MasterSheetViewer = ({
                         </div>
                         <div className="flex items-center gap-2">
                             <Label htmlFor="master-dabba" className="text-sm text-card-foreground w-16">Dabba</Label>
-                            <Input id="master-dabba" placeholder="Value" className="text-sm text-center flex-grow" />
+                            <Input id="master-dabba" placeholder="Value" className="text-sm text-center flex-grow" value={dabbaValue} onChange={(e) => setDabbaValue(e.target.value)} />
                             <Button size="sm">Apply</Button>
                         </div>
                     </div>
@@ -290,6 +290,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
   const [validations, setValidations] = useState<CellValidation>({})
   const [multiText, setMultiText] = useState("");
+  const multiTextRef = useRef<HTMLTextAreaElement>(null);
   const [updatedCells, setUpdatedCells] = useState<string[]>([]);
   const [laddiNum1, setLaddiNum1] = useState('');
   const [laddiNum2, setLaddiNum2] = useState('');
@@ -806,29 +807,33 @@ const handleHarupApply = () => {
         return;
     }
     
+    let totalCells = 0;
+    harupADigits.forEach(digitA => {
+        for (let i = 0; i < 10; i++) totalCells++;
+    });
+    harupBDigits.forEach(digitB => {
+        for (let i = 0; i < 10; i++) totalCells++;
+    });
+
     let entryTotal = (harupADigits.length + harupBDigits.length) * harupAmountValue;
-    
+
     if (!checkBalance(entryTotal)) return;
     saveDataForUndo();
 
     const updates: { [key: string]: number } = {};
 
     harupADigits.forEach(digitA => {
-        const cellsForA = new Set<string>();
         for (let i = 0; i < 10; i++) {
-            cellsForA.add(parseInt(`${digitA}${i}`).toString().padStart(2, '0'));
+            const key = parseInt(`${digitA}${i}`).toString().padStart(2, '0');
+            updates[key] = (updates[key] || 0) + harupAmountValue;
         }
-        const amountPerCellA = harupAmountValue / cellsForA.size;
-        cellsForA.forEach(key => updates[key] = (updates[key] || 0) + amountPerCellA);
     });
     
     harupBDigits.forEach(digitB => {
-        const cellsForB = new Set<string>();
         for (let i = 0; i < 10; i++) {
-            cellsForB.add(parseInt(`${i}${digitB}`).toString().padStart(2, '0'));
+            const key = parseInt(`${i}${digitB}`).toString().padStart(2, '0');
+            updates[key] = (updates[key] || 0) + harupAmountValue;
         }
-        const amountPerCellB = harupAmountValue / cellsForB.size;
-        cellsForB.forEach(key => updates[key] = (updates[key] || 0) + amountPerCellB);
     });
 
     let lastEntryString = "";
@@ -961,22 +966,20 @@ const handleHarupApply = () => {
       return;
     }
     const value = e.target.value;
-    const parts = value.split('=');
-    let numbersPart = parts[0];
-    const valuePart = parts.length > 1 ? `=${parts.slice(1).join('=')}` : '';
-
-    const cleanNumbers = numbersPart.replace(/[^0-9, ]/g, '');
-    
-    const autoFormattedNumbers = cleanNumbers
-      .replace(/ /g, ',')
-      .replace(/,+/g, ',') 
-      .split(',')
-      .map(s => s.trim())
-      .filter(s => s)
-      .flatMap(s => (s.length > 3 && /^\d+$/.test(s) && !s.includes(',')) ? s.match(/.{1,2}/g)?.map(n => n.padStart(2,'0')) || [] : s)
-      .join(',');
-
-    setMultiText(`${autoFormattedNumbers}${valuePart}`);
+    // Check if it's a paste of a long, single-line string with '#'
+    if (value.includes('#') && !value.includes('\n')) {
+        const formatted = value.replace(/#/g, '\n');
+        setMultiText(formatted);
+        // Use a timeout to allow React to update the state and then apply
+        setTimeout(() => {
+            if (multiTextRef.current) {
+                multiTextRef.current.value = formatted; // Manually update for immediate reflection if needed
+            }
+            handleMultiTextApply();
+        }, 0);
+    } else {
+        setMultiText(value);
+    }
   };
 
   const handleSaveSheet = () => {
@@ -1140,6 +1143,7 @@ const handleHarupApply = () => {
                 <div className="border rounded-lg p-2 flex flex-col gap-2">
                     <h3 className="font-semibold text-xs">Multi-Text</h3>
                     <Textarea
+                        ref={multiTextRef}
                         placeholder="e.g. 1,2,3=50 or 10=20#45=50"
                         rows={1}
                         value={multiText}
