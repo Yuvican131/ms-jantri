@@ -47,7 +47,11 @@ const DrawDetailsPanel = ({
 
   const totalAmount = drawData?.totalAmount || 0;
   if (totalAmount === 0) {
-    return null;
+    return (
+      <div className="p-4 bg-muted/50 rounded-lg text-sm font-mono border text-center text-muted-foreground italic">
+        No entries for {drawName}.
+      </div>
+    );
   }
 
   const clientCommissionPercent = client ? parseFloat(client.comm) / 100 : 0.10;
@@ -124,17 +128,25 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
                     )}
                     
                     {hasActiveDraws ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <Tabs defaultValue={draws[0]} className="w-full">
+                        <TabsList className="grid w-full grid-cols-6 h-auto">
+                          {draws.map(draw => (
+                            <TabsTrigger key={draw} value={draw} className="text-xs px-1" disabled={!account.draws || !account.draws[draw] || account.draws[draw].totalAmount === 0}>
+                              {draw}
+                            </TabsTrigger>
+                          ))}
+                        </TabsList>
                         {draws.map(draw => (
-                          <DrawDetailsPanel 
-                            key={draw}
-                            client={client}
-                            account={account}
-                            drawName={draw} 
-                            drawData={account.draws ? account.draws[draw] : undefined}
-                          />
+                          <TabsContent key={draw} value={draw}>
+                            <DrawDetailsPanel 
+                              client={client}
+                              account={account}
+                              drawName={draw} 
+                              drawData={account.draws ? account.draws[draw] : undefined}
+                            />
+                          </TabsContent>
                         ))}
-                      </div>
+                      </Tabs>
                     ) : (
                       <div className="text-center text-muted-foreground italic py-8">
                         No entries for this client.
