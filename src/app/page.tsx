@@ -7,7 +7,8 @@ import GridSheet from "@/components/grid-sheet"
 import ClientsManager, { Client } from "@/components/clients-manager"
 import AccountsManager, { Account } from "@/components/accounts-manager"
 import LedgerRecord from "@/components/ledger-record"
-import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, ClipboardCopy, FileSpreadsheet } from 'lucide-react';
+import AdminPanel from "@/components/admin-panel"
+import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, ClipboardCopy, FileSpreadsheet, Shield } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
@@ -316,7 +317,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center">
-              <TabsList className="grid grid-cols-4 md:w-auto p-0.5 gap-0.5">
+              <TabsList className="grid grid-cols-5 md:w-auto p-0.5 gap-0.5">
                 <TabsTrigger value="sheet" className="gap-1 rounded-sm">
                   <GridIcon className="h-4 w-4" />
                   Home
@@ -332,6 +333,10 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
                 <TabsTrigger value="ledger-record" className="gap-1 rounded-sm">
                   <FileSpreadsheet className="h-4 w-4" />
                   Ledger Record
+                </TabsTrigger>
+                <TabsTrigger value="admin-panel" className="gap-1 rounded-sm">
+                  <Shield className="h-4 w-4" />
+                  Admin Panel
                 </TabsTrigger>
               </TabsList>
                {selectedInfo && activeTab === 'sheet' && (
@@ -444,6 +449,9 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
              <TabsContent value="ledger-record" className="flex-1" style={{ display: activeTab === 'ledger-record' ? 'block' : 'none' }}>
               <LedgerRecord clients={clients} accounts={accounts} savedSheetLog={savedSheetLog} draws={draws} />
             </TabsContent>
+            <TabsContent value="admin-panel" className="flex-1" style={{ display: activeTab === 'admin-panel' ? 'block' : 'none' }}>
+              <AdminPanel />
+            </TabsContent>
           </div>
         </Tabs>
       </main>
@@ -465,3 +473,5 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
     </div>
   );
 }
+
+    
