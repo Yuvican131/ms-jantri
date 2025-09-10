@@ -47,11 +47,7 @@ const DrawDetailsPanel = ({
 
   const totalAmount = drawData?.totalAmount || 0;
   if (totalAmount === 0) {
-    return (
-      <div className="p-4 bg-muted/50 rounded-lg text-sm font-mono text-center text-muted-foreground">
-        No entries for this draw.
-      </div>
-    )
+    return null;
   }
 
   const clientCommissionPercent = client ? parseFloat(client.comm) / 100 : 0.10;
@@ -64,26 +60,14 @@ const DrawDetailsPanel = ({
 
   const finalTotal = afterCommission - passingTotal;
   const finalTotalColor = finalTotal < 0 ? 'text-red-500' : 'text-green-400';
-
-  const activeBalance = client ? parseFloat(client.activeBalance) || 0 : 0;
-  const totalPlayed = account.draws ? Object.values(account.draws).reduce((sum, d) => sum + (d?.totalAmount || 0), 0) : 0;
-  const remainingBalance = activeBalance - totalPlayed;
   
   return (
-    <div className="p-4 bg-muted/50 rounded-lg text-sm font-mono">
+    <div className="p-4 bg-muted/50 rounded-lg text-sm font-mono border">
+      <h4 className="font-bold text-center text-base mb-2 text-primary">{drawName}</h4>
       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-        <span className="text-foreground/80">User Name</span><span className="text-right font-semibold text-primary">: {client?.name || 'N/A'}</span>
-        {activeBalance > 0 && (
-          <>
-            <span className="text-foreground/80">Active Balance</span><span className="text-right font-semibold">: ₹{formatNumber(activeBalance)}</span>
-            <span className="text-foreground/80">Total Played</span><span className="text-right font-semibold">: ₹{formatNumber(totalPlayed)}</span>
-            <span className="text-foreground/80">Remaining Balance</span><span className={`text-right font-semibold ${remainingBalance < 0 ? 'text-red-500' : 'text-green-400'}`}>: ₹{formatNumber(remainingBalance)}</span>
-            <Separator className="my-1 col-span-2 bg-border/50" />
-          </>
-        )}
-        <span className="text-foreground/80">Draw ({drawName}) Total</span><span className="text-right font-semibold">: ₹{formatNumber(totalAmount)}</span>
-        <span className="text-foreground/80">{clientCommissionPercent*100}% Commission Amt</span><span className="text-right font-semibold">: ₹{formatNumber(commission)}</span>
-        <span className="text-foreground/80">After Commission</span><span className="text-right font-semibold">: ₹{formatNumber(afterCommission)}</span>
+        <span className="text-foreground/80">Total</span><span className="text-right font-semibold">: ₹{formatNumber(totalAmount)}</span>
+        <span className="text-foreground/80">{clientCommissionPercent*100}% Comm</span><span className="text-right font-semibold">: ₹{formatNumber(commission)}</span>
+        <span className="text-foreground/80">After Comm</span><span className="text-right font-semibold">: ₹{formatNumber(afterCommission)}</span>
         <span className="text-foreground/80">Passing</span>
         <span className="text-right font-semibold">
           : {passingAmount > 0 ? `${formatNumber(passingAmount)} = ` : ''}₹{formatNumber(passingTotal)} {passingAmount > 0 ? `(x${passingMultiplier})` : ''}
@@ -91,7 +75,7 @@ const DrawDetailsPanel = ({
       </div>
       <Separator className="my-2 bg-border/50" />
       <div className="grid grid-cols-2 gap-x-4">
-        <span className="font-bold text-base">Final Total ({drawName})</span>
+        <span className="font-bold text-base">Final</span>
         <span className={`text-right font-bold text-base ${finalTotalColor}`}>: ₹{formatNumber(finalTotal)}</span>
       </div>
     </div>
@@ -111,6 +95,12 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
             const client = clients.find(c => c.id === account.id);
             const balanceValue = parseFloat(account.balance) || 0;
             const balanceColor = balanceValue >= 0 ? 'text-green-400' : 'text-red-500';
+
+            const activeBalance = client ? parseFloat(client.activeBalance) || 0 : 0;
+            const totalPlayed = account.draws ? Object.values(account.draws).reduce((sum, d) => sum + (d?.totalAmount || 0), 0) : 0;
+            const remainingBalance = activeBalance - totalPlayed;
+            const hasActiveDraws = account.draws && Object.values(account.draws).some(d => d.totalAmount > 0);
+
             return (
               <AccordionItem value={`item-${index}`} key={account.id}>
                 <AccordionTrigger>
@@ -120,23 +110,37 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
                     </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                   <Tabs defaultValue={draws[0]} className="w-full">
-                     <TabsList className="grid w-full grid-cols-6 h-auto">
+                  <div className="p-4 bg-card rounded-lg space-y-4">
+                    {client && activeBalance > 0 && (
+                       <div className="p-4 bg-muted/30 rounded-lg text-sm font-mono border">
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                          <span className="text-foreground/80">User Name</span><span className="text-right font-semibold text-primary">: {client?.name || 'N/A'}</span>
+                          <span className="text-foreground/80">Active Balance</span><span className="text-right font-semibold">: ₹{formatNumber(activeBalance)}</span>
+                          <span className="text-foreground/80">Total Played</span><span className="text-right font-semibold">: ₹{formatNumber(totalPlayed)}</span>
+                          <Separator className="my-1 col-span-2 bg-border/50" />
+                          <span className="text-foreground/80 font-bold">Remaining Balance</span><span className={`text-right font-bold ${remainingBalance < 0 ? 'text-red-500' : 'text-green-400'}`}>: ₹{formatNumber(remainingBalance)}</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {hasActiveDraws ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {draws.map(draw => (
-                           <TabsTrigger key={draw} value={draw} className="text-xs px-1">{draw}</TabsTrigger>
+                          <DrawDetailsPanel 
+                            key={draw}
+                            client={client}
+                            account={account}
+                            drawName={draw} 
+                            drawData={account.draws ? account.draws[draw] : undefined}
+                          />
                         ))}
-                     </TabsList>
-                      {draws.map(draw => (
-                        <TabsContent key={draw} value={draw}>
-                           <DrawDetailsPanel 
-                              client={client}
-                              account={account}
-                              drawName={draw} 
-                              drawData={account.draws ? account.draws[draw] : undefined}
-                           />
-                        </TabsContent>
-                      ))}
-                   </Tabs>
+                      </div>
+                    ) : (
+                      <div className="text-center text-muted-foreground italic py-8">
+                        No entries for this client.
+                      </div>
+                    )}
+                  </div>
                 </AccordionContent>
               </AccordionItem>
             )
