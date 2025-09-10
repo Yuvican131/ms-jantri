@@ -187,7 +187,7 @@ const MasterSheetViewer = ({
   const masterSheetColumnTotals = Array.from({ length: GRID_COLS }, (_, colIndex) => calculateColumnTotal(colIndex, masterSheetData));
   const masterSheetGrandTotal = calculateGrandTotal(masterSheetData);
   
-  return (
+ return (
     <div className="h-full flex flex-col p-4 pt-0 gap-4 bg-background">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 flex-grow overflow-hidden">
         <div className="flex flex-col min-w-0 h-full">
@@ -763,11 +763,14 @@ const handleHarupApply = () => {
         return;
     }
     
-    let entryTotal = 0;
+    let entryTotal = (harupADigits.length + harupBDigits.length) * 10 * harupAmountValue;
+
+    if (!checkBalance(entryTotal)) return;
+    saveDataForUndo();
+
     const updates: { [key: string]: number } = {};
 
     harupADigits.forEach(digitA => {
-        entryTotal += 10 * harupAmountValue;
         for (let i = 0; i < 10; i++) {
             const key = parseInt(`${digitA}${i}`).toString().padStart(2, '0');
             updates[key] = (updates[key] || 0) + harupAmountValue;
@@ -775,16 +778,11 @@ const handleHarupApply = () => {
     });
     
     harupBDigits.forEach(digitB => {
-        entryTotal += 10 * harupAmountValue;
         for (let i = 0; i < 10; i++) {
             const key = parseInt(`${i}${digitB}`).toString().padStart(2, '0');
             updates[key] = (updates[key] || 0) + harupAmountValue;
         }
     });
-
-    if (!checkBalance(entryTotal)) return;
-    saveDataForUndo();
-
 
     let lastEntryString = "";
     if (harupADigits.length > 0) lastEntryString += `A: ${harupA}=${harupAmount}\n`;
@@ -915,7 +913,15 @@ const handleHarupApply = () => {
       showClientSelectionToast();
       return;
     }
-    setMultiText(e.target.value);
+    const value = e.target.value;
+    const parts = value.split('=');
+    const numbersPart = parts[0];
+    const amountPart = parts.length > 1 ? `=${parts.slice(1).join('=')}` : '';
+
+    const numbersOnly = numbersPart.replace(/[^0-9]/g, '');
+    const formattedNumbers = numbersOnly.match(/.{1,2}/g)?.join(',') || '';
+    
+    setMultiText(formattedNumbers + amountPart);
   };
 
   const handleSaveSheet = () => {
@@ -1256,6 +1262,8 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
 
     
 
