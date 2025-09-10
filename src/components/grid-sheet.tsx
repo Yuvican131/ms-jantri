@@ -226,57 +226,57 @@ const MasterSheetViewer = ({
             </div>
         </div>
         <div className="flex flex-col gap-2 w-full lg:w-[320px] xl:w-[360px] flex-shrink-0">
-            <div className="border rounded-lg p-2 flex flex-col gap-2">
-                <h3 className="font-semibold text-xs mb-1">Master Controls</h3>
-                <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                        <Label htmlFor="master-cutting" className="text-sm text-card-foreground w-16">Cutting</Label>
-                        <Input id="master-cutting" placeholder="Value" className="text-sm h-8 text-center flex-grow" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
-                        <Button onClick={handleApplyCutting} size="sm" className="h-8">Apply</Button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Label htmlFor="master-less" className="text-sm text-card-foreground w-16">Less (%)</Label>
-                        <Input id="master-less" placeholder="Value" className="text-sm h-8 text-center flex-grow" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
-                        <Button onClick={handleApplyLess} size="sm" className="h-8">Apply</Button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Label htmlFor="master-dabba" className="text-sm text-card-foreground w-16">Dabba</Label>
-                        <Input id="master-dabba" placeholder="Value" className="text-sm h-8 text-center flex-grow" value={dabbaValue} onChange={(e) => setDabbaValue(e.target.value)} />
-                        <Button size="sm" className="h-8">Apply</Button>
-                    </div>
-                </div>
-            </div>
-            <Card className="flex-grow bg-card min-h-0">
-                <CardHeader className="p-2">
-                    <CardTitle className="text-sm">Client Entries</CardTitle>
-                </CardHeader>
-                <CardContent className="p-2 h-[calc(100%-40px)]">
-                    <ScrollArea className="h-full">
-                        <div className="space-y-1 pr-2">
-                            {savedSheetLog.length > 0 ? savedSheetLog.map((log, index) => (
-                                <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted text-sm">
-                                    <div className="flex items-center gap-2">
-                                        <Checkbox
-                                            id={`log-${draw}-${index}`}
-                                            checked={selectedLogIndices.includes(index)}
-                                            onCheckedChange={() => handleLogSelectionChange(index)}
-                                            className="border-primary"
-                                        />
-                                        <label htmlFor={`log-${draw}-${index}`} className="cursor-pointer text-muted-foreground">{index + 1}. {log.clientName}</label>
-                                    </div>
-                                    <span className="font-mono font-semibold text-foreground">₹{log.gameTotal.toFixed(2)}</span>
-                                </div>
-                            )) : (
-                                <div className="text-center text-muted-foreground italic h-full flex items-center justify-center">No logs for this draw.</div>
-                            )}
-                        </div>
-                    </ScrollArea>
-                </CardContent>
-            </Card>
+          <div className="border rounded-lg p-2 flex flex-col gap-2">
+              <h3 className="font-semibold text-xs mb-1">Master Controls</h3>
+              <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                      <Label htmlFor="master-cutting" className="text-sm text-card-foreground w-16">Cutting</Label>
+                      <Input id="master-cutting" placeholder="Value" className="text-sm h-8 text-center flex-grow" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
+                      <Button onClick={handleApplyCutting} size="sm" className="h-8">Apply</Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                      <Label htmlFor="master-less" className="text-sm text-card-foreground w-16">Less (%)</Label>
+                      <Input id="master-less" placeholder="Value" className="text-sm h-8 text-center flex-grow" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
+                      <Button onClick={handleApplyLess} size="sm" className="h-8">Apply</Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                      <Label htmlFor="master-dabba" className="text-sm text-card-foreground w-16">Dabba</Label>
+                      <Input id="master-dabba" placeholder="Value" className="text-sm h-8 text-center flex-grow" value={dabbaValue} onChange={(e) => setDabbaValue(e.target.value)} />
+                      <Button size="sm" className="h-8">Apply</Button>
+                  </div>
+              </div>
+          </div>
+          <Card className="flex-grow bg-card min-h-0">
+              <CardHeader className="p-2">
+                  <CardTitle className="text-sm">Client Entries</CardTitle>
+              </CardHeader>
+              <CardContent className="p-2 h-[calc(100%-40px)]">
+                  <ScrollArea className="h-full">
+                      <div className="space-y-1 pr-2">
+                          {savedSheetLog.length > 0 ? savedSheetLog.map((log, index) => (
+                              <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted text-sm">
+                                  <div className="flex items-center gap-2">
+                                      <Checkbox
+                                          id={`log-${draw}-${index}`}
+                                          checked={selectedLogIndices.includes(index)}
+                                          onCheckedChange={() => handleLogSelectionChange(index)}
+                                          className="border-primary"
+                                      />
+                                      <label htmlFor={`log-${draw}-${index}`} className="cursor-pointer text-muted-foreground">{index + 1}. {log.clientName}</label>
+                                  </div>
+                                  <span className="font-mono font-semibold text-foreground">₹{log.gameTotal.toFixed(2)}</span>
+                              </div>
+                          )) : (
+                              <div className="text-center text-muted-foreground italic h-full flex items-center justify-center">No logs for this draw.</div>
+                          )}
+                      </div>
+                  </ScrollArea>
+              </CardContent>
+          </Card>
         </div>
+      </div>
     </div>
-</div>
-);
+  );
 }
 
 
@@ -763,7 +763,7 @@ const handleHarupApply = () => {
         return;
     }
     
-    let entryTotal = (harupADigits.length + harupBDigits.length) * 10 * harupAmountValue;
+    let entryTotal = (harupADigits.length * 10 * harupAmountValue) + (harupBDigits.length * 10 * harupAmountValue);
 
     if (!checkBalance(entryTotal)) return;
     saveDataForUndo();
@@ -1262,11 +1262,3 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-    
-
-    
-
-    
-
-    
