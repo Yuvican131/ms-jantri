@@ -48,6 +48,7 @@ export type SavedSheetInfo = {
   clientId: string;
   gameTotal: number;
   data: { [key: string]: string };
+  date: string; // ISO date string
 };
 
 
@@ -90,10 +91,10 @@ export default function Home() {
     setSelectedInfo(null);
   };
   
-const handleClientSheetSave = (clientName: string, clientId: string, newData: { [key: string]: string }, draw: string) => {
+const handleClientSheetSave = (clientName: string, clientId: string, newData: { [key: string]: string }, draw: string, entryDate: Date) => {
     setSavedSheetLog(prevLog => {
         const drawLogs = prevLog[draw] || [];
-        const existingLogIndex = drawLogs.findIndex(log => log.clientId === clientId);
+        const existingLogIndex = drawLogs.findIndex(log => log.clientId === clientId && log.date === entryDate.toISOString().split('T')[0]);
         let updatedLogs;
         
         if (existingLogIndex > -1) {
@@ -116,9 +117,15 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
             updatedLogs = [...drawLogs];
             updatedLogs[existingLogIndex] = updatedLogEntry;
         } else {
-            // First time this client is saving in this draw
+            // First time this client is saving in this draw for this date
             const newEntryTotal = Object.values(newData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
-            const newLogEntry = { clientName, clientId, gameTotal: newEntryTotal, data: newData };
+            const newLogEntry: SavedSheetInfo = { 
+              clientName, 
+              clientId, 
+              gameTotal: newEntryTotal, 
+              data: newData,
+              date: entryDate.toISOString().split('T')[0],
+            };
             updatedLogs = [...drawLogs, newLogEntry];
         }
 
@@ -144,29 +151,30 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
             const activeBalance = parseFloat(client.activeBalance) || 0;
 
             const updatedDraws: { [key: string]: { totalAmount: number; passingAmount: number } } = {};
+            const todayStr = new Date().toISOString().split('T')[0];
 
-            // Iterate over all draws to calculate totals
+            // Iterate over all draws to calculate totals for today
             draws.forEach(drawName => {
                 const drawLogs = currentSavedSheetLog[drawName] || [];
-                const clientLog = drawLogs.find(log => log.clientId === client.id);
+                const clientLogForToday = drawLogs.find(log => log.clientId === client.id && log.date === todayStr);
 
-                if (clientLog) {
+                if (clientLogForToday) {
                     const declaredNumberForDraw = declaredNumbers[drawName];
-                    const amountInCell = declaredNumberForDraw ? parseFloat(clientLog.data[declaredNumberForDraw]) || 0 : 0;
+                    const amountInCell = declaredNumberForDraw ? parseFloat(clientLogForToday.data[declaredNumberForDraw]) || 0 : 0;
 
                     updatedDraws[drawName] = {
-                        totalAmount: clientLog.gameTotal,
+                        totalAmount: clientLogForToday.gameTotal,
                         passingAmount: amountInCell
                     };
                 } else if(acc.draws && acc.draws[drawName]) {
-                    // Keep existing draw data if no new log for this draw
-                    updatedDraws[drawName] = acc.draws[drawName];
+                    // Reset if no log for today, or keep old logic if needed
+                    updatedDraws[drawName] = { totalAmount: 0, passingAmount: 0 };
                 } else {
                     updatedDraws[drawName] = { totalAmount: 0, passingAmount: 0 };
                 }
             });
 
-            // Calculate the final balance
+            // Calculate the final balance based on today's activity
             const netFromDraws = Object.values(updatedDraws).reduce((balance, drawDetails) => {
                 const drawTotal = drawDetails.totalAmount || 0;
                 const drawCommission = drawTotal * clientCommissionPercent;
@@ -225,7 +233,8 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
   };
   
   const updateAllClientsDraw = (isUndeclare = false) => {
-      const currentDrawLogs = savedSheetLog[declarationDraw] || [];
+      const todayStr = new Date().toISOString().split('T')[0];
+      const currentDrawLogs = (savedSheetLog[declarationDraw] || []).filter(log => log.date === todayStr);
 
       const updatedAccounts = accounts.map(acc => {
         const client = clients.find(c => c.id === acc.id);

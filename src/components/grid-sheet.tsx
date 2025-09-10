@@ -68,7 +68,7 @@ type GridSheetProps = {
   isLastEntryDialogOpen: boolean;
   setIsLastEntryDialogOpen: (open: boolean) => void;
   clients: Client[];
-  onClientSheetSave: (clientName: string, clientId: string, data: CellData, draw: string) => void;
+  onClientSheetSave: (clientName: string, clientId: string, data: CellData, draw: string, date: Date) => void;
   savedSheetLog: SavedSheetInfo[];
   accounts: Account[];
   draws: string[];
@@ -189,8 +189,8 @@ const MasterSheetViewer = ({
   const masterSheetGrandTotal = calculateGrandTotal(masterSheetData);
   
  return (
-    <div className="flex h-full flex-col gap-4 bg-background p-4">
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 flex-grow overflow-hidden items-start">
+    <div className="flex h-full flex-col gap-4 bg-background p-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 flex-grow overflow-hidden w-full">
         <div className="flex flex-col min-w-0 h-full">
             <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${GRID_ROWS + 1}, minmax(0, 1fr))`}}>
                 {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
@@ -746,22 +746,22 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
 const handleHarupApply = () => {
     if (selectedClientId === null) {
-        showClientSelectionToast();
-        return;
+      showClientSelectionToast();
+      return;
     }
 
     const harupAmountValue = parseFloat(harupAmount);
     if (!harupAmount || isNaN(harupAmountValue)) {
-        toast({ title: "HARUP Error", description: "Please provide a valid amount.", variant: "destructive" });
-        return;
+      toast({ title: "HARUP Error", description: "Please provide a valid amount.", variant: "destructive" });
+      return;
     }
 
     const harupADigits = [...new Set(harupA.replace(/[^0-9]/g, '').split(''))];
     const harupBDigits = [...new Set(harupB.replace(/[^0-9]/g, '').split(''))];
 
     if (harupADigits.length === 0 && harupBDigits.length === 0) {
-        toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
-        return;
+      toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
+      return;
     }
     
     const totalDigits = harupADigits.length + harupBDigits.length;
@@ -771,21 +771,21 @@ const handleHarupApply = () => {
 
     saveDataForUndo();
 
-    const perCellAmount = harupAmountValue / 10;
+    const perDigitAmount = harupAmountValue; // Use the full amount per digit
     const updates: { [key: string]: number } = {};
 
     harupADigits.forEach(digitA => {
-        for (let i = 0; i < 10; i++) {
-            const key = parseInt(`${digitA}${i}`).toString().padStart(2, '0');
-            updates[key] = (updates[key] || 0) + perCellAmount;
-        }
+      for (let i = 0; i < 10; i++) {
+        const key = parseInt(`${digitA}${i}`).toString().padStart(2, '0');
+        updates[key] = (updates[key] || 0) + perDigitAmount;
+      }
     });
 
     harupBDigits.forEach(digitB => {
-        for (let i = 0; i < 10; i++) {
-            const key = parseInt(`${i}${digitB}`).toString().padStart(2, '0');
-            updates[key] = (updates[key] || 0) + perCellAmount;
-        }
+      for (let i = 0; i < 10; i++) {
+        const key = parseInt(`${i}${digitB}`).toString().padStart(2, '0');
+        updates[key] = (updates[key] || 0) + perDigitAmount;
+      }
     });
 
     let lastEntryString = "";
@@ -796,30 +796,30 @@ const handleHarupApply = () => {
     const updatedKeys = Object.keys(updates);
 
     if (updatedKeys.length > 0) {
-        updatedKeys.forEach(key => {
-            const currentValue = parseFloat(newData[key]) || 0;
-            const addedValue = updates[key] || 0;
-            newData[key] = String(currentValue + addedValue);
-        });
+      updatedKeys.forEach(key => {
+        const currentValue = parseFloat(newData[key]) || 0;
+        const addedValue = updates[key] || 0;
+        newData[key] = String(currentValue + addedValue);
+      });
 
-        if (selectedClientId) {
-            updateClientData(selectedClientId, newData, currentRowTotals);
-        } else {
-            setSheets(prevSheets => prevSheets.map(sheet =>
-                sheet.id === activeSheetId ? { ...sheet, data: newData } : sheet
-            ));
-        }
+      if (selectedClientId) {
+        updateClientData(selectedClientId, newData, currentRowTotals);
+      } else {
+        setSheets(prevSheets => prevSheets.map(sheet =>
+          sheet.id === activeSheetId ? { ...sheet, data: newData } : sheet
+        ));
+      }
 
-        setUpdatedCells(updatedKeys);
-        props.setLastEntry(lastEntryString.trim());
-        setTimeout(() => setUpdatedCells([]), 2000);
-        toast({ title: "HARUP Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
+      setUpdatedCells(updatedKeys);
+      props.setLastEntry(lastEntryString.trim());
+      setTimeout(() => setUpdatedCells([]), 2000);
+      toast({ title: "HARUP Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
 
-        setHarupA('');
-        setHarupB('');
-        setHarupAmount('');
+      setHarupA('');
+      setHarupB('');
+      setHarupAmount('');
     } else {
-        toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
+      toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
     }
 };
 
@@ -913,8 +913,8 @@ const handleHarupApply = () => {
 
   const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (selectedClientId === null) {
-        showClientSelectionToast();
-        return;
+      showClientSelectionToast();
+      return;
     }
     const value = e.target.value;
     const parts = value.split('=');
@@ -962,7 +962,7 @@ const handleHarupApply = () => {
     const clientName = props.clients.find(c => c.id === selectedClientId)?.name || "Unknown Client";
     
     // Let page.tsx handle the merging logic
-    props.onClientSheetSave(clientName, selectedClientId, newEntries, props.draw);
+    props.onClientSheetSave(clientName, selectedClientId, newEntries, props.draw, props.date);
     
     // Clear the sheet for the next entry for this client
     updateClientData(selectedClientId, {}, {});
@@ -995,7 +995,8 @@ const handleHarupApply = () => {
   const grandTotal = rowTotals.reduce((acc, total) => acc + total, 0);
 
   const getClientDisplay = (client: Client) => {
-    const logEntry = props.savedSheetLog.find(log => log.clientId === client.id);
+    const todayStr = props.date.toISOString().split('T')[0];
+    const logEntry = props.savedSheetLog.find(log => log.clientId === client.id && log.date === todayStr);
     const totalAmount = logEntry?.gameTotal || 0;
     return `${client.name} - ${formatNumber(totalAmount)}`;
   };
@@ -1023,7 +1024,7 @@ const handleHarupApply = () => {
                               <Input
                                   type="text"
                                   style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)', color: 'hsl(var(--grid-cell-amount-color))' }}
-                                  className={`p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold focus:ring-2 focus:z-10 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                                  className={`p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold focus:ring-2 focus:z-10 focus:ring-[hsl(var(--grid-cell-focus-ring-color))] ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : ''}`}
                                   value={currentData[key] || ''}
                                   onChange={(e) => handleCellChange(key, e.target.value)}
                                   onBlur={() => handleCellBlur(key)}
@@ -1275,5 +1276,3 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-    
