@@ -226,7 +226,7 @@ const MasterSheetViewer = ({
             </div>
         </div>
         <div className="flex flex-col gap-4 w-full lg:w-[320px] xl:w-[360px]">
-             <div className="border rounded-lg p-2 flex flex-col gap-2">
+            <div className="border rounded-lg p-2 flex flex-col gap-2">
                 <h3 className="font-semibold text-xs mb-1">Master Controls</h3>
                 <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2">
@@ -598,265 +598,53 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   
   const handleMultiTextApply = () => {
     if (isDataEntryDisabled) {
-        showClientSelectionToast();
-        return;
+      showClientSelectionToast();
+      return;
     }
 
-    const lines = multiText.split(/[\n#+]/).filter(line => line.trim() !== '');
+    const lines = multiText.split(/[\n#]/).filter(line => line.trim() !== '');
     const updates: { [key: string]: number } = {};
     let lastEntryString = "";
     let totalEntryAmount = 0;
 
-    const applyUpdates = (updatesToApply: { [key: string]: number }) => {
-        const entryAmount = Object.values(updatesToApply).reduce((sum, val) => sum + val, 0);
-        if (!checkBalance(entryAmount)) return false;
-        
-        saveDataForUndo();
-        const newData = { ...currentData };
-        for (const key in updatesToApply) {
-            newData[key] = String((parseFloat(newData[key]) || 0) + updatesToApply[key]);
-        }
-        if (selectedClientId) {
-            updateClientData(selectedClientId, newData, currentRowTotals);
-        }
-        
-        setUpdatedCells(Object.keys(updatesToApply));
-        setTimeout(() => setUpdatedCells([]), 2000);
-        return true;
-    };
-    
     for (const line of lines) {
-        let processed = false;
-        const trimmedLine = line.trim().toLowerCase();
+        const parts = line.split(/=|ki/);
+        if (parts.length === 2) {
+            const cells = parts[0].split(/[\s,]/).filter(c => c);
+            const amount = parseFloat(parts[1]);
 
-        // New formats
-        const format1 = /^((?:\d+[,+]?)+),\s*(\d+),\s*ki$/; // 51,50,ki+89,20,ki+99+98+15+47+87,10,ki
-        const format2 = /((?:\d+\s+)+)x(\d+)$/; // 23 32 29 42 45 36 37x30
-        const format3 = /(\d+)\s*rs\.?(\d+)/g; // 80. Rs30.    08. Rs50
-        const format4 = /^((?:\d{4}\s*)+)=\s*(\d+)$/; // 1551 1221 1001 =10
-        const format5 = /^((?:\d+\s*)+)=\s*(\d+)$/; // 09 81 72 54 63=30
-        const format6 = /^((?:(?:\d+,?)+\d*)\d)\((\d+)\)$/; // 01,11,55,91,16,61,5128(10)
-        const format7 = /((\d+)\("?(\d+)"?\))/g; // 77"55(40)"24"42"47"74"15"51"02"20(15)
-        const format8 = /(\d+)\s*\*\s*(\d+)/g; // 88.*40
-        const format9 = /(\d+)\s*=\s*(\d+)/g; // 08=20 80=10
-        const format10 = /^(\d+)=(\d+)=(\d+)$/; // Laddi: 235678=30=25
-        const format11 = /^(\d+)=(\d+)ghar\s*\*\s*(\d+)$/; // Laddi: 9412678=49ghar*30
-        const format12 = /^((?:\d+=\s*)+)\((\d+)\)$/; // 22=33=44=55=11=20=02=(250)
-        const format13 = /^(\d+)x(\d+)x(\d+)$/; // Laddi: 1589x12x10
-        const format14 = /^(\d+)\+(\d+)=(\d+)rs$/; // 18+81=50rs
-        const format15 = /^((?:\d+={1,}\s*)+)(\d+)$/; // 90=27===50
-        const format16 = /^(\d{4})x(\d{4,8})x(\d+)x(\d+)$/; // Laddi: 6802x5791x16x30
-        const format17 = /^(\d+)\.a_(\d+)$/i; // HARUP: 666.a__50
-        const format18 = /^(\d+)\s*A\s*=\s*(\d+)$/i; // HARUP: 777 A = 500
-        const format19 = /^(\d+)\s*A\s*\*\s*(\d+)$/i; // HARUP: 777 A *500
-        
-        // This regex handles `51,50,ki` and `99+98+15+47+87,10,ki`
-        const kiFormatMatch = trimmedLine.match(/^((?:\d+[,+]?)+?),\s*(\d+),\s*ki$/);
-        if (kiFormatMatch) {
-            const cells = kiFormatMatch[1].split(/[,+]/).filter(c => c);
-            const amount = parseInt(kiFormatMatch[2], 10);
             if (!isNaN(amount)) {
                 cells.forEach(cell => {
                     const key = cell.padStart(2, '0');
-                    updates[key] = (updates[key] || 0) + amount;
-                });
-                totalEntryAmount += cells.length * amount;
-                processed = true;
-            }
-        }
-        
-        let match;
-        if (!processed) {
-             if (format1.test(trimmedLine)) {
-                const parts = trimmedLine.split('+');
-                parts.forEach(part => {
-                    const subParts = part.split(',');
-                    const amountStr = subParts[subParts.length - 2];
-                    const amount = parseInt(amountStr, 10);
-                    const cells = subParts.slice(0, subParts.length - 2);
-                    cells.forEach(c => updates[c.padStart(2,'0')] = (updates[c.padStart(2,'0')] || 0) + amount);
-                    totalEntryAmount += cells.length * amount;
-                });
-                processed = true;
-            } else if (format2.test(trimmedLine)) {
-                match = trimmedLine.match(format2);
-                if(match){
-                    const cells = match[1].trim().split(/\s+/);
-                    const amount = parseInt(match[2], 10);
-                    cells.forEach(c => updates[c.padStart(2,'0')] = (updates[c.padStart(2,'0')] || 0) + amount);
-                    totalEntryAmount += cells.length * amount;
-                    processed = true;
-                }
-            } else if ((match = format3.exec(trimmedLine)) !== null) {
-                do {
-                    const cell = match[1];
-                    const amount = parseInt(match[2], 10);
-                    updates[cell.padStart(2,'0')] = (updates[cell.padStart(2,'0')] || 0) + amount;
-                    totalEntryAmount += amount;
-                } while ((match = format3.exec(trimmedLine)) !== null);
-                processed = true;
-            } else if (format4.test(trimmedLine)) {
-                match = trimmedLine.match(format4);
-                if(match){
-                    const cells = match[1].trim().split(/\s+/);
-                    const amount = parseInt(match[2], 10);
-                    cells.forEach(c => {
-                       const c1 = c.substring(0,2);
-                       const c2 = c.substring(2,4);
-                       updates[c1.padStart(2,'0')] = (updates[c1.padStart(2,'0')] || 0) + amount;
-                       updates[c2.padStart(2,'0')] = (updates[c2.padStart(2,'0')] || 0) + amount;
-                    });
-                    totalEntryAmount += cells.length * 2 * amount;
-                    processed = true;
-                }
-            } else if (format5.test(trimmedLine)) {
-                 match = trimmedLine.match(format5);
-                if(match){
-                    const cells = match[1].trim().split(/\s+/);
-                    const amount = parseInt(match[2], 10);
-                    cells.forEach(c => updates[c.padStart(2,'0')] = (updates[c.padStart(2,'0')] || 0) + amount);
-                    totalEntryAmount += cells.length * amount;
-                    processed = true;
-                }
-            } else if (format6.test(trimmedLine)) {
-                 match = trimmedLine.match(format6);
-                 if(match){
-                    const cells = match[1].split(/,/);
-                    const amount = parseInt(match[2], 10);
-                    cells.forEach(c => updates[c.padStart(2,'0')] = (updates[c.padStart(2,'0')] || 0) + amount);
-                    totalEntryAmount += cells.length * amount;
-                    processed = true;
-                }
-            } else if ((match = format7.exec(trimmedLine)) !== null) {
-                do {
-                    const cell = match[2];
-                    const amount = parseInt(match[3], 10);
-                    updates[cell.padStart(2,'0')] = (updates[cell.padStart(2,'0')] || 0) + amount;
-                    totalEntryAmount += amount;
-                } while ((match = format7.exec(trimmedLine)) !== null);
-                processed = true;
-            } else if ((match = format8.exec(trimmedLine)) !== null) {
-                do {
-                    const cell = match[1];
-                    const amount = parseInt(match[2], 10);
-                    updates[cell.padStart(2,'0')] = (updates[cell.padStart(2,'0')] || 0) + amount;
-                    totalEntryAmount += amount;
-                } while ((match = format8.exec(trimmedLine)) !== null);
-                processed = true;
-            } else if ((match = format9.exec(trimmedLine)) !== null) {
-                 do {
-                    const cell = match[1];
-                    const amount = parseInt(match[2], 10);
-                    updates[cell.padStart(2,'0')] = (updates[cell.padStart(2,'0')] || 0) + amount;
-                    totalEntryAmount += amount;
-                } while ((match = format9.exec(trimmedLine)) !== null);
-                processed = true;
-            } else if (format10.test(trimmedLine)) {
-                 match = trimmedLine.match(format10);
-                if(match){
-                    setLaddiNum1(match[1]);
-                    setLaddiNum2(match[2]);
-                    setLaddiAmount(match[3]);
-                }
-                processed = true;
-            } else if (format11.test(trimmedLine)) {
-                match = trimmedLine.match(format11);
-                if(match){
-                    setLaddiNum1(match[1]);
-                    setLaddiNum2(match[2]);
-                    setLaddiAmount(match[3]);
-                }
-                processed = true;
-            } else if (format12.test(trimmedLine)) {
-                match = trimmedLine.match(format12);
-                if(match){
-                    const cells = match[1].replace(/=/g, ' ').trim().split(/\s+/);
-                    const amount = parseInt(match[2], 10);
-                    cells.forEach(c => updates[c.padStart(2,'0')] = (updates[c.padStart(2,'0')] || 0) + amount);
-                    totalEntryAmount += cells.length * amount;
-                }
-                processed = true;
-            } else if (format13.test(trimmedLine)) {
-                match = trimmedLine.match(format13);
-                if(match){
-                    setLaddiNum1(match[1]);
-                    setLaddiNum2(match[2]);
-                    setLaddiAmount(match[3]);
-                }
-                processed = true;
-            } else if (format14.test(trimmedLine)) {
-                 match = trimmedLine.match(format14);
-                 if(match){
-                    updates[match[1].padStart(2, '0')] = (updates[match[1].padStart(2, '0')] || 0) + parseInt(match[3], 10);
-                    updates[match[2].padStart(2, '0')] = (updates[match[2].padStart(2, '0')] || 0) + parseInt(match[3], 10);
-                    totalEntryAmount += 2 * parseInt(match[3], 10);
-                 }
-                processed = true;
-            } else if (format15.test(trimmedLine)) {
-                match = trimmedLine.match(format15);
-                if(match){
-                    const cells = match[1].replace(/=/g, ' ').trim().split(/\s+/);
-                    const amount = parseInt(match[2], 10);
-                    cells.forEach(c => updates[c.padStart(2,'0')] = (updates[c.padStart(2,'0')] || 0) + amount);
-                    totalEntryAmount += cells.length * amount;
-                }
-                processed = true;
-            } else if (format16.test(trimmedLine)) {
-                 match = trimmedLine.match(format16);
-                 if(match){
-                    setLaddiNum1(match[1]);
-                    setLaddiNum2(match[2] + match[3]);
-                    setLaddiAmount(match[4]);
-                 }
-                processed = true;
-            } else if (format17.test(trimmedLine)) {
-                match = trimmedLine.match(format17);
-                if(match){
-                    setHarupA(match[1]);
-                    setHarupAmount(match[2]);
-                }
-                processed = true;
-            } else if (format18.test(trimmedLine)) {
-                match = trimmedLine.match(format18);
-                if(match){
-                    setHarupA(match[1]);
-                    setHarupAmount(match[2]);
-                }
-                processed = true;
-            } else if (format19.test(trimmedLine)) {
-                match = trimmedLine.match(format19);
-                if(match){
-                    setHarupA(match[1]);
-                    setHarupAmount(match[2]);
-                }
-                processed = true;
-            } else {
-                // Default: cell=value
-                const parts = line.split(/=|ki/);
-                if (parts.length === 2) {
-                    const cells = parts[0].split(/[\s,]/).filter(c => c);
-                    const amount = parseFloat(parts[1]);
-                    if (!isNaN(amount)) {
-                         cells.forEach(c => {
-                             updates[c.padStart(2, '0')] = (updates[c.padStart(2, '0')] || 0) + amount;
-                         });
-                        totalEntryAmount += cells.length * amount;
-                        processed = true;
+                    if (!isNaN(parseInt(key)) && parseInt(key) >= 0 && parseInt(key) <= 99) {
+                        updates[key] = (updates[key] || 0) + amount;
+                        totalEntryAmount += amount;
                     }
-                }
+                });
+                lastEntryString += line + '\n';
             }
-        }
-        if (processed) {
-            lastEntryString += line + '\n';
         }
     }
     
+    if (!checkBalance(totalEntryAmount)) return;
+    saveDataForUndo();
+
     if (Object.keys(updates).length > 0) {
-        if(applyUpdates(updates)) {
-            props.setLastEntry(lastEntryString);
-            toast({ title: "Sheet Updated", description: `${Object.keys(updates).length} cell(s) have been updated.` });
-            setMultiText("");
+        const newData = { ...currentData };
+        for (const key in updates) {
+            newData[key] = String((parseFloat(newData[key]) || 0) + updates[key]);
         }
+        
+        if (selectedClientId) {
+            updateClientData(selectedClientId, newData, currentRowTotals);
+        }
+
+        setUpdatedCells(Object.keys(updates));
+        setTimeout(() => setUpdatedCells([]), 2000);
+        
+        props.setLastEntry(lastEntryString);
+        toast({ title: "Sheet Updated", description: `${Object.keys(updates).length} cell(s) have been updated.` });
+        setMultiText("");
     } else {
         toast({ title: "No valid data found", description: "Could not parse the input.", variant: "destructive" });
     }
@@ -975,14 +763,11 @@ const handleHarupApply = () => {
         return;
     }
     
-    let entryTotal = (harupADigits.length * 10 * harupAmountValue) + (harupBDigits.length * 10 * harupAmountValue);
-
-    if (!checkBalance(entryTotal)) return;
-    saveDataForUndo();
-
+    let entryTotal = 0;
     const updates: { [key: string]: number } = {};
 
     harupADigits.forEach(digitA => {
+        entryTotal += 10 * harupAmountValue;
         for (let i = 0; i < 10; i++) {
             const key = parseInt(`${digitA}${i}`).toString().padStart(2, '0');
             updates[key] = (updates[key] || 0) + harupAmountValue;
@@ -990,11 +775,16 @@ const handleHarupApply = () => {
     });
     
     harupBDigits.forEach(digitB => {
+        entryTotal += 10 * harupAmountValue;
         for (let i = 0; i < 10; i++) {
             const key = parseInt(`${i}${digitB}`).toString().padStart(2, '0');
             updates[key] = (updates[key] || 0) + harupAmountValue;
         }
     });
+
+    if (!checkBalance(entryTotal)) return;
+    saveDataForUndo();
+
 
     let lastEntryString = "";
     if (harupADigits.length > 0) lastEntryString += `A: ${harupA}=${harupAmount}\n`;
@@ -1466,5 +1256,7 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
 
     
