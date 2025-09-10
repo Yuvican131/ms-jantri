@@ -225,24 +225,24 @@ const MasterSheetViewer = ({
                 </div>
             </div>
         </div>
-        <div className="flex flex-col gap-4 w-full lg:w-[320px] xl:w-[360px]">
+        <div className="flex flex-col gap-2 w-full lg:w-[320px] xl:w-[360px] flex-shrink-0">
             <div className="border rounded-lg p-2 flex flex-col gap-2">
                 <h3 className="font-semibold text-xs mb-1">Master Controls</h3>
                 <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2">
                         <Label htmlFor="master-cutting" className="text-sm text-card-foreground w-16">Cutting</Label>
-                        <Input id="master-cutting" placeholder="Value" className="text-sm text-center flex-grow" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
-                        <Button onClick={handleApplyCutting} size="sm">Apply</Button>
+                        <Input id="master-cutting" placeholder="Value" className="text-sm h-8 text-center flex-grow" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
+                        <Button onClick={handleApplyCutting} size="sm" className="h-8">Apply</Button>
                     </div>
                     <div className="flex items-center gap-2">
                         <Label htmlFor="master-less" className="text-sm text-card-foreground w-16">Less (%)</Label>
-                        <Input id="master-less" placeholder="Value" className="text-sm text-center flex-grow" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
-                        <Button onClick={handleApplyLess} size="sm">Apply</Button>
+                        <Input id="master-less" placeholder="Value" className="text-sm h-8 text-center flex-grow" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
+                        <Button onClick={handleApplyLess} size="sm" className="h-8">Apply</Button>
                     </div>
                     <div className="flex items-center gap-2">
                         <Label htmlFor="master-dabba" className="text-sm text-card-foreground w-16">Dabba</Label>
-                        <Input id="master-dabba" placeholder="Value" className="text-sm text-center flex-grow" value={dabbaValue} onChange={(e) => setDabbaValue(e.target.value)} />
-                        <Button size="sm">Apply</Button>
+                        <Input id="master-dabba" placeholder="Value" className="text-sm h-8 text-center flex-grow" value={dabbaValue} onChange={(e) => setDabbaValue(e.target.value)} />
+                        <Button size="sm" className="h-8">Apply</Button>
                     </div>
                 </div>
             </div>
@@ -250,7 +250,7 @@ const MasterSheetViewer = ({
                 <CardHeader className="p-2">
                     <CardTitle className="text-sm">Client Entries</CardTitle>
                 </CardHeader>
-                <CardContent className="p-2 h-full">
+                <CardContent className="p-2 h-[calc(100%-40px)]">
                     <ScrollArea className="h-full">
                         <div className="space-y-1 pr-2">
                             {savedSheetLog.length > 0 ? savedSheetLog.map((log, index) => (
@@ -1049,7 +1049,7 @@ const handleHarupApply = () => {
             </div>
 
             <div className="flex flex-col gap-2 w-full lg:w-[320px] xl:w-[360px]">
-                <div className="border rounded-lg p-2 flex flex-col gap-2 mt-auto">
+                <div className="border rounded-lg p-2 flex flex-col gap-2">
                     <div className="flex items-center gap-2">
                         <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
                             <SelectTrigger className="flex-grow h-8 text-xs">
@@ -1077,7 +1077,7 @@ const handleHarupApply = () => {
                     </div>
                 </div>
                 <div className="border rounded-lg p-2 flex flex-col gap-2">
-                    <h3 className="font-semibold text-xs">Multi-Text</h3>
+                    <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
                     <Textarea
                         ref={multiTextRef}
                         placeholder="e.g. 1,2,3=50 or 10=20#45=50"
@@ -1169,7 +1169,7 @@ const handleHarupApply = () => {
                       <Button onClick={handleHarupApply} disabled={selectedClientId === null} size="sm" className="h-8 text-xs">Apply</Button>
                   </div>
                 </div>
-                <div className="border rounded-lg p-2 flex flex-col gap-2">
+                <div className="border rounded-lg p-2 flex flex-col gap-2 mt-auto">
                     <Button onClick={() => setIsMasterSheetDialogOpen(true)} variant="outline" className="w-full">
                         <FileSpreadsheet className="mr-2 h-4 w-4" />
                         View Master Sheet
@@ -1256,6 +1256,8 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
 
     
 
