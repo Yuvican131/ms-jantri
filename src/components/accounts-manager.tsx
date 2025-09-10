@@ -131,7 +131,7 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
                       <Tabs defaultValue={draws[0]} className="w-full">
                         <TabsList className="grid w-full grid-cols-6 h-auto">
                           {draws.map(draw => (
-                            <TabsTrigger key={draw} value={draw} className="text-xs px-1" disabled={!account.draws || !account.draws[draw] || account.draws[draw].totalAmount === 0}>
+                            <TabsTrigger key={draw} value={draw} className="text-xs px-1">
                               {draw}
                             </TabsTrigger>
                           ))}
