@@ -910,17 +910,23 @@ const handleHarupApply = () => {
 
   const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (selectedClientId === null) {
-      showClientSelectionToast();
-      return;
+        showClientSelectionToast();
+        return;
     }
     const value = e.target.value;
     const parts = value.split('=');
-    const numbersPart = parts[0];
+    let numbersPart = parts[0];
     const amountPart = parts.length > 1 ? `=${parts.slice(1).join('=')}` : '';
 
-    const numbersOnly = numbersPart.replace(/[^0-9]/g, '');
+    // Remove non-numeric characters except for comma
+    numbersPart = numbersPart.replace(/[^0-9,]/g, '');
+
+    // Remove existing commas to re-format
+    const numbersOnly = numbersPart.replace(/,/g, '');
+
+    // Add comma after every 2 digits
     const formattedNumbers = numbersOnly.match(/.{1,2}/g)?.join(',') || '';
-    
+
     setMultiText(formattedNumbers + amountPart);
   };
 
