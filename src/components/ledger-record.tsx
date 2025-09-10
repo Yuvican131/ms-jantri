@@ -2,7 +2,7 @@
 "use client"
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -48,12 +48,17 @@ export default function LedgerRecord({ clients, accounts, savedSheetLog, draws }
           const passingAmount = clientAccount?.draws?.[drawName]?.passingAmount || 0;
           const passingMultiplier = parseFloat(client.pair) || 80;
           const totalWon = passingAmount * passingMultiplier;
-          const profitOrLoss = totalWon - totalInvested;
+          
+          const clientCommissionPercent = parseFloat(client.comm) / 100;
+          const commission = totalInvested * clientCommissionPercent;
+          const netInvestment = totalInvested - commission;
+
+          const profitOrLoss = totalWon - netInvestment;
           
           data.push({
             clientName: client.name,
             drawName,
-            totalInvested,
+            totalInvested: netInvestment, // Use net investment for reporting
             totalWon,
             profitOrLoss,
           });
@@ -72,6 +77,18 @@ export default function LedgerRecord({ clients, accounts, savedSheetLog, draws }
       return clientMatch && drawMatch;
     });
   }, [reportData, selectedClient, selectedDraw]);
+
+  const { totalInvested, totalProfitOrLoss } = useMemo(() => {
+    return filteredData.reduce(
+      (acc, row) => {
+        acc.totalInvested += row.totalInvested;
+        acc.totalProfitOrLoss += row.profitOrLoss;
+        return acc;
+      },
+      { totalInvested: 0, totalProfitOrLoss: 0 }
+    );
+  }, [filteredData]);
+
 
   return (
     <Card>
@@ -137,7 +154,7 @@ export default function LedgerRecord({ clients, accounts, savedSheetLog, draws }
               <TableRow>
                 <TableHead>Client Name</TableHead>
                 <TableHead>Draw Name</TableHead>
-                <TableHead className="text-right">Total Invested</TableHead>
+                <TableHead className="text-right">Net Invested</TableHead>
                 <TableHead className="text-right">Profit/Loss</TableHead>
               </TableRow>
             </TableHeader>
@@ -153,12 +170,21 @@ export default function LedgerRecord({ clients, accounts, savedSheetLog, draws }
                 </TableRow>
               )) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                     No records found for the selected filters.
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
+             <TableFooter>
+              <TableRow className="bg-muted/50 hover:bg-muted">
+                <TableCell colSpan={2} className="font-bold text-lg">Overall Performance</TableCell>
+                <TableCell className="text-right font-bold text-lg">₹{formatNumber(totalInvested)}</TableCell>
+                <TableCell className={`text-right font-bold text-lg ${totalProfitOrLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {totalProfitOrLoss >= 0 ? `+₹${formatNumber(totalProfitOrLoss)}` : `-₹${formatNumber(Math.abs(totalProfitOrLoss))}`}
+                </TableCell>
+              </TableRow>
+            </TableFooter>
           </Table>
         </div>
       </CardContent>
