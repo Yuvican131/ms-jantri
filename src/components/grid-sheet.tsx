@@ -188,7 +188,7 @@ const MasterSheetViewer = ({
   const masterSheetGrandTotal = calculateGrandTotal(masterSheetData);
   
  return (
-    <div className="h-full flex flex-col gap-4 bg-background">
+    <div className="h-full flex flex-col gap-4 bg-background p-4">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 flex-grow overflow-hidden">
         <div className="flex flex-col min-w-0 h-full">
             <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${GRID_ROWS + 1}, minmax(0, 1fr))`}}>
@@ -225,9 +225,9 @@ const MasterSheetViewer = ({
                 </div>
             </div>
         </div>
-        <div className="flex flex-col gap-2 w-full lg:w-[320px] xl:w-[360px] flex-shrink-0">
-          <div className="border rounded-lg p-2 flex flex-col gap-2">
-              <h3 className="font-semibold text-xs mb-1">Master Controls</h3>
+        <div className="flex flex-col gap-4 w-full lg:w-[320px] xl:w-[360px] flex-shrink-0">
+          <div className="border rounded-lg p-3 flex flex-col gap-3">
+              <h3 className="font-semibold text-sm">Master Controls</h3>
               <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                       <Label htmlFor="master-cutting" className="text-sm text-card-foreground w-16">Cutting</Label>
@@ -247,12 +247,12 @@ const MasterSheetViewer = ({
               </div>
           </div>
           <Card className="flex-grow bg-card min-h-0">
-              <CardHeader className="p-2">
+              <CardHeader className="p-3">
                   <CardTitle className="text-sm">Client Entries</CardTitle>
               </CardHeader>
-              <CardContent className="p-2 h-[calc(100%-40px)]">
+              <CardContent className="p-3 h-[calc(100%-48px)]">
                   <ScrollArea className="h-full">
-                      <div className="space-y-1 pr-2">
+                      <div className="space-y-2 pr-2">
                           {savedSheetLog.length > 0 ? savedSheetLog.map((log, index) => (
                               <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted text-sm">
                                   <div className="flex items-center gap-2">
@@ -745,78 +745,77 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
 const handleHarupApply = () => {
     if (selectedClientId === null) {
-        showClientSelectionToast();
-        return;
+      showClientSelectionToast();
+      return;
     }
-
+  
     const harupAmountValue = parseFloat(harupAmount);
     if (!harupAmount || isNaN(harupAmountValue)) {
-        toast({ title: "HARUP Error", description: "Please provide a valid amount.", variant: "destructive" });
-        return;
+      toast({ title: "HARUP Error", description: "Please provide a valid amount.", variant: "destructive" });
+      return;
     }
-
+  
     const harupADigits = [...new Set(harupA.replace(/[^0-9]/g, '').split(''))];
     const harupBDigits = [...new Set(harupB.replace(/[^0-9]/g, '').split(''))];
-
+  
     if (harupADigits.length === 0 && harupBDigits.length === 0) {
-        toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
-        return;
+      toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
+      return;
     }
-
-    const perCellAmount = harupAmountValue / 10;
+  
     const entryTotal = (harupADigits.length + harupBDigits.length) * harupAmountValue;
-
     if (!checkBalance(entryTotal)) return;
     saveDataForUndo();
-
+  
+    const perCellAmount = harupAmountValue / 10;
     const updates: { [key: string]: number } = {};
-
+  
     harupADigits.forEach(digitA => {
-        for (let i = 0; i < 10; i++) {
-            const key = parseInt(`${digitA}${i}`).toString().padStart(2, '0');
-            updates[key] = (updates[key] || 0) + perCellAmount;
-        }
+      for (let i = 0; i < 10; i++) {
+        const key = parseInt(`${digitA}${i}`).toString().padStart(2, '0');
+        updates[key] = (updates[key] || 0) + perCellAmount;
+      }
     });
-
+  
     harupBDigits.forEach(digitB => {
-        for (let i = 0; i < 10; i++) {
-            const key = parseInt(`${i}${digitB}`).toString().padStart(2, '0');
-            updates[key] = (updates[key] || 0) + perCellAmount;
-        }
+      for (let i = 0; i < 10; i++) {
+        const key = parseInt(`${i}${digitB}`).toString().padStart(2, '0');
+        updates[key] = (updates[key] || 0) + perCellAmount;
+      }
     });
-
+  
     let lastEntryString = "";
     if (harupADigits.length > 0) lastEntryString += `A: ${harupA}=${harupAmount}\n`;
     if (harupBDigits.length > 0) lastEntryString += `B: ${harupB}=${harupAmount}\n`;
-
+  
     const newData = { ...currentData };
     const updatedKeys = Object.keys(updates);
-
+  
     if (updatedKeys.length > 0) {
-        updatedKeys.forEach(key => {
-            const currentValue = parseFloat(newData[key]) || 0;
-            const addedValue = updates[key] || 0;
-            newData[key] = String(currentValue + addedValue);
-        });
-
-        if (selectedClientId) {
-            updateClientData(selectedClientId, newData, currentRowTotals);
-        } else {
-            setSheets(prevSheets => prevSheets.map(sheet =>
-                sheet.id === activeSheetId ? { ...sheet, data: newData } : sheet
-            ));
-        }
-
-        setUpdatedCells(updatedKeys);
-        props.setLastEntry(lastEntryString.trim());
-        setTimeout(() => setUpdatedCells([]), 2000);
-        toast({ title: "HARUP Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
-
-        setHarupA('');
-        setHarupB('');
-        setHarupAmount('');
+      updatedKeys.forEach(key => {
+        const currentValue = parseFloat(newData[key]) || 0;
+        const addedValue = updates[key] || 0;
+        newData[key] = String(currentValue + addedValue);
+      });
+  
+      if (selectedClientId) {
+        updateClientData(selectedClientId, newData, currentRowTotals);
+      } else {
+        setSheets(prevSheets => prevSheets.map(sheet =>
+          sheet.id === activeSheetId ? { ...sheet, data: newData } : sheet
+        ));
+      }
+  
+      setUpdatedCells(updatedKeys);
+      props.setLastEntry(lastEntryString.trim());
+      setTimeout(() => setUpdatedCells([]), 2000);
+      toast({ title: "HARUP Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
+  
+      setHarupA('');
+      setHarupB('');
+      setHarupAmount('');
     } else {
-        toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
+      toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
     }
 };
 
@@ -914,7 +913,16 @@ const handleHarupApply = () => {
       return;
     }
     const value = e.target.value;
-    setMultiText(value);
+    const parts = value.split('=');
+    const numbersPart = parts[0];
+    const amountPart = parts.length > 1 ? `=${parts.slice(1).join('=')}` : '';
+
+    const formattedNumbers = numbersPart
+        .replace(/[^0-9]/g, '')
+        .replace(/(.{2})/g, '$1,')
+        .replace(/,$/, '');
+
+    setMultiText(`${formattedNumbers}${amountPart}`);
   };
   
 
@@ -1080,7 +1088,7 @@ const handleHarupApply = () => {
                     <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
                     <Textarea
                         ref={multiTextRef}
-                        placeholder="e.g. 1,2,3=50 or 10=20#45=50"
+                        placeholder="e.g. 11,22,33=50"
                         rows={1}
                         value={multiText}
                         onChange={handleMultiTextChange}
