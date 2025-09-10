@@ -189,93 +189,93 @@ const MasterSheetViewer = ({
   
   return (
     <div className="h-full flex flex-col p-4 pt-0 gap-4 bg-background">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 flex-grow overflow-hidden">
-            <div className="flex flex-col min-w-0 h-full">
-                <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${GRID_ROWS + 1}, minmax(0, 1fr))`}}>
-                    {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
-                        <React.Fragment key={`master-row-${rowIndex}`}>
-                            {Array.from({ length: GRID_COLS }, (_, colIndex) => {
-                                const key = String(rowIndex * GRID_COLS + colIndex).padStart(2, '0');
-                                return (
-                                    <div key={`master-cell-${key}`} className="relative flex items-center border border-white rounded-sm">
-                                        <div className="absolute top-1 left-1.5 text-xs select-none pointer-events-none z-10 text-white">{key}</div>
-                                        <Input
-                                            type="text"
-                                            readOnly
-                                            style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)'}}
-                                            className="p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold text-white"
-                                            value={masterSheetData[key] || ''}
-                                            aria-label={`Cell ${key}`}
-                                        />
-                                    </div>
-                                );
-                            })}
-                            <div className="flex items-center justify-center font-medium border border-white rounded-sm bg-transparent text-white">
-                                <Input readOnly value={masterSheetRowTotals[rowIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-white" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
-                            </div>
-                        </React.Fragment>
-                    ))}
-                    {Array.from({ length: GRID_COLS }, (_, colIndex) => (
-                        <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border border-white rounded-sm bg-transparent text-white">
-                            <Input readOnly value={masterSheetColumnTotals[colIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-white" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 flex-grow overflow-hidden">
+        <div className="flex flex-col min-w-0 h-full">
+            <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${GRID_ROWS + 1}, minmax(0, 1fr))`}}>
+                {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
+                    <React.Fragment key={`master-row-${rowIndex}`}>
+                        {Array.from({ length: GRID_COLS }, (_, colIndex) => {
+                            const key = String(rowIndex * GRID_COLS + colIndex).padStart(2, '0');
+                            return (
+                                <div key={`master-cell-${key}`} className="relative flex items-center border border-white rounded-sm">
+                                    <div className="absolute top-1 left-1.5 text-xs select-none pointer-events-none z-10 text-white">{key}</div>
+                                    <Input
+                                        type="text"
+                                        readOnly
+                                        style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)'}}
+                                        className="p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold text-white"
+                                        value={masterSheetData[key] || ''}
+                                        aria-label={`Cell ${key}`}
+                                    />
+                                </div>
+                            );
+                        })}
+                        <div className="flex items-center justify-center font-medium border border-white rounded-sm bg-transparent text-white">
+                            <Input readOnly value={masterSheetRowTotals[rowIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-white" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
                         </div>
-                    ))}
-                    <div className="flex items-center justify-center font-bold text-lg border border-white rounded-sm text-white">
-                        {masterSheetGrandTotal.toFixed(2)}
+                    </React.Fragment>
+                ))}
+                {Array.from({ length: GRID_COLS }, (_, colIndex) => (
+                    <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border border-white rounded-sm bg-transparent text-white">
+                        <Input readOnly value={masterSheetColumnTotals[colIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-white" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
                     </div>
+                ))}
+                <div className="flex items-center justify-center font-bold text-lg border border-white rounded-sm text-white">
+                    {masterSheetGrandTotal.toFixed(2)}
                 </div>
-            </div>
-            <div className="flex flex-col gap-4 w-full lg:w-[320px] xl:w-[360px]">
-                 <div className="border rounded-lg p-2 flex flex-col gap-2">
-                    <h3 className="font-semibold text-xs mb-1">Master Controls</h3>
-                    <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-2">
-                            <Label htmlFor="master-cutting" className="text-sm text-card-foreground w-16">Cutting</Label>
-                            <Input id="master-cutting" placeholder="Value" className="text-sm text-center flex-grow" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
-                            <Button onClick={handleApplyCutting} size="sm">Apply</Button>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Label htmlFor="master-less" className="text-sm text-card-foreground w-16">Less (%)</Label>
-                            <Input id="master-less" placeholder="Value" className="text-sm text-center flex-grow" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
-                            <Button onClick={handleApplyLess} size="sm">Apply</Button>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Label htmlFor="master-dabba" className="text-sm text-card-foreground w-16">Dabba</Label>
-                            <Input id="master-dabba" placeholder="Value" className="text-sm text-center flex-grow" value={dabbaValue} onChange={(e) => setDabbaValue(e.target.value)} />
-                            <Button size="sm">Apply</Button>
-                        </div>
-                    </div>
-                </div>
-                <Card className="flex-grow bg-card min-h-0">
-                    <CardHeader className="p-2">
-                        <CardTitle className="text-sm">Client Entries</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-2 h-full">
-                        <ScrollArea className="h-full">
-                            <div className="space-y-1 pr-2">
-                                {savedSheetLog.length > 0 ? savedSheetLog.map((log, index) => (
-                                    <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted text-sm">
-                                        <div className="flex items-center gap-2">
-                                            <Checkbox
-                                                id={`log-${draw}-${index}`}
-                                                checked={selectedLogIndices.includes(index)}
-                                                onCheckedChange={() => handleLogSelectionChange(index)}
-                                                className="border-primary"
-                                            />
-                                            <label htmlFor={`log-${draw}-${index}`} className="cursor-pointer text-muted-foreground">{index + 1}. {log.clientName}</label>
-                                        </div>
-                                        <span className="font-mono font-semibold text-foreground">₹{log.gameTotal.toFixed(2)}</span>
-                                    </div>
-                                )) : (
-                                    <div className="text-center text-muted-foreground italic h-full flex items-center justify-center">No logs for this draw.</div>
-                                )}
-                            </div>
-                        </ScrollArea>
-                    </CardContent>
-                </Card>
             </div>
         </div>
+        <div className="flex flex-col gap-4 w-full lg:w-[320px] xl:w-[360px]">
+             <div className="border rounded-lg p-2 flex flex-col gap-2">
+                <h3 className="font-semibold text-xs mb-1">Master Controls</h3>
+                <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                        <Label htmlFor="master-cutting" className="text-sm text-card-foreground w-16">Cutting</Label>
+                        <Input id="master-cutting" placeholder="Value" className="text-sm text-center flex-grow" value={cuttingValue} onChange={(e) => setCuttingValue(e.target.value)} />
+                        <Button onClick={handleApplyCutting} size="sm">Apply</Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Label htmlFor="master-less" className="text-sm text-card-foreground w-16">Less (%)</Label>
+                        <Input id="master-less" placeholder="Value" className="text-sm text-center flex-grow" value={lessValue} onChange={(e) => setLessValue(e.target.value)} />
+                        <Button onClick={handleApplyLess} size="sm">Apply</Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Label htmlFor="master-dabba" className="text-sm text-card-foreground w-16">Dabba</Label>
+                        <Input id="master-dabba" placeholder="Value" className="text-sm text-center flex-grow" value={dabbaValue} onChange={(e) => setDabbaValue(e.target.value)} />
+                        <Button size="sm">Apply</Button>
+                    </div>
+                </div>
+            </div>
+            <Card className="flex-grow bg-card min-h-0">
+                <CardHeader className="p-2">
+                    <CardTitle className="text-sm">Client Entries</CardTitle>
+                </CardHeader>
+                <CardContent className="p-2 h-full">
+                    <ScrollArea className="h-full">
+                        <div className="space-y-1 pr-2">
+                            {savedSheetLog.length > 0 ? savedSheetLog.map((log, index) => (
+                                <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted text-sm">
+                                    <div className="flex items-center gap-2">
+                                        <Checkbox
+                                            id={`log-${draw}-${index}`}
+                                            checked={selectedLogIndices.includes(index)}
+                                            onCheckedChange={() => handleLogSelectionChange(index)}
+                                            className="border-primary"
+                                        />
+                                        <label htmlFor={`log-${draw}-${index}`} className="cursor-pointer text-muted-foreground">{index + 1}. {log.clientName}</label>
+                                    </div>
+                                    <span className="font-mono font-semibold text-foreground">₹{log.gameTotal.toFixed(2)}</span>
+                                </div>
+                            )) : (
+                                <div className="text-center text-muted-foreground italic h-full flex items-center justify-center">No logs for this draw.</div>
+                            )}
+                        </div>
+                    </ScrollArea>
+                </CardContent>
+            </Card>
+        </div>
     </div>
+</div>
 );
 }
 
@@ -595,105 +595,273 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     }
     return true;
   };
-
+  
   const handleMultiTextApply = () => {
-    if (selectedClientId === null) {
-      showClientSelectionToast();
-      return;
+    if (isDataEntryDisabled) {
+        showClientSelectionToast();
+        return;
     }
 
-    const lines = multiText.replace(/#/g, '\n').split('\n').filter(line => line.trim() !== '');
+    const lines = multiText.split(/[\n#+]/).filter(line => line.trim() !== '');
+    const updates: { [key: string]: number } = {};
     let lastEntryString = "";
-    let entryTotal = 0;
+    let totalEntryAmount = 0;
 
-    const evaluateExpression = (expression: string): string => {
-        try {
-            if (/^[0-9+\-*/.() ]+$/.test(expression)) {
-                // eslint-disable-next-line no-eval
-                const result = eval(expression);
-                return String(result);
-            }
-            return expression;
-        } catch (e) {
-            return expression;
-        }
-    };
-
-    const formattedLines: string[] = [];
-    const updates: { [key: string]: string } = {};
-
-    lines.forEach(line => {
-        line = line.trim();
-        if (!line) return;
-
-        const parts = line.split('=');
-        if (parts.length !== 2) return;
-
-        const valueStr = evaluateExpression(parts[1].trim());
-        const newValue = parseFloat(valueStr);
-        if (isNaN(newValue)) return;
-
-        let cellNumbersStr = parts[0].trim();
+    const applyUpdates = (updatesToApply: { [key: string]: number }) => {
+        const entryAmount = Object.values(updatesToApply).reduce((sum, val) => sum + val, 0);
+        if (!checkBalance(entryAmount)) return false;
         
-        const cellNumbers = cellNumbersStr.split(/[\s,]+/).filter(s => s);
-        entryTotal += newValue * cellNumbers.length;
-
-        const formattedCells = cellNumbers
-          .map(s => {
-            const num = parseInt(s, 10);
-            if (num >= 0 && num <= 99) return String(num).padStart(2, '0');
-            return null;
-          })
-          .filter((s): s is string => s !== null)
-          .join(',');
-
-        formattedLines.push(`${formattedCells}=${valueStr}`);
-
-        cellNumbers.forEach(numStr => {
-            let cellNum = parseInt(numStr, 10);
-            
-            if (isNaN(cellNum) || cellNum < 0 || cellNum > 99) return;
-            const key = (cellNum).toString().padStart(2, '0');
-            
-            const currentValueInUpdate = parseFloat(updates[key]) || 0;
-            updates[key] = String(currentValueInUpdate + newValue);
-        });
-    });
-
-    if (!checkBalance(entryTotal)) return;
-    saveDataForUndo();
-
-    if (Object.keys(updates).length > 0) {
+        saveDataForUndo();
         const newData = { ...currentData };
-        const updatedKeys = Object.keys(updates);
-        
-        updatedKeys.forEach(key => {
-            const currentValue = parseFloat(newData[key]) || 0;
-            const addedValue = parseFloat(updates[key]) || 0;
-            newData[key] = String(currentValue + addedValue);
-        });
-        
-        lastEntryString = formattedLines.join('\n');
-        
+        for (const key in updatesToApply) {
+            newData[key] = String((parseFloat(newData[key]) || 0) + updatesToApply[key]);
+        }
         if (selectedClientId) {
             updateClientData(selectedClientId, newData, currentRowTotals);
-        } else {
-            setSheets(prevSheets => prevSheets.map(sheet =>
-                sheet.id === activeSheetId ? { ...sheet, data: newData } : sheet
-            ));
         }
-
-        setUpdatedCells(updatedKeys);
-        props.setLastEntry(lastEntryString);
+        
+        setUpdatedCells(Object.keys(updatesToApply));
         setTimeout(() => setUpdatedCells([]), 2000);
-        toast({ title: "Sheet Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
+        return true;
+    };
+    
+    for (const line of lines) {
+        let processed = false;
+        const trimmedLine = line.trim().toLowerCase();
 
-        setMultiText("");
+        // New formats
+        const format1 = /^((?:\d+[,+]?)+),\s*(\d+),\s*ki$/; // 51,50,ki+89,20,ki+99+98+15+47+87,10,ki
+        const format2 = /((?:\d+\s+)+)x(\d+)$/; // 23 32 29 42 45 36 37x30
+        const format3 = /(\d+)\s*rs\.?(\d+)/g; // 80. Rs30.    08. Rs50
+        const format4 = /^((?:\d{4}\s*)+)=\s*(\d+)$/; // 1551 1221 1001 =10
+        const format5 = /^((?:\d+\s*)+)=\s*(\d+)$/; // 09 81 72 54 63=30
+        const format6 = /^((?:(?:\d+,?)+\d*)\d)\((\d+)\)$/; // 01,11,55,91,16,61,5128(10)
+        const format7 = /((\d+)\("?(\d+)"?\))/g; // 77"55(40)"24"42"47"74"15"51"02"20(15)
+        const format8 = /(\d+)\s*\*\s*(\d+)/g; // 88.*40
+        const format9 = /(\d+)\s*=\s*(\d+)/g; // 08=20 80=10
+        const format10 = /^(\d+)=(\d+)=(\d+)$/; // Laddi: 235678=30=25
+        const format11 = /^(\d+)=(\d+)ghar\s*\*\s*(\d+)$/; // Laddi: 9412678=49ghar*30
+        const format12 = /^((?:\d+=\s*)+)\((\d+)\)$/; // 22=33=44=55=11=20=02=(250)
+        const format13 = /^(\d+)x(\d+)x(\d+)$/; // Laddi: 1589x12x10
+        const format14 = /^(\d+)\+(\d+)=(\d+)rs$/; // 18+81=50rs
+        const format15 = /^((?:\d+={1,}\s*)+)(\d+)$/; // 90=27===50
+        const format16 = /^(\d{4})x(\d{4,8})x(\d+)x(\d+)$/; // Laddi: 6802x5791x16x30
+        const format17 = /^(\d+)\.a_(\d+)$/i; // HARUP: 666.a__50
+        const format18 = /^(\d+)\s*A\s*=\s*(\d+)$/i; // HARUP: 777 A = 500
+        const format19 = /^(\d+)\s*A\s*\*\s*(\d+)$/i; // HARUP: 777 A *500
+        
+        // This regex handles `51,50,ki` and `99+98+15+47+87,10,ki`
+        const kiFormatMatch = trimmedLine.match(/^((?:\d+[,+]?)+?),\s*(\d+),\s*ki$/);
+        if (kiFormatMatch) {
+            const cells = kiFormatMatch[1].split(/[,+]/).filter(c => c);
+            const amount = parseInt(kiFormatMatch[2], 10);
+            if (!isNaN(amount)) {
+                cells.forEach(cell => {
+                    const key = cell.padStart(2, '0');
+                    updates[key] = (updates[key] || 0) + amount;
+                });
+                totalEntryAmount += cells.length * amount;
+                processed = true;
+            }
+        }
+        
+        let match;
+        if (!processed) {
+             if (format1.test(trimmedLine)) {
+                const parts = trimmedLine.split('+');
+                parts.forEach(part => {
+                    const subParts = part.split(',');
+                    const amountStr = subParts[subParts.length - 2];
+                    const amount = parseInt(amountStr, 10);
+                    const cells = subParts.slice(0, subParts.length - 2);
+                    cells.forEach(c => updates[c.padStart(2,'0')] = (updates[c.padStart(2,'0')] || 0) + amount);
+                    totalEntryAmount += cells.length * amount;
+                });
+                processed = true;
+            } else if (format2.test(trimmedLine)) {
+                match = trimmedLine.match(format2);
+                if(match){
+                    const cells = match[1].trim().split(/\s+/);
+                    const amount = parseInt(match[2], 10);
+                    cells.forEach(c => updates[c.padStart(2,'0')] = (updates[c.padStart(2,'0')] || 0) + amount);
+                    totalEntryAmount += cells.length * amount;
+                    processed = true;
+                }
+            } else if ((match = format3.exec(trimmedLine)) !== null) {
+                do {
+                    const cell = match[1];
+                    const amount = parseInt(match[2], 10);
+                    updates[cell.padStart(2,'0')] = (updates[cell.padStart(2,'0')] || 0) + amount;
+                    totalEntryAmount += amount;
+                } while ((match = format3.exec(trimmedLine)) !== null);
+                processed = true;
+            } else if (format4.test(trimmedLine)) {
+                match = trimmedLine.match(format4);
+                if(match){
+                    const cells = match[1].trim().split(/\s+/);
+                    const amount = parseInt(match[2], 10);
+                    cells.forEach(c => {
+                       const c1 = c.substring(0,2);
+                       const c2 = c.substring(2,4);
+                       updates[c1.padStart(2,'0')] = (updates[c1.padStart(2,'0')] || 0) + amount;
+                       updates[c2.padStart(2,'0')] = (updates[c2.padStart(2,'0')] || 0) + amount;
+                    });
+                    totalEntryAmount += cells.length * 2 * amount;
+                    processed = true;
+                }
+            } else if (format5.test(trimmedLine)) {
+                 match = trimmedLine.match(format5);
+                if(match){
+                    const cells = match[1].trim().split(/\s+/);
+                    const amount = parseInt(match[2], 10);
+                    cells.forEach(c => updates[c.padStart(2,'0')] = (updates[c.padStart(2,'0')] || 0) + amount);
+                    totalEntryAmount += cells.length * amount;
+                    processed = true;
+                }
+            } else if (format6.test(trimmedLine)) {
+                 match = trimmedLine.match(format6);
+                 if(match){
+                    const cells = match[1].split(/,/);
+                    const amount = parseInt(match[2], 10);
+                    cells.forEach(c => updates[c.padStart(2,'0')] = (updates[c.padStart(2,'0')] || 0) + amount);
+                    totalEntryAmount += cells.length * amount;
+                    processed = true;
+                }
+            } else if ((match = format7.exec(trimmedLine)) !== null) {
+                do {
+                    const cell = match[2];
+                    const amount = parseInt(match[3], 10);
+                    updates[cell.padStart(2,'0')] = (updates[cell.padStart(2,'0')] || 0) + amount;
+                    totalEntryAmount += amount;
+                } while ((match = format7.exec(trimmedLine)) !== null);
+                processed = true;
+            } else if ((match = format8.exec(trimmedLine)) !== null) {
+                do {
+                    const cell = match[1];
+                    const amount = parseInt(match[2], 10);
+                    updates[cell.padStart(2,'0')] = (updates[cell.padStart(2,'0')] || 0) + amount;
+                    totalEntryAmount += amount;
+                } while ((match = format8.exec(trimmedLine)) !== null);
+                processed = true;
+            } else if ((match = format9.exec(trimmedLine)) !== null) {
+                 do {
+                    const cell = match[1];
+                    const amount = parseInt(match[2], 10);
+                    updates[cell.padStart(2,'0')] = (updates[cell.padStart(2,'0')] || 0) + amount;
+                    totalEntryAmount += amount;
+                } while ((match = format9.exec(trimmedLine)) !== null);
+                processed = true;
+            } else if (format10.test(trimmedLine)) {
+                 match = trimmedLine.match(format10);
+                if(match){
+                    setLaddiNum1(match[1]);
+                    setLaddiNum2(match[2]);
+                    setLaddiAmount(match[3]);
+                }
+                processed = true;
+            } else if (format11.test(trimmedLine)) {
+                match = trimmedLine.match(format11);
+                if(match){
+                    setLaddiNum1(match[1]);
+                    setLaddiNum2(match[2]);
+                    setLaddiAmount(match[3]);
+                }
+                processed = true;
+            } else if (format12.test(trimmedLine)) {
+                match = trimmedLine.match(format12);
+                if(match){
+                    const cells = match[1].replace(/=/g, ' ').trim().split(/\s+/);
+                    const amount = parseInt(match[2], 10);
+                    cells.forEach(c => updates[c.padStart(2,'0')] = (updates[c.padStart(2,'0')] || 0) + amount);
+                    totalEntryAmount += cells.length * amount;
+                }
+                processed = true;
+            } else if (format13.test(trimmedLine)) {
+                match = trimmedLine.match(format13);
+                if(match){
+                    setLaddiNum1(match[1]);
+                    setLaddiNum2(match[2]);
+                    setLaddiAmount(match[3]);
+                }
+                processed = true;
+            } else if (format14.test(trimmedLine)) {
+                 match = trimmedLine.match(format14);
+                 if(match){
+                    updates[match[1].padStart(2, '0')] = (updates[match[1].padStart(2, '0')] || 0) + parseInt(match[3], 10);
+                    updates[match[2].padStart(2, '0')] = (updates[match[2].padStart(2, '0')] || 0) + parseInt(match[3], 10);
+                    totalEntryAmount += 2 * parseInt(match[3], 10);
+                 }
+                processed = true;
+            } else if (format15.test(trimmedLine)) {
+                match = trimmedLine.match(format15);
+                if(match){
+                    const cells = match[1].replace(/=/g, ' ').trim().split(/\s+/);
+                    const amount = parseInt(match[2], 10);
+                    cells.forEach(c => updates[c.padStart(2,'0')] = (updates[c.padStart(2,'0')] || 0) + amount);
+                    totalEntryAmount += cells.length * amount;
+                }
+                processed = true;
+            } else if (format16.test(trimmedLine)) {
+                 match = trimmedLine.match(format16);
+                 if(match){
+                    setLaddiNum1(match[1]);
+                    setLaddiNum2(match[2] + match[3]);
+                    setLaddiAmount(match[4]);
+                 }
+                processed = true;
+            } else if (format17.test(trimmedLine)) {
+                match = trimmedLine.match(format17);
+                if(match){
+                    setHarupA(match[1]);
+                    setHarupAmount(match[2]);
+                }
+                processed = true;
+            } else if (format18.test(trimmedLine)) {
+                match = trimmedLine.match(format18);
+                if(match){
+                    setHarupA(match[1]);
+                    setHarupAmount(match[2]);
+                }
+                processed = true;
+            } else if (format19.test(trimmedLine)) {
+                match = trimmedLine.match(format19);
+                if(match){
+                    setHarupA(match[1]);
+                    setHarupAmount(match[2]);
+                }
+                processed = true;
+            } else {
+                // Default: cell=value
+                const parts = line.split(/=|ki/);
+                if (parts.length === 2) {
+                    const cells = parts[0].split(/[\s,]/).filter(c => c);
+                    const amount = parseFloat(parts[1]);
+                    if (!isNaN(amount)) {
+                         cells.forEach(c => {
+                             updates[c.padStart(2, '0')] = (updates[c.padStart(2, '0')] || 0) + amount;
+                         });
+                        totalEntryAmount += cells.length * amount;
+                        processed = true;
+                    }
+                }
+            }
+        }
+        if (processed) {
+            lastEntryString += line + '\n';
+        }
+    }
+    
+    if (Object.keys(updates).length > 0) {
+        if(applyUpdates(updates)) {
+            props.setLastEntry(lastEntryString);
+            toast({ title: "Sheet Updated", description: `${Object.keys(updates).length} cell(s) have been updated.` });
+            setMultiText("");
+        }
     } else {
-        toast({ title: "No Updates", description: "No valid cell data found in the input.", variant: "destructive" });
+        toast({ title: "No valid data found", description: "Could not parse the input.", variant: "destructive" });
     }
 };
-  
+
   const handleLaddiApply = () => {
     if (selectedClientId === null) {
         showClientSelectionToast();
