@@ -602,7 +602,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       return;
     }
 
-    const lines = multiText.split(/[\n#]+/).filter(line => line.trim() !== '');
+    const lines = multiText.replace(/#/g, '\n').split('\n').filter(line => line.trim() !== '');
     let lastEntryString = "";
     let entryTotal = 0;
 
@@ -807,15 +807,7 @@ const handleHarupApply = () => {
         return;
     }
     
-    let totalCells = 0;
-    harupADigits.forEach(digitA => {
-        for (let i = 0; i < 10; i++) totalCells++;
-    });
-    harupBDigits.forEach(digitB => {
-        for (let i = 0; i < 10; i++) totalCells++;
-    });
-
-    let entryTotal = (harupADigits.length + harupBDigits.length) * harupAmountValue;
+    let entryTotal = (harupADigits.length * 10 * harupAmountValue) + (harupBDigits.length * 10 * harupAmountValue);
 
     if (!checkBalance(entryTotal)) return;
     saveDataForUndo();
@@ -965,21 +957,7 @@ const handleHarupApply = () => {
       showClientSelectionToast();
       return;
     }
-    const value = e.target.value;
-    // Check if it's a paste of a long, single-line string with '#'
-    if (value.includes('#') && !value.includes('\n')) {
-        const formatted = value.replace(/#/g, '\n');
-        setMultiText(formatted);
-        // Use a timeout to allow React to update the state and then apply
-        setTimeout(() => {
-            if (multiTextRef.current) {
-                multiTextRef.current.value = formatted; // Manually update for immediate reflection if needed
-            }
-            handleMultiTextApply();
-        }, 0);
-    } else {
-        setMultiText(value);
-    }
+    setMultiText(e.target.value);
   };
 
   const handleSaveSheet = () => {
