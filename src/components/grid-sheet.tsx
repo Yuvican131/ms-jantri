@@ -188,7 +188,7 @@ const MasterSheetViewer = ({
   const masterSheetGrandTotal = calculateGrandTotal(masterSheetData);
   
  return (
-    <div className="h-full flex flex-col gap-4 bg-background p-4">
+    <div className="flex h-full flex-col gap-4 bg-background p-4 pt-2">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 flex-grow overflow-hidden">
         <div className="flex flex-col min-w-0 h-full">
             <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${GRID_ROWS + 1}, minmax(0, 1fr))`}}>
@@ -197,37 +197,37 @@ const MasterSheetViewer = ({
                         {Array.from({ length: GRID_COLS }, (_, colIndex) => {
                             const key = String(rowIndex * GRID_COLS + colIndex).padStart(2, '0');
                             return (
-                                <div key={`master-cell-${key}`} className="relative flex items-center border border-white rounded-sm">
-                                    <div className="absolute top-1 left-1.5 text-xs select-none pointer-events-none z-10 text-white">{key}</div>
+                                <div key={`master-cell-${key}`} className="relative flex items-center border rounded-sm" style={{ borderColor: 'hsl(var(--grid-cell-border-color))' }}>
+                                    <div className="absolute top-1 left-1.5 text-xs select-none pointer-events-none z-10" style={{ color: 'hsl(var(--grid-cell-number-color))' }}>{key}</div>
                                     <Input
                                         type="text"
                                         readOnly
-                                        style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)'}}
-                                        className="p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold text-white"
+                                        style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)', color: 'hsl(var(--grid-cell-amount-color))' }}
+                                        className="p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold"
                                         value={masterSheetData[key] || ''}
                                         aria-label={`Cell ${key}`}
                                     />
                                 </div>
                             );
                         })}
-                        <div className="flex items-center justify-center font-medium border border-white rounded-sm bg-transparent text-white">
-                            <Input readOnly value={masterSheetRowTotals[rowIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-white" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
+                        <div className="flex items-center justify-center font-medium border rounded-sm bg-transparent" style={{ borderColor: 'hsl(var(--grid-cell-border-color))' }}>
+                            <Input readOnly value={masterSheetRowTotals[rowIndex] || ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)', color: 'hsl(var(--grid-cell-total-color))' }}/>
                         </div>
                     </React.Fragment>
                 ))}
                 {Array.from({ length: GRID_COLS }, (_, colIndex) => (
-                    <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border border-white rounded-sm bg-transparent text-white">
-                        <Input readOnly value={masterSheetColumnTotals[colIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-white" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
+                    <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border rounded-sm bg-transparent" style={{ borderColor: 'hsl(var(--grid-cell-border-color))' }}>
+                        <Input readOnly value={masterSheetColumnTotals[colIndex] || ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)', color: 'hsl(var(--grid-cell-total-color))' }}/>
                     </div>
                 ))}
-                <div className="flex items-center justify-center font-bold text-lg border border-white rounded-sm text-white">
+                <div className="flex items-center justify-center font-bold text-lg border rounded-sm" style={{ borderColor: 'hsl(var(--grid-cell-border-color))', color: 'hsl(var(--grid-cell-total-color))' }}>
                     {masterSheetGrandTotal.toFixed(2)}
                 </div>
             </div>
         </div>
         <div className="flex flex-col gap-4 w-full lg:w-[320px] xl:w-[360px] flex-shrink-0">
-          <div className="border rounded-lg p-3 flex flex-col gap-3">
-              <h3 className="font-semibold text-sm">Master Controls</h3>
+          <div className="border rounded-lg p-3 flex flex-col gap-3 bg-card">
+              <h3 className="font-semibold text-sm text-card-foreground">Master Controls</h3>
               <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                       <Label htmlFor="master-cutting" className="text-sm text-card-foreground w-16">Cutting</Label>
@@ -745,77 +745,79 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
 const handleHarupApply = () => {
     if (selectedClientId === null) {
-      showClientSelectionToast();
-      return;
+        showClientSelectionToast();
+        return;
     }
-  
+
     const harupAmountValue = parseFloat(harupAmount);
     if (!harupAmount || isNaN(harupAmountValue)) {
-      toast({ title: "HARUP Error", description: "Please provide a valid amount.", variant: "destructive" });
-      return;
+        toast({ title: "HARUP Error", description: "Please provide a valid amount.", variant: "destructive" });
+        return;
     }
-  
+
     const harupADigits = [...new Set(harupA.replace(/[^0-9]/g, '').split(''))];
     const harupBDigits = [...new Set(harupB.replace(/[^0-9]/g, '').split(''))];
-  
+
     if (harupADigits.length === 0 && harupBDigits.length === 0) {
-      toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
-      return;
+        toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
+        return;
     }
-  
-    const entryTotal = (harupADigits.length + harupBDigits.length) * harupAmountValue;
+
+    const totalDigits = harupADigits.length + harupBDigits.length;
+    const entryTotal = totalDigits * harupAmountValue;
     if (!checkBalance(entryTotal)) return;
+
     saveDataForUndo();
-  
+
     const perCellAmount = harupAmountValue / 10;
     const updates: { [key: string]: number } = {};
-  
+
     harupADigits.forEach(digitA => {
-      for (let i = 0; i < 10; i++) {
-        const key = parseInt(`${digitA}${i}`).toString().padStart(2, '0');
-        updates[key] = (updates[key] || 0) + perCellAmount;
-      }
+        for (let i = 0; i < 10; i++) {
+            const key = parseInt(`${digitA}${i}`).toString().padStart(2, '0');
+            updates[key] = (updates[key] || 0) + perCellAmount;
+        }
     });
-  
+
     harupBDigits.forEach(digitB => {
-      for (let i = 0; i < 10; i++) {
-        const key = parseInt(`${i}${digitB}`).toString().padStart(2, '0');
-        updates[key] = (updates[key] || 0) + perCellAmount;
-      }
+        for (let i = 0; i < 10; i++) {
+            const key = parseInt(`${i}${digitB}`).toString().padStart(2, '0');
+            updates[key] = (updates[key] || 0) + perCellAmount;
+        }
     });
-  
+
     let lastEntryString = "";
     if (harupADigits.length > 0) lastEntryString += `A: ${harupA}=${harupAmount}\n`;
     if (harupBDigits.length > 0) lastEntryString += `B: ${harupB}=${harupAmount}\n`;
-  
+
     const newData = { ...currentData };
     const updatedKeys = Object.keys(updates);
-  
+
     if (updatedKeys.length > 0) {
-      updatedKeys.forEach(key => {
-        const currentValue = parseFloat(newData[key]) || 0;
-        const addedValue = updates[key] || 0;
-        newData[key] = String(currentValue + addedValue);
-      });
-  
-      if (selectedClientId) {
-        updateClientData(selectedClientId, newData, currentRowTotals);
-      } else {
-        setSheets(prevSheets => prevSheets.map(sheet =>
-          sheet.id === activeSheetId ? { ...sheet, data: newData } : sheet
-        ));
-      }
-  
-      setUpdatedCells(updatedKeys);
-      props.setLastEntry(lastEntryString.trim());
-      setTimeout(() => setUpdatedCells([]), 2000);
-      toast({ title: "HARUP Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
-  
-      setHarupA('');
-      setHarupB('');
-      setHarupAmount('');
+        updatedKeys.forEach(key => {
+            const currentValue = parseFloat(newData[key]) || 0;
+            const addedValue = updates[key] || 0;
+            newData[key] = String(currentValue + addedValue);
+        });
+
+        if (selectedClientId) {
+            updateClientData(selectedClientId, newData, currentRowTotals);
+        } else {
+            setSheets(prevSheets => prevSheets.map(sheet =>
+                sheet.id === activeSheetId ? { ...sheet, data: newData } : sheet
+            ));
+        }
+
+        setUpdatedCells(updatedKeys);
+        props.setLastEntry(lastEntryString.trim());
+        setTimeout(() => setUpdatedCells([]), 2000);
+        toast({ title: "HARUP Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
+
+        setHarupA('');
+        setHarupB('');
+        setHarupAmount('');
     } else {
-      toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
+        toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
     }
 };
 
@@ -909,20 +911,27 @@ const handleHarupApply = () => {
 
   const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (selectedClientId === null) {
-      showClientSelectionToast();
-      return;
+        showClientSelectionToast();
+        return;
     }
     const value = e.target.value;
     const parts = value.split('=');
-    const numbersPart = parts[0];
+    let numbersPart = parts[0];
     const amountPart = parts.length > 1 ? `=${parts.slice(1).join('=')}` : '';
 
     const formattedNumbers = numbersPart
-        .replace(/[^0-9]/g, '')
-        .replace(/(.{2})/g, '$1,')
-        .replace(/,$/, '');
+        .replace(/[^0-9,]/g, '') // Allow commas
+        .replace(/,+/g, ',') // Replace multiple commas with a single one
+        .split(',')
+        .map(num => num.replace(/(\d{2})/g, '$1,').replace(/,$/, ''))
+        .join(',')
+        .replace(/,+/g, ',')
+        .replace(/^,|,$/g, '');
+    
+    // A bit of a hack to re-format existing numbers
+    const finalFormatted = formattedNumbers.replace(/,/g, '').replace(/(\d{2})/g, '$1,').replace(/,$/, '');
 
-    setMultiText(`${formattedNumbers}${amountPart}`);
+    setMultiText(`${finalFormatted}${amountPart}`);
   };
   
 
@@ -1007,12 +1016,12 @@ const handleHarupApply = () => {
                         const isUpdated = updatedCells.includes(key);
 
                         return (
-                            <div key={key} className="relative flex items-center border border-white rounded-sm">
-                               <div className="absolute top-1 left-1.5 text-xs select-none pointer-events-none z-10 text-white">{key}</div>
+                            <div key={key} className="relative flex items-center border rounded-sm" style={{ borderColor: 'hsl(var(--grid-cell-border-color))' }}>
+                               <div className="absolute top-1 left-1.5 text-xs select-none pointer-events-none z-10" style={{ color: 'hsl(var(--grid-cell-number-color))' }}>{key}</div>
                               <Input
                                   type="text"
-                                  style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)'}}
-                                  className={`p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'text-white'}`}
+                                  style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)', color: 'hsl(var(--grid-cell-amount-color))' }}
+                                  className={`p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold focus:ring-2 focus:z-10 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : ''}`}
                                   value={currentData[key] || ''}
                                   onChange={(e) => handleCellChange(key, e.target.value)}
                                   onBlur={() => handleCellBlur(key)}
@@ -1039,18 +1048,18 @@ const handleHarupApply = () => {
                             </div>
                         )
                     })}
-                     <div className="flex items-center justify-center font-medium border border-white rounded-sm bg-transparent text-white">
-                      <Input readOnly value={rowTotals[rowIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-white" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
+                     <div className="flex items-center justify-center font-medium border rounded-sm bg-transparent" style={{ borderColor: 'hsl(var(--grid-cell-border-color))' }}>
+                      <Input readOnly value={rowTotals[rowIndex] || ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)', color: 'hsl(var(--grid-cell-total-color))' }}/>
                     </div>
                   </React.Fragment>
                 ))}
                 {/* Column Totals */}
                 {Array.from({ length: GRID_COLS }, (_, colIndex) => (
-                  <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border border-white rounded-sm bg-transparent text-white">
-                    <Input readOnly value={columnTotals[colIndex]} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent text-white" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)'}}/>
+                  <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border rounded-sm bg-transparent" style={{ borderColor: 'hsl(var(--grid-cell-border-color))' }}>
+                    <Input readOnly value={columnTotals[colIndex] || ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)', color: 'hsl(var(--grid-cell-total-color))' }}/>
                   </div>
                 ))}
-                <div className="flex items-center justify-center font-bold text-lg border border-white rounded-sm text-white">
+                <div className="flex items-center justify-center font-bold text-lg border rounded-sm" style={{ borderColor: 'hsl(var(--grid-cell-border-color))', color: 'hsl(var(--grid-cell-total-color))' }}>
                     {grandTotal.toFixed(2)}
                 </div>
               </div>
