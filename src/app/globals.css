@@ -44,7 +44,7 @@ body {
     --grid-cell-border-color: 240 3.7% 20%;
     --grid-cell-number-color: 0 0% 100%;
     --grid-cell-amount-color: 60 95% 50%;
-    --grid-cell-total-color: 204 90% 78%;
+    --grid-cell-total-color: 120 70% 45%;
     --grid-cell-focus-ring-color: 60 95% 40%;
   }
   .light {
@@ -83,7 +83,7 @@ body {
     --grid-cell-border-color: 240 5.9% 90%;
     --grid-cell-number-color: 240 10% 3.9%;
     --grid-cell-amount-color: 45 95% 50%;
-    --grid-cell-total-color: 262 70% 45%;
+    --grid-cell-total-color: 120 60% 40%;
     --grid-cell-focus-ring-color: 45 95% 40%;
   }
 }
