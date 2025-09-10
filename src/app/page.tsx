@@ -188,7 +188,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
             return {
                 ...acc,
                 draws: updatedDraws,
-                balance: String(newBalance.toFixed(2))
+                balance: String(newBalance)
             };
         });
     });
@@ -217,6 +217,16 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
   const handleDeleteClient = (clientId: string) => {
     setClients(clients.filter(c => c.id !== clientId));
     setAccounts(accounts.filter(a => a.id !== clientId));
+  };
+  
+  const handleClientTransaction = (clientId: string, amount: number) => {
+    setClients(clients.map(c => {
+      if (c.id === clientId) {
+        const newBalance = (parseFloat(c.activeBalance) || 0) + amount;
+        return { ...c, activeBalance: String(newBalance) };
+      }
+      return c;
+    }));
   };
 
 
@@ -425,6 +435,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
                 onAddClient={handleAddClient} 
                 onUpdateClient={handleUpdateClient} 
                 onDeleteClient={handleDeleteClient}
+                onClientTransaction={handleClientTransaction}
               />
             </TabsContent>
             <TabsContent value="accounts" className="flex-1" style={{ display: activeTab === 'accounts' ? 'block' : 'none' }}>
