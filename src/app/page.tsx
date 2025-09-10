@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GridSheet from "@/components/grid-sheet"
 import ClientsManager, { Client } from "@/components/clients-manager"
 import AccountsManager, { Account } from "@/components/accounts-manager"
+import LedgerRecord from "@/components/ledger-record"
 import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, ClipboardCopy, FileSpreadsheet } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -296,7 +297,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center">
-              <TabsList className="grid grid-cols-3 md:w-auto p-0.5 gap-0.5">
+              <TabsList className="grid grid-cols-4 md:w-auto p-0.5 gap-0.5">
                 <TabsTrigger value="sheet" className="gap-1 rounded-sm">
                   <GridIcon className="h-4 w-4" />
                   Home
@@ -308,6 +309,10 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
                 <TabsTrigger value="accounts" className="gap-1 rounded-sm">
                   <Building className="h-4 w-4" />
                   ACCOUNT LEDGER
+                </TabsTrigger>
+                <TabsTrigger value="ledger-record" className="gap-1 rounded-sm">
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Ledger Record
                 </TabsTrigger>
               </TabsList>
                {selectedInfo && activeTab === 'sheet' && (
@@ -415,6 +420,9 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
             </TabsContent>
             <TabsContent value="accounts" className="flex-1" style={{ display: activeTab === 'accounts' ? 'block' : 'none' }}>
               <AccountsManager accounts={accounts} clients={clients} setAccounts={setAccounts} />
+            </TabsContent>
+             <TabsContent value="ledger-record" className="flex-1" style={{ display: activeTab === 'ledger-record' ? 'block' : 'none' }}>
+              <LedgerRecord />
             </TabsContent>
           </div>
         </Tabs>
