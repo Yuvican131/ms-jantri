@@ -1,19 +1,12 @@
 
 "use client"
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon } from 'lucide-react';
-import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
 import type { Client } from './clients-manager';
 import type { Account } from './accounts-manager';
 import type { SavedSheetInfo } from '@/app/page';
-import { cn, formatNumber } from "@/lib/utils";
+import { formatNumber } from "@/lib/utils";
 
 type LedgerRecordProps = {
   clients: Client[];
@@ -31,10 +24,6 @@ type ReportRow = {
 };
 
 export default function LedgerRecord({ clients, accounts, savedSheetLog, draws }: LedgerRecordProps) {
-  const [selectedClient, setSelectedClient] = useState<string>("all");
-  const [selectedDraw, setSelectedDraw] = useState<string>("all");
-  const [date, setDate] = useState<Date | undefined>(undefined);
-
   const reportData: ReportRow[] = useMemo(() => {
     const data: ReportRow[] = [];
 
@@ -58,7 +47,7 @@ export default function LedgerRecord({ clients, accounts, savedSheetLog, draws }
           data.push({
             clientName: client.name,
             drawName,
-            totalInvested: netInvestment, // Use net investment for reporting
+            totalInvested: netInvestment,
             totalWon,
             profitOrLoss,
           });
@@ -66,20 +55,12 @@ export default function LedgerRecord({ clients, accounts, savedSheetLog, draws }
       });
     });
 
-    return data;
+    // Sort by profitOrLoss in descending order
+    return data.sort((a, b) => b.profitOrLoss - a.profitOrLoss);
   }, [clients, accounts, savedSheetLog, draws]);
-
-  const filteredData = useMemo(() => {
-    return reportData.filter(row => {
-      const clientMatch = selectedClient === 'all' || row.clientName === selectedClient;
-      const drawMatch = selectedDraw === 'all' || row.drawName === selectedDraw;
-      // Date filtering logic will be added here
-      return clientMatch && drawMatch;
-    });
-  }, [reportData, selectedClient, selectedDraw]);
-
+  
   const { totalInvested, totalProfitOrLoss } = useMemo(() => {
-    return filteredData.reduce(
+    return reportData.reduce(
       (acc, row) => {
         acc.totalInvested += row.totalInvested;
         acc.totalProfitOrLoss += row.profitOrLoss;
@@ -87,7 +68,7 @@ export default function LedgerRecord({ clients, accounts, savedSheetLog, draws }
       },
       { totalInvested: 0, totalProfitOrLoss: 0 }
     );
-  }, [filteredData]);
+  }, [reportData]);
 
 
   return (
@@ -96,62 +77,11 @@ export default function LedgerRecord({ clients, accounts, savedSheetLog, draws }
         <CardTitle>Client Performance Report</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col sm:flex-row gap-2 mb-4 p-4 border rounded-lg bg-muted/50">
-          <div className="flex-1 min-w-[150px]">
-            <Select value={selectedClient} onValueChange={setSelectedClient}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by Client" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Clients</SelectItem>
-                {clients.map(client => (
-                  <SelectItem key={client.id} value={client.name}>{client.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex-1 min-w-[150px]">
-             <Select value={selectedDraw} onValueChange={setSelectedDraw}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by Draw" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Draws</SelectItem>
-                {draws.map(draw => (
-                  <SelectItem key={draw} value={draw}>{draw}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-           <div className="flex-1 min-w-[150px]">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !date && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? format(date, "PPP") : <span>Filter by Date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-           </div>
-        </div>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Rank</TableHead>
                 <TableHead>Client Name</TableHead>
                 <TableHead>Draw Name</TableHead>
                 <TableHead className="text-right">Net Invested</TableHead>
@@ -159,9 +89,10 @@ export default function LedgerRecord({ clients, accounts, savedSheetLog, draws }
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredData.length > 0 ? filteredData.map((row, index) => (
+              {reportData.length > 0 ? reportData.map((row, index) => (
                 <TableRow key={index}>
-                  <TableCell className="font-medium">{row.clientName}</TableCell>
+                  <TableCell className="font-medium">{index + 1}</TableCell>
+                  <TableCell>{row.clientName}</TableCell>
                   <TableCell>{row.drawName}</TableCell>
                   <TableCell className="text-right">₹{formatNumber(row.totalInvested)}</TableCell>
                   <TableCell className={`text-right font-bold ${row.profitOrLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>
@@ -170,15 +101,15 @@ export default function LedgerRecord({ clients, accounts, savedSheetLog, draws }
                 </TableRow>
               )) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                    No records found for the selected filters.
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    No records found.
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
              <TableFooter>
               <TableRow className="bg-muted/50 hover:bg-muted">
-                <TableCell colSpan={2} className="font-bold text-lg">Overall Performance</TableCell>
+                <TableCell colSpan={3} className="font-bold text-lg">Overall Performance</TableCell>
                 <TableCell className="text-right font-bold text-lg">₹{formatNumber(totalInvested)}</TableCell>
                 <TableCell className={`text-right font-bold text-lg ${totalProfitOrLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                   {totalProfitOrLoss >= 0 ? `+₹${formatNumber(totalProfitOrLoss)}` : `-₹${formatNumber(Math.abs(totalProfitOrLoss))}`}
