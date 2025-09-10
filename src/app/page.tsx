@@ -12,7 +12,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { format } from "date-fns"
-import { cn } from "@/lib/utils"
+import { cn, formatNumber } from "@/lib/utils"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
@@ -264,7 +264,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
         return {
           ...acc,
           draws: updatedDraws,
-          balance: totalBalanceAfterUpdate.toFixed(2),
+          balance: String(totalBalanceAfterUpdate),
         };
       });
     

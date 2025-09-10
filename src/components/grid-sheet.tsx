@@ -18,6 +18,7 @@ import { format } from "date-fns"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { SavedSheetInfo } from "@/app/page";
 import type { Account } from "./accounts-manager";
+import { formatNumber } from "@/lib/utils"
 
 
 type CellData = { [key: string]: string }
@@ -188,8 +189,8 @@ const MasterSheetViewer = ({
   const masterSheetGrandTotal = calculateGrandTotal(masterSheetData);
   
  return (
-    <div className="flex h-full flex-col gap-4 bg-background p-4 pt-2">
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 flex-grow overflow-hidden">
+    <div className="flex h-full flex-col gap-4 bg-background p-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 flex-grow overflow-hidden items-start">
         <div className="flex flex-col min-w-0 h-full">
             <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${GRID_ROWS + 1}, minmax(0, 1fr))`}}>
                 {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
@@ -221,7 +222,7 @@ const MasterSheetViewer = ({
                     </div>
                 ))}
                 <div className="flex items-center justify-center font-bold text-lg border rounded-sm" style={{ borderColor: 'hsl(var(--grid-cell-border-color))', color: 'hsl(var(--grid-cell-total-color))' }}>
-                    {masterSheetGrandTotal.toFixed(2)}
+                    {formatNumber(masterSheetGrandTotal)}
                 </div>
             </div>
         </div>
@@ -264,7 +265,7 @@ const MasterSheetViewer = ({
                                       />
                                       <label htmlFor={`log-${draw}-${index}`} className="cursor-pointer text-muted-foreground">{index + 1}. {log.clientName}</label>
                                   </div>
-                                  <span className="font-mono font-semibold text-foreground">₹{log.gameTotal.toFixed(2)}</span>
+                                  <span className="font-mono font-semibold text-foreground">₹{formatNumber(log.gameTotal)}</span>
                               </div>
                           )) : (
                               <div className="text-center text-muted-foreground italic h-full flex items-center justify-center">No logs for this draw.</div>
@@ -588,7 +589,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     if (entryTotal > remainingBalance) {
       toast({
         title: "Balance Limit Exceeded",
-        description: `This entry of ${entryTotal} exceeds the remaining balance of ${remainingBalance.toFixed(2)}.`,
+        description: `This entry of ${formatNumber(entryTotal)} exceeds the remaining balance of ${formatNumber(remainingBalance)}.`,
         variant: "destructive",
       });
       return false;
@@ -762,9 +763,10 @@ const handleHarupApply = () => {
         toast({ title: "HARUP Error", description: "Please fill HARUP 'A' or 'B' fields.", variant: "destructive" });
         return;
     }
-
+    
     const totalDigits = harupADigits.length + harupBDigits.length;
     const entryTotal = totalDigits * harupAmountValue;
+
     if (!checkBalance(entryTotal)) return;
 
     saveDataForUndo();
@@ -995,7 +997,7 @@ const handleHarupApply = () => {
   const getClientDisplay = (client: Client) => {
     const logEntry = props.savedSheetLog.find(log => log.clientId === client.id);
     const totalAmount = logEntry?.gameTotal || 0;
-    return `${client.name} - ${totalAmount.toFixed(2)}`;
+    return `${client.name} - ${formatNumber(totalAmount)}`;
   };
   
   const allSavedLogsForDraw = Object.values(props.savedSheetLog).flat();
@@ -1049,18 +1051,18 @@ const handleHarupApply = () => {
                         )
                     })}
                      <div className="flex items-center justify-center font-medium border rounded-sm bg-transparent" style={{ borderColor: 'hsl(var(--grid-cell-border-color))' }}>
-                      <Input readOnly value={rowTotals[rowIndex] || ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)', color: 'hsl(var(--grid-cell-total-color))' }}/>
+                      <Input readOnly value={rowTotals[rowIndex] ? formatNumber(rowTotals[rowIndex]) : ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)', color: 'hsl(var(--grid-cell-total-color))' }}/>
                     </div>
                   </React.Fragment>
                 ))}
                 {/* Column Totals */}
                 {Array.from({ length: GRID_COLS }, (_, colIndex) => (
                   <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border rounded-sm bg-transparent" style={{ borderColor: 'hsl(var(--grid-cell-border-color))' }}>
-                    <Input readOnly value={columnTotals[colIndex] || ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)', color: 'hsl(var(--grid-cell-total-color))' }}/>
+                    <Input readOnly value={columnTotals[colIndex] ? formatNumber(columnTotals[colIndex]) : ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)', color: 'hsl(var(--grid-cell-total-color))' }}/>
                   </div>
                 ))}
                 <div className="flex items-center justify-center font-bold text-lg border rounded-sm" style={{ borderColor: 'hsl(var(--grid-cell-border-color))', color: 'hsl(var(--grid-cell-total-color))' }}>
-                    {grandTotal.toFixed(2)}
+                    {formatNumber(grandTotal)}
                 </div>
               </div>
             </div>

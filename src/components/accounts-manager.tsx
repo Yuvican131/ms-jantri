@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import type { Client } from "./clients-manager"
 import { useToast } from "@/hooks/use-toast"
+import { formatNumber } from "@/lib/utils"
 
 export type Account = {
   id: string
@@ -31,10 +32,6 @@ type AccountsManagerProps = {
 };
 
 const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
-
-const formatNumber = (num: number) => {
-    return num % 1 === 0 ? num.toString() : num.toFixed(2);
-};
 
 const DrawDetailsPanel = ({
   client,

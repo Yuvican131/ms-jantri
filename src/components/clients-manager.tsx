@@ -11,6 +11,7 @@ import { PlusCircle, MoreHorizontal, Edit, Trash2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Account } from "./accounts-manager"
+import { formatNumber } from "@/lib/utils"
 
 export type Client = {
   id: string
@@ -29,11 +30,6 @@ type ClientsManagerProps = {
   onUpdateClient: (client: Client) => void;
   onDeleteClient: (id: string) => void;
 }
-
-const formatNumber = (num: number | string) => {
-    const number = Number(num);
-    return number % 1 === 0 ? number.toString() : number.toFixed(2);
-};
 
 export default function ClientsManager({ clients, accounts, onAddClient, onUpdateClient, onDeleteClient }: ClientsManagerProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
