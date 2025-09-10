@@ -422,7 +422,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
               <AccountsManager accounts={accounts} clients={clients} setAccounts={setAccounts} />
             </TabsContent>
              <TabsContent value="ledger-record" className="flex-1" style={{ display: activeTab === 'ledger-record' ? 'block' : 'none' }}>
-              <LedgerRecord />
+              <LedgerRecord clients={clients} accounts={accounts} savedSheetLog={savedSheetLog} draws={draws} />
             </TabsContent>
           </div>
         </Tabs>
