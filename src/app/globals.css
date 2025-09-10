@@ -41,11 +41,11 @@ body {
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 0 0% 98%;
-    --grid-cell-border-color: 240 3.7% 25%;
-    --grid-cell-number-color: 240 5% 65%;
-    --grid-cell-amount-color: 0 0% 98%;
-    --grid-cell-total-color: 160 100% 75%;
-    --grid-cell-focus-ring-color: 0 0% 98%;
+    --grid-cell-border-color: 240 3.7% 20%;
+    --grid-cell-number-color: 240 4% 50%;
+    --grid-cell-amount-color: 48 96% 70%;
+    --grid-cell-total-color: 204 90% 78%;
+    --grid-cell-focus-ring-color: 48 96% 60%;
   }
   .light {
     --background: 0 0% 100%;
@@ -82,9 +82,9 @@ body {
     --sidebar-ring: 240 10% 3.9%;
     --grid-cell-border-color: 240 5.9% 90%;
     --grid-cell-number-color: 240 3.8% 46.1%;
-    --grid-cell-amount-color: 240 10% 3.9%;
-    --grid-cell-total-color: 346.8 77.2% 49.8%;
-    --grid-cell-focus-ring-color: 240 10% 3.9%;
+    --grid-cell-amount-color: 210 55% 48%;
+    --grid-cell-total-color: 262 70% 45%;
+    --grid-cell-focus-ring-color: 210 80% 55%;
   }
 }
 
