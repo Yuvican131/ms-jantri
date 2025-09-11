@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import type { Client } from "./clients-manager"
 import { useToast } from "@/hooks/use-toast"
 import { formatNumber } from "@/lib/utils"
-import { TrendingUp, TrendingDown, HandCoins, Landmark } from 'lucide-react';
+import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy } from 'lucide-react';
 
 
 export type Account = {
@@ -61,15 +61,39 @@ const BrokerDrawSummaryCard = ({
     );
 };
 
-const GrandTotalSummaryCard = ({ title, value }: { title: string; value: number; }) => {
-    const valueColor = value >= 0 ? 'text-green-400' : 'text-red-500';
+const GrandTotalSummaryCard = ({ 
+    title, 
+    finalValue,
+    grandRawTotal,
+    grandPassingTotal
+}: { 
+    title: string; 
+    finalValue: number;
+    grandRawTotal: number;
+    grandPassingTotal: number;
+}) => {
+    const valueColor = finalValue >= 0 ? 'text-green-400' : 'text-red-500';
     return (
-        <Card className="flex flex-col justify-center p-3 bg-primary/10 border-primary/50 col-span-2 md:col-span-1">
+        <Card className="flex flex-col justify-center p-3 bg-primary/10 border-primary/50 col-span-2 md:col-span-1 lg:col-span-2 xl:col-span-1">
              <div className="flex items-center justify-between mb-2">
                 <h4 className="font-semibold text-sm text-primary">{title}</h4>
                 <Landmark className="h-4 w-4 text-primary" />
             </div>
-            <p className={`text-2xl font-bold text-right ${valueColor}`}>{formatNumber(value)}</p>
+            <div className="space-y-2 text-right">
+                <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1"><CircleDollarSign className="h-3 w-3"/> Total Raw</span>
+                    <span className="font-semibold">{formatNumber(grandRawTotal)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                     <span className="text-xs text-muted-foreground flex items-center gap-1"><Trophy className="h-3 w-3"/> Total Passing</span>
+                     <span className="font-semibold">{formatNumber(grandPassingTotal)}</span>
+                </div>
+                <Separator className="my-1 bg-border/50" />
+                <div className="flex justify-between items-center">
+                    <span className="font-bold text-base">Final Net</span>
+                    <p className={`text-2xl font-bold ${valueColor}`}>{formatNumber(finalValue)}</p>
+                </div>
+            </div>
         </Card>
     )
 }
@@ -169,6 +193,10 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
     return totalNet + upperPayable;
   }, 0);
 
+  const grandRawTotal = Object.values(brokerRawDrawTotals).reduce((sum, total) => sum + total, 0);
+  const grandPassingTotal = Object.values(brokerPassingDrawTotals).reduce((sum, total) => sum + total, 0);
+
+
   return (
     <Card>
       <CardHeader>
@@ -189,8 +217,10 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
                     />
                 ))}
                 <GrandTotalSummaryCard
-                  title="Final Total"
-                  value={finalNetTotalForBroker}
+                  title="Final Summary"
+                  finalValue={finalNetTotalForBroker}
+                  grandRawTotal={grandRawTotal}
+                  grandPassingTotal={grandPassingTotal}
                 />
             </div>
         </div>
