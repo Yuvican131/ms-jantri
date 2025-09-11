@@ -55,7 +55,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
       const updatedClient = { ...editingClient, name, pair, comm, inOut, patti, activeBalance };
       onUpdateClient(updatedClient);
     } else {
-      const newClient: Client = { id: Date.now().toString(), name, pair, comm, inOut, patti, activeBalance }
+      const newClient: Client = { id: Date.now().toString(), name, pair, comm, inOut, patti, activeBalance: activeBalance || '0' }
       onAddClient(newClient);
     }
     setEditingClient(null)
@@ -101,7 +101,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
   
     toast({
       title: "Transaction Successful",
-      description: `₹${formatNumber(amount)} has been ${transactionType === 'deposit' ? 'deposited to' : 'withdrawn from'} ${transactionClient.name}.`,
+      description: `₹${formatNumber(amount)} has been ${transactionType === 'deposit' ? 'recorded as a deposit for' : 'withdrawn from'} ${transactionClient.name}.`,
     });
   
     setTransactionClient(null);
@@ -155,7 +155,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="activeBalance">Active Balance</Label>
+                  <Label htmlFor="activeBalance">Opening Balance</Label>
                   <Input id="activeBalance" name="activeBalance" defaultValue={editingClient?.activeBalance} placeholder="e.g. 1000" />
                 </div>
                 <DialogFooter>
@@ -177,61 +177,53 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                   <TableHead>Name</TableHead>
                   <TableHead>Pair</TableHead>
                   <TableHead>Comm</TableHead>
-                  <TableHead>In/Out</TableHead>
-                  <TableHead>Patti</TableHead>
-                  <TableHead>Active Balance</TableHead>
-                  <TableHead>Remaining Balance</TableHead>
+                  <TableHead>Net Balance</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {clients.map((client, index) => {
                   const account = accounts.find(acc => acc.id === client.id);
-                  const activeBalance = parseFloat(client.activeBalance) || 0;
-
-                  const totalPlayed = account ? Object.values(account.draws || {}).reduce((sum, draw) => sum + (draw.totalAmount || 0), 0) : 0;
-                  
-                  const remainingBalance = activeBalance > 0 ? activeBalance - totalPlayed : 0;
-                  const balanceColor = remainingBalance >= 0 ? 'text-green-400' : 'text-red-500';
+                  const netBalance = parseFloat(account?.balance || client.activeBalance || '0')
+                  const balanceColor = netBalance >= 0 ? 'text-green-500' : 'text-red-500';
 
                   return (
                     <TableRow key={client.id}>
                       <TableCell>{index + 1}</TableCell>
                       <TableCell className="font-medium">{client.name}</TableCell>
                       <TableCell>{client.pair}</TableCell>
-                      <TableCell>{client.comm}</TableCell>
-                      <TableCell>{client.inOut}</TableCell>
-                      <TableCell>{client.patti}</TableCell>
-                      <TableCell>{activeBalance > 0 ? formatNumber(activeBalance) : '-'}</TableCell>
-                      <TableCell className={balanceColor}>{activeBalance > 0 ? formatNumber(remainingBalance) : '-'}</TableCell>
+                      <TableCell>{client.comm}%</TableCell>
+                      <TableCell className={`font-bold ${balanceColor}`}>{formatNumber(netBalance)}</TableCell>
                       <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
+                        <div className="flex items-center justify-end gap-2">
+                            <Button variant="outline" size="sm" onClick={() => openTransactionDialog(client, 'deposit')}>
+                                <ArrowUpCircle className="mr-2 h-4 w-4 text-green-500" />
+                                Deposit
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openTransactionDialog(client, 'deposit')}>
-                                <ArrowUpCircle className="mr-2 h-4 w-4" />
-                                <span>Deposit</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openTransactionDialog(client, 'withdraw')}>
-                                <ArrowDownCircle className="mr-2 h-4 w-4" />
-                                <span>Withdrawal</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleEditClient(client)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              <span>Edit</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive" onClick={() => handleDeleteClient(client.id)}>
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              <span>Delete</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                             <Button variant="outline" size="sm" onClick={() => openTransactionDialog(client, 'withdraw')}>
+                                <ArrowDownCircle className="mr-2 h-4 w-4 text-red-500" />
+                                Withdrawal
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <span className="sr-only">Open menu</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleEditClient(client)}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  <span>Edit Details</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive" onClick={() => handleDeleteClient(client.id)}>
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  <span>Delete Client</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )
@@ -244,7 +236,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
       <Dialog open={!!transactionClient} onOpenChange={(open) => { if (!open) setTransactionClient(null) }}>
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>{transactionType === 'deposit' ? 'Deposit to' : 'Withdraw from'} {transactionClient?.name}</DialogTitle>
+                <DialogTitle>{transactionType === 'deposit' ? 'Record a Deposit for' : 'Record a Withdrawal for'} {transactionClient?.name}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
                 <Label htmlFor="transactionAmount">Amount</Label>
@@ -258,7 +250,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
             </div>
             <DialogFooter>
                 <Button variant="outline" onClick={() => setTransactionClient(null)}>Cancel</Button>
-                <Button onClick={handleTransaction}>Confirm</Button>
+                <Button onClick={handleTransaction}>Confirm Transaction</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>

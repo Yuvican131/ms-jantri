@@ -75,6 +75,11 @@ export default function Home() {
     setDate(new Date());
   }, []);
 
+  // Recalculate accounts whenever clients, logs, or declared numbers change
+  useEffect(() => {
+    updateAccountsFromLog(savedSheetLog);
+  }, [clients, savedSheetLog, declaredNumbers]);
+
 
   const handleClientUpdateForSheet = (client: Client) => {
     if (gridSheetRef.current) {
@@ -93,9 +98,11 @@ export default function Home() {
   };
   
 const handleClientSheetSave = (clientName: string, clientId: string, newData: { [key: string]: string }, draw: string, entryDate: Date) => {
+    const todayStr = entryDate.toISOString().split('T')[0];
+
     setSavedSheetLog(prevLog => {
         const drawLogs = prevLog[draw] || [];
-        const existingLogIndex = drawLogs.findIndex(log => log.clientId === clientId && log.date === entryDate.toISOString().split('T')[0]);
+        const existingLogIndex = drawLogs.findIndex(log => log.clientId === clientId && log.date === todayStr);
         let updatedLogs;
         
         if (existingLogIndex > -1) {
@@ -125,14 +132,12 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
               clientId, 
               gameTotal: newEntryTotal, 
               data: newData,
-              date: entryDate.toISOString().split('T')[0],
+              date: todayStr,
             };
             updatedLogs = [...drawLogs, newLogEntry];
         }
 
-        const newLog = { ...prevLog, [draw]: updatedLogs };
-        updateAccountsFromLog(newLog); // Update accounts after log is updated
-        return newLog;
+        return { ...prevLog, [draw]: updatedLogs };
     });
 
     toast({
@@ -142,6 +147,8 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
 };
 
 const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedSheetInfo[] }) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    
     setAccounts(prevAccounts => {
         return prevAccounts.map(acc => {
             const client = clients.find(c => c.id === acc.id);
@@ -149,42 +156,38 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
 
             const clientCommissionPercent = parseFloat(client.comm) / 100;
             const passingMultiplier = parseFloat(client.pair) || 80;
-            const activeBalance = parseFloat(client.activeBalance) || 0;
+            let activeBalance = parseFloat(client.activeBalance) || 0;
 
             const updatedDraws: { [key: string]: { totalAmount: number; passingAmount: number } } = {};
-            const todayStr = new Date().toISOString().split('T')[0];
 
-            // Iterate over all draws to calculate totals for today
+            let totalPlayedToday = 0;
+            let totalWinningsToday = 0;
+
             draws.forEach(drawName => {
                 const drawLogs = currentSavedSheetLog[drawName] || [];
                 const clientLogForToday = drawLogs.find(log => log.clientId === client.id && log.date === todayStr);
 
+                let totalAmount = 0;
+                let passingAmount = 0;
+
                 if (clientLogForToday) {
+                    totalAmount = clientLogForToday.gameTotal;
                     const declaredNumberForDraw = declaredNumbers[drawName];
-                    const amountInCell = declaredNumberForDraw ? parseFloat(clientLogForToday.data[declaredNumberForDraw]) || 0 : 0;
-
-                    updatedDraws[drawName] = {
-                        totalAmount: clientLogForToday.gameTotal,
-                        passingAmount: amountInCell
-                    };
-                } else if(acc.draws && acc.draws[drawName]) {
-                    // Reset if no log for today, or keep old logic if needed
-                    updatedDraws[drawName] = { totalAmount: 0, passingAmount: 0 };
-                } else {
-                    updatedDraws[drawName] = { totalAmount: 0, passingAmount: 0 };
+                    passingAmount = declaredNumberForDraw ? parseFloat(clientLogForToday.data[declaredNumberForDraw]) || 0 : 0;
                 }
+                
+                updatedDraws[drawName] = { totalAmount, passingAmount };
+                totalPlayedToday += totalAmount;
+                totalWinningsToday += passingAmount * passingMultiplier;
             });
-
-            // Calculate the final balance based on today's activity
-            const netFromDraws = Object.values(updatedDraws).reduce((balance, drawDetails) => {
-                const drawTotal = drawDetails.totalAmount || 0;
-                const drawCommission = drawTotal * clientCommissionPercent;
-                const drawNet = drawTotal - drawCommission;
-                const drawPassingTotal = (drawDetails.passingAmount || 0) * passingMultiplier;
-                return balance + (drawNet - drawPassingTotal);
-            }, 0);
             
-            const newBalance = activeBalance - netFromDraws;
+            const totalCommissionToday = totalPlayedToday * clientCommissionPercent;
+            const netFromGames = totalPlayedToday - totalCommissionToday;
+
+            // This is the final balance from the client's perspective
+            // A positive balance means the broker owes the client.
+            // A negative balance means the client owes the broker.
+            const newBalance = activeBalance - (netFromGames - totalWinningsToday);
 
             return {
                 ...acc,
@@ -201,7 +204,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
     const newAccount: Account = {
       id: client.id, // Use client id for linking
       clientName: client.name,
-      balance: '0',
+      balance: client.activeBalance || '0',
       draws: {}
     };
     setAccounts(prev => [...prev, newAccount]);
@@ -243,70 +246,21 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
     }
   };
   
-  const updateAllClientsDraw = (isUndeclare = false) => {
-      const todayStr = new Date().toISOString().split('T')[0];
-      const currentDrawLogs = (savedSheetLog[declarationDraw] || []).filter(log => log.date === todayStr);
-
-      const updatedAccounts = accounts.map(acc => {
-        const client = clients.find(c => c.id === acc.id);
-        if (!client) return acc;
-    
-        const clientLog = currentDrawLogs.find(log => log.clientId === client.id);
-        const clientSheetData = clientLog?.data || {};
-
-        const amountInCell = parseFloat(clientSheetData[declarationNumber]) || 0;
-        const passingMultiplier = parseFloat(client.pair) || 80;
-    
-        const currentDraws = { ...(acc.draws || {}) };
-        const currentDrawData = { ...(currentDraws[declarationDraw] || { totalAmount: 0, passingAmount: 0 }) };
-    
-        const newPassingAmount = isUndeclare ? 0 : amountInCell;
-    
-        const updatedDrawDataForDeclaration = {
-          ...currentDrawData,
-          passingAmount: newPassingAmount,
-        };
-    
-        const updatedDraws = { ...currentDraws, [declarationDraw]: updatedDrawDataForDeclaration };
-    
-        const clientCommissionPercent = parseFloat(client.comm) / 100;
-        const activeBalance = parseFloat(client.activeBalance) || 0;
-
-        const netFromDraws = Object.values(updatedDraws).reduce((total, drawDetails) => {
-            const drawTotal = drawDetails.totalAmount || 0;
-            const drawCommission = drawTotal * clientCommissionPercent;
-            const drawNet = drawTotal - drawCommission;
-            const drawPassingAmount = (drawDetails.passingAmount || 0) * passingMultiplier;
-            return total + (drawNet - drawPassingAmount);
-        }, 0);
-        
-        const totalBalanceAfterUpdate = activeBalance - netFromDraws;
-
-        return {
-          ...acc,
-          draws: updatedDraws,
-          balance: String(totalBalanceAfterUpdate),
-        };
-      });
-    
-      setAccounts(updatedAccounts);
-    };
-
-
-  const handleDeclare = () => {
-    updateAllClientsDraw(false);
-    toast({ title: "Success", description: `Number ${declarationNumber} has been declared for draw ${declarationDraw} for all clients.` });
+  const handleDeclareOrUndeclare = () => {
+    // Just trigger a re-calculation of accounts
+    updateAccountsFromLog(savedSheetLog);
+    toast({ title: "Success", description: `Results processed for draw ${declarationDraw}.` });
     setDeclarationDialogOpen(false);
   };
   
   const handleUndeclare = () => {
-    updateAllClientsDraw(true);
     setDeclaredNumbers(prev => {
         const newDeclared = { ...prev };
         delete newDeclared[declarationDraw];
         return newDeclared;
     });
-    toast({ title: "Success", description: `Result undeclared for draw ${declarationDraw} for all clients.` });
+    // This will trigger the useEffect to recalculate
+    toast({ title: "Success", description: `Result undeclared for draw ${declarationDraw}.` });
     setDeclarationDialogOpen(false);
   };
 
@@ -462,18 +416,15 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
             <DialogTitle>Declare Result for Draw {declarationDraw}</DialogTitle>
           </DialogHeader>
           <div className="my-4 text-center">
-            <p className="text-lg">Are you sure you want to declare or undeclare the number <strong className="text-primary">{declarationNumber}</strong>?</p>
+            <p className="text-lg">Are you sure you want to declare the number <strong className="text-primary">{declarationNumber}</strong>?</p>
+            <p className="text-sm text-muted-foreground">This will finalize calculations for this draw.</p>
           </div>
           <DialogFooter>
             <Button onClick={handleUndeclare} variant="destructive">Undeclare</Button>
-            <Button onClick={handleDeclare}>Declare</Button>
+            <Button onClick={handleDeclareOrUndeclare}>Declare</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
-
-    
-
-    
