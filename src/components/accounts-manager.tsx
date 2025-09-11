@@ -35,17 +35,20 @@ type AccountsManagerProps = {
 
 const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
 
-const BrokerSummaryCard = ({ title, value, icon: Icon }: { title: string; value: number; icon: React.ElementType }) => {
-    const valueColor = value >= 0 ? 'text-green-400' : 'text-red-500';
-    const isGrandTotal = title === "Grand Total";
+const BrokerSummaryCard = ({ title, value, icon: Icon, isGrandTotal = false }: { title: string; value: number; icon: React.ElementType, isGrandTotal?: boolean }) => {
+    const valueColor = isGrandTotal ? (value >= 0 ? 'text-green-400' : 'text-red-500') : 'text-foreground';
+    const cardClasses = `flex flex-col justify-between p-3 ${isGrandTotal ? 'bg-primary/10 border-primary/50' : 'bg-muted/50'}`;
+    const titleClasses = `font-semibold text-sm ${isGrandTotal ? 'text-primary' : 'text-foreground'}`;
+    const iconClasses = `h-4 w-4 ${isGrandTotal ? 'text-primary' : 'text-muted-foreground'}`;
+    const valueClasses = `text-xl font-bold text-right ${valueColor}`;
 
     return (
-        <Card className={`flex flex-col justify-between p-3 ${isGrandTotal ? 'bg-primary/10 border-primary/50' : 'bg-muted/50'}`}>
+        <Card className={cardClasses}>
             <div className="flex items-center justify-between mb-2">
-                <h4 className={`font-semibold text-sm ${isGrandTotal ? 'text-primary' : 'text-foreground'}`}>{title}</h4>
-                <Icon className={`h-4 w-4 ${isGrandTotal ? 'text-primary' : 'text-muted-foreground'}`} />
+                <h4 className={titleClasses}>{title}</h4>
+                <Icon className={iconClasses} />
             </div>
-            <p className={`text-xl font-bold text-right ${valueColor}`}>{formatNumber(value)}</p>
+            <p className={valueClasses}>{formatNumber(value)}</p>
         </Card>
     );
 };
@@ -106,27 +109,36 @@ const DrawDetailsPanel = ({
 
 export default function AccountsManager({ accounts, clients, setAccounts }: AccountsManagerProps) {
 
-  const brokerDrawTotals = draws.reduce((acc, drawName) => {
+  // Calculate raw total amount for each draw (without commission/passing)
+  const brokerRawDrawTotals = draws.reduce((acc, drawName) => {
     acc[drawName] = accounts.reduce((drawTotal, account) => {
-        const client = clients.find(c => c.id === account.id);
         const drawData = account.draws?.[drawName];
-
-        if (client && drawData && drawData.totalAmount > 0) {
-            const clientCommissionPercent = parseFloat(client.comm) / 100;
-            const passingMultiplier = parseFloat(client.pair);
-
-            const commission = drawData.totalAmount * clientCommissionPercent;
-            const afterCommission = drawData.totalAmount - commission;
-            const passingTotal = (drawData.passingAmount || 0) * passingMultiplier;
-
-            return drawTotal + (afterCommission - passingTotal);
-        }
-        return drawTotal;
+        return drawTotal + (drawData?.totalAmount || 0);
     }, 0);
     return acc;
   }, {} as { [key: string]: number });
-  
-  const grandTotal = Object.values(brokerDrawTotals).reduce((sum, total) => sum + total, 0);
+
+  // Calculate the final net total from all clients after their commissions and passings
+  const finalNetTotalFromClients = accounts.reduce((totalNet, account) => {
+    const client = clients.find(c => c.id === account.id);
+    if (!client) return totalNet;
+
+    const clientCommissionPercent = parseFloat(client.comm) / 100;
+    const passingMultiplier = parseFloat(client.pair);
+
+    const clientNetFromAllDraws = Object.values(account.draws || {}).reduce((clientTotal, drawData) => {
+        const totalAmount = drawData?.totalAmount || 0;
+        if (totalAmount === 0) return clientTotal;
+
+        const commission = totalAmount * clientCommissionPercent;
+        const afterCommission = totalAmount - commission;
+        const passingTotal = (drawData.passingAmount || 0) * passingMultiplier;
+        
+        return clientTotal + (afterCommission - passingTotal);
+    }, 0);
+
+    return totalNet + clientNetFromAllDraws;
+  }, 0);
 
   return (
     <Card>
@@ -136,21 +148,22 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
       <CardContent className="space-y-6">
         <div>
             <h3 className="text-lg font-semibold mb-3 text-primary flex items-center gap-2">
-                <Landmark className="h-5 w-5" /> Broker Summary
+                <Landmark className="h-5 w-5" /> All Draws - Raw Totals
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
                 {draws.map(drawName => (
                     <BrokerSummaryCard 
                         key={drawName}
                         title={drawName} 
-                        value={brokerDrawTotals[drawName] || 0} 
+                        value={brokerRawDrawTotals[drawName] || 0} 
                         icon={HandCoins}
                     />
                 ))}
                 <BrokerSummaryCard
-                  title="Grand Total"
-                  value={grandTotal}
+                  title="Final Total"
+                  value={finalNetTotalFromClients}
                   icon={Landmark}
+                  isGrandTotal={true}
                 />
             </div>
         </div>
