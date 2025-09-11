@@ -21,6 +21,7 @@ type LedgerRecordProps = {
   clients: Client[];
   savedSheetLog: { [draw: string]: SavedSheetInfo[] };
   draws: string[];
+  declaredNumbers: { [draw: string]: string };
 };
 
 type DailyReportRow = {
@@ -42,87 +43,84 @@ type PerformanceRecord = {
   profitLoss: number;
 };
 
-const BrokerProfitLoss = ({ clients, savedSheetLog }: LedgerRecordProps) => {
+const BrokerProfitLoss = ({ clients, savedSheetLog, declaredNumbers }: {
+    clients: Client[];
+    savedSheetLog: { [draw: string]: SavedSheetInfo[] };
+    declaredNumbers: { [draw: string]: string };
+}) => {
     const [upperComm, setUpperComm] = useState(defaultUpperComm.toString());
     const [upperPair, setUpperPair] = useState(defaultUpperPair.toString());
     const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
     
     const dailyReportData: DailyReportRow[] = useMemo(() => {
-      const upperCommPercent = parseFloat(upperComm) / 100 || defaultUpperComm / 100;
-      const upperPairRate = parseFloat(upperPair) || defaultUpperPair;
-  
-      const monthStart = startOfMonth(selectedMonth);
-      const monthEnd = endOfMonth(selectedMonth);
-      const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
-  
-      return daysInMonth.map(day => {
-        let totalClientPayableForDay = 0;
-        let totalUpperPayableForDay = 0;
-        let totalGameAmountForDay = 0;
-        let totalPassingAmountForDay = 0; // This will hold the number, not the multiplied value
+        const upperCommPercent = parseFloat(upperComm) / 100 || defaultUpperComm / 100;
+        const upperPairRate = parseFloat(upperPair) || defaultUpperPair;
+    
+        const monthStart = startOfMonth(selectedMonth);
+        const monthEnd = endOfMonth(selectedMonth);
+        const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    
+        return daysInMonth.map(day => {
+            let totalClientPayableForDay = 0;
+            let totalUpperPayableForDay = 0;
+    
+            clients.forEach(client => {
+                let clientGameTotalForDay = 0;
+                let clientPassingAmountForDay = 0;
+                const clientCommPercent = parseFloat(client.comm) / 100 || defaultClientComm / 100;
+                const clientPairRate = parseFloat(client.pair) || defaultClientPair;
 
-        // First, aggregate total game amount and passing amounts for the day across all clients
-        Object.values(savedSheetLog).flat().forEach(log => {
-          if (isSameDay(new Date(log.date), day)) {
-            totalGameAmountForDay += log.gameTotal;
-            // Assuming passing amount is the sum of values for "declared" numbers.
-            // This is a simplification. The logic to get the actual declared number and its value is complex
-            // without knowing which number was declared for which draw on which day.
-            // A more robust solution would store declared numbers historically.
-            // For now, let's assume a hypothetical passing amount based on the log data itself.
-            // Simplified: let's find any amount that could be a "passing" amount.
-            const passingInLog = Object.values(log.data).reduce((acc, value) => {
-              // This is a placeholder. Real logic needs to know the winning number for the draw.
-              // For now, we can't accurately get passing amounts from just the log.
-              // So, we'll keep it at 0 until the data model is updated.
-              return acc;
-            }, 0)
-            // totalPassingAmountForDay += passingInLog;
-          }
-        });
-  
-        // Then, calculate client-side payables
-        clients.forEach(client => {
-          const clientCommPercent = parseFloat(client.comm) / 100 || defaultClientComm / 100;
-          const clientPairRate = parseFloat(client.pair) || defaultClientPair;
-  
-          let totalGameAmountForClientDay = 0;
-          let totalPassingAmountForClientDay = 0; // The number that passed, not multiplied value
-          
-          Object.values(savedSheetLog).flat().forEach(log => {
-            if (log.clientId === client.id && isSameDay(new Date(log.date), day)) {
-              totalGameAmountForClientDay += log.gameTotal;
-              // Again, simplified passing amount logic.
-            }
-          });
-  
-          if (totalGameAmountForClientDay > 0) {
-            const clientCommission = totalGameAmountForClientDay * clientCommPercent;
-            const clientNet = totalGameAmountForClientDay - clientCommission;
-            const clientWinnings = totalPassingAmountForClientDay * clientPairRate;
-            const clientPayable = clientNet - clientWinnings;
-            totalClientPayableForDay += clientPayable;
-          }
-        });
+                Object.entries(savedSheetLog).forEach(([drawName, logs]) => {
+                    const clientLogsForDraw = logs.filter(log => log.clientId === client.id && isSameDay(new Date(log.date), day));
+                    clientLogsForDraw.forEach(log => {
+                        clientGameTotalForDay += log.gameTotal;
+                        const declaredNumber = declaredNumbers[drawName];
+                        if (declaredNumber && log.data[declaredNumber]) {
+                            clientPassingAmountForDay += parseFloat(log.data[declaredNumber]) || 0;
+                        }
+                    });
+                });
 
-        // Now calculate what you owe your upper broker based on day's totals
-        const upperCommission = totalGameAmountForDay * upperCommPercent;
-        const upperNet = totalGameAmountForDay - upperCommission;
-        const upperWinnings = totalPassingAmountForDay * upperPairRate;
-        totalUpperPayableForDay = upperNet - upperWinnings;
-        
-        // Your profit is the difference
-        const brokerProfit = totalClientPayableForDay - totalUpperPayableForDay;
-        
-        return {
-          date: day,
-          clientPayable: totalClientPayableForDay,
-          upperPayable: totalUpperPayableForDay,
-          brokerProfit,
-        };
-      });
-  
-    }, [selectedMonth, upperComm, upperPair, clients, savedSheetLog]);
+                if (clientGameTotalForDay > 0) {
+                    const clientCommission = clientGameTotalForDay * clientCommPercent;
+                    const clientNet = clientGameTotalForDay - clientCommission;
+                    const clientWinnings = clientPassingAmountForDay * clientPairRate;
+                    const clientPayable = clientNet - clientWinnings;
+                    totalClientPayableForDay += clientPayable;
+                }
+            });
+
+            let totalGameAmountForDay = 0;
+            let totalPassingAmountForDay = 0;
+
+            Object.entries(savedSheetLog).forEach(([drawName, logs]) => {
+                logs.forEach(log => {
+                    if (isSameDay(new Date(log.date), day)) {
+                        totalGameAmountForDay += log.gameTotal;
+                        const declaredNumber = declaredNumbers[drawName];
+                        if (declaredNumber && log.data[declaredNumber]) {
+                           totalPassingAmountForDay += parseFloat(log.data[declaredNumber]) || 0;
+                        }
+                    }
+                });
+            });
+    
+            const upperCommission = totalGameAmountForDay * upperCommPercent;
+            const upperNet = totalGameAmountForDay - upperCommission;
+            const upperWinnings = totalPassingAmountForDay * upperPairRate;
+            totalUpperPayableForDay = upperNet - upperWinnings;
+            
+            const brokerProfit = totalClientPayableForDay - totalUpperPayableForDay;
+            
+            return {
+                date: day,
+                clientPayable: totalClientPayableForDay,
+                upperPayable: totalUpperPayableForDay,
+                brokerProfit,
+            };
+        });
+    
+    }, [selectedMonth, upperComm, upperPair, clients, savedSheetLog, declaredNumbers]);
   
     const monthlyTotalProfit = useMemo(() => {
       return dailyReportData.reduce((acc, row) => acc + row.brokerProfit, 0);
@@ -230,77 +228,77 @@ const BrokerProfitLoss = ({ clients, savedSheetLog }: LedgerRecordProps) => {
     );
 };
 
-const ClientProfitLoss = ({ clients, savedSheetLog, draws }: LedgerRecordProps) => {
+const ClientProfitLoss = ({ clients, savedSheetLog, draws, declaredNumbers }: LedgerRecordProps) => {
     const [selectedClient, setSelectedClient] = useState<string>("all");
     const [selectedDraw, setSelectedDraw] = useState<string>("all");
     const [dateRange, setDateRange] = useState<string>("all");
     const [searchQuery, setSearchQuery] = useState("");
 
     const performanceData: PerformanceRecord[] = useMemo(() => {
-        let allPerformance: PerformanceRecord[] = [];
-        
-        let logs = Object.values(savedSheetLog).flat();
-
-        // Filter by date range
-        const now = new Date();
-        if (dateRange === 'today') {
-            logs = logs.filter(log => isSameDay(new Date(log.date), now));
-        } else if (dateRange === 'yesterday') {
-            logs = logs.filter(log => isSameDay(new Date(log.date), subDays(now, 1)));
-        } else if (dateRange === 'last7') {
-            const sevenDaysAgo = subDays(now, 7);
-            logs = logs.filter(log => new Date(log.date) >= sevenDaysAgo);
-        }
-
         const clientDrawMap: { [key: string]: { totalInvested: number, profitLoss: number } } = {};
 
-        logs.forEach(log => {
-            const client = clients.find(c => c.id === log.clientId);
-            if (!client) return;
-
-            // Filter by search query
-            if (searchQuery && !client.name.toLowerCase().includes(searchQuery.toLowerCase())) {
-                return;
-            }
-            
-            // Filter by client and draw
-            if (selectedClient !== 'all' && log.clientId !== selectedClient) return;
-            // The draw is implicit in the log's key in the original `savedSheetLog`, but not in the flattened array. We need to find the draw name.
-            const drawName = Object.keys(savedSheetLog).find(draw => savedSheetLog[draw].some(l => l === log)) || 'Unknown';
+        // Iterate over each draw and its logs
+        Object.entries(savedSheetLog).forEach(([drawName, logs]) => {
+            // Filter logs by selected draw if not 'all'
             if (selectedDraw !== 'all' && drawName !== selectedDraw) return;
             
-            const mapKey = `${client.id}-${drawName}`;
-
-            if (!clientDrawMap[mapKey]) {
-                clientDrawMap[mapKey] = { totalInvested: 0, profitLoss: 0 };
+            let filteredLogs = logs;
+            const now = new Date();
+            if (dateRange === 'today') {
+                filteredLogs = logs.filter(log => isSameDay(new Date(log.date), now));
+            } else if (dateRange === 'yesterday') {
+                filteredLogs = logs.filter(log => isSameDay(new Date(log.date), subDays(now, 1)));
+            } else if (dateRange === 'last7') {
+                const sevenDaysAgo = subDays(now, 7);
+                filteredLogs = logs.filter(log => new Date(log.date) >= sevenDaysAgo);
             }
 
-            const totalInvested = log.gameTotal;
-            // This is a simplified profit/loss calc. A real one would need passing amounts.
-            const clientWinnings = 0; // Simplified
-            const clientComm = totalInvested * (parseFloat(client.comm) / 100);
-            const clientNet = totalInvested - clientComm;
-            const profitLoss = clientWinnings - clientNet;
+            filteredLogs.forEach(log => {
+                const client = clients.find(c => c.id === log.clientId);
+                if (!client) return;
 
-            clientDrawMap[mapKey].totalInvested += totalInvested;
-            clientDrawMap[mapKey].profitLoss += profitLoss;
+                if (searchQuery && !client.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+                    return;
+                }
+                
+                if (selectedClient !== 'all' && log.clientId !== selectedClient) return;
+
+                const mapKey = `${client.id}-${drawName}`;
+
+                if (!clientDrawMap[mapKey]) {
+                    clientDrawMap[mapKey] = { totalInvested: 0, profitLoss: 0 };
+                }
+
+                const totalInvested = log.gameTotal;
+                const clientComm = totalInvested * (parseFloat(client.comm) / 100);
+                const clientNet = totalInvested - clientComm;
+
+                const declaredNumber = declaredNumbers[drawName];
+                const passingAmount = (declaredNumber && log.data[declaredNumber]) ? (parseFloat(log.data[declaredNumber]) || 0) : 0;
+                const clientWinnings = passingAmount * (parseFloat(client.pair) || defaultClientPair);
+
+                const profitLoss = clientNet - clientWinnings; // For broker: what they take in minus what they pay out
+
+                clientDrawMap[mapKey].totalInvested += totalInvested;
+                clientDrawMap[mapKey].profitLoss += profitLoss;
+            });
         });
 
-        allPerformance = Object.keys(clientDrawMap).map(key => {
+        const allPerformance = Object.keys(clientDrawMap).map(key => {
             const [clientId, drawName] = key.split('-');
             const client = clients.find(c => c.id === clientId);
             return {
                 clientName: client?.name || 'Unknown',
                 drawName,
                 totalInvested: clientDrawMap[key].totalInvested,
-                profitLoss: clientDrawMap[key].profitLoss,
+                // For client P/L, we invert the broker's profit
+                profitLoss: -clientDrawMap[key].profitLoss,
             };
         });
 
-        // Sort by profitability
-        return allPerformance.sort((a, b) => b.profitLoss - a.profitLoss);
+        return allPerformance.sort((a, b) => a.profitLoss - b.profitLoss);
 
-    }, [clients, savedSheetLog, selectedClient, selectedDraw, dateRange, searchQuery]);
+    }, [clients, savedSheetLog, selectedClient, selectedDraw, dateRange, searchQuery, declaredNumbers]);
     
     const overallTotalInvested = useMemo(() => {
         return performanceData.reduce((acc, record) => acc + record.totalInvested, 0);
@@ -362,11 +360,11 @@ const ClientProfitLoss = ({ clients, savedSheetLog, draws }: LedgerRecordProps) 
                             <TableHead>Client Name</TableHead>
                             <TableHead>Draw Name</TableHead>
                             <TableHead className="text-right">Total Invested</TableHead>
-                            <TableHead className="text-right">Profit/Loss</TableHead>
+                            <TableHead className="text-right">Client Profit/Loss</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {performanceData.map((record, index) => (
+                        {performanceData.length > 0 ? performanceData.map((record, index) => (
                             <TableRow key={index}>
                                 <TableCell>{record.clientName}</TableCell>
                                 <TableCell>{record.drawName}</TableCell>
@@ -375,11 +373,17 @@ const ClientProfitLoss = ({ clients, savedSheetLog, draws }: LedgerRecordProps) 
                                     {record.profitLoss >= 0 ? `+₹${formatNumber(record.profitLoss)}` : `-₹${formatNumber(Math.abs(record.profitLoss))}`}
                                 </TableCell>
                             </TableRow>
-                        ))}
+                        )) : (
+                            <TableRow>
+                                <TableCell colSpan={4} className="text-center text-muted-foreground h-24">
+                                    No data available for the selected filters.
+                                </TableCell>
+                            </TableRow>
+                        )}
                     </TableBody>
                     <TableFooter>
                         <TableRow className="bg-muted/50 hover:bg-muted">
-                            <TableCell colSpan={2} className="font-bold text-lg text-right">Overall Performance</TableCell>
+                            <TableCell colSpan={2} className="font-bold text-lg text-right">Overall Totals</TableCell>
                             <TableCell className="text-right font-bold text-lg">₹{formatNumber(overallTotalInvested)}</TableCell>
                             <TableCell className={`text-right font-bold text-lg ${overallTotalProfitLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                 {overallTotalProfitLoss >= 0 ? `+₹${formatNumber(overallTotalProfitLoss)}` : `-₹${formatNumber(Math.abs(overallTotalProfitLoss))}`}
@@ -392,7 +396,7 @@ const ClientProfitLoss = ({ clients, savedSheetLog, draws }: LedgerRecordProps) 
     );
 }
 
-export default function LedgerRecord({ clients, savedSheetLog, draws }: LedgerRecordProps) {
+export default function LedgerRecord({ clients, savedSheetLog, draws, declaredNumbers }: LedgerRecordProps) {
   return (
     <Card className="overflow-hidden">
       <CardHeader>
@@ -406,10 +410,10 @@ export default function LedgerRecord({ clients, savedSheetLog, draws }: LedgerRe
                 <TabsTrigger value="client-pl">Client P/L</TabsTrigger>
             </TabsList>
             <TabsContent value="broker-pl" className="pt-4">
-                <BrokerProfitLoss clients={clients} savedSheetLog={savedSheetLog} draws={draws} />
+                <BrokerProfitLoss clients={clients} savedSheetLog={savedSheetLog} declaredNumbers={declaredNumbers} />
             </TabsContent>
             <TabsContent value="client-pl" className="pt-4">
-                <ClientProfitLoss clients={clients} savedSheetLog={savedSheetLog} draws={draws} />
+                <ClientProfitLoss clients={clients} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />
             </TabsContent>
         </Tabs>
       </CardContent>
