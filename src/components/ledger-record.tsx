@@ -58,23 +58,41 @@ const BrokerProfitLoss = ({ clients, savedSheetLog }: LedgerRecordProps) => {
       return daysInMonth.map(day => {
         let totalClientPayableForDay = 0;
         let totalUpperPayableForDay = 0;
+        let totalGameAmountForDay = 0;
+        let totalPassingAmountForDay = 0; // This will hold the number, not the multiplied value
+
+        // First, aggregate total game amount and passing amounts for the day across all clients
+        Object.values(savedSheetLog).flat().forEach(log => {
+          if (isSameDay(new Date(log.date), day)) {
+            totalGameAmountForDay += log.gameTotal;
+            // Assuming passing amount is the sum of values for "declared" numbers.
+            // This is a simplification. The logic to get the actual declared number and its value is complex
+            // without knowing which number was declared for which draw on which day.
+            // A more robust solution would store declared numbers historically.
+            // For now, let's assume a hypothetical passing amount based on the log data itself.
+            // Simplified: let's find any amount that could be a "passing" amount.
+            const passingInLog = Object.values(log.data).reduce((acc, value) => {
+              // This is a placeholder. Real logic needs to know the winning number for the draw.
+              // For now, we can't accurately get passing amounts from just the log.
+              // So, we'll keep it at 0 until the data model is updated.
+              return acc;
+            }, 0)
+            // totalPassingAmountForDay += passingInLog;
+          }
+        });
   
+        // Then, calculate client-side payables
         clients.forEach(client => {
           const clientCommPercent = parseFloat(client.comm) / 100 || defaultClientComm / 100;
           const clientPairRate = parseFloat(client.pair) || defaultClientPair;
   
           let totalGameAmountForClientDay = 0;
-          let totalPassingAmountForClientDay = 0;
+          let totalPassingAmountForClientDay = 0; // The number that passed, not multiplied value
           
           Object.values(savedSheetLog).flat().forEach(log => {
             if (log.clientId === client.id && isSameDay(new Date(log.date), day)) {
               totalGameAmountForClientDay += log.gameTotal;
-              // Simplified passing amount - this would need historical declared numbers to be accurate.
-              // Assuming passing amount is captured in some way if a number is declared.
-              // For this calculation, we'll assume passing is tracked elsewhere or we need more data.
-              // Here we focus on commission-based profit.
-              // Let's find passing amount from log.data and a hypothetical declared number.
-              // This is a simplification. A real implementation would need declared numbers per day.
+              // Again, simplified passing amount logic.
             }
           });
   
@@ -84,15 +102,16 @@ const BrokerProfitLoss = ({ clients, savedSheetLog }: LedgerRecordProps) => {
             const clientWinnings = totalPassingAmountForClientDay * clientPairRate;
             const clientPayable = clientNet - clientWinnings;
             totalClientPayableForDay += clientPayable;
-  
-            const upperCommission = totalGameAmountForClientDay * upperCommPercent;
-            const upperNet = totalGameAmountForClientDay - upperCommission;
-            const upperWinnings = totalPassingAmountForClientDay * upperPairRate;
-            const upperPayable = upperNet - upperWinnings;
-            totalUpperPayableForDay += upperPayable;
           }
         });
+
+        // Now calculate what you owe your upper broker based on day's totals
+        const upperCommission = totalGameAmountForDay * upperCommPercent;
+        const upperNet = totalGameAmountForDay - upperCommission;
+        const upperWinnings = totalPassingAmountForDay * upperPairRate;
+        totalUpperPayableForDay = upperNet - upperWinnings;
         
+        // Your profit is the difference
         const brokerProfit = totalClientPayableForDay - totalUpperPayableForDay;
         
         return {
@@ -187,7 +206,7 @@ const BrokerProfitLoss = ({ clients, savedSheetLog }: LedgerRecordProps) => {
                     </TableHeader>
                     <TableBody>
                     {dailyReportData.map((row, index) => (
-                        <TableRow key={index} className={row.brokerProfit === 0 ? "text-muted-foreground" : ""}>
+                        <TableRow key={index} className={row.brokerProfit === 0 && row.clientPayable === 0 ? "text-muted-foreground" : ""}>
                         <TableCell className="font-medium">{format(row.date, "EEE, dd MMM yyyy")}</TableCell>
                         <TableCell className="text-right">₹{formatNumber(row.clientPayable)}</TableCell>
                         <TableCell className="text-right">₹{formatNumber(row.upperPayable)}</TableCell>
