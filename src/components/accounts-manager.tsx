@@ -117,7 +117,7 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
 
             const commission = drawData.totalAmount * clientCommissionPercent;
             const afterCommission = drawData.totalAmount - commission;
-            const passingTotal = drawData.passingAmount * passingMultiplier;
+            const passingTotal = (drawData.passingAmount || 0) * passingMultiplier;
 
             return drawTotal + (afterCommission - passingTotal);
         }
