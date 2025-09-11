@@ -51,6 +51,7 @@ const BrokerProfitLoss = ({ clients, savedSheetLog, declaredNumbers }: {
     const [upperComm, setUpperComm] = useState(defaultUpperComm.toString());
     const [upperPair, setUpperPair] = useState(defaultUpperPair.toString());
     const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
+    const [selectedClientId, setSelectedClientId] = useState<string>('all');
     
     const dailyReportData: DailyReportRow[] = useMemo(() => {
         const upperCommPercent = parseFloat(upperComm) / 100 || defaultUpperComm / 100;
@@ -59,12 +60,14 @@ const BrokerProfitLoss = ({ clients, savedSheetLog, declaredNumbers }: {
         const monthStart = startOfMonth(selectedMonth);
         const monthEnd = endOfMonth(selectedMonth);
         const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+        const clientsToProcess = selectedClientId === 'all' ? clients : clients.filter(c => c.id === selectedClientId);
     
         return daysInMonth.map(day => {
             let totalClientPayableForDay = 0;
             let totalUpperPayableForDay = 0;
     
-            clients.forEach(client => {
+            clientsToProcess.forEach(client => {
                 let clientGameTotalForDay = 0;
                 let clientPassingAmountForDay = 0;
                 const clientCommPercent = parseFloat(client.comm) / 100 || defaultClientComm / 100;
@@ -95,7 +98,8 @@ const BrokerProfitLoss = ({ clients, savedSheetLog, declaredNumbers }: {
 
             Object.entries(savedSheetLog).forEach(([drawName, logs]) => {
                 logs.forEach(log => {
-                    if (isSameDay(new Date(log.date), day)) {
+                    const clientMatches = selectedClientId === 'all' || log.clientId === selectedClientId;
+                    if (clientMatches && isSameDay(new Date(log.date), day)) {
                         totalGameAmountForDay += log.gameTotal;
                         const declaredNumber = declaredNumbers[drawName];
                         if (declaredNumber && log.data[declaredNumber]) {
@@ -120,7 +124,7 @@ const BrokerProfitLoss = ({ clients, savedSheetLog, declaredNumbers }: {
             };
         });
     
-    }, [selectedMonth, upperComm, upperPair, clients, savedSheetLog, declaredNumbers]);
+    }, [selectedMonth, upperComm, upperPair, clients, savedSheetLog, declaredNumbers, selectedClientId]);
   
     const monthlyTotalProfit = useMemo(() => {
       return dailyReportData.reduce((acc, row) => acc + row.brokerProfit, 0);
@@ -174,6 +178,16 @@ const BrokerProfitLoss = ({ clients, savedSheetLog, declaredNumbers }: {
                         />
                     </PopoverContent>
                     </Popover>
+                </div>
+                 <div className="space-y-2">
+                    <Label>Filter by Client</Label>
+                    <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Clients</SelectItem>
+                            {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
                 </div>
             </div>
             
@@ -420,5 +434,3 @@ export default function LedgerRecord({ clients, savedSheetLog, draws, declaredNu
     </Card>
   );
 }
-
-    
