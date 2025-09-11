@@ -117,6 +117,17 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
     }, 0);
     return acc;
   }, {} as { [key: string]: number });
+  
+  const brokerPassingDrawTotals = draws.reduce((acc, drawName) => {
+    acc[drawName] = accounts.reduce((drawTotal, account) => {
+        const drawData = account.draws?.[drawName];
+        return drawTotal + (drawData?.passingAmount || 0);
+    }, 0);
+    return acc;
+  }, {} as { [key: string]: number });
+  
+  const grandPassingTotal = Object.values(brokerPassingDrawTotals).reduce((sum, total) => sum + total, 0);
+
 
   // Calculate the final net total from the perspective of the upper broker
   const finalNetTotalForBroker = draws.reduce((totalNet, drawName) => {
@@ -163,6 +174,30 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
                   title="Final Total"
                   value={finalNetTotalForBroker}
                   icon={Landmark}
+                  isGrandTotal={true}
+                />
+            </div>
+        </div>
+
+        <Separator />
+        
+         <div>
+            <h3 className="text-lg font-semibold mb-3 text-primary flex items-center gap-2">
+                <TrendingDown className="h-5 w-5" /> All Draws - Passing Totals
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+                {draws.map(drawName => (
+                    <BrokerSummaryCard 
+                        key={drawName}
+                        title={drawName} 
+                        value={brokerPassingDrawTotals[drawName] || 0} 
+                        icon={TrendingUp}
+                    />
+                ))}
+                <BrokerSummaryCard
+                  title="Grand Total"
+                  value={grandPassingTotal}
+                  icon={TrendingDown}
                   isGrandTotal={true}
                 />
             </div>
