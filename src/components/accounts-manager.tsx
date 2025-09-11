@@ -12,6 +12,8 @@ import { Separator } from "@/components/ui/separator"
 import type { Client } from "./clients-manager"
 import { useToast } from "@/hooks/use-toast"
 import { formatNumber } from "@/lib/utils"
+import { TrendingUp, TrendingDown, HandCoins, Landmark } from 'lucide-react';
+
 
 export type Account = {
   id: string
@@ -32,6 +34,22 @@ type AccountsManagerProps = {
 };
 
 const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
+
+const BrokerSummaryCard = ({ title, value, icon: Icon }: { title: string; value: number; icon: React.ElementType }) => {
+    const valueColor = value >= 0 ? 'text-green-400' : 'text-red-500';
+    const isGrandTotal = title === "Grand Total";
+
+    return (
+        <Card className={`flex flex-col justify-between p-3 ${isGrandTotal ? 'bg-primary/10 border-primary/50' : 'bg-muted/50'}`}>
+            <div className="flex items-center justify-between mb-2">
+                <h4 className={`font-semibold text-sm ${isGrandTotal ? 'text-primary' : 'text-foreground'}`}>{title}</h4>
+                <Icon className={`h-4 w-4 ${isGrandTotal ? 'text-primary' : 'text-muted-foreground'}`} />
+            </div>
+            <p className={`text-xl font-bold text-right ${valueColor}`}>{formatNumber(value)}</p>
+        </Card>
+    );
+};
+
 
 const DrawDetailsPanel = ({
   client,
@@ -87,77 +105,127 @@ const DrawDetailsPanel = ({
 }
 
 export default function AccountsManager({ accounts, clients, setAccounts }: AccountsManagerProps) {
+
+  const brokerDrawTotals = draws.reduce((acc, drawName) => {
+    acc[drawName] = accounts.reduce((drawTotal, account) => {
+        const client = clients.find(c => c.id === account.id);
+        const drawData = account.draws?.[drawName];
+
+        if (client && drawData && drawData.totalAmount > 0) {
+            const clientCommissionPercent = parseFloat(client.comm) / 100;
+            const passingMultiplier = parseFloat(client.pair);
+
+            const commission = drawData.totalAmount * clientCommissionPercent;
+            const afterCommission = drawData.totalAmount - commission;
+            const passingTotal = drawData.passingAmount * passingMultiplier;
+
+            return drawTotal + (afterCommission - passingTotal);
+        }
+        return drawTotal;
+    }, 0);
+    return acc;
+  }, {} as { [key: string]: number });
   
+  const grandTotal = Object.values(brokerDrawTotals).reduce((sum, total) => sum + total, 0);
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Manage Account Ledger</CardTitle>
       </CardHeader>
-      <CardContent>
-        <Accordion type="single" collapsible className="w-full">
-          {accounts.map((account, index) => {
-            const client = clients.find(c => c.id === account.id);
-            const balanceValue = parseFloat(account.balance) || 0;
-            const balanceColor = balanceValue >= 0 ? 'text-green-400' : 'text-red-500';
+      <CardContent className="space-y-6">
+        <div>
+            <h3 className="text-lg font-semibold mb-3 text-primary flex items-center gap-2">
+                <Landmark className="h-5 w-5" /> Broker Summary
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+                {draws.map(drawName => (
+                    <BrokerSummaryCard 
+                        key={drawName}
+                        title={drawName} 
+                        value={brokerDrawTotals[drawName] || 0} 
+                        icon={HandCoins}
+                    />
+                ))}
+                <BrokerSummaryCard
+                  title="Grand Total"
+                  value={grandTotal}
+                  icon={Landmark}
+                />
+            </div>
+        </div>
 
-            const activeBalance = client ? parseFloat(client.activeBalance) || 0 : 0;
-            const totalPlayed = account.draws ? Object.values(account.draws).reduce((sum, d) => sum + (d?.totalAmount || 0), 0) : 0;
-            const remainingBalance = activeBalance - totalPlayed;
-            const hasActiveDraws = account.draws && Object.values(account.draws).some(d => d.totalAmount > 0);
+        <Separator />
 
-            return (
-              <AccordionItem value={`item-${index}`} key={account.id}>
-                <AccordionTrigger>
-                    <div className="flex justify-between w-full pr-4">
-                        <span>{index + 1}. {account.clientName}</span>
-                        <span className={`font-bold ${balanceColor}`}>₹{formatNumber(balanceValue)}</span>
-                    </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="p-4 bg-card rounded-lg space-y-4">
-                    {client && activeBalance > 0 && (
-                       <div className="p-4 bg-muted/30 rounded-lg text-sm font-mono border">
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                          <span className="text-foreground/80">User Name</span><span className="text-right font-semibold text-primary">: {client?.name || 'N/A'}</span>
-                          <span className="text-foreground/80">Active Balance</span><span className="text-right font-semibold">: ₹{formatNumber(activeBalance)}</span>
-                          <span className="text-foreground/80">Total Played</span><span className="text-right font-semibold">: ₹{formatNumber(totalPlayed)}</span>
-                          <Separator className="my-1 col-span-2 bg-border/50" />
-                          <span className="text-foreground/80 font-bold">Remaining Balance</span><span className={`text-right font-bold ${remainingBalance < 0 ? 'text-red-500' : 'text-green-400'}`}>: ₹{formatNumber(remainingBalance)}</span>
+        <div>
+            <h3 className="text-lg font-semibold mb-3 text-primary flex items-center gap-2">
+                <HandCoins className="h-5 w-5" /> Client Ledgers
+            </h3>
+            <Accordion type="single" collapsible className="w-full">
+              {accounts.map((account, index) => {
+                const client = clients.find(c => c.id === account.id);
+                const balanceValue = parseFloat(account.balance) || 0;
+                const balanceColor = balanceValue >= 0 ? 'text-green-400' : 'text-red-500';
+
+                const activeBalance = client ? parseFloat(client.activeBalance) || 0 : 0;
+                const totalPlayed = account.draws ? Object.values(account.draws).reduce((sum, d) => sum + (d?.totalAmount || 0), 0) : 0;
+                const remainingBalance = activeBalance - totalPlayed;
+                const hasActiveDraws = account.draws && Object.values(account.draws).some(d => d.totalAmount > 0);
+
+                return (
+                  <AccordionItem value={`item-${index}`} key={account.id}>
+                    <AccordionTrigger>
+                        <div className="flex justify-between w-full pr-4">
+                            <span>{index + 1}. {account.clientName}</span>
+                            <span className={`font-bold ${balanceColor}`}>₹{formatNumber(balanceValue)}</span>
                         </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="p-4 bg-card rounded-lg space-y-4">
+                        {client && activeBalance > 0 && (
+                           <div className="p-4 bg-muted/30 rounded-lg text-sm font-mono border">
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                              <span className="text-foreground/80">User Name</span><span className="text-right font-semibold text-primary">: {client?.name || 'N/A'}</span>
+                              <span className="text-foreground/80">Active Balance</span><span className="text-right font-semibold">: ₹{formatNumber(activeBalance)}</span>
+                              <span className="text-foreground/80">Total Played</span><span className="text-right font-semibold">: ₹{formatNumber(totalPlayed)}</span>
+                              <Separator className="my-1 col-span-2 bg-border/50" />
+                              <span className="text-foreground/80 font-bold">Remaining Balance</span><span className={`text-right font-bold ${remainingBalance < 0 ? 'text-red-500' : 'text-green-400'}`}>: ₹{formatNumber(remainingBalance)}</span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {hasActiveDraws ? (
+                          <Tabs defaultValue={draws[0]} className="w-full">
+                            <TabsList className="grid w-full grid-cols-6 h-auto">
+                              {draws.map(draw => (
+                                <TabsTrigger key={draw} value={draw} className="text-xs px-1">
+                                  {draw}
+                                </TabsTrigger>
+                              ))}
+                            </TabsList>
+                            {draws.map(draw => (
+                              <TabsContent key={draw} value={draw}>
+                                <DrawDetailsPanel 
+                                  client={client}
+                                  account={account}
+                                  drawName={draw} 
+                                  drawData={account.draws ? account.draws[draw] : undefined}
+                                />
+                              </TabsContent>
+                            ))}
+                          </Tabs>
+                        ) : (
+                          <div className="text-center text-muted-foreground italic py-8">
+                            No entries for this client.
+                          </div>
+                        )}
                       </div>
-                    )}
-                    
-                    {hasActiveDraws ? (
-                      <Tabs defaultValue={draws[0]} className="w-full">
-                        <TabsList className="grid w-full grid-cols-6 h-auto">
-                          {draws.map(draw => (
-                            <TabsTrigger key={draw} value={draw} className="text-xs px-1">
-                              {draw}
-                            </TabsTrigger>
-                          ))}
-                        </TabsList>
-                        {draws.map(draw => (
-                          <TabsContent key={draw} value={draw}>
-                            <DrawDetailsPanel 
-                              client={client}
-                              account={account}
-                              drawName={draw} 
-                              drawData={account.draws ? account.draws[draw] : undefined}
-                            />
-                          </TabsContent>
-                        ))}
-                      </Tabs>
-                    ) : (
-                      <div className="text-center text-muted-foreground italic py-8">
-                        No entries for this client.
-                      </div>
-                    )}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            )
-          })}
-        </Accordion>
+                    </AccordionContent>
+                  </AccordionItem>
+                )
+              })}
+            </Accordion>
+        </div>
       </CardContent>
     </Card>
   )
