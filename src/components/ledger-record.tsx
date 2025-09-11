@@ -215,6 +215,7 @@ const ClientProfitLoss = ({ clients, savedSheetLog, draws }: LedgerRecordProps) 
     const [selectedClient, setSelectedClient] = useState<string>("all");
     const [selectedDraw, setSelectedDraw] = useState<string>("all");
     const [dateRange, setDateRange] = useState<string>("all");
+    const [searchQuery, setSearchQuery] = useState("");
 
     const performanceData: PerformanceRecord[] = useMemo(() => {
         let allPerformance: PerformanceRecord[] = [];
@@ -238,6 +239,11 @@ const ClientProfitLoss = ({ clients, savedSheetLog, draws }: LedgerRecordProps) 
             const client = clients.find(c => c.id === log.clientId);
             if (!client) return;
 
+            // Filter by search query
+            if (searchQuery && !client.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+                return;
+            }
+            
             // Filter by client and draw
             if (selectedClient !== 'all' && log.clientId !== selectedClient) return;
             // The draw is implicit in the log's key in the original `savedSheetLog`, but not in the flattened array. We need to find the draw name.
@@ -275,7 +281,7 @@ const ClientProfitLoss = ({ clients, savedSheetLog, draws }: LedgerRecordProps) 
         // Sort by profitability
         return allPerformance.sort((a, b) => b.profitLoss - a.profitLoss);
 
-    }, [clients, savedSheetLog, selectedClient, selectedDraw, dateRange]);
+    }, [clients, savedSheetLog, selectedClient, selectedDraw, dateRange, searchQuery]);
     
     const overallTotalInvested = useMemo(() => {
         return performanceData.reduce((acc, record) => acc + record.totalInvested, 0);
@@ -287,7 +293,7 @@ const ClientProfitLoss = ({ clients, savedSheetLog, draws }: LedgerRecordProps) 
 
     return (
         <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg bg-muted/50">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 border rounded-lg bg-muted/50">
                 <div className="space-y-2">
                     <Label>Filter by Client</Label>
                     <Select value={selectedClient} onValueChange={setSelectedClient}>
@@ -319,6 +325,15 @@ const ClientProfitLoss = ({ clients, savedSheetLog, draws }: LedgerRecordProps) 
                             <SelectItem value="last7">Last 7 Days</SelectItem>
                         </SelectContent>
                     </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="client-search">Search by Client Name</Label>
+                    <Input
+                        id="client-search"
+                        placeholder="Enter client name..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
                 </div>
             </div>
             <div className="overflow-x-auto">
@@ -382,3 +397,5 @@ export default function LedgerRecord({ clients, savedSheetLog, draws }: LedgerRe
     </Card>
   );
 }
+
+    
