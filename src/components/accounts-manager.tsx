@@ -35,23 +35,44 @@ type AccountsManagerProps = {
 
 const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
 
-const BrokerSummaryCard = ({ title, value, icon: Icon, isGrandTotal = false }: { title: string; value: number; icon: React.ElementType, isGrandTotal?: boolean }) => {
-    const valueColor = isGrandTotal ? (value >= 0 ? 'text-green-400' : 'text-red-500') : 'text-foreground';
-    const cardClasses = `flex flex-col justify-between p-3 ${isGrandTotal ? 'bg-primary/10 border-primary/50' : 'bg-muted/50'}`;
-    const titleClasses = `font-semibold text-sm ${isGrandTotal ? 'text-primary' : 'text-foreground'}`;
-    const iconClasses = `h-4 w-4 ${isGrandTotal ? 'text-primary' : 'text-muted-foreground'}`;
-    const valueClasses = `text-xl font-bold text-right ${valueColor}`;
-
+const BrokerDrawSummaryCard = ({ 
+    title, 
+    rawTotal, 
+    passingTotal 
+}: { 
+    title: string; 
+    rawTotal: number; 
+    passingTotal: number; 
+}) => {
     return (
-        <Card className={cardClasses}>
-            <div className="flex items-center justify-between mb-2">
-                <h4 className={titleClasses}>{title}</h4>
-                <Icon className={iconClasses} />
+        <Card className="flex flex-col bg-muted/30">
+            <div className="p-3 flex-grow">
+                <div className="flex items-center justify-between mb-1">
+                    <h4 className="font-semibold text-sm text-foreground">{title}</h4>
+                    <HandCoins className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-xl font-bold text-right text-foreground">{formatNumber(rawTotal)}</p>
             </div>
-            <p className={valueClasses}>{formatNumber(value)}</p>
+            <div className="p-2 bg-muted/50 border-t flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1"><TrendingDown className="h-3 w-3" /> Passing</span>
+                <span className="text-sm font-bold">{formatNumber(passingTotal)}</span>
+            </div>
         </Card>
     );
 };
+
+const GrandTotalSummaryCard = ({ title, value }: { title: string; value: number; }) => {
+    const valueColor = value >= 0 ? 'text-green-400' : 'text-red-500';
+    return (
+        <Card className="flex flex-col justify-center p-3 bg-primary/10 border-primary/50 col-span-2 md:col-span-1">
+             <div className="flex items-center justify-between mb-2">
+                <h4 className="font-semibold text-sm text-primary">{title}</h4>
+                <Landmark className="h-4 w-4 text-primary" />
+            </div>
+            <p className={`text-2xl font-bold text-right ${valueColor}`}>{formatNumber(value)}</p>
+        </Card>
+    )
+}
 
 
 const DrawDetailsPanel = ({
@@ -125,9 +146,6 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
     }, 0);
     return acc;
   }, {} as { [key: string]: number });
-  
-  const grandPassingTotal = Object.values(brokerPassingDrawTotals).reduce((sum, total) => sum + total, 0);
-
 
   // Calculate the final net total from the perspective of the upper broker
   const finalNetTotalForBroker = draws.reduce((totalNet, drawName) => {
@@ -159,46 +177,20 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
       <CardContent className="space-y-6">
         <div>
             <h3 className="text-lg font-semibold mb-3 text-primary flex items-center gap-2">
-                <Landmark className="h-5 w-5" /> All Draws - Raw Totals
+                <Landmark className="h-5 w-5" /> All Draws Summary
             </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
                 {draws.map(drawName => (
-                    <BrokerSummaryCard 
+                    <BrokerDrawSummaryCard 
                         key={drawName}
                         title={drawName} 
-                        value={brokerRawDrawTotals[drawName] || 0} 
-                        icon={HandCoins}
+                        rawTotal={brokerRawDrawTotals[drawName] || 0} 
+                        passingTotal={brokerPassingDrawTotals[drawName] || 0}
                     />
                 ))}
-                <BrokerSummaryCard
+                <GrandTotalSummaryCard
                   title="Final Total"
                   value={finalNetTotalForBroker}
-                  icon={Landmark}
-                  isGrandTotal={true}
-                />
-            </div>
-        </div>
-
-        <Separator />
-        
-         <div>
-            <h3 className="text-lg font-semibold mb-3 text-primary flex items-center gap-2">
-                <TrendingDown className="h-5 w-5" /> All Draws - Passing Totals
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
-                {draws.map(drawName => (
-                    <BrokerSummaryCard 
-                        key={drawName}
-                        title={drawName} 
-                        value={brokerPassingDrawTotals[drawName] || 0} 
-                        icon={TrendingUp}
-                    />
-                ))}
-                <BrokerSummaryCard
-                  title="Grand Total"
-                  value={grandPassingTotal}
-                  icon={TrendingDown}
-                  isGrandTotal={true}
                 />
             </div>
         </div>
