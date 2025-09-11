@@ -118,26 +118,47 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
     return acc;
   }, {} as { [key: string]: number });
 
-  // Calculate the final net total from all clients after their commissions and passings
-  const finalNetTotalFromClients = accounts.reduce((totalNet, account) => {
-    const client = clients.find(c => c.id === account.id);
-    if (!client) return totalNet;
+  // Calculate the final net total from the perspective of the upper broker
+  const finalNetTotalForBroker = draws.reduce((totalNet, drawName) => {
+    const defaultUpperComm = 0.20; // 20%
+    const defaultUpperPair = 80;
 
-    const clientCommissionPercent = parseFloat(client.comm) / 100;
-    const passingMultiplier = parseFloat(client.pair);
+    const totalAmountForDraw = brokerRawDrawTotals[drawName] || 0;
+    if (totalAmountForDraw === 0) return totalNet;
 
-    const clientNetFromAllDraws = Object.values(account.draws || {}).reduce((clientTotal, drawData) => {
-        const totalAmount = drawData?.totalAmount || 0;
-        if (totalAmount === 0) return clientTotal;
-
-        const commission = totalAmount * clientCommissionPercent;
-        const afterCommission = totalAmount - commission;
-        const passingTotal = (drawData.passingAmount || 0) * passingMultiplier;
-        
-        return clientTotal + (afterCommission - passingTotal);
+    const totalPassingAmountForDraw = accounts.reduce((totalPassing, account) => {
+        const drawData = account.draws?.[drawName];
+        return totalPassing + (drawData?.passingAmount || 0);
     }, 0);
+    
+    // Calculate what the user owes to their upper broker
+    const upperCommission = totalAmountForDraw * defaultUpperComm;
+    const upperNet = totalAmountForDraw - upperCommission;
+    const upperWinnings = totalPassingAmountForDraw * defaultUpperPair;
+    const upperPayable = upperNet - upperWinnings;
 
-    return totalNet + clientNetFromAllDraws;
+    // The user's profit from this draw is the difference between what their clients pay them and what they pay their upper broker.
+    // First, calculate total client payables for this draw.
+    const totalClientPayableForDraw = accounts.reduce((clientTotal, account) => {
+        const client = clients.find(c => c.id === account.id);
+        if (!client) return clientTotal;
+
+        const clientCommPercent = parseFloat(client.comm) / 100;
+        const clientPairRate = parseFloat(client.pair);
+        const drawData = account.draws?.[drawName];
+        
+        if (!drawData || drawData.totalAmount === 0) return clientTotal;
+
+        const clientCommission = drawData.totalAmount * clientCommPercent;
+        const clientNet = drawData.totalAmount - clientCommission;
+        const clientWinnings = (drawData.passingAmount || 0) * clientPairRate;
+        
+        return clientTotal + (clientNet - clientWinnings);
+    }, 0);
+    
+    const brokerProfitForDraw = totalClientPayableForDraw - upperPayable;
+
+    return totalNet + brokerProfitForDraw;
   }, 0);
 
   return (
@@ -161,7 +182,7 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
                 ))}
                 <BrokerSummaryCard
                   title="Final Total"
-                  value={finalNetTotalFromClients}
+                  value={finalNetTotalForBroker}
                   icon={Landmark}
                   isGrandTotal={true}
                 />
@@ -243,3 +264,4 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
     </Card>
   )
 }
+
