@@ -277,13 +277,13 @@ const ClientProfitLoss = ({ clients, savedSheetLog, draws }: LedgerRecordProps) 
 
     }, [clients, savedSheetLog, selectedClient, selectedDraw, dateRange]);
     
-    const overallTotalInvested = useMemo(() => (
-        performanceData.reduce((acc, record) => acc + record.totalInvested, 0)
-    ), [performanceData]);
+    const overallTotalInvested = useMemo(() => {
+        return performanceData.reduce((acc, record) => acc + record.totalInvested, 0);
+    }, [performanceData]);
 
-    const overallTotalProfitLoss = useMemo(() => (
-        performanceData.reduce((acc, record) => acc + record.profitLoss, 0)
-    ), [performanceData]);
+    const overallTotalProfitLoss = useMemo(() => {
+        return performanceData.reduce((acc, record) => acc + record.profitLoss, 0);
+    }, [performanceData]);
 
     return (
         <div className="space-y-4">
@@ -311,7 +311,7 @@ const ClientProfitLoss = ({ clients, savedSheetLog, draws }: LedgerRecordProps) 
                 <div className="space-y-2">
                     <Label>Filter by Date</Label>
                     <Select value={dateRange} onValueChange={setDateRange}>
-                        <SelectTrigger><SelectValue /></SelectValue>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Time</SelectItem>
                             <SelectItem value="today">Today</SelectItem>
@@ -382,5 +382,3 @@ export default function LedgerRecord({ clients, savedSheetLog, draws }: LedgerRe
     </Card>
   );
 }
-
-    
