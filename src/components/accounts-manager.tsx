@@ -137,28 +137,7 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
     const upperWinnings = totalPassingAmountForDraw * defaultUpperPair;
     const upperPayable = upperNet - upperWinnings;
 
-    // The user's profit from this draw is the difference between what their clients pay them and what they pay their upper broker.
-    // First, calculate total client payables for this draw.
-    const totalClientPayableForDraw = accounts.reduce((clientTotal, account) => {
-        const client = clients.find(c => c.id === account.id);
-        if (!client) return clientTotal;
-
-        const clientCommPercent = parseFloat(client.comm) / 100;
-        const clientPairRate = parseFloat(client.pair);
-        const drawData = account.draws?.[drawName];
-        
-        if (!drawData || drawData.totalAmount === 0) return clientTotal;
-
-        const clientCommission = drawData.totalAmount * clientCommPercent;
-        const clientNet = drawData.totalAmount - clientCommission;
-        const clientWinnings = (drawData.passingAmount || 0) * clientPairRate;
-        
-        return clientTotal + (clientNet - clientWinnings);
-    }, 0);
-    
-    const brokerProfitForDraw = totalClientPayableForDraw - upperPayable;
-
-    return totalNet + brokerProfitForDraw;
+    return totalNet + upperPayable;
   }, 0);
 
   return (
