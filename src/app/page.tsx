@@ -404,7 +404,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
               <LedgerRecord clients={clients} accounts={accounts} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />
             </TabsContent>
             <TabsContent value="admin-panel" className="flex-1" style={{ display: activeTab === 'admin-panel' ? 'block' : 'none' }}>
-              <AdminPanel />
+              <AdminPanel accounts={accounts} />
             </TabsContent>
           </div>
         </Tabs>
