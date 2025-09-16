@@ -418,169 +418,6 @@ const ClientProfitLoss = ({ clients, savedSheetLog, draws, declaredNumbers, acco
     );
 }
 
-type ClientDailyBalance = {
-    date: Date;
-    openingBalance: number;
-    todaysNet: number;
-    closingBalance: number;
-};
-
-const ClientNetBalance = ({ clients, accounts, savedSheetLog, declaredNumbers }: LedgerRecordProps) => {
-    const [selectedClientId, setSelectedClientId] = useState<string>(clients[0]?.id || "");
-    const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
-
-    const clientNetBalanceData: ClientDailyBalance[] = useMemo(() => {
-        if (!selectedClientId) return [];
-
-        const client = clients.find(c => c.id === selectedClientId);
-        const account = accounts.find(a => a.id === selectedClientId);
-        if (!client || !account) return [];
-        
-        const clientCommPercent = parseFloat(client.comm) / 100 || defaultClientComm / 100;
-        const clientPairRate = parseFloat(client.pair) || defaultClientPair;
-
-        const monthStart = startOfMonth(selectedMonth);
-        const monthEnd = endOfMonth(selectedMonth);
-        const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
-
-        // Note: This is a simplified calculation. A real-world scenario would need to fetch historical running balances.
-        // For this implementation, we start from the client's 'activeBalance' at the beginning of the month.
-        let runningBalance = parseFloat(client.activeBalance) || 0;
-        const dailyBalances: ClientDailyBalance[] = [];
-
-        daysInMonth.forEach(day => {
-            const openingBalance = runningBalance;
-            
-            let clientGameTotalForDay = 0;
-            let clientPassingAmountForDay = 0;
-
-            Object.entries(savedSheetLog).forEach(([drawName, logs]) => {
-                const clientLogsForDay = logs.filter(log => log.clientId === selectedClientId && isSameDay(new Date(log.date), day));
-                clientLogsForDay.forEach(log => {
-                    clientGameTotalForDay += log.gameTotal;
-                    const declaredNumber = declaredNumbers[drawName];
-                    if (declaredNumber && log.data[declaredNumber]) {
-                        clientPassingAmountForDay += parseFloat(log.data[declaredNumber]) || 0;
-                    }
-                });
-            });
-            
-            const clientCommission = clientGameTotalForDay * clientCommPercent;
-            const clientNetFromGames = clientGameTotalForDay - clientCommission;
-            const clientWinnings = clientPassingAmountForDay * clientPairRate;
-            
-            // From the client's perspective, this is their P/L for the day.
-            // A positive value means they won, a negative value means they lost.
-            const todaysClientPL = clientWinnings - clientNetFromGames;
-            
-            // The running balance is what the broker owes the client.
-            // If the client wins, the broker owes them more. If the client loses, the broker owes them less.
-            runningBalance += todaysClientPL;
-
-            dailyBalances.push({
-                date: day,
-                openingBalance: openingBalance,
-                todaysNet: todaysClientPL,
-                closingBalance: runningBalance,
-            });
-        });
-
-        return dailyBalances;
-
-    }, [selectedClientId, selectedMonth, clients, accounts, savedSheetLog, declaredNumbers]);
-
-    const currentClient = clients.find(c => c.id === selectedClientId);
-    const finalBalance = clientNetBalanceData[clientNetBalanceData.length - 1]?.closingBalance ?? (currentClient ? parseFloat(currentClient.activeBalance) : 0);
-
-    return (
-        <div className="space-y-6">
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-lg bg-muted/50">
-                <div className="space-y-2">
-                    <Label>Select Client</Label>
-                    <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select a client" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-2">
-                    <Label>Select Month</Label>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                            variant={"outline"}
-                            className={cn("w-full justify-start text-left font-normal", !selectedMonth && "text-muted-foreground")}
-                            >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {selectedMonth ? format(selectedMonth, "MMMM yyyy") : <span>Pick a month</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                            <Calendar
-                            mode="single"
-                            selected={selectedMonth}
-                            onSelect={(date) => date && setSelectedMonth(date)}
-                            initialFocus
-                            captionLayout="dropdown-buttons"
-                            fromYear={2020}
-                            toYear={new Date().getFullYear() + 1}
-                            />
-                        </PopoverContent>
-                    </Popover>
-                </div>
-            </div>
-
-            {selectedClientId && (
-                <>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Final Balance for {currentClient?.name}</CardTitle>
-                        <Wallet className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className={`text-2xl font-bold ${finalBalance >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                           {finalBalance >= 0 ? `You Owe: ₹${formatNumber(finalBalance)}` : `Client Owes: ₹${formatNumber(Math.abs(finalBalance))}`}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            As of {format(new Date(), "PPP")}
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <div className="overflow-x-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Date</TableHead>
-                                <TableHead className="text-right">Opening Balance</TableHead>
-                                <TableHead className="text-right">Today's Net (P/L)</TableHead>
-                                <TableHead className="text-right">Closing Balance</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {clientNetBalanceData.map((row, index) => (
-                                <TableRow key={index} className={row.todaysNet === 0 ? "text-muted-foreground" : ""}>
-                                    <TableCell className="font-medium">{format(row.date, "EEE, dd MMM")}</TableCell>
-                                    <TableCell className={`text-right ${row.openingBalance < 0 ? 'text-red-500' : ''}`}>₹{formatNumber(row.openingBalance)}</TableCell>
-                                    <TableCell className={`text-right font-bold ${row.todaysNet > 0 ? 'text-green-500' : row.todaysNet < 0 ? 'text-red-500' : ''}`}>
-                                       {row.todaysNet > 0 ? `+₹${formatNumber(row.todaysNet)}` : row.todaysNet < 0 ? `-₹${formatNumber(Math.abs(row.todaysNet))}` : '₹0'}
-                                    </TableCell>
-                                    <TableCell className={`text-right font-bold ${row.closingBalance < 0 ? 'text-red-500' : ''}`}>₹{formatNumber(row.closingBalance)}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-                </>
-            )}
-        </div>
-    );
-};
-
-
 export default function LedgerRecord({ clients, accounts, savedSheetLog, draws, declaredNumbers }: LedgerRecordProps) {
   return (
     <Card className="overflow-hidden">
@@ -590,19 +427,15 @@ export default function LedgerRecord({ clients, accounts, savedSheetLog, draws, 
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="broker-pl">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="broker-pl">Broker P/L</TabsTrigger>
                 <TabsTrigger value="client-pl">Client P/L</TabsTrigger>
-                <TabsTrigger value="client-balance">Client Net Balance</TabsTrigger>
             </TabsList>
             <TabsContent value="broker-pl" className="pt-4">
                 <BrokerProfitLoss clients={clients} savedSheetLog={savedSheetLog} declaredNumbers={declaredNumbers} />
             </TabsContent>
             <TabsContent value="client-pl" className="pt-4">
                 <ClientProfitLoss clients={clients} accounts={accounts} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />
-            </TabsContent>
-            <TabsContent value="client-balance" className="pt-4">
-                <ClientNetBalance clients={clients} accounts={accounts} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />
             </TabsContent>
         </Tabs>
       </CardContent>
