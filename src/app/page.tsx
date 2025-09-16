@@ -267,7 +267,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
 
   return (
     <div className="flex h-screen w-full flex-col bg-background">
-      <main className="flex-1 p-2 flex flex-col min-h-0">
+      <main className="flex flex-1 flex-col p-2 min-h-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
           <div className="flex items-center justify-between pb-1.5">
             <div className="flex items-center">
@@ -310,7 +310,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
           <div className="flex-1 flex flex-col min-h-0">
             <TabsContent value="sheet" className="flex-1 flex flex-col" style={{ display: activeTab === 'sheet' ? 'flex' : 'none' }}>
               {selectedInfo ? (
-                <div className="flex-1 min-h-0">
+                <div className="flex-1">
                   <GridSheet 
                     ref={gridSheetRef} 
                     draw={selectedInfo.draw} 
