@@ -1068,133 +1068,137 @@ const handleHarupApply = () => {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 w-full lg:w-[320px] xl:w-[360px]">
-                <div className="border rounded-lg p-2 flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                        <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
-                            <SelectTrigger className="flex-grow h-8 text-xs">
-                                <SelectValue>
-                                  {selectedClientId && props.clients.find(c => c.id === selectedClientId) ? getClientDisplay(props.clients.find(c => c.id === selectedClientId)!) : "Select Client"}
-                                </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="None">None (Master Sheet)</SelectItem>
-                                {props.clients.map(client => (
-                                    <SelectItem key={client.id} value={client.id}>
-                                      {getClientDisplay(client)}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Button onClick={handleSaveSheet} disabled={!selectedClientId} size="sm" className="h-8 text-xs">
-                            <Save className="h-3 w-3 mr-1" />
-                            Save
-                        </Button>
-                        <Button onClick={handleRevertLastEntry} variant="outline" disabled={!previousSheetState || selectedClientId === null} size="sm" className="h-8 text-xs">
-                            <Undo2 className="h-3 w-3 mr-1" />
-                            Revert
-                        </Button>
-                    </div>
-                </div>
-                <div className="border rounded-lg p-2 flex flex-col gap-2">
-                    <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
-                    <Textarea
-                        ref={multiTextRef}
-                        placeholder="e.g. 11,22,33=50"
-                        rows={1}
-                        value={multiText}
-                        onChange={handleMultiTextChange}
-                        onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
-                        className="w-full text-xs"
-                        disabled={selectedClientId === null}
-                        onClick={selectedClientId === null ? showClientSelectionToast : undefined}
-                    />
-                    <div className="flex flex-wrap gap-2 mt-1 items-start">
-                        <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={selectedClientId === null} size="sm">Apply</Button>
-                        <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={selectedClientId === null} size="sm">
-                            Generate
-                        </Button>
-                        <Button onClick={handleClearSheet} variant="destructive" className="shrink-0 text-xs h-8" disabled={selectedClientId === null} size="sm">
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Clear
-                        </Button>
-                    </div>
-                </div>
-                
-                <div className="border rounded-lg p-2 flex flex-col gap-2">
-                  <h3 className="font-semibold mb-1 text-xs">Laddi</h3>
-                  <div className="flex items-center gap-2 mb-1">
-                      <div className="flex-1 flex flex-col items-center gap-1">
-                          <Input
-                            id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "Start" : "Num 1"}
-                            value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
-                            onClick={selectedClientId === null ? showClientSelectionToast : undefined}
-                          />
-                          <Label htmlFor="laddiNum1" className="text-xs whitespace-nowrap">{runningLaddi ? "Start" : "Pair"}</Label>
-                      </div>
-                       <div className="flex flex-col items-center justify-center px-2 my-1">
-                        <div className="text-xs font-bold text-primary">{combinationCount}</div>
-                        <span className="font-bold text-center text-sm">x</span>
-                      </div>
-                      <div className="flex-1 flex flex-col items-center gap-1">
-                          <Input
-                            id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "End" : "Num 2"}
-                            value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
-                            onClick={selectedClientId === null ? showClientSelectionToast : undefined}
-                          />
-                          <Label htmlFor="laddiNum2" className="text-xs whitespace-nowrap">{runningLaddi ? "End" : "Pair"}</Label>
-                      </div>
-                  </div>
-                  <div className="grid grid-cols-5 items-center gap-1">
-                    <div className="col-span-3 flex items-center gap-1">
-                      <span className="font-bold text-center">=</span>
-                      <Input
-                        id="amount" type="text" className="text-center font-bold h-8 text-sm"
-                        value={laddiAmount} onChange={(e) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
-                        placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
-                        onClick={selectedClientId === null ? showClientSelectionToast : undefined}
-                      />
-                    </div>
-                    <div className="col-span-2 flex justify-end">
-                      <Button onClick={handleLaddiApply} disabled={selectedClientId === null} size="sm" className="h-8 text-xs">Apply</Button>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center gap-2 mt-1">
+            <div className="flex flex-col gap-2 w-full lg:w-[320px] xl:w-[360px] min-h-0">
+              <ScrollArea className="h-full">
+                <div className="space-y-2 pr-4">
+                  <div className="border rounded-lg p-2 flex flex-col gap-2">
                       <div className="flex items-center gap-2">
-                          <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={selectedClientId === null || runningLaddi} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
-                          <Label htmlFor="remove-jodda" className={`text-xs ${selectedClientId === null || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Jodda</Label>
-                           <Checkbox id="reverse-laddi" checked={reverseLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setReverseLaddi(Boolean(checked)) }} disabled={selectedClientId === null || runningLaddi} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
-                          <Label htmlFor="reverse-laddi" className={`textxs ${selectedClientId === null || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Reverse</Label>
-                          <Checkbox id="running-laddi" checked={runningLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRunningLaddi(Boolean(checked)); setLaddiNum1(''); setLaddiNum2(''); }} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
-                          <Label htmlFor="running-laddi" className={`text-xs ${selectedClientId === null ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Running</Label>
+                          <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
+                              <SelectTrigger className="flex-grow h-8 text-xs">
+                                  <SelectValue>
+                                    {selectedClientId && props.clients.find(c => c.id === selectedClientId) ? getClientDisplay(props.clients.find(c => c.id === selectedClientId)!) : "Select Client"}
+                                  </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                  <SelectItem value="None">None (Master Sheet)</SelectItem>
+                                  {props.clients.map(client => (
+                                      <SelectItem key={client.id} value={client.id}>
+                                        {getClientDisplay(client)}
+                                      </SelectItem>
+                                  ))}
+                              </SelectContent>
+                          </Select>
+                          <Button onClick={handleSaveSheet} disabled={!selectedClientId} size="sm" className="h-8 text-xs">
+                              <Save className="h-3 w-3 mr-1" />
+                              Save
+                          </Button>
+                          <Button onClick={handleRevertLastEntry} variant="outline" disabled={!previousSheetState || selectedClientId === null} size="sm" className="h-8 text-xs">
+                              <Undo2 className="h-3 w-3 mr-1" />
+                              Revert
+                          </Button>
                       </div>
                   </div>
-                </div>
-              
-                <div className="border rounded-lg p-2 flex flex-col gap-2">
-                  <h3 className="font-semibold mb-1 text-xs">HARUP</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                    <div className="flex items-center gap-1">
-                        <Label htmlFor="harupA" className="w-6 text-center shrink-0 text-xs">A</Label>
-                        <Input id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                  <div className="border rounded-lg p-2 flex flex-col gap-2">
+                      <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
+                      <Textarea
+                          ref={multiTextRef}
+                          placeholder="e.g. 11,22,33=50"
+                          rows={1}
+                          value={multiText}
+                          onChange={handleMultiTextChange}
+                          onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
+                          className="w-full text-xs"
+                          disabled={selectedClientId === null}
+                          onClick={selectedClientId === null ? showClientSelectionToast : undefined}
+                      />
+                      <div className="flex flex-wrap gap-2 mt-1 items-start">
+                          <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={selectedClientId === null} size="sm">Apply</Button>
+                          <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={selectedClientId === null} size="sm">
+                              Generate
+                          </Button>
+                          <Button onClick={handleClearSheet} variant="destructive" className="shrink-0 text-xs h-8" disabled={selectedClientId === null} size="sm">
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Clear
+                          </Button>
+                      </div>
+                  </div>
+                  
+                  <div className="border rounded-lg p-2 flex flex-col gap-2">
+                    <h3 className="font-semibold mb-1 text-xs">Laddi</h3>
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="flex-1 flex flex-col items-center gap-1">
+                            <Input
+                              id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "Start" : "Num 1"}
+                              value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
+                              onClick={selectedClientId === null ? showClientSelectionToast : undefined}
+                            />
+                            <Label htmlFor="laddiNum1" className="text-xs whitespace-nowrap">{runningLaddi ? "Start" : "Pair"}</Label>
+                        </div>
+                         <div className="flex flex-col items-center justify-center px-2 my-1">
+                          <div className="text-xs font-bold text-primary">{combinationCount}</div>
+                          <span className="font-bold text-center text-sm">x</span>
+                        </div>
+                        <div className="flex-1 flex flex-col items-center gap-1">
+                            <Input
+                              id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "End" : "Num 2"}
+                              value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
+                              onClick={selectedClientId === null ? showClientSelectionToast : undefined}
+                            />
+                            <Label htmlFor="laddiNum2" className="text-xs whitespace-nowrap">{runningLaddi ? "End" : "Pair"}</Label>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                        <Label htmlFor="harupB" className="w-6 text-center shrink-0 text-xs">B</Label>
-                        <Input id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                    <div className="grid grid-cols-5 items-center gap-1">
+                      <div className="col-span-3 flex items-center gap-1">
+                        <span className="font-bold text-center">=</span>
+                        <Input
+                          id="amount" type="text" className="text-center font-bold h-8 text-sm"
+                          value={laddiAmount} onChange={(e) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
+                          placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
+                          onClick={selectedClientId === null ? showClientSelectionToast : undefined}
+                        />
+                      </div>
+                      <div className="col-span-2 flex justify-end">
+                        <Button onClick={handleLaddiApply} disabled={selectedClientId === null} size="sm" className="h-8 text-xs">Apply</Button>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center gap-2 mt-1">
+                        <div className="flex items-center gap-2">
+                            <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={selectedClientId === null || runningLaddi} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                            <Label htmlFor="remove-jodda" className={`text-xs ${selectedClientId === null || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Jodda</Label>
+                             <Checkbox id="reverse-laddi" checked={reverseLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setReverseLaddi(Boolean(checked)) }} disabled={selectedClientId === null || runningLaddi} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                            <Label htmlFor="reverse-laddi" className={`textxs ${selectedClientId === null || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Reverse</Label>
+                            <Checkbox id="running-laddi" checked={runningLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRunningLaddi(Boolean(checked)); setLaddiNum1(''); setLaddiNum2(''); }} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                            <Label htmlFor="running-laddi" className={`text-xs ${selectedClientId === null ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Running</Label>
+                        </div>
                     </div>
                   </div>
-                   <div className="flex items-center gap-2 mt-1">
-                      <Label htmlFor="harupAmount" className="w-6 text-center shrink-0 text-xs">=</Label>
-                      <Input id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
-                      <Button onClick={handleHarupApply} disabled={selectedClientId === null} size="sm" className="h-8 text-xs">Apply</Button>
+                
+                  <div className="border rounded-lg p-2 flex flex-col gap-2">
+                    <h3 className="font-semibold mb-1 text-xs">HARUP</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                      <div className="flex items-center gap-1">
+                          <Label htmlFor="harupA" className="w-6 text-center shrink-0 text-xs">A</Label>
+                          <Input id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                      </div>
+                      <div className="flex items-center gap-1">
+                          <Label htmlFor="harupB" className="w-6 text-center shrink-0 text-xs">B</Label>
+                          <Input id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                      </div>
+                    </div>
+                     <div className="flex items-center gap-2 mt-1">
+                        <Label htmlFor="harupAmount" className="w-6 text-center shrink-0 text-xs">=</Label>
+                        <Input id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                        <Button onClick={handleHarupApply} disabled={selectedClientId === null} size="sm" className="h-8 text-xs">Apply</Button>
+                    </div>
+                  </div>
+                  <div className="border rounded-lg p-2 flex flex-col gap-2 mt-auto">
+                      <Button onClick={() => setIsMasterSheetDialogOpen(true)} variant="outline" className="w-full">
+                          <FileSpreadsheet className="mr-2 h-4 w-4" />
+                          View Master Sheet
+                      </Button>
                   </div>
                 </div>
-                <div className="border rounded-lg p-2 flex flex-col gap-2 mt-auto">
-                    <Button onClick={() => setIsMasterSheetDialogOpen(true)} variant="outline" className="w-full">
-                        <FileSpreadsheet className="mr-2 h-4 w-4" />
-                        View Master Sheet
-                    </Button>
-                </div>
+              </ScrollArea>
             </div>
           </div>
         </CardContent>
@@ -1276,3 +1280,4 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
