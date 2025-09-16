@@ -286,7 +286,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
                 </TabsTrigger>
                 <TabsTrigger value="ledger-record" className="gap-1 rounded-sm">
                   <FileSpreadsheet className="h-4 w-4" />
-                  Ledger Record
+                  Client Performance
                 </TabsTrigger>
                 <TabsTrigger value="admin-panel" className="gap-1 rounded-sm">
                   <Shield className="h-4 w-4" />
@@ -401,10 +401,10 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
               <AccountsManager accounts={accounts} clients={clients} setAccounts={setAccounts} />
             </TabsContent>
              <TabsContent value="ledger-record" className="flex-1" style={{ display: activeTab === 'ledger-record' ? 'block' : 'none' }}>
-              <LedgerRecord clients={clients} accounts={accounts} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />
+              <LedgerRecord clients={clients} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />
             </TabsContent>
             <TabsContent value="admin-panel" className="flex-1" style={{ display: activeTab === 'admin-panel' ? 'block' : 'none' }}>
-              <AdminPanel accounts={accounts} />
+              <AdminPanel accounts={accounts} clients={clients} savedSheetLog={savedSheetLog} declaredNumbers={declaredNumbers} />
             </TabsContent>
           </div>
         </Tabs>
