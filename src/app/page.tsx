@@ -8,7 +8,8 @@ import ClientsManager, { Client } from "@/components/clients-manager"
 import AccountsManager, { Account } from "@/components/accounts-manager"
 import LedgerRecord from "@/components/ledger-record"
 import AdminPanel from "@/components/admin-panel"
-import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, ClipboardCopy, FileSpreadsheet, Shield } from 'lucide-react';
+import CustomizePanel from "@/components/customize-panel"
+import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, ClipboardCopy, FileSpreadsheet, Shield, Palette } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
@@ -52,6 +53,12 @@ export type SavedSheetInfo = {
   date: string; // ISO date string
 };
 
+export type ColorTheme = {
+  number: string;
+  amount: string;
+  total: string;
+};
+
 
 export default function Home() {
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any, getClientCurrentData: (clientId: string) => any | undefined, getClientPreviousData: (clientId: string) => any | undefined }>(null);
@@ -69,6 +76,17 @@ export default function Home() {
   const { toast } = useToast();
   const [declaredNumbers, setDeclaredNumbers] = useState<{ [draw: string]: string }>({});
   const [savedSheetLog, setSavedSheetLog] = useState<{ [draw: string]: SavedSheetInfo[] }>({});
+  const [colorTheme, setColorTheme] = useState<ColorTheme>({
+    number: 'hsl(0 0% 100%)',
+    amount: 'hsl(55 90% 55%)',
+    total: 'hsl(120 70% 45%)',
+  });
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--grid-cell-number-color', colorTheme.number);
+    document.documentElement.style.setProperty('--grid-cell-amount-color', colorTheme.amount);
+    document.documentElement.style.setProperty('--grid-cell-total-color', colorTheme.total);
+  }, [colorTheme]);
 
 
   useEffect(() => {
@@ -271,7 +289,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
           <div className="flex items-center justify-between pb-1.5">
             <div className="flex items-center">
-              <TabsList className="grid grid-cols-5 md:w-auto p-0.5 gap-0.5">
+              <TabsList className="grid grid-cols-6 md:w-auto p-0.5 gap-0.5">
                 <TabsTrigger value="sheet" className="gap-1 rounded-sm">
                   <GridIcon className="h-4 w-4" />
                   Home
@@ -291,6 +309,10 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
                 <TabsTrigger value="admin-panel" className="gap-1 rounded-sm">
                   <Shield className="h-4 w-4" />
                   Admin Panel
+                </TabsTrigger>
+                 <TabsTrigger value="customize" className="gap-1 rounded-sm">
+                  <Palette className="h-4 w-4" />
+                  Customize
                 </TabsTrigger>
               </TabsList>
                {selectedInfo && activeTab === 'sheet' && (
@@ -405,6 +427,9 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
             </TabsContent>
             <TabsContent value="admin-panel" className="flex-1" style={{ display: activeTab === 'admin-panel' ? 'block' : 'none' }}>
               <AdminPanel accounts={accounts} clients={clients} savedSheetLog={savedSheetLog} declaredNumbers={declaredNumbers} />
+            </TabsContent>
+             <TabsContent value="customize" className="flex-1" style={{ display: activeTab === 'customize' ? 'block' : 'none' }}>
+              <CustomizePanel activeTheme={colorTheme} onThemeChange={setColorTheme} />
             </TabsContent>
           </div>
         </Tabs>
