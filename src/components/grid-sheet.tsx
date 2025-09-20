@@ -1069,35 +1069,35 @@ const handleHarupApply = () => {
             </div>
 
             <div className="flex flex-col gap-2 w-full lg:w-[320px] xl:w-[360px] min-h-0">
-              <ScrollArea className="h-full">
-                <div className="space-y-2 pr-4">
-                  <div className="border rounded-lg p-2 flex flex-col gap-2">
-                      <div className="flex items-center gap-2">
-                          <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
-                              <SelectTrigger className="flex-grow h-8 text-xs">
-                                  <SelectValue>
-                                    {selectedClientId && props.clients.find(c => c.id === selectedClientId) ? getClientDisplay(props.clients.find(c => c.id === selectedClientId)!) : "Select Client"}
-                                  </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                  <SelectItem value="None">None (Master Sheet)</SelectItem>
-                                  {props.clients.map(client => (
-                                      <SelectItem key={client.id} value={client.id}>
-                                        {getClientDisplay(client)}
-                                      </SelectItem>
-                                  ))}
-                              </SelectContent>
-                          </Select>
-                          <Button onClick={handleSaveSheet} disabled={!selectedClientId} size="sm" className="h-8 text-xs">
-                              <Save className="h-3 w-3 mr-1" />
-                              Save
-                          </Button>
-                          <Button onClick={handleRevertLastEntry} variant="outline" disabled={!previousSheetState || selectedClientId === null} size="sm" className="h-8 text-xs">
-                              <Undo2 className="h-3 w-3 mr-1" />
-                              Revert
-                          </Button>
-                      </div>
-                  </div>
+               <div className="border rounded-lg p-2 flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                        <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
+                            <SelectTrigger className="flex-grow h-8 text-xs">
+                                <SelectValue>
+                                  {selectedClientId && props.clients.find(c => c.id === selectedClientId) ? getClientDisplay(props.clients.find(c => c.id === selectedClientId)!) : "Select Client"}
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="None">None (Master Sheet)</SelectItem>
+                                {props.clients.map(client => (
+                                    <SelectItem key={client.id} value={client.id}>
+                                      {getClientDisplay(client)}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Button onClick={handleSaveSheet} disabled={!selectedClientId} size="sm" className="h-8 text-xs">
+                            <Save className="h-3 w-3 mr-1" />
+                            Save
+                        </Button>
+                        <Button onClick={handleRevertLastEntry} variant="outline" disabled={!previousSheetState || selectedClientId === null} size="sm" className="h-8 text-xs">
+                            <Undo2 className="h-3 w-3 mr-1" />
+                            Revert
+                        </Button>
+                    </div>
+                </div>
+              <ScrollArea className="flex-grow pr-4 -mr-4">
+                <div className="space-y-2">
                   <div className="border rounded-lg p-2 flex flex-col gap-2">
                       <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
                       <Textarea
@@ -1191,14 +1191,14 @@ const handleHarupApply = () => {
                         <Button onClick={handleHarupApply} disabled={selectedClientId === null} size="sm" className="h-8 text-xs">Apply</Button>
                     </div>
                   </div>
-                  <div className="border rounded-lg p-2 flex flex-col gap-2">
-                      <Button onClick={() => setIsMasterSheetDialogOpen(true)} variant="outline" className="w-full">
-                          <FileSpreadsheet className="mr-2 h-4 w-4" />
-                          View Master Sheet
-                      </Button>
-                  </div>
                 </div>
               </ScrollArea>
+              <div className="border rounded-lg p-2 flex flex-col gap-2 mt-2">
+                  <Button onClick={() => setIsMasterSheetDialogOpen(true)} variant="outline" className="w-full">
+                      <FileSpreadsheet className="mr-2 h-4 w-4" />
+                      View Master Sheet
+                  </Button>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -1282,3 +1282,6 @@ GridSheet.displayName = 'GridSheet';
 export default GridSheet;
 
 
+
+
+    
