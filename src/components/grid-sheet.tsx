@@ -1191,7 +1191,7 @@ const handleHarupApply = () => {
                         <Button onClick={handleHarupApply} disabled={selectedClientId === null} size="sm" className="h-8 text-xs">Apply</Button>
                     </div>
                   </div>
-                  <div className="border rounded-lg p-2 flex flex-col gap-2 mt-auto">
+                  <div className="border rounded-lg p-2 flex flex-col gap-2">
                       <Button onClick={() => setIsMasterSheetDialogOpen(true)} variant="outline" className="w-full">
                           <FileSpreadsheet className="mr-2 h-4 w-4" />
                           View Master Sheet
@@ -1280,4 +1280,5 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
 
