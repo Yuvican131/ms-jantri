@@ -265,7 +265,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
 
   return (
     <div className="flex h-screen w-full flex-col bg-background">
-      <main className="flex flex-1 flex-col p-2 min-h-0">
+      <main className="flex-1 flex flex-col p-2 min-h-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
           <div className="flex items-center justify-between pb-1.5">
             <div className="flex items-center">
@@ -306,7 +306,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
             </div>
           </div>
           <div className="flex-1 min-h-0">
-            <TabsContent value="sheet" className="flex-1 flex flex-col min-h-0 h-full" style={{ display: activeTab === 'sheet' ? 'flex' : 'none' }}>
+            <TabsContent value="sheet" className="flex-1 flex flex-col min-h-0 h-full">
               {selectedInfo ? (
                 <div className="flex-1 min-h-0">
                   <GridSheet 
@@ -385,7 +385,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
                 </Card>
               )}
             </TabsContent>
-            <TabsContent value="clients" className="flex-1" style={{ display: activeTab === 'clients' ? 'block' : 'none' }}>
+            <TabsContent value="clients" className="flex-1">
               <ClientsManager 
                 clients={clients} 
                 accounts={accounts}
@@ -395,13 +395,13 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
                 onClientTransaction={handleClientTransaction}
               />
             </TabsContent>
-            <TabsContent value="accounts" className="flex-1" style={{ display: activeTab === 'accounts' ? 'block' : 'none' }}>
+            <TabsContent value="accounts" className="flex-1">
               <AccountsManager accounts={accounts} clients={clients} setAccounts={setAccounts} />
             </TabsContent>
-             <TabsContent value="ledger-record" className="flex-1" style={{ display: activeTab === 'ledger-record' ? 'block' : 'none' }}>
+             <TabsContent value="ledger-record" className="flex-1">
               <LedgerRecord clients={clients} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />
             </TabsContent>
-            <TabsContent value="admin-panel" className="flex-1" style={{ display: activeTab === 'admin-panel' ? 'block' : 'none' }}>
+            <TabsContent value="admin-panel" className="flex-1">
               <AdminPanel accounts={accounts} clients={clients} savedSheetLog={savedSheetLog} declaredNumbers={declaredNumbers} />
             </TabsContent>
           </div>
