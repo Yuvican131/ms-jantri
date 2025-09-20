@@ -305,7 +305,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
               )}
             </div>
           </div>
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 flex flex-col min-h-0">
             <TabsContent value="sheet" className="flex-1 flex flex-col min-h-0 h-full">
               {selectedInfo ? (
                 <div className="flex-1 min-h-0">
@@ -385,7 +385,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
                 </Card>
               )}
             </TabsContent>
-            <TabsContent value="clients" className="flex-1">
+            <TabsContent value="clients" className="flex-1 flex flex-col min-h-0">
               <ClientsManager 
                 clients={clients} 
                 accounts={accounts}
@@ -395,13 +395,13 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
                 onClientTransaction={handleClientTransaction}
               />
             </TabsContent>
-            <TabsContent value="accounts" className="flex-1">
+            <TabsContent value="accounts" className="flex-1 flex flex-col min-h-0">
               <AccountsManager accounts={accounts} clients={clients} setAccounts={setAccounts} />
             </TabsContent>
-             <TabsContent value="ledger-record" className="flex-1">
+             <TabsContent value="ledger-record" className="flex-1 flex flex-col min-h-0">
               <LedgerRecord clients={clients} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />
             </TabsContent>
-            <TabsContent value="admin-panel" className="flex-1">
+            <TabsContent value="admin-panel" className="flex-1 flex flex-col min-h-0">
               <AdminPanel accounts={accounts} clients={clients} savedSheetLog={savedSheetLog} declaredNumbers={declaredNumbers} />
             </TabsContent>
           </div>
@@ -426,3 +426,5 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
     </div>
   );
 }
+
+    
