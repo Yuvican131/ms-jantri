@@ -70,12 +70,6 @@ export default function Home() {
   const [declaredNumbers, setDeclaredNumbers] = useState<{ [draw: string]: string }>({});
   const [savedSheetLog, setSavedSheetLog] = useState<{ [draw: string]: SavedSheetInfo[] }>({});
 
-  useEffect(() => {
-    if (!date) {
-      setDate(new Date());
-    }
-  }, [date]);
-
   // Recalculate accounts whenever clients, logs, or declared numbers change
   useEffect(() => {
     updateAccountsFromLog(savedSheetLog);
@@ -268,8 +262,8 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
 
   return (
     <div className="flex h-screen w-full flex-col bg-background">
-      <main className="flex flex-1 flex-col p-2 min-h-0">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
+      <main className="flex flex-1 flex-col p-2">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex items-center justify-between pb-1.5">
             <div className="flex items-center">
               <TabsList className="grid grid-cols-5 md:w-auto p-0.5 gap-0.5">
@@ -308,10 +302,10 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
               )}
             </div>
           </div>
-          <div className="flex-1 flex flex-col min-h-0">
-            <TabsContent value="sheet" className="flex-1 flex flex-col min-h-0">
+          <div>
+            <TabsContent value="sheet">
               {selectedInfo ? (
-                <div className="flex-1 min-h-0">
+                <div>
                   <GridSheet 
                     ref={gridSheetRef} 
                     draw={selectedInfo.draw} 
@@ -388,7 +382,7 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
                 </Card>
               )}
             </TabsContent>
-            <TabsContent value="clients" className="flex-1 flex flex-col min-h-0">
+            <TabsContent value="clients">
               <ClientsManager 
                 clients={clients} 
                 accounts={accounts}
@@ -398,13 +392,13 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
                 onClientTransaction={handleClientTransaction}
               />
             </TabsContent>
-            <TabsContent value="accounts" className="flex-1 flex flex-col min-h-0">
+            <TabsContent value="accounts">
               <AccountsManager accounts={accounts} clients={clients} setAccounts={setAccounts} />
             </TabsContent>
-             <TabsContent value="ledger-record" className="flex-1 flex flex-col min-h-0">
+             <TabsContent value="ledger-record">
               <LedgerRecord clients={clients} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />
             </TabsContent>
-            <TabsContent value="admin-panel" className="flex-1 flex flex-col min-h-0">
+            <TabsContent value="admin-panel">
               <AdminPanel accounts={accounts} clients={clients} savedSheetLog={savedSheetLog} declaredNumbers={declaredNumbers} />
             </TabsContent>
           </div>
@@ -435,3 +429,4 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
     
 
     
+
