@@ -18,6 +18,7 @@ import { cn, formatNumber } from "@/lib/utils"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
+import { Palette } from 'lucide-react';
 
 function GridIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -426,7 +427,5 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
     </div>
   );
 }
-
-    
 
     
