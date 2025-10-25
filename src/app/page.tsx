@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
@@ -18,11 +17,6 @@ import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
-import { useClients } from "@/hooks/useClients"
-import { useSheetLog } from "@/hooks/useSheetLog"
-import { useDeclaredNumbers } from "@/hooks/useDeclaredNumbers"
-import { useAuth } from "@/firebase"
-import { signInAnonymously } from "firebase/auth"
 
 function GridIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -62,7 +56,7 @@ export type SavedSheetInfo = {
 export default function Home() {
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any, getClientCurrentData: (clientId: string) => any | undefined, getClientPreviousData: (clientId: string) => any | undefined }>(null);
   const [selectedInfo, setSelectedInfo] = useState<{ draw: string; date: Date } | null>(null);
-  const [date, setDate] = useState<Date | undefined>(undefined)
+  const [date, setDate] = useState<Date>(new Date())
   const [lastEntry, setLastEntry] = useState('');
   const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("sheet");
@@ -72,27 +66,14 @@ export default function Home() {
   const [declarationNumber, setDeclarationNumber] = useState("");
   const { toast } = useToast();
 
-  const auth = useAuth();
-  useEffect(() => {
-    if (auth) {
-      signInAnonymously(auth);
-    }
-  }, [auth]);
-  
-  useEffect(() => {
-    if (!date) {
-      setDate(new Date());
-    }
-  }, [date]);
-
-
-  const { clients, addClient, updateClient, deleteClient, updateClientBalance } = useClients();
-  const { savedSheetLog, addSheetLogEntry, mergeSheetLogEntry } = useSheetLog();
-  const { declaredNumbers, setDeclaredNumber, removeDeclaredNumber } = useDeclaredNumbers();
+  const [clients, setClients] = useState<Client[]>([]);
+  const [savedSheetLog, setSavedSheetLog] = useState<{ [draw: string]: SavedSheetInfo[] }>({});
+  const [declaredNumbers, setDeclaredNumbers] = useState<{ [key: string]: string }>({});
   const [accounts, setAccounts] = useState<Account[]>([]);
   const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
 
-  const updateAccountsFromLog = useCallback(() => {
+  // Recalculate accounts whenever clients, logs, or declared numbers change
+  useEffect(() => {
     const todayStr = new Date().toISOString().split('T')[0];
     
     const newAccounts = clients.map(client => {
@@ -136,12 +117,7 @@ export default function Home() {
     });
 
     setAccounts(newAccounts);
-  }, [clients, declaredNumbers, draws, savedSheetLog]);
-
-  // Recalculate accounts whenever clients, logs, or declared numbers change
-  useEffect(() => {
-    updateAccountsFromLog();
-  }, [savedSheetLog, updateAccountsFromLog]);
+  }, [clients, savedSheetLog, declaredNumbers, draws]);
 
 
   const handleClientUpdateForSheet = (client: Client) => {
@@ -150,10 +126,21 @@ export default function Home() {
     }
   };
   
+  const handleAddClient = (client: Omit<Client, 'id'>) => {
+    const newClient = { ...client, id: Date.now().toString() };
+    setClients([...clients, newClient]);
+  };
+  
+  const handleUpdateClient = (updatedClient: Client) => {
+    setClients(clients.map(c => c.id === updatedClient.id ? updatedClient : c));
+  };
+  
+  const handleDeleteClient = (id: string) => {
+    setClients(clients.filter(c => c.id !== id));
+  };
+  
   const handleSelectDraw = (draw: string) => {
-    if (date) {
-      setSelectedInfo({ draw, date });
-    }
+    setSelectedInfo({ draw, date });
   };
 
   const handleBackToDraws = () => {
@@ -163,30 +150,45 @@ export default function Home() {
 const handleClientSheetSave = (clientName: string, clientId: string, newData: { [key: string]: string }, draw: string, entryDate: Date) => {
     const todayStr = entryDate.toISOString().split('T')[0];
 
-    const existingLog = (savedSheetLog[draw] || []).find(log => log.clientId === clientId && log.date === todayStr);
+    setSavedSheetLog(prevLog => {
+        const newLog = { ...prevLog };
+        if (!newLog[draw]) {
+            newLog[draw] = [];
+        }
 
-    if (existingLog) {
-        const mergedData: { [key: string]: string } = { ...existingLog.data };
-        Object.entries(newData).forEach(([key, value]) => {
-            mergedData[key] = String((parseFloat(mergedData[key]) || 0) + (parseFloat(value) || 0));
-        });
-        const newTotal = Object.values(mergedData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+        const existingLogIndex = newLog[draw].findIndex(log => log.clientId === clientId && log.date === todayStr);
 
-        mergeSheetLogEntry(existingLog.id, {
-            gameTotal: newTotal,
-            data: mergedData,
-        });
-    } else {
-        const newEntryTotal = Object.values(newData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
-        addSheetLogEntry({ 
-            clientName, 
-            clientId, 
-            gameTotal: newEntryTotal, 
-            data: newData,
-            date: todayStr,
-            draw,
-        });
-    }
+        if (existingLogIndex !== -1) {
+            // Merge with existing entry for the same client and day
+            const existingLog = newLog[draw][existingLogIndex];
+            const mergedData: { [key: string]: string } = { ...existingLog.data };
+            
+            Object.entries(newData).forEach(([key, value]) => {
+                mergedData[key] = String((parseFloat(mergedData[key]) || 0) + (parseFloat(value) || 0));
+            });
+            const newTotal = Object.values(mergedData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+
+            newLog[draw][existingLogIndex] = {
+                ...existingLog,
+                gameTotal: newTotal,
+                data: mergedData,
+            };
+        } else {
+            // Add as a new entry
+            const newEntryTotal = Object.values(newData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+            const newEntry: SavedSheetInfo = {
+                id: Date.now().toString(),
+                clientName,
+                clientId,
+                gameTotal: newEntryTotal,
+                data: newData,
+                date: todayStr,
+                draw,
+            };
+            newLog[draw].push(newEntry);
+        }
+        return newLog;
+    });
 
     toast({
         title: "Sheet Saved",
@@ -194,32 +196,37 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
     });
 };
 
-  const handleClientTransaction = (clientId: string, amount: number) => {
-    updateClientBalance(clientId, amount);
-  };
 
+  const handleClientTransaction = (clientId: string, amount: number) => {
+    setClients(clients.map(c => 
+      c.id === clientId ? { ...c, activeBalance: (c.activeBalance || 0) + amount } : c
+    ));
+  };
+  
   const handleDeclarationInputChange = (draw: string, value: string) => {
     const numValue = value.replace(/[^0-9]/g, "").slice(0, 2);
+    setDeclaredNumbers(prev => ({...prev, [draw]: numValue}));
     if (numValue.length === 2) {
       setDeclarationDraw(draw);
       setDeclarationNumber(numValue);
       setDeclarationDialogOpen(true);
-      setDeclaredNumber(draw, numValue);
-    } else {
-      removeDeclaredNumber(draw);
     }
   };
   
   const handleDeclareOrUndeclare = () => {
     if (declarationNumber.length === 2) {
-      setDeclaredNumber(declarationDraw, declarationNumber);
+      setDeclaredNumbers(prev => ({...prev, [declarationDraw]: declarationNumber}));
       toast({ title: "Success", description: `Result processed for draw ${declarationDraw}.` });
     }
     setDeclarationDialogOpen(false);
   };
   
   const handleUndeclare = () => {
-    removeDeclaredNumber(declarationDraw);
+    setDeclaredNumbers(prev => {
+        const newDeclared = { ...prev };
+        delete newDeclared[declarationDraw];
+        return newDeclared;
+    });
     toast({ title: "Success", description: `Result undeclared for draw ${declarationDraw}.` });
     setDeclarationDialogOpen(false);
   };
@@ -227,8 +234,8 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
 
   return (
     <div className="flex h-screen w-full flex-col bg-background">
-      <main className="flex flex-1 flex-col p-2 min-h-0">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col flex-1 min-h-0">
+      <main className="flex-1 p-2">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex items-center justify-between pb-1.5">
             <div className="flex items-center">
               <TabsList className="grid grid-cols-5 md:w-auto p-0.5 gap-0.5">
@@ -267,106 +274,102 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
               )}
             </div>
           </div>
-          <div className="flex-1 min-h-0 flex flex-col">
-            <TabsContent value="sheet" className="flex-1 flex flex-col min-h-0">
-              {selectedInfo ? (
-                <div className="flex-1">
-                  <GridSheet 
-                    ref={gridSheetRef} 
-                    draw={selectedInfo.draw} 
-                    date={selectedInfo.date} 
-                    lastEntry={lastEntry} 
-                    setLastEntry={setLastEntry} 
-                    isLastEntryDialogOpen={isLastEntryDialogOpen} 
-                    setIsLastEntryDialogOpen={setIsLastEntryDialogOpen}
-                    clients={clients}
-                    onClientSheetSave={handleClientSheetSave}
-                    savedSheetLog={savedSheetLog[selectedInfo.draw] || []}
-                    accounts={accounts}
-                    draws={draws}
-                  />
-                </div>
-              ) : (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Select a Date and Draw</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-col gap-4">
-                    <div>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full sm:w-[280px] justify-start text-left font-normal",
-                              !date && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {date ? format(date, "PPP") : <span>Pick a date</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={date}
-                            onSelect={setDate}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4">
-                      {draws.map((draw) => (
-                        <div key={draw} className="flex flex-col gap-1">
-                            <Button onClick={() => handleSelectDraw(draw)} className="h-16 sm:h-20 text-lg sm:text-xl font-bold bg-gradient-to-br from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white shadow-lg">
-                              {draw}
-                            </Button>
-                             <Input
-                                type="text"
-                                placeholder="00"
-                                className="w-full h-8 text-center"
-                                maxLength={2}
-                                value={declaredNumbers[draw] || ''}
-                                onChange={(e) => {
-                                  handleDeclarationInputChange(draw, e.target.value);
-                                }}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        const inputElement = e.target as HTMLInputElement;
-                                        if(inputElement.value.length === 2) {
-                                          handleDeclarationInputChange(draw, inputElement.value);
-                                        }
-                                    }
-                                }}
-                            />
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-            <TabsContent value="clients" className="flex-1 min-h-0">
-              <ClientsManager 
-                clients={clients} 
+          <TabsContent value="sheet">
+            {selectedInfo ? (
+              <GridSheet 
+                ref={gridSheetRef} 
+                draw={selectedInfo.draw} 
+                date={selectedInfo.date} 
+                lastEntry={lastEntry} 
+                setLastEntry={setLastEntry} 
+                isLastEntryDialogOpen={isLastEntryDialogOpen} 
+                setIsLastEntryDialogOpen={setIsLastEntryDialogOpen}
+                clients={clients}
+                onClientSheetSave={handleClientSheetSave}
+                savedSheetLog={savedSheetLog[selectedInfo.draw] || []}
                 accounts={accounts}
-                onAddClient={addClient} 
-                onUpdateClient={updateClient} 
-                onDeleteClient={deleteClient}
-                onClientTransaction={handleClientTransaction}
+                draws={draws}
               />
-            </TabsContent>
-            <TabsContent value="accounts" className="flex-1 min-h-0">
-              <AccountsManager accounts={accounts} clients={clients} setAccounts={setAccounts} />
-            </TabsContent>
-             <TabsContent value="ledger-record" className="flex-1 min-h-0">
-              <LedgerRecord clients={clients} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />
-            </TabsContent>
-            <TabsContent value="admin-panel" className="flex-1 min-h-0">
-              <AdminPanel accounts={accounts} clients={clients} savedSheetLog={savedSheetLog} declaredNumbers={declaredNumbers} />
-            </TabsContent>
-          </div>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Select a Date and Draw</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full sm:w-[280px] justify-start text-left font-normal",
+                            !date && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {date ? format(date, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={date}
+                          onSelect={(d) => d && setDate(d)}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4">
+                    {draws.map((draw) => (
+                      <div key={draw} className="flex flex-col gap-1">
+                          <Button onClick={() => handleSelectDraw(draw)} className="h-16 sm:h-20 text-lg sm:text-xl font-bold bg-gradient-to-br from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white shadow-lg">
+                            {draw}
+                          </Button>
+                           <Input
+                              type="text"
+                              placeholder="00"
+                              className="w-full h-8 text-center"
+                              maxLength={2}
+                              value={declaredNumbers[draw] || ''}
+                              onChange={(e) => {
+                                handleDeclarationInputChange(draw, e.target.value);
+                              }}
+                              onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                      const inputElement = e.target as HTMLInputElement;
+                                      if(inputElement.value.length === 2) {
+                                        handleDeclarationInputChange(draw, inputElement.value);
+                                      }
+                                  }
+                              }}
+                          />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+          <TabsContent value="clients">
+            <ClientsManager 
+              clients={clients} 
+              accounts={accounts}
+              onAddClient={handleAddClient} 
+              onUpdateClient={handleUpdateClient} 
+              onDeleteClient={handleDeleteClient}
+              onClientTransaction={handleClientTransaction}
+            />
+          </TabsContent>
+          <TabsContent value="accounts">
+            <AccountsManager accounts={accounts} clients={clients} setAccounts={setAccounts} />
+          </TabsContent>
+           <TabsContent value="ledger-record">
+            <LedgerRecord clients={clients} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />
+          </TabsContent>
+          <TabsContent value="admin-panel">
+            <AdminPanel accounts={accounts} clients={clients} savedSheetLog={savedSheetLog} declaredNumbers={declaredNumbers} />
+          </TabsContent>
         </Tabs>
       </main>
 
@@ -388,5 +391,3 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
     </div>
   );
 }
-
-    
