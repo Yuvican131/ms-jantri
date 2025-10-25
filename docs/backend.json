@@ -47,14 +47,20 @@
           "type": "string",
           "description": "Name of the client."
         },
-        "description": {
-          "type": "string",
-          "description": "Description of the client."
-        }
+        "pair": { "type": "string" },
+        "comm": { "type": "string" },
+        "inOut": { "type": "string" },
+        "patti": { "type": "string" },
+        "activeBalance": { "type": "string" }
       },
       "required": [
         "id",
-        "name"
+        "name",
+        "pair",
+        "comm",
+        "inOut",
+        "patti",
+        "activeBalance"
       ]
     },
     "Account": {
@@ -67,20 +73,42 @@
           "type": "string",
           "description": "Unique identifier for the Account entity."
         },
-        "name": {
-          "type": "string",
-          "description": "Name of the account."
-        },
-        "notes": {
-          "type": "string",
-          "description": "Notes related to the account."
-        }
+        "clientName": { "type": "string" },
+        "balance": { "type": "string" },
+        "draws": { "type": "object" }
       },
       "required": [
         "id",
-        "name",
-        "notes"
+        "clientName",
+        "balance"
       ]
+    },
+    "SheetLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SheetLog",
+      "type": "object",
+      "description": "Represents a log of a saved sheet.",
+      "properties": {
+        "id": { "type": "string" },
+        "clientName": { "type": "string" },
+        "clientId": { "type": "string" },
+        "gameTotal": { "type": "number" },
+        "data": { "type": "object" },
+        "date": { "type": "string", "format": "date-time" },
+        "draw": { "type": "string" }
+      },
+      "required": ["id", "clientName", "clientId", "gameTotal", "data", "date", "draw"]
+    },
+    "DeclaredNumber": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DeclaredNumber",
+      "type": "object",
+      "description": "Represents a declared number for a draw.",
+      "properties": {
+        "id": { "type": "string" },
+        "number": { "type": "string" }
+      },
+      "required": ["id", "number"]
     }
   },
   "auth": {
@@ -98,33 +126,27 @@
           "schema": {
             "$ref": "#/backend/entities/Client"
           },
-          "description": "Stores client data. Each document represents a client.",
-          "params": [
-            {
-              "name": "clientId",
-              "description": "The unique ID of the client."
-            }
-          ]
+          "description": "Stores client data."
         }
       },
       {
-        "path": "/clients/{clientId}/sheets/{sheetId}",
+        "path": "/sheetLogs/{logId}",
         "definition": {
-          "entityName": "Sheet",
+          "entityName": "SheetLog",
           "schema": {
-            "$ref": "#/backend/entities/Sheet"
+            "$ref": "#/backend/entities/SheetLog"
           },
-          "description": "Stores sheet data. Includes denormalized 'clientId' for authorization independence.",
-          "params": [
-            {
-              "name": "clientId",
-              "description": "The unique ID of the client."
-            },
-            {
-              "name": "sheetId",
-              "description": "The unique ID of the sheet."
-            }
-          ]
+          "description": "Stores logs of saved sheets."
+        }
+      },
+      {
+        "path": "/declaredNumbers/{drawName}",
+        "definition": {
+          "entityName": "DeclaredNumber",
+          "schema": {
+            "$ref": "#/backend/entities/DeclaredNumber"
+          },
+          "description": "Stores declared numbers for draws."
         }
       },
       {
@@ -134,16 +156,9 @@
           "schema": {
             "$ref": "#/backend/entities/Account"
           },
-          "description": "Stores account data for auditing purposes.",
-          "params": [
-            {
-              "name": "accountId",
-              "description": "The unique ID of the account."
-            }
-          ]
+          "description": "Stores account data for auditing purposes."
         }
       }
-    ],
-    "reasoning": "The Firestore structure is designed to organize data for the GridSheet Manager application. It prioritizes authorization independence by denormalizing the client ID to the sheets subcollection, enabling secure and scalable access control. The structure segregates data based on ownership (users owning clients and sheets) to simplify security rules.  It enforces a path-based ownership model. Specifically, sheets are stored under each client to simplify list operations and ownership integrity. Account are global, and stored at the root."
+    ]
   }
 }

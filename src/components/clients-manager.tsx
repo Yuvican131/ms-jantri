@@ -27,7 +27,7 @@ export type Client = {
 type ClientsManagerProps = {
   clients: Client[];
   accounts: Account[];
-  onAddClient: (client: Client) => void;
+  onAddClient: (client: Omit<Client, 'id'>) => void;
   onUpdateClient: (client: Client) => void;
   onDeleteClient: (id: string) => void;
   onClientTransaction: (clientId: string, amount: number) => void;
@@ -55,7 +55,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
       const updatedClient = { ...editingClient, name, pair, comm, inOut, patti, activeBalance };
       onUpdateClient(updatedClient);
     } else {
-      const newClient: Client = { id: Date.now().toString(), name, pair, comm, inOut, patti, activeBalance: activeBalance || '0' }
+      const newClient: Omit<Client, 'id'> = { name, pair, comm, inOut, patti, activeBalance: activeBalance || '0' }
       onAddClient(newClient);
     }
     setEditingClient(null)

@@ -1,115 +1,134 @@
 /**
- * @fileoverview Firestore Security Rules for GridSheet Manager.
+ * @fileoverview Firestore Security Rules for the GridSheet Manager application.
  *
  * Core Philosophy:
- * This ruleset enforces a strict ownership model. Clients own sheets, and only authenticated users can create and manage their own data.
+ * This ruleset enforces a strict user-ownership model for Clients and Sheets,
+ * ensuring that only authenticated users can manage their own data. Accounts
+ * are managed as global data.
  *
  * Data Structure:
- * - /clients/{clientId}: Stores client information, with the client ID as the document ID.
- * - /clients/{clientId}/sheets/{sheetId}: Stores sheets owned by a specific client.  The clientId is denormalized onto each sheet document for simplified authorization.
- * - /accounts/{accountId}: Stores account data for auditing purposes. These are treated as global, and only authenticated users can manage it.
+ * - /clients/{clientId}: Stores client data, owned by a specific user.
+ * - /clients/{clientId}/sheets/{sheetId}: Stores sheet data, owned by a specific client.
+ * - /accounts/{accountId}: Stores account data, globally accessible.
  *
  * Key Security Decisions:
- * - Clients can only create, read, update, and delete their own client documents.
- * - Clients can only create, read, update, and delete sheets under their own client documents. The `clientId` on the sheet document must match the path.
- * - No listing of all clients or sheets is allowed (except within a client's own /clients/{clientId}/sheets collection).
+ * - All write operations on Clients and Sheets require the user to be the owner,
+ *   as determined by the document path.
+ * - Data validation is limited to relational integrity (e.g., clientId consistency).
+ * - List operations are restricted to owners for client and sheet subcollections.
+ * - Account data is globally accessible for read operations but write operations are disallowed.
  *
  * Denormalization for Authorization:
- * - The `clientId` field is denormalized into the `/clients/{clientId}/sheets/{sheetId}` documents. This allows sheet-level rules to validate ownership without needing to perform additional `get()` operations.
+ * - Sheet documents contain a `clientId` field, which is used to ensure that
+ *   the sheet belongs to the correct client. This avoids needing to perform
+ *   a `get()` operation on the parent client document to verify ownership.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Secures the /clients collection, ensuring only authenticated users can manage their own client data.
+     * @description Grants access to client documents.
      * @path /clients/{clientId}
-     * @allow (create) - Authenticated user creates a new client document where the clientId matches their auth UID.
-     * @allow (get, update, delete) - Authenticated user accesses, updates, or deletes their own client document.
-     * @deny (create) - An unauthenticated user attempts to create a client document.
-     * @deny (update, delete) - An authenticated user attempts to modify or delete another user's client document.
-     * @principle Enforces document ownership for writes.
+     * @allow (create) User with UID 'user_abc' can create a client with ID 'user_abc'.
+     * @allow (get) Any user can read a client's data if they know the document ID.
+     * @deny (update) User with UID 'user_xyz' cannot update a client with ID 'user_abc'.
+     * @deny (delete) User with UID 'user_xyz' cannot delete a client with ID 'user_abc'.
+     * @principle Enforces document ownership for writes and allows public reads.
      */
     match /clients/{clientId} {
+      // Helper function to check if the user is signed in
       function isSignedIn() {
         return request.auth != null;
       }
 
+      // Helper function to check if the user is the owner of the client
       function isOwner(clientId) {
         return request.auth.uid == clientId;
       }
 
+      // Helper function to check if the user is the existing owner of the client
       function isExistingOwner(clientId) {
-          return isOwner(clientId) && resource != null;
+        return isOwner(clientId) && resource != null;
       }
 
-      allow get: if isExistingOwner(clientId);
-      allow list: if false;
+      // Allow anyone to read client data
+      allow get: if true;
+      allow list: if true;
+
+      // Allow a user to create a client if their UID matches the client ID
       allow create: if isSignedIn() && isOwner(clientId);
-      allow update: if isExistingOwner(clientId);
-      allow delete: if isExistingOwner(clientId);
+
+      // Allow the owner to update the client
+      allow update: if isSignedIn() && isExistingOwner(clientId);
+
+      // Allow the owner to delete the client
+      allow delete: if isSignedIn() && isExistingOwner(clientId);
     }
 
     /**
-     * @description Secures the /clients/{clientId}/sheets collection, ensuring only the owning client can manage their sheets.
+     * @description Grants access to sheet documents nested under a client.
      * @path /clients/{clientId}/sheets/{sheetId}
-     * @allow (create) - Authenticated user creates a new sheet document under their client, with a matching clientId field.
-     * @allow (get, update, delete) - Authenticated user accesses, updates, or deletes their own sheet document.
-     * @deny (create) - An authenticated user attempts to create a sheet document under another user's client.
-     * @deny (update, delete) - An authenticated user attempts to modify or delete a sheet document they don't own.
-     * @principle Enforces document ownership for writes and relational integrity.
+     * @allow (create) User with UID 'user_abc' can create a sheet under client 'user_abc'.
+     * @allow (get) Any user can read a sheet if they know its ID and parent client ID.
+     * @deny (update) User with UID 'user_xyz' cannot update a sheet under client 'user_abc'.
+     * @deny (delete) User with UID 'user_xyz' cannot delete a sheet under client 'user_abc'.
+     * @principle Enforces document ownership and validates relational integrity.
      */
     match /clients/{clientId}/sheets/{sheetId} {
-        function isSignedIn() {
-          return request.auth != null;
-        }
+       // Helper function to check if the user is signed in
+      function isSignedIn() {
+        return request.auth != null;
+      }
 
-        function isOwner(clientId) {
-          return request.auth.uid == clientId;
-        }
+      // Helper function to check if the user is the owner of the client
+      function isOwner(clientId) {
+        return request.auth.uid == clientId;
+      }
 
-        function isSheetOwner(clientId) {
-          return resource.data.clientId == clientId;
-        }
+      // Helper function to check if the user is the existing owner of the client
+      function isExistingOwner(clientId) {
+        return isOwner(clientId) && resource != null;
+      }
 
-        function isValidNewSheet() {
-          return request.resource.data.clientId == clientId;
-        }
+      // Allow anyone to read sheet data
+      allow get: if true;
 
-        function isExistingOwner(clientId) {
-            return isOwner(clientId) && resource != null;
-        }
+      // Allow the owner to list sheets
+      allow list: if isOwner(clientId);
 
-        allow get: if isExistingOwner(clientId);
-        allow list: if isOwner(clientId);
-        allow create: if isSignedIn() && isOwner(clientId) && isValidNewSheet();
-        allow update: if isExistingOwner(clientId);
-        allow delete: if isExistingOwner(clientId);
+      // Allow a user to create a sheet if they own the parent client and the clientId matches
+      allow create: if isSignedIn() && isOwner(clientId) && request.resource.data.clientId == clientId;
+
+      // Allow the owner to update the sheet if they own the parent client
+      allow update: if isSignedIn() && isExistingOwner(clientId) && resource.data.clientId == clientId;
+
+      // Allow the owner to delete the sheet if they own the parent client
+      allow delete: if isSignedIn() && isExistingOwner(clientId) && resource.data.clientId == clientId;
     }
 
     /**
-     * @description Secures the /accounts collection, ensuring only authenticated users can manage the accounts.
+     * @description Grants access to account documents.
      * @path /accounts/{accountId}
-     * @allow (create) - Authenticated user creates a new account document.
-     * @allow (get, update, delete) - Authenticated user accesses, updates, or deletes an existing account document.
-     * @deny (create) - An unauthenticated user attempts to create an account document.
-     * @deny (update, delete) - An unauthenticated user attempts to modify or delete another account document.
-     * @principle Enforces that only authenticated users can manage accounts.
+     * @allow (get) Any user can read an account.
+     * @deny (create) No one can create accounts.
+     * @deny (update) No one can update accounts.
+     * @deny (delete) No one can delete accounts.
+     * @principle Accounts are globally readable but not writable.
      */
     match /accounts/{accountId} {
-        function isSignedIn() {
-            return request.auth != null;
-        }
+      // Allow anyone to read account data
+      allow get: if true;
+      allow list: if true;
 
-        function isExistingAccount(accountId) {
-            return isSignedIn() && resource != null;
-        }
+      // Prevent anyone from creating accounts
+      allow create: if false;
 
-        allow get: if isSignedIn();
-        allow list: if false;
-        allow create: if isSignedIn();
-        allow update: if isExistingAccount(accountId);
-        allow delete: if isExistingAccount(accountId);
+      // Prevent anyone from updating accounts
+      allow update: if false;
+
+      // Prevent anyone from deleting accounts
+      allow delete: if false;
     }
   }
 }
