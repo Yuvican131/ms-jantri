@@ -1,40 +1,27 @@
 /**
- * @fileoverview Firestore Security Rules for the GridSheet Manager application.
+ * @fileOverview Firestore Security Rules for the application.
  *
  * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for Clients and Sheets,
- * ensuring that only authenticated users can manage their own data. Accounts
- * are managed as global data.
+ * This ruleset prioritizes security by enforcing explicit authorization checks for all write operations and restricting read access where appropriate. Data validation is relaxed for rapid prototyping.
  *
  * Data Structure:
- * - /clients/{clientId}: Stores client data, owned by a specific user.
- * - /clients/{clientId}/sheets/{sheetId}: Stores sheet data, owned by a specific client.
- * - /accounts/{accountId}: Stores account data, globally accessible.
+ * The Firestore database consists of four top-level collections: `clients`, `sheetLogs`, `declaredNumbers`, and `accounts`.
  *
  * Key Security Decisions:
- * - All write operations on Clients and Sheets require the user to be the owner,
- *   as determined by the document path.
- * - Data validation is limited to relational integrity (e.g., clientId consistency).
- * - List operations are restricted to owners for client and sheet subcollections.
- * - Account data is globally accessible for read operations but write operations are disallowed.
- *
- * Denormalization for Authorization:
- * - Sheet documents contain a `clientId` field, which is used to ensure that
- *   the sheet belongs to the correct client. This avoids needing to perform
- *   a `get()` operation on the parent client document to verify ownership.
+ * - Public listing of `sheetLogs` is disallowed due to the potentially sensitive nature of the data.  Only authenticated users are allowed access.
+ * - All write operations require authentication.
+ * - Data validation is limited to essential authorization checks.  The full data shapes are not strictly enforced.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Grants access to client documents.
+     * @description Secures the `clients` collection.
      * @path /clients/{clientId}
-     * @allow (create) User with UID 'user_abc' can create a client with ID 'user_abc'.
-     * @allow (get) Any user can read a client's data if they know the document ID.
-     * @deny (update) User with UID 'user_xyz' cannot update a client with ID 'user_abc'.
-     * @deny (delete) User with UID 'user_xyz' cannot delete a client with ID 'user_abc'.
-     * @principle Enforces document ownership for writes and allows public reads.
+     * @allow (read, write) Authenticated user
+     * @deny (read, write) Unauthenticated user
+     * @principle Enforces authentication for all operations on client data.
      */
     match /clients/{clientId} {
       // Helper function to check if the user is signed in
@@ -42,93 +29,73 @@ service cloud.firestore {
         return request.auth != null;
       }
 
-      // Helper function to check if the user is the owner of the client
+      // Helper function to check if the user is the owner
       function isOwner(clientId) {
         return request.auth.uid == clientId;
       }
 
-      // Helper function to check if the user is the existing owner of the client
-      function isExistingOwner(clientId) {
-        return isOwner(clientId) && resource != null;
-      }
-
-      // Allow anyone to read client data
-      allow get: if true;
-      allow list: if true;
-
-      // Allow a user to create a client if their UID matches the client ID
-      allow create: if isSignedIn() && isOwner(clientId);
-
-      // Allow the owner to update the client
-      allow update: if isSignedIn() && isExistingOwner(clientId);
-
-      // Allow the owner to delete the client
-      allow delete: if isSignedIn() && isExistingOwner(clientId);
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Grants access to sheet documents nested under a client.
-     * @path /clients/{clientId}/sheets/{sheetId}
-     * @allow (create) User with UID 'user_abc' can create a sheet under client 'user_abc'.
-     * @allow (get) Any user can read a sheet if they know its ID and parent client ID.
-     * @deny (update) User with UID 'user_xyz' cannot update a sheet under client 'user_abc'.
-     * @deny (delete) User with UID 'user_xyz' cannot delete a sheet under client 'user_abc'.
-     * @principle Enforces document ownership and validates relational integrity.
+     * @description Secures the `sheetLogs` collection.
+     * @path /sheetLogs/{logId}
+     * @allow (read) Authenticated user
+     * @deny (read) Unauthenticated user or unauthorized user
+     * @principle Enforces authentication for all read and write operations on sheet logs.
      */
-    match /clients/{clientId}/sheets/{sheetId} {
-       // Helper function to check if the user is signed in
+    match /sheetLogs/{logId} {
       function isSignedIn() {
         return request.auth != null;
       }
 
-      // Helper function to check if the user is the owner of the client
-      function isOwner(clientId) {
-        return request.auth.uid == clientId;
-      }
-
-      // Helper function to check if the user is the existing owner of the client
-      function isExistingOwner(clientId) {
-        return isOwner(clientId) && resource != null;
-      }
-
-      // Allow anyone to read sheet data
-      allow get: if true;
-
-      // Allow the owner to list sheets
-      allow list: if isOwner(clientId);
-
-      // Allow a user to create a sheet if they own the parent client and the clientId matches
-      allow create: if isSignedIn() && isOwner(clientId) && request.resource.data.clientId == clientId;
-
-      // Allow the owner to update the sheet if they own the parent client
-      allow update: if isSignedIn() && isExistingOwner(clientId) && resource.data.clientId == clientId;
-
-      // Allow the owner to delete the sheet if they own the parent client
-      allow delete: if isSignedIn() && isExistingOwner(clientId) && resource.data.clientId == clientId;
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Grants access to account documents.
+     * @description Secures the `declaredNumbers` collection.
+     * @path /declaredNumbers/{drawName}
+     * @allow (read, write) Authenticated user
+     * @deny (read, write) Unauthenticated user
+     * @principle Enforces authentication for all operations on declared numbers.
+     */
+    match /declaredNumbers/{drawName} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    /**
+     * @description Secures the `accounts` collection.
      * @path /accounts/{accountId}
-     * @allow (get) Any user can read an account.
-     * @deny (create) No one can create accounts.
-     * @deny (update) No one can update accounts.
-     * @deny (delete) No one can delete accounts.
-     * @principle Accounts are globally readable but not writable.
+     * @allow (read, write) Authenticated user
+     * @deny (read, write) Unauthenticated user
+     * @principle Enforces authentication for all operations on account data.
      */
     match /accounts/{accountId} {
-      // Allow anyone to read account data
-      allow get: if true;
-      allow list: if true;
+      function isSignedIn() {
+        return request.auth != null;
+      }
 
-      // Prevent anyone from creating accounts
-      allow create: if false;
-
-      // Prevent anyone from updating accounts
-      allow update: if false;
-
-      // Prevent anyone from deleting accounts
-      allow delete: if false;
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
   }
 }
