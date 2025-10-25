@@ -5,7 +5,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GridSheet from "@/components/grid-sheet"
 import ClientsManager, { Client } from "@/components/clients-manager"
-import AccountsManager, { Account } from "@/components/accounts-manager"
+import AccountsManager, { Account, DrawData } from "@/components/accounts-manager"
 import LedgerRecord from "@/components/ledger-record"
 import AdminPanel from "@/components/admin-panel"
 import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, ClipboardCopy, FileSpreadsheet, Shield } from 'lucide-react';
@@ -62,7 +62,7 @@ export type SavedSheetInfo = {
 export default function Home() {
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any, getClientCurrentData: (clientId: string) => any | undefined, getClientPreviousData: (clientId: string) => any | undefined }>(null);
   const [selectedInfo, setSelectedInfo] = useState<{ draw: string; date: Date } | null>(null);
-  const [date, setDate] = useState<Date | undefined>()
+  const [date, setDate] = useState<Date | undefined>(new Date())
   const [lastEntry, setLastEntry] = useState('');
   const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("sheet");
@@ -77,7 +77,6 @@ export default function Home() {
     if (auth) {
       signInAnonymously(auth);
     }
-    setDate(new Date());
   }, [auth]);
 
   const { clients, addClient, updateClient, deleteClient, updateClientBalance } = useClients();
@@ -94,7 +93,7 @@ export default function Home() {
         const passingMultiplier = parseFloat(client.pair) || 80;
         let activeBalance = parseFloat(client.activeBalance) || 0;
 
-        const updatedDraws: { [key: string]: { totalAmount: number; passingAmount: number } } = {};
+        const updatedDraws: { [key: string]: DrawData } = {};
 
         let totalPlayedToday = 0;
         let totalWinningsToday = 0;
@@ -261,8 +260,8 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
               )}
             </div>
           </div>
-          <div className="flex-1 min-h-0">
-            <TabsContent value="sheet" className="h-full flex flex-col">
+          <div className="flex-1 min-h-0 flex flex-col">
+            <TabsContent value="sheet" className="flex-1 flex flex-col min-h-0">
               {selectedInfo ? (
                 <div className="flex-1">
                   <GridSheet 
@@ -341,7 +340,7 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
                 </Card>
               )}
             </TabsContent>
-            <TabsContent value="clients" className="h-full">
+            <TabsContent value="clients" className="flex-1 min-h-0">
               <ClientsManager 
                 clients={clients} 
                 accounts={accounts}
@@ -351,13 +350,13 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
                 onClientTransaction={handleClientTransaction}
               />
             </TabsContent>
-            <TabsContent value="accounts" className="h-full">
+            <TabsContent value="accounts" className="flex-1 min-h-0">
               <AccountsManager accounts={accounts} clients={clients} setAccounts={setAccounts} />
             </TabsContent>
-             <TabsContent value="ledger-record" className="h-full">
+             <TabsContent value="ledger-record" className="flex-1 min-h-0">
               <LedgerRecord clients={clients} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />
             </TabsContent>
-            <TabsContent value="admin-panel" className="h-full">
+            <TabsContent value="admin-panel" className="flex-1 min-h-0">
               <AdminPanel accounts={accounts} clients={clients} savedSheetLog={savedSheetLog} declaredNumbers={declaredNumbers} />
             </TabsContent>
           </div>
