@@ -4,7 +4,7 @@ import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef } f
 import { useToast } from "@/hooks/use-toast"
 import { validateCellContent, ValidateCellContentOutput } from "@/ai/flows/validate-cell-content"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -19,6 +19,7 @@ import type { Account } from "./accounts-manager";
 import { formatNumber } from "@/lib/utils"
 import type { Client } from "@/hooks/useClients"
 import type { SavedSheetInfo } from "@/hooks/useSheetLog"
+import { useSheetLog } from "@/hooks/useSheetLog"
 
 
 type CellData = { [key: string]: string }
@@ -283,6 +284,7 @@ const MasterSheetViewer = ({
 
 const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const { toast } = useToast()
+  const { getPreviousDataForClient } = useSheetLog();
   const [sheets, setSheets] = useState<Sheet[]>(initialSheets)
   const [activeSheetId, setActiveSheetId] = useState<string>("1")
   const [clientSheetData, setClientSheetData] = useState<ClientSheetData>({});
@@ -344,7 +346,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     } else {
       setSelectedClientId(clientId);
       if (!clientSheetData[clientId]) {
-        updateClientData(clientId, {}, {});
+        // When selecting a new client, check for previous data for the selected date
+        const dateStr = props.date.toISOString().split('T')[0];
+        const prevData = getPreviousDataForClient(clientId, props.draw, dateStr);
+        updateClientData(clientId, prevData || {}, {});
       }
     }
   };
@@ -414,8 +419,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         return clientSheetData[clientId]?.data;
     },
     getClientPreviousData: (clientId: string) => {
-        const log = props.savedSheetLog.find(l => l.clientId === clientId);
-        return log ? log.data : {};
+      const dateStr = props.date.toISOString().split('T')[0];
+      const log = props.savedSheetLog.find(l => l.clientId === clientId && l.date === dateStr);
+      return log ? log.data : {};
     },
   }));
 

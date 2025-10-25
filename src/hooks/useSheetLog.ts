@@ -1,3 +1,4 @@
+
 'use client';
 import { useMemo } from 'react';
 import { collection, addDoc, updateDoc, doc, writeBatch, query, where, getDocs } from 'firebase/firestore';
@@ -76,6 +77,12 @@ export const useSheetLog = (userId?: string) => {
       if (showToast) toast({ title: "Error", description: "Could not clear sheet data.", variant: "destructive" });
     }
   };
+  
+  const getPreviousDataForClient = (clientId: string, draw: string, dateStr: string) => {
+    if (!sheetLogData) return undefined;
+    const log = sheetLogData.find(l => l.clientId === clientId && l.draw === draw && l.date === dateStr);
+    return log?.data;
+  };
 
-  return { savedSheetLog, isLoading, error, addSheetLogEntry, deleteSheetLogsForClient };
+  return { savedSheetLog, isLoading, error, addSheetLogEntry, deleteSheetLogsForClient, getPreviousDataForClient };
 };
