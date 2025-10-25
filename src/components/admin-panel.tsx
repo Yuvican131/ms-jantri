@@ -1,3 +1,4 @@
+
 "use client"
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -303,21 +304,29 @@ type AdminPanelProps = {
 
 
 export default function AdminPanel({ accounts, clients, savedSheetLog, declaredNumbers }: AdminPanelProps) {
-    const brokerRawDrawTotals = draws.reduce((acc, drawName) => {
-        acc[drawName] = accounts.reduce((drawTotal, account) => {
-            const drawData = account.draws?.[drawName];
-            return drawTotal + (drawData?.totalAmount || 0);
-        }, 0);
-        return acc;
-    }, {} as { [key: string]: number });
-  
-    const brokerPassingDrawTotals = draws.reduce((acc, drawName) => {
-        acc[drawName] = accounts.reduce((drawTotal, account) => {
-            const drawData = account.draws?.[drawName];
-            return drawTotal + (drawData?.passingAmount || 0);
-        }, 0);
-        return acc;
-    }, {} as { [key: string]: number });
+    const { brokerRawDrawTotals, brokerPassingDrawTotals } = useMemo(() => {
+        const rawTotals: { [key: string]: number } = {};
+        const passingTotals: { [key: string]: number } = {};
+
+        for (const drawName in savedSheetLog) {
+            if (Object.prototype.hasOwnProperty.call(savedSheetLog, drawName)) {
+                const logs = savedSheetLog[drawName];
+                
+                rawTotals[drawName] = logs.reduce((sum, log) => sum + log.gameTotal, 0);
+                
+                const declaredNumber = declaredNumbers[drawName];
+                if (declaredNumber) {
+                    passingTotals[drawName] = logs.reduce((sum, log) => {
+                        const passingAmount = parseFloat(log.data[declaredNumber] || "0");
+                        return sum + passingAmount;
+                    }, 0);
+                } else {
+                    passingTotals[drawName] = 0;
+                }
+            }
+        }
+        return { brokerRawDrawTotals: rawTotals, brokerPassingDrawTotals: passingTotals };
+    }, [savedSheetLog, declaredNumbers]);
 
     const finalNetTotalForBroker = draws.reduce((totalNet, drawName) => {
         const totalAmountForDraw = brokerRawDrawTotals[drawName] || 0;
@@ -375,3 +384,5 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
     </Card>
   );
 }
+
+    
