@@ -12,7 +12,7 @@ import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, X, Save, RotateCcw,
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogClose, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { format } from "date-fns"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Account } from "./accounts-manager";
