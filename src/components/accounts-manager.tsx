@@ -15,16 +15,16 @@ import { formatNumber } from "@/lib/utils"
 import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy } from 'lucide-react';
 
 
+export type DrawData = {
+  totalAmount: number;
+  passingAmount: number;
+}
+
 export type Account = {
   id: string
   clientName: string
   balance: string
   draws?: { [key: string]: DrawData }
-}
-
-type DrawData = {
-  totalAmount: number;
-  passingAmount: number;
 }
 
 type AccountsManagerProps = {
@@ -169,3 +169,4 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
   )
 }
 
+    

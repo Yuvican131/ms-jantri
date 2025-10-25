@@ -135,7 +135,7 @@ export default function Home() {
   // Recalculate accounts whenever clients, logs, or declared numbers change
   useEffect(() => {
     updateAccountsFromLog(savedSheetLog);
-  }, [clients, savedSheetLog, declaredNumbers, updateAccountsFromLog]);
+  }, [savedSheetLog, updateAccountsFromLog]);
 
 
   const handleClientUpdateForSheet = (client: Client) => {
@@ -383,3 +383,4 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
   );
 }
 
+    
