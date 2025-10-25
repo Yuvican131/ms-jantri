@@ -34,12 +34,13 @@
     "DeclaredNumber": {
       "title": "DeclaredNumber",
       "type": "object",
-      "description": "Represents a declared winning number for a specific draw.",
+      "description": "Represents a declared winning number for a specific draw on a specific date.",
       "properties": {
         "draw": { "type": "string" },
-        "number": { "type": "string" }
+        "number": { "type": "string" },
+        "date": { "type": "string", "format": "date" }
       },
-      "required": ["draw", "number"]
+      "required": ["draw", "number", "date"]
     }
   },
   "auth": {
@@ -64,11 +65,11 @@
         }
       },
       {
-        "path": "/users/{userId}/declaredNumbers/{drawId}",
+        "path": "/users/{userId}/declaredNumbers/{declarationId}",
         "definition": {
           "entityName": "DeclaredNumber",
           "schema": { "$ref": "#/backend/entities/DeclaredNumber" },
-          "description": "Stores declared numbers for each draw for a specific user."
+          "description": "Stores a declared number for a specific draw and date. The ID is a composite of draw-date."
         }
       }
     ]

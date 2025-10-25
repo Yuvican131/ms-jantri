@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
 import type { Client } from '@/hooks/useClients';
-import type { SavedSheetInfo } from '@/hooks/useSheetLog';
+import type { SavedSheetInfo, DeclaredNumber } from '@/hooks/useDeclaredNumbers';
 
 
 const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
@@ -98,7 +98,7 @@ const GrandTotalSummaryCard = ({
 const BrokerProfitLoss = ({ clients, savedSheetLog, declaredNumbers }: {
     clients: Client[];
     savedSheetLog: { [draw: string]: SavedSheetInfo[] };
-    declaredNumbers: { [draw: string]: string };
+    declaredNumbers: { [key: string]: DeclaredNumber };
 }) => {
     const [upperComm, setUpperComm] = useState(defaultUpperComm.toString());
     const [upperPair, setUpperPair] = useState(defaultUpperPair.toString());
@@ -129,7 +129,10 @@ const BrokerProfitLoss = ({ clients, savedSheetLog, declaredNumbers }: {
                     const clientLogsForDraw = logs.filter(log => log.clientId === client.id && isSameDay(new Date(log.date), day));
                     clientLogsForDraw.forEach(log => {
                         clientGameTotalForDay += log.gameTotal;
-                        const declaredNumber = declaredNumbers[drawName];
+                        const dateStr = format(day, 'yyyy-MM-dd');
+                        const declarationId = `${drawName}-${dateStr}`;
+                        const declaredNumber = declaredNumbers[declarationId]?.number;
+
                         if (declaredNumber && log.data[declaredNumber]) {
                             clientPassingAmountForDay += parseFloat(log.data[declaredNumber]) || 0;
                         }
@@ -147,13 +150,16 @@ const BrokerProfitLoss = ({ clients, savedSheetLog, declaredNumbers }: {
 
             let totalGameAmountForDay = 0;
             let totalPassingAmountForDay = 0;
+            const dateStr = format(day, 'yyyy-MM-dd');
 
             Object.entries(savedSheetLog).forEach(([drawName, logs]) => {
                 logs.forEach(log => {
                     const clientMatches = selectedClientId === 'all' || log.clientId === selectedClientId;
                     if (clientMatches && isSameDay(new Date(log.date), day)) {
                         totalGameAmountForDay += log.gameTotal;
-                        const declaredNumber = declaredNumbers[drawName];
+                        const declarationId = `${drawName}-${dateStr}`;
+                        const declaredNumber = declaredNumbers[declarationId]?.number;
+
                         if (declaredNumber && log.data[declaredNumber]) {
                            totalPassingAmountForDay += parseFloat(log.data[declaredNumber]) || 0;
                         }
@@ -299,7 +305,7 @@ type AdminPanelProps = {
   accounts: Account[];
   clients: Client[];
   savedSheetLog: { [draw: string]: SavedSheetInfo[] };
-  declaredNumbers: { [draw: string]: string };
+  declaredNumbers: { [key: string]: DeclaredNumber };
 };
 
 
@@ -307,24 +313,24 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
     const { brokerRawDrawTotals, brokerPassingDrawTotals } = useMemo(() => {
         const rawTotals: { [key: string]: number } = {};
         const passingTotals: { [key: string]: number } = {};
+        const allLogs = Object.values(savedSheetLog).flat();
 
-        for (const drawName in savedSheetLog) {
-            if (Object.prototype.hasOwnProperty.call(savedSheetLog, drawName)) {
-                const logs = savedSheetLog[drawName];
-                
-                rawTotals[drawName] = logs.reduce((sum, log) => sum + log.gameTotal, 0);
-                
-                const declaredNumber = declaredNumbers[drawName];
-                if (declaredNumber) {
-                    passingTotals[drawName] = logs.reduce((sum, log) => {
-                        const passingAmount = parseFloat(log.data[declaredNumber] || "0");
-                        return sum + passingAmount;
-                    }, 0);
-                } else {
-                    passingTotals[drawName] = 0;
-                }
-            }
+        for (const drawName of draws) {
+            rawTotals[drawName] = allLogs
+                .filter(log => log.draw === drawName)
+                .reduce((sum, log) => sum + log.gameTotal, 0);
+
+            passingTotals[drawName] = allLogs
+                .filter(log => log.draw === drawName)
+                .reduce((sum, log) => {
+                    const dateStr = new Date(log.date).toISOString().split('T')[0];
+                    const declarationId = `${log.draw}-${dateStr}`;
+                    const declaredNum = declaredNumbers[declarationId]?.number;
+                    const passingAmount = declaredNum ? (parseFloat(log.data[declaredNum] || "0")) : 0;
+                    return sum + passingAmount;
+                }, 0);
         }
+        
         return { brokerRawDrawTotals: rawTotals, brokerPassingDrawTotals: passingTotals };
     }, [savedSheetLog, declaredNumbers]);
 

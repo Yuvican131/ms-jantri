@@ -102,18 +102,17 @@ export default function Home() {
       const allLogsForClient = Object.values(savedSheetLog).flat().filter(log => log.clientId === client.id);
 
       allLogsForClient.forEach(log => {
-        const declaredNumberForDraw = declaredNumbers[log.draw];
+        const logDateStr = new Date(log.date).toISOString().split('T')[0];
+        const declarationId = `${log.draw}-${logDateStr}`;
+        const declaredNumberForDraw = declaredNumbers[declarationId]?.number;
+
         const passingAmountInLog = declaredNumberForDraw ? parseFloat(log.data[declaredNumberForDraw] || "0") : 0;
         
         const gameTotal = log.gameTotal;
         const commission = gameTotal * clientCommissionPercent;
         const netFromGames = gameTotal - commission;
         const winnings = passingAmountInLog * passingMultiplier;
-
-        // This represents the net amount owed to/by the client for this specific log entry
         const netResultForLog = netFromGames - winnings;
-
-        // The running balance decreases by what the client owes for their plays
         runningBalance -= netResultForLog;
       });
 
@@ -130,7 +129,9 @@ export default function Home() {
 
         if (clientLogForSelectedDay) {
             totalAmount = clientLogForSelectedDay.gameTotal;
-            const declaredNumberForDraw = declaredNumbers[drawName];
+            const logDateStr = new Date(clientLogForSelectedDay.date).toISOString().split('T')[0];
+            const declarationId = `${drawName}-${logDateStr}`;
+            const declaredNumberForDraw = declaredNumbers[declarationId]?.number;
             passingAmount = declaredNumberForDraw ? parseFloat(clientLogForSelectedDay.data[declaredNumberForDraw] || "0") : 0;
         }
         
@@ -206,9 +207,9 @@ export default function Home() {
     });
   };
 
-  const handleDeclarationInputChange = (draw: string, value: string) => {
+  const handleDeclarationInputChange = (draw: string, value: string, entryDate: Date) => {
     const numValue = value.replace(/[^0-9]/g, "").slice(0, 2);
-    setDeclaredNumber(draw, numValue);
+    setDeclaredNumber(draw, numValue, entryDate);
     if (numValue.length === 2) {
       setDeclarationDraw(draw);
       setDeclarationNumber(numValue);
@@ -217,16 +218,18 @@ export default function Home() {
   };
   
   const handleDeclareOrUndeclare = () => {
-    if (declarationNumber.length === 2) {
-      setDeclaredNumber(declarationDraw, declarationNumber);
+    if (declarationNumber.length === 2 && date) {
+      setDeclaredNumber(declarationDraw, declarationNumber, date);
       toast({ title: "Success", description: `Result processed for draw ${declarationDraw}.` });
     }
     setDeclarationDialogOpen(false);
   };
   
   const handleUndeclare = () => {
-    removeDeclaredNumber(declarationDraw);
-    toast({ title: "Success", description: `Result undeclared for draw ${declarationDraw}.` });
+    if (date) {
+      removeDeclaredNumber(declarationDraw, date);
+      toast({ title: "Success", description: `Result undeclared for draw ${declarationDraw}.` });
+    }
     setDeclarationDialogOpen(false);
   };
   
@@ -332,7 +335,12 @@ export default function Home() {
                     </Button>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4">
-                    {draws.map((draw) => (
+                    {draws.map((draw) => {
+                      const dateStr = date ? date.toISOString().split('T')[0] : '';
+                      const declarationId = `${draw}-${dateStr}`;
+                      const declaredNumberForDate = declaredNumbers[declarationId]?.number || '';
+
+                      return (
                       <div key={draw} className="flex flex-col gap-1">
                           <Button onClick={() => handleSelectDraw(draw)} className="h-16 sm:h-20 text-lg sm:text-xl font-bold bg-gradient-to-br from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white shadow-lg">
                             {draw}
@@ -342,21 +350,21 @@ export default function Home() {
                               placeholder="00"
                               className="w-full h-8 text-center"
                               maxLength={2}
-                              value={declaredNumbers[draw] || ''}
+                              value={declaredNumberForDate}
                               onChange={(e) => {
-                                handleDeclarationInputChange(draw, e.target.value);
+                                if (date) handleDeclarationInputChange(draw, e.target.value, date);
                               }}
                               onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
+                                  if (e.key === 'Enter' && date) {
                                       const inputElement = e.target as HTMLInputElement;
                                       if(inputElement.value.length === 2) {
-                                        handleDeclarationInputChange(draw, inputElement.value);
+                                        handleDeclarationInputChange(draw, inputElement.value, date);
                                       }
                                   }
                               }}
                           />
                       </div>
-                    ))}
+                    )})}
                   </div>
                 </CardContent>
               </Card>

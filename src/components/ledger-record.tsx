@@ -6,15 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatNumber } from "@/lib/utils";
-import { isSameDay, subDays } from "date-fns"
+import { isSameDay, subDays, format } from "date-fns"
 import type { Client } from '@/hooks/useClients';
 import type { SavedSheetInfo } from '@/hooks/useSheetLog';
+import type { DeclaredNumber } from '@/hooks/useDeclaredNumbers';
 
 type LedgerRecordProps = {
   clients: Client[];
   savedSheetLog: { [draw: string]: SavedSheetInfo[] };
   draws: string[];
-  declaredNumbers: { [draw: string]: string };
+  declaredNumbers: { [key: string]: DeclaredNumber };
 };
 
 const defaultClientPair = 90;
@@ -72,7 +73,10 @@ const ClientProfitLoss = ({ clients, savedSheetLog, draws, declaredNumbers }: Le
                 const clientComm = totalInvested * (parseFloat(client.comm) / 100);
                 const clientNet = totalInvested - clientComm;
 
-                const declaredNumber = declaredNumbers[drawName];
+                const dateStr = format(new Date(log.date), 'yyyy-MM-dd');
+                const declarationId = `${drawName}-${dateStr}`;
+                const declaredNumber = declaredNumbers[declarationId]?.number;
+
                 const passingAmount = (declaredNumber && log.data[declaredNumber]) ? (parseFloat(log.data[declaredNumber]) || 0) : 0;
                 const clientWinnings = passingAmount * (parseFloat(client.pair) || defaultClientPair);
 
