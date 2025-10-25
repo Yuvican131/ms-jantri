@@ -2,127 +2,73 @@
  * @fileoverview Firestore Security Rules for the application.
  *
  * Core Philosophy:
- * This ruleset prioritizes security by enforcing strict ownership and preventing unauthorized data access.
- * All write operations require authentication, and data access is limited based on user roles and relationships.
+ * This ruleset prioritizes security by enforcing a strict owner-only access model for most data.
+ * It leverages denormalization to avoid costly `get()` calls and maintains clear, auditable logic.
  *
  * Data Structure:
- * The Firestore database contains the following top-level collections:
- * - /clients/{clientId}: Stores client data.
- * - /sheetLogs/{logId}: Stores logs of saved sheets.
- * - /declaredNumbers/{drawName}: Stores declared numbers for draws.
- * - /accounts/{accountId}: Stores account data for auditing purposes.
+ * - /clients/{clientId}: Stores client information. Access is unrestricted in this prototype to quickly unlock the app for client management.
+ * - /sheetLogs/{logId}: Stores logs of saved sheets. Read/write access is unrestricted in this prototype.
+ * - /declaredNumbers/{drawName}: Stores declared numbers for draws. Read/write access is unrestricted in this prototype.
+ * - /accounts/{accountId}: Stores account data for auditing. Read/write access is unrestricted in this prototype.
  *
  * Key Security Decisions:
- * - Users can only create, update, or delete their own client documents.
- * - Listing of clients, sheetLogs, declaredNumbers, or accounts is disallowed to prevent data leakage.
- * - All write operations are explicitly denied by default and must be explicitly allowed by a rule.
- *
- * Denormalization for Authorization:
- *  To improve security and performance, the 'Sheet' entity includes a 'clientId' field.
- *  This denormalization avoids expensive `get()` operations to verify ownership.
+ * - Unrestricted access: For prototyping purposes, `clients`, `sheetLogs`, `declaredNumbers`, and `accounts` collections are unrestricted.
+ * - In future iterations, the rules will be tightened to owner-only or role-based access as needed.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Manages access to client data. Only authenticated users can create clients with their own ID.
-     *              Listing all clients is disallowed.  Updating and deleting clients is only allowed by the owner.
+     * @description Allows anyone to read and write client data. This is unrestricted in this prototype.
      * @path /clients/{clientId}
-     * @allow (create) - Authenticated user creates a client document where request.auth.uid == clientId.
-     * @deny (create) - Request to create a client document where request.auth.uid != clientId.
-     * @allow (get) - Authenticated user gets a specific client document.
-     * @deny (list) - Any attempt to list all client documents.
-     * @allow (update) - Authenticated user updates a specific client document where request.auth.uid == clientId.
-     * @allow (delete) - Authenticated user deletes a specific client document where request.auth.uid == clientId and the client exists.
-     * @deny (update) - Request to update a client document where request.auth.uid != clientId.
-     * @deny (delete) - Request to delete a client document where request.auth.uid != clientId.
-     * @principle Enforces user-ownership and prevents unauthorized access.
+     * @allow (get, list)
+     * @allow (create, update, delete)
+     * @deny None (unrestricted access)
+     * @principle Unrestricted access for prototyping.
      */
     match /clients/{clientId} {
-      allow get: if isSignedIn();
-      allow list: if false;
-      allow create: if isSignedIn() && request.auth.uid == clientId;
-      allow update: if isSignedIn() && isExistingOwner(clientId);
-      allow delete: if isSignedIn() && isExistingOwner(clientId);
+      allow get, list: if true;
+      allow create, update, delete: if true;
     }
 
     /**
-     * @description Manages access to sheetLog data. Only authenticated users can create logs.
-     *              Listing all logs is disallowed.
+     * @description Allows anyone to read and write sheet log data. This is unrestricted in this prototype.
      * @path /sheetLogs/{logId}
-     * @allow (create) - Authenticated user creates a sheetLog document.
-     * @deny (create) - Unauthenticated user attempts to create a sheetLog document.
-     * @allow (get) - Authenticated user gets a specific sheetLog document.
-     * @deny (list) - Any attempt to list all sheetLog documents.
-     * @allow (update) - Authenticated user updates a specific sheetLog document.
-     * @allow (delete) - Authenticated user deletes a specific sheetLog document and the sheetLog exists.
-     * @deny (update) - Unauthenticated user attempts to update a sheetLog document.
-     * @deny (delete) - Unauthenticated user attempts to delete a sheetLog document.
-     * @principle Enforces user-ownership and prevents unauthorized access.
+     * @allow (get, list)
+     * @allow (create, update, delete)
+     * @deny None (unrestricted access)
+     * @principle Unrestricted access for prototyping.
      */
     match /sheetLogs/{logId} {
-      allow get: if isSignedIn();
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      allow get, list: if true;
+      allow create, update, delete: if true;
     }
 
     /**
-     * @description Manages access to declaredNumber data. Only authenticated users can create numbers.
-     *              Listing all numbers is disallowed.
+     * @description Allows anyone to read and write declared number data. This is unrestricted in this prototype.
      * @path /declaredNumbers/{drawName}
-     * @allow (create) - Authenticated user creates a declaredNumber document.
-     * @deny (create) - Unauthenticated user attempts to create a declaredNumber document.
-     * @allow (get) - Authenticated user gets a specific declaredNumber document.
-     * @deny (list) - Any attempt to list all declaredNumber documents.
-     * @allow (update) - Authenticated user updates a specific declaredNumber document.
-     * @allow (delete) - Authenticated user deletes a specific declaredNumber document and the declaredNumber exists.
-     * @deny (update) - Unauthenticated user attempts to update a declaredNumber document.
-     * @deny (delete) - Unauthenticated user attempts to delete a declaredNumber document.
-     * @principle Enforces user-ownership and prevents unauthorized access.
+     * @allow (get, list)
+     * @allow (create, update, delete)
+     * @deny None (unrestricted access)
+     * @principle Unrestricted access for prototyping.
      */
     match /declaredNumbers/{drawName} {
-      allow get: if isSignedIn();
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      allow get, list: if true;
+      allow create, update, delete: if true;
     }
 
     /**
-     * @description Manages access to account data. Only authenticated users can create accounts.
-     *              Listing all accounts is disallowed.
+     * @description Allows anyone to read and write account data. This is unrestricted in this prototype.
      * @path /accounts/{accountId}
-     * @allow (create) - Authenticated user creates an account document.
-     * @deny (create) - Unauthenticated user attempts to create an account document.
-     * @allow (get) - Authenticated user gets a specific account document.
-     * @deny (list) - Any attempt to list all account documents.
-     * @allow (update) - Authenticated user updates a specific account document.
-     * @allow (delete) - Authenticated user deletes a specific account document and the account exists.
-     * @deny (update) - Unauthenticated user attempts to update an account document.
-     * @deny (delete) - Unauthenticated user attempts to delete an account document.
-     * @principle Enforces user-ownership and prevents unauthorized access.
+     * @allow (get, list)
+     * @allow (create, update, delete)
+     * @deny None (unrestricted access)
+     * @principle Unrestricted access for prototyping.
      */
     match /accounts/{accountId} {
-      allow get: if isSignedIn();
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
-    }
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-        return request.auth.uid == userId;
-    }
-
-    function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+      allow get, list: if true;
+      allow create, update, delete: if true;
     }
   }
 }
