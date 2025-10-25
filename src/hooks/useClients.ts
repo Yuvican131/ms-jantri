@@ -26,7 +26,9 @@ export const useClients = (userId?: string) => {
     return collection(firestore, `users/${userId}/clients`);
   }, [firestore, userId]);
 
-  const { data: clients = [], isLoading, error } = useCollection<Omit<Client, 'id'>>(clientsColRef);
+  const { data, isLoading, error } = useCollection<Omit<Client, 'id'>>(clientsColRef);
+  
+  const clients = useMemo(() => data || [], [data]);
 
   const addClient = (client: Omit<Client, 'id'>) => {
     if (!clientsColRef) return;

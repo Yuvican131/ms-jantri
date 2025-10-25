@@ -22,9 +22,12 @@ export const useSheetLog = (userId?: string) => {
     return collection(firestore, `users/${userId}/sheetLogs`);
   }, [firestore, userId]);
 
-  const { data: sheetLogData = [], isLoading, error } = useCollection<Omit<SavedSheetInfo, 'id'>>(sheetLogColRef);
+  const { data: sheetLogData, isLoading, error } = useCollection<Omit<SavedSheetInfo, 'id'>>(sheetLogColRef);
 
   const savedSheetLog = useMemo(() => {
+    if (!sheetLogData) {
+      return {};
+    }
     const logByDraw: { [key: string]: SavedSheetInfo[] } = {};
     sheetLogData.forEach(log => {
       if (!logByDraw[log.draw]) {
