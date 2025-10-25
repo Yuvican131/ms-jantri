@@ -1,27 +1,9 @@
-/**
- * @fileoverview Firestore Security Rules for the application.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model. Each user has a dedicated data tree under `/users/{userId}`.
- * Only the authenticated user matching the `userId` in the path can read or write data within that tree.
- *
- * Data Structure:
- * All data is nested under `/users/{userId}`, including clients, sheet logs, and declared numbers.
- *
- * Key Security Decisions:
- * - User listing is implicitly disallowed. There is no top-level listing of users.
- * - All write operations require an authenticated user (`request.auth != null`).
- * - All read and write operations are restricted to the owner of the data tree (`isOwner(userId)`).
- *
- * Denormalization for Authorization:
- *  - The rules rely on the `request.auth.uid` matching the `userId` in the path to enforce ownership.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the user is signed in.
+     * @description Checks if the request is authenticated.
      */
     function isSignedIn() {
       return request.auth != null;
@@ -35,55 +17,41 @@ service cloud.firestore {
     }
 
     /**
-     * @description Checks if the authenticated user ID matches the user ID and the document exists.
+     * @description Checks if the authenticated user is the owner of the existing document.
      */
     function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
+        return isSignedIn() && request.auth.uid == userId && resource != null;
     }
 
     /**
-     * @description Enforces document ownership for writes.
-     * @path /users/{userId}/clients/{clientId}
-     * @allow (create) - Authenticated user with UID 'user123' can create a client under /users/user123/clients/client1.
-     * @deny (create) - Authenticated user with UID 'user456' cannot create a client under /users/user123/clients/client1.
-     * @principle Enforces document ownership for writes
+     * @description Enforces that an incoming field must match the user ID.
      */
+    function isValidCreateRequest(userId) {
+      return request.resource.data.userId == userId;
+    }
+
     match /users/{userId}/clients/{clientId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow create: if isOwner(userId) && isValidCreateRequest(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
-    /**
-     * @description Enforces document ownership for sheet logs.
-     * @path /users/{userId}/sheetLogs/{sheetLogId}
-     * @allow (create) - Authenticated user with UID 'user123' can create a sheet log under /users/user123/sheetLogs/log1.
-     * @deny (create) - Authenticated user with UID 'user456' cannot create a sheet log under /users/user123/sheetLogs/log1.
-     * @principle Enforces document ownership for writes
-     */
     match /users/{userId}/sheetLogs/{sheetLogId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow create: if isOwner(userId) && isValidCreateRequest(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
-    /**
-     * @description Enforces document ownership for declared numbers.
-     * @path /users/{userId}/declaredNumbers/{drawId}
-     * @allow (create) - Authenticated user with UID 'user123' can create a declared number under /users/user123/declaredNumbers/draw1.
-     * @deny (create) - Authenticated user with UID 'user456' cannot create a declared number under /users/user123/declaredNumbers/draw1.
-     * @principle Enforces document ownership for writes
-     */
     match /users/{userId}/declaredNumbers/{drawId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow create: if isOwner(userId) && isValidCreateRequest(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
   }
 }
