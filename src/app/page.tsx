@@ -62,7 +62,7 @@ export type SavedSheetInfo = {
 export default function Home() {
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any, getClientCurrentData: (clientId: string) => any | undefined, getClientPreviousData: (clientId: string) => any | undefined }>(null);
   const [selectedInfo, setSelectedInfo] = useState<{ draw: string; date: Date } | null>(null);
-  const [date, setDate] = useState<Date | undefined>(new Date())
+  const [date, setDate] = useState<Date | undefined>()
   const [lastEntry, setLastEntry] = useState('');
   const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("sheet");
@@ -75,6 +75,7 @@ export default function Home() {
   const auth = useAuth();
   useEffect(() => {
     signInAnonymously(auth);
+    setDate(new Date());
   }, [auth]);
 
   const { clients, addClient, updateClient, deleteClient, updateClientBalance } = useClients();
