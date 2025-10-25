@@ -90,11 +90,11 @@ const DrawDetailsPanel = ({
 
 export default function AccountsManager({ accounts, clients, setAccounts }: AccountsManagerProps) {
   return (
-    <Card>
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <CardTitle>Manage Account Ledger</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="flex-1 space-y-6 overflow-y-auto">
         <div>
             <h3 className="text-lg font-semibold mb-3 text-primary flex items-center gap-2">
                 <HandCoins className="h-5 w-5" /> Client Ledgers
@@ -168,3 +168,4 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
     </Card>
   )
 }
+

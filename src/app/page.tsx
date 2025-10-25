@@ -74,7 +74,9 @@ export default function Home() {
 
   const auth = useAuth();
   useEffect(() => {
-    signInAnonymously(auth);
+    if (auth) {
+      signInAnonymously(auth);
+    }
     setDate(new Date());
   }, [auth]);
 
@@ -339,7 +341,7 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
                 </Card>
               )}
             </TabsContent>
-            <TabsContent value="clients">
+            <TabsContent value="clients" className="h-full">
               <ClientsManager 
                 clients={clients} 
                 accounts={accounts}
@@ -349,13 +351,13 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
                 onClientTransaction={handleClientTransaction}
               />
             </TabsContent>
-            <TabsContent value="accounts">
+            <TabsContent value="accounts" className="h-full">
               <AccountsManager accounts={accounts} clients={clients} setAccounts={setAccounts} />
             </TabsContent>
-             <TabsContent value="ledger-record">
+             <TabsContent value="ledger-record" className="h-full">
               <LedgerRecord clients={clients} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />
             </TabsContent>
-            <TabsContent value="admin-panel">
+            <TabsContent value="admin-panel" className="h-full">
               <AdminPanel accounts={accounts} clients={clients} savedSheetLog={savedSheetLog} declaredNumbers={declaredNumbers} />
             </TabsContent>
           </div>
@@ -381,4 +383,3 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
   );
 }
 
-    

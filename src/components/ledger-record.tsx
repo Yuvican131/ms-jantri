@@ -198,14 +198,15 @@ const ClientProfitLoss = ({ clients, savedSheetLog, draws, declaredNumbers }: Le
 
 export default function LedgerRecord({ clients, savedSheetLog, draws, declaredNumbers }: LedgerRecordProps) {
   return (
-    <Card className="overflow-hidden">
+    <Card className="h-full flex flex-col overflow-hidden">
       <CardHeader>
         <CardTitle>Client Performance</CardTitle>
         <CardDescription>Analyze client profit and loss performance.</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 overflow-y-auto">
         <ClientProfitLoss clients={clients} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />
       </CardContent>
     </Card>
   );
 }
+

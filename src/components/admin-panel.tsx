@@ -338,12 +338,12 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
     const grandPassingTotal = Object.values(brokerPassingDrawTotals).reduce((sum, total) => sum + total, 0);
 
   return (
-    <Card>
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <CardTitle>Admin Panel</CardTitle>
         <CardDescription>High-level overview of your brokerage operations.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-8">
+      <CardContent className="flex-1 space-y-8 overflow-y-auto">
         <div>
             <h3 className="text-lg font-semibold mb-3 text-primary flex items-center gap-2">
                 <Landmark className="h-5 w-5" /> All Draws Summary
@@ -376,3 +376,4 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
     </Card>
   );
 }
+

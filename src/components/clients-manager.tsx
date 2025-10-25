@@ -110,7 +110,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
 
   return (
     <>
-      <Card>
+      <Card className="h-full flex flex-col">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Manage Clients</CardTitle>
           <Dialog open={isDialogOpen} onOpenChange={(open) => {
@@ -168,8 +168,8 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
             </DialogContent>
           </Dialog>
         </CardHeader>
-        <CardContent>
-          <ScrollArea className="w-full whitespace-nowrap">
+        <CardContent className="flex-1 min-h-0">
+          <ScrollArea className="h-full">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -257,3 +257,4 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
     </>
   )
 }
+
