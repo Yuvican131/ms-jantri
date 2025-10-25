@@ -168,5 +168,3 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
     </Card>
   )
 }
-
-    

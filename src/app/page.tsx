@@ -37,7 +37,7 @@ function GridIcon(props: React.SVGProps<SVGSVGElement>) {
       <path d="M3 7h18" />
       <path d="M12 3v18" />
       <path d="M3 12h18" />
-      <path d="M17' 3v18" />
+      <path d="M17 3v18" />
       <path d="M3 17h18" />
     </svg>
   )
@@ -56,7 +56,7 @@ export type SavedSheetInfo = {
 export default function Home() {
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any, getClientCurrentData: (clientId: string) => any | undefined, getClientPreviousData: (clientId: string) => any | undefined }>(null);
   const [selectedInfo, setSelectedInfo] = useState<{ draw: string; date: Date } | null>(null);
-  const [date, setDate] = useState<Date>(new Date())
+  const [date, setDate] = useState<Date | undefined>();
   const [lastEntry, setLastEntry] = useState('');
   const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("sheet");
@@ -71,6 +71,12 @@ export default function Home() {
   const [declaredNumbers, setDeclaredNumbers] = useState<{ [key: string]: string }>({});
   const [accounts, setAccounts] = useState<Account[]>([]);
   const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setDate(new Date());
+    }
+  }, []);
 
   // Recalculate accounts whenever clients, logs, or declared numbers change
   useEffect(() => {
@@ -127,7 +133,7 @@ export default function Home() {
   };
   
   const handleAddClient = (client: Omit<Client, 'id'>) => {
-    const newClient = { ...client, id: Date.now().toString() };
+    const newClient = { ...client, id: Date.now().toString(), activeBalance: client.activeBalance || 0 };
     setClients([...clients, newClient]);
   };
   
@@ -140,7 +146,9 @@ export default function Home() {
   };
   
   const handleSelectDraw = (draw: string) => {
-    setSelectedInfo({ draw, date });
+    if (date) {
+      setSelectedInfo({ draw, date });
+    }
   };
 
   const handleBackToDraws = () => {
@@ -234,8 +242,8 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
 
   return (
     <div className="flex h-screen w-full flex-col bg-background">
-      <main className="flex-1 p-2">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <main className="flex-1 p-2 flex flex-col min-h-0">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col min-h-0">
           <div className="flex items-center justify-between pb-1.5">
             <div className="flex items-center">
               <TabsList className="grid grid-cols-5 md:w-auto p-0.5 gap-0.5">
@@ -274,12 +282,12 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
               )}
             </div>
           </div>
-          <TabsContent value="sheet">
-            {selectedInfo ? (
+          <TabsContent value="sheet" className="flex-1 flex flex-col min-h-0">
+            {selectedInfo && date ? (
               <GridSheet 
                 ref={gridSheetRef} 
                 draw={selectedInfo.draw} 
-                date={selectedInfo.date} 
+                date={date} 
                 lastEntry={lastEntry} 
                 setLastEntry={setLastEntry} 
                 isLastEntryDialogOpen={isLastEntryDialogOpen} 
