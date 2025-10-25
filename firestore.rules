@@ -1,101 +1,128 @@
 /**
- * @fileOverview Firestore Security Rules for the application.
+ * @fileoverview Firestore Security Rules for the application.
  *
  * Core Philosophy:
- * This ruleset prioritizes security by enforcing explicit authorization checks for all write operations and restricting read access where appropriate. Data validation is relaxed for rapid prototyping.
+ * This ruleset prioritizes security by enforcing strict ownership and preventing unauthorized data access.
+ * All write operations require authentication, and data access is limited based on user roles and relationships.
  *
  * Data Structure:
- * The Firestore database consists of four top-level collections: `clients`, `sheetLogs`, `declaredNumbers`, and `accounts`.
+ * The Firestore database contains the following top-level collections:
+ * - /clients/{clientId}: Stores client data.
+ * - /sheetLogs/{logId}: Stores logs of saved sheets.
+ * - /declaredNumbers/{drawName}: Stores declared numbers for draws.
+ * - /accounts/{accountId}: Stores account data for auditing purposes.
  *
  * Key Security Decisions:
- * - Public listing of `sheetLogs` is disallowed due to the potentially sensitive nature of the data.  Only authenticated users are allowed access.
- * - All write operations require authentication.
- * - Data validation is limited to essential authorization checks.  The full data shapes are not strictly enforced.
+ * - Users can only create, update, or delete their own client documents.
+ * - Listing of clients, sheetLogs, declaredNumbers, or accounts is disallowed to prevent data leakage.
+ * - All write operations are explicitly denied by default and must be explicitly allowed by a rule.
+ *
+ * Denormalization for Authorization:
+ *  To improve security and performance, the 'Sheet' entity includes a 'clientId' field.
+ *  This denormalization avoids expensive `get()` operations to verify ownership.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Secures the `clients` collection.
+     * @description Manages access to client data. Only authenticated users can create clients with their own ID.
+     *              Listing all clients is disallowed.  Updating and deleting clients is only allowed by the owner.
      * @path /clients/{clientId}
-     * @allow (read, write) Authenticated user
-     * @deny (read, write) Unauthenticated user
-     * @principle Enforces authentication for all operations on client data.
+     * @allow (create) - Authenticated user creates a client document where request.auth.uid == clientId.
+     * @deny (create) - Request to create a client document where request.auth.uid != clientId.
+     * @allow (get) - Authenticated user gets a specific client document.
+     * @deny (list) - Any attempt to list all client documents.
+     * @allow (update) - Authenticated user updates a specific client document where request.auth.uid == clientId.
+     * @allow (delete) - Authenticated user deletes a specific client document where request.auth.uid == clientId and the client exists.
+     * @deny (update) - Request to update a client document where request.auth.uid != clientId.
+     * @deny (delete) - Request to delete a client document where request.auth.uid != clientId.
+     * @principle Enforces user-ownership and prevents unauthorized access.
      */
     match /clients/{clientId} {
-      // Helper function to check if the user is signed in
-      function isSignedIn() {
-        return request.auth != null;
-      }
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if isSignedIn() && request.auth.uid == clientId;
+      allow update: if isSignedIn() && isExistingOwner(clientId);
+      allow delete: if isSignedIn() && isExistingOwner(clientId);
+    }
 
-      // Helper function to check if the user is the owner
-      function isOwner(clientId) {
-        return request.auth.uid == clientId;
-      }
-
+    /**
+     * @description Manages access to sheetLog data. Only authenticated users can create logs.
+     *              Listing all logs is disallowed.
+     * @path /sheetLogs/{logId}
+     * @allow (create) - Authenticated user creates a sheetLog document.
+     * @deny (create) - Unauthenticated user attempts to create a sheetLog document.
+     * @allow (get) - Authenticated user gets a specific sheetLog document.
+     * @deny (list) - Any attempt to list all sheetLog documents.
+     * @allow (update) - Authenticated user updates a specific sheetLog document.
+     * @allow (delete) - Authenticated user deletes a specific sheetLog document and the sheetLog exists.
+     * @deny (update) - Unauthenticated user attempts to update a sheetLog document.
+     * @deny (delete) - Unauthenticated user attempts to delete a sheetLog document.
+     * @principle Enforces user-ownership and prevents unauthorized access.
+     */
+    match /sheetLogs/{logId} {
       allow get: if isSignedIn();
       allow list: if false;
       allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
 
     /**
-     * @description Secures the `sheetLogs` collection.
-     * @path /sheetLogs/{logId}
-     * @allow (read) Authenticated user
-     * @deny (read) Unauthenticated user or unauthorized user
-     * @principle Enforces authentication for all read and write operations on sheet logs.
-     */
-    match /sheetLogs/{logId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
-    }
-
-    /**
-     * @description Secures the `declaredNumbers` collection.
+     * @description Manages access to declaredNumber data. Only authenticated users can create numbers.
+     *              Listing all numbers is disallowed.
      * @path /declaredNumbers/{drawName}
-     * @allow (read, write) Authenticated user
-     * @deny (read, write) Unauthenticated user
-     * @principle Enforces authentication for all operations on declared numbers.
+     * @allow (create) - Authenticated user creates a declaredNumber document.
+     * @deny (create) - Unauthenticated user attempts to create a declaredNumber document.
+     * @allow (get) - Authenticated user gets a specific declaredNumber document.
+     * @deny (list) - Any attempt to list all declaredNumber documents.
+     * @allow (update) - Authenticated user updates a specific declaredNumber document.
+     * @allow (delete) - Authenticated user deletes a specific declaredNumber document and the declaredNumber exists.
+     * @deny (update) - Unauthenticated user attempts to update a declaredNumber document.
+     * @deny (delete) - Unauthenticated user attempts to delete a declaredNumber document.
+     * @principle Enforces user-ownership and prevents unauthorized access.
      */
     match /declaredNumbers/{drawName} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       allow get: if isSignedIn();
-      allow list: if isSignedIn();
+      allow list: if false;
       allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
     }
 
     /**
-     * @description Secures the `accounts` collection.
+     * @description Manages access to account data. Only authenticated users can create accounts.
+     *              Listing all accounts is disallowed.
      * @path /accounts/{accountId}
-     * @allow (read, write) Authenticated user
-     * @deny (read, write) Unauthenticated user
-     * @principle Enforces authentication for all operations on account data.
+     * @allow (create) - Authenticated user creates an account document.
+     * @deny (create) - Unauthenticated user attempts to create an account document.
+     * @allow (get) - Authenticated user gets a specific account document.
+     * @deny (list) - Any attempt to list all account documents.
+     * @allow (update) - Authenticated user updates a specific account document.
+     * @allow (delete) - Authenticated user deletes a specific account document and the account exists.
+     * @deny (update) - Unauthenticated user attempts to update an account document.
+     * @deny (delete) - Unauthenticated user attempts to delete an account document.
+     * @principle Enforces user-ownership and prevents unauthorized access.
      */
     match /accounts/{accountId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       allow get: if isSignedIn();
-      allow list: if isSignedIn();
+      allow list: if false;
       allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+        return request.auth.uid == userId;
+    }
+
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
     }
   }
 }

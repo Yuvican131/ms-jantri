@@ -4,6 +4,8 @@
 import { useMemo } from 'react';
 import { collection, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 type DeclaredNumberDoc = {
   id: string; // Corresponds to draw name
@@ -23,22 +25,32 @@ export function useDeclaredNumbers() {
     }, {} as { [key: string]: string });
   }, [data]);
 
-  const setDeclaredNumber = async (draw: string, number: string) => {
-    try {
-      const docRef = doc(firestore, 'declaredNumbers', draw);
-      await setDoc(docRef, { number, updatedAt: serverTimestamp() });
-    } catch (e) {
-      console.error("Error setting declared number: ", e);
-    }
+  const setDeclaredNumber = (draw: string, number: string) => {
+    const docRef = doc(firestore, 'declaredNumbers', draw);
+    const dataToSet = { number, updatedAt: serverTimestamp() };
+    setDoc(docRef, dataToSet).catch(error => {
+      errorEmitter.emit(
+        'permission-error',
+        new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'write',
+          requestResourceData: dataToSet,
+        })
+      );
+    });
   };
 
-  const removeDeclaredNumber = async (draw: string) => {
-    try {
-      const docRef = doc(firestore, 'declaredNumbers', draw);
-      await deleteDoc(docRef);
-    } catch (e) {
-      console.error("Error removing declared number: ", e);
-    }
+  const removeDeclaredNumber = (draw: string) => {
+    const docRef = doc(firestore, 'declaredNumbers', draw);
+    deleteDoc(docRef).catch(error => {
+      errorEmitter.emit(
+        'permission-error',
+        new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'delete',
+        })
+      );
+    });
   };
 
   return {
