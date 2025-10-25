@@ -2,73 +2,103 @@
  * @fileoverview Firestore Security Rules for the application.
  *
  * Core Philosophy:
- * This ruleset prioritizes security by enforcing a strict owner-only access model for most data.
- * It leverages denormalization to avoid costly `get()` calls and maintains clear, auditable logic.
+ * This ruleset enforces a strict user-ownership model, where each user has complete control over their own data. All data is nested under /users/{userId}, ensuring that only the authenticated user can access their respective data. Authorization independence is achieved via denormalization.
  *
  * Data Structure:
- * - /clients/{clientId}: Stores client information. Access is unrestricted in this prototype to quickly unlock the app for client management.
- * - /sheetLogs/{logId}: Stores logs of saved sheets. Read/write access is unrestricted in this prototype.
- * - /declaredNumbers/{drawName}: Stores declared numbers for draws. Read/write access is unrestricted in this prototype.
- * - /accounts/{accountId}: Stores account data for auditing. Read/write access is unrestricted in this prototype.
+ * - /users/{userId}/clients/{clientId}: Stores client data, owned by the user.
+ * - /users/{userId}/accounts/{accountId}: Stores account data, owned by the user.
+ * - /users/{userId}/sheets/{sheetId}: Stores sheet data, also owned by the user, with denormalized clientId and accountId for efficient authorization.
  *
  * Key Security Decisions:
- * - Unrestricted access: For prototyping purposes, `clients`, `sheetLogs`, `declaredNumbers`, and `accounts` collections are unrestricted.
- * - In future iterations, the rules will be tightened to owner-only or role-based access as needed.
+ * - User listing is disallowed to prevent unauthorized data access.
+ * - All write operations are strictly validated against the authenticated user's ID.
+ * - Authorization independence is achieved by denormalizing the `clientId` and `accountId` into the `sheets` documents.
+ *
+ * Denormalization for Authorization:
+ * - The `Sheet` entity includes `clientId` and `accountId` fields. This avoids the need for expensive `get()` calls to the `clients` and `accounts` collections during authorization, leading to more efficient and scalable rules.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows anyone to read and write client data. This is unrestricted in this prototype.
-     * @path /clients/{clientId}
-     * @allow (get, list)
-     * @allow (create, update, delete)
-     * @deny None (unrestricted access)
-     * @principle Unrestricted access for prototyping.
+     * @description Checks if the request is authenticated.
      */
-    match /clients/{clientId} {
-      allow get, list: if true;
-      allow create, update, delete: if true;
+    function isSignedIn() {
+      return request.auth != null;
     }
 
     /**
-     * @description Allows anyone to read and write sheet log data. This is unrestricted in this prototype.
-     * @path /sheetLogs/{logId}
-     * @allow (get, list)
-     * @allow (create, update, delete)
-     * @deny None (unrestricted access)
-     * @principle Unrestricted access for prototyping.
+     * @description Checks if the authenticated user ID matches the provided user ID.
      */
-    match /sheetLogs/{logId} {
-      allow get, list: if true;
-      allow create, update, delete: if true;
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
     }
 
     /**
-     * @description Allows anyone to read and write declared number data. This is unrestricted in this prototype.
-     * @path /declaredNumbers/{drawName}
-     * @allow (get, list)
-     * @allow (create, update, delete)
-     * @deny None (unrestricted access)
-     * @principle Unrestricted access for prototyping.
+     * @description Checks if the authenticated user is the owner of an existing document.
      */
-    match /declaredNumbers/{drawName} {
-      allow get, list: if true;
-      allow create, update, delete: if true;
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Allows anyone to read and write account data. This is unrestricted in this prototype.
-     * @path /accounts/{accountId}
-     * @allow (get, list)
-     * @allow (create, update, delete)
-     * @deny None (unrestricted access)
-     * @principle Unrestricted access for prototyping.
+     * @description Enforces that on create, the ID on the request resource matches the userId in the path. Enforces immutability of the userId on update.
      */
-    match /accounts/{accountId} {
-      allow get, list: if true;
-      allow create, update, delete: if true;
+    function isValidOwnerId(userId) {
+        return (request.method == "create" && request.resource.data.id == userId)
+            || (request.method == "update" && request.resource.data.id == resource.data.id);
+    }
+
+    /**
+     * @description Rules for the /users/{userId}/clients/{clientId} collection.
+     * @path /users/{userId}/clients/{clientId}
+     * @allow (create) - User 'user123' can create a client with ID 'user123' under their own user ID.
+     * @allow (update) - User 'user123' can update a client they own, provided they are still the owner.
+     * @allow (delete) - User 'user123' can delete a client they own.
+     * @deny (create) - User 'user456' cannot create a client under 'user123''s user ID.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
+     */
+    match /users/{userId}/clients/{clientId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == clientId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for the /users/{userId}/accounts/{accountId} collection.
+     * @path /users/{userId}/accounts/{accountId}
+     * @allow (create) - User 'user123' can create an account under their own user ID.
+     * @allow (update) - User 'user123' can update an account they own.
+     * @allow (delete) - User 'user123' can delete an account they own.
+     * @deny (create) - User 'user456' cannot create an account under 'user123''s user ID.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
+     */
+    match /users/{userId}/accounts/{accountId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == accountId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for the /users/{userId}/sheets/{sheetId} collection.
+     * @path /users/{userId}/sheets/{sheetId}
+     * @allow (create) - User 'user123' can create a sheet under their own user ID.
+     * @allow (update) - User 'user123' can update a sheet they own.
+     * @allow (delete) - User 'user123' can delete a sheet they own.
+     * @deny (create) - User 'user456' cannot create a sheet under 'user123''s user ID.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
+     */
+    match /users/{userId}/sheets/{sheetId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == sheetId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
   }
 }
