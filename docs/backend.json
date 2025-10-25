@@ -1,0 +1,149 @@
+{
+  "entities": {
+    "Sheet": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Sheet",
+      "type": "object",
+      "description": "Represents a grid sheet with editable cells.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Sheet entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the sheet."
+        },
+        "gridData": {
+          "type": "array",
+          "description": "Represents the data within the 10x10 grid.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "clientId": {
+          "type": "string",
+          "description": "Reference to the Client that owns this sheet. (Relationship: Client 1:N Sheet)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "gridData",
+        "clientId"
+      ]
+    },
+    "Client": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Client",
+      "type": "object",
+      "description": "Represents a client.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Client entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the client."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the client."
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "Account": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Account",
+      "type": "object",
+      "description": "Represents an account for auditing purposes.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Account entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the account."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Notes related to the account."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "notes"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/clients/{clientId}",
+        "definition": {
+          "entityName": "Client",
+          "schema": {
+            "$ref": "#/backend/entities/Client"
+          },
+          "description": "Stores client data. Each document represents a client.",
+          "params": [
+            {
+              "name": "clientId",
+              "description": "The unique ID of the client."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/clients/{clientId}/sheets/{sheetId}",
+        "definition": {
+          "entityName": "Sheet",
+          "schema": {
+            "$ref": "#/backend/entities/Sheet"
+          },
+          "description": "Stores sheet data. Includes denormalized 'clientId' for authorization independence.",
+          "params": [
+            {
+              "name": "clientId",
+              "description": "The unique ID of the client."
+            },
+            {
+              "name": "sheetId",
+              "description": "The unique ID of the sheet."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/accounts/{accountId}",
+        "definition": {
+          "entityName": "Account",
+          "schema": {
+            "$ref": "#/backend/entities/Account"
+          },
+          "description": "Stores account data for auditing purposes.",
+          "params": [
+            {
+              "name": "accountId",
+              "description": "The unique ID of the account."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to organize data for the GridSheet Manager application. It prioritizes authorization independence by denormalizing the client ID to the sheets subcollection, enabling secure and scalable access control. The structure segregates data based on ownership (users owning clients and sheets) to simplify security rules.  It enforces a path-based ownership model. Specifically, sheets are stored under each client to simplify list operations and ownership integrity. Account are global, and stored at the root."
+  }
+}

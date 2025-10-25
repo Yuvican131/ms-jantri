@@ -1,0 +1,115 @@
+/**
+ * @fileoverview Firestore Security Rules for GridSheet Manager.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict ownership model. Clients own sheets, and only authenticated users can create and manage their own data.
+ *
+ * Data Structure:
+ * - /clients/{clientId}: Stores client information, with the client ID as the document ID.
+ * - /clients/{clientId}/sheets/{sheetId}: Stores sheets owned by a specific client.  The clientId is denormalized onto each sheet document for simplified authorization.
+ * - /accounts/{accountId}: Stores account data for auditing purposes. These are treated as global, and only authenticated users can manage it.
+ *
+ * Key Security Decisions:
+ * - Clients can only create, read, update, and delete their own client documents.
+ * - Clients can only create, read, update, and delete sheets under their own client documents. The `clientId` on the sheet document must match the path.
+ * - No listing of all clients or sheets is allowed (except within a client's own /clients/{clientId}/sheets collection).
+ *
+ * Denormalization for Authorization:
+ * - The `clientId` field is denormalized into the `/clients/{clientId}/sheets/{sheetId}` documents. This allows sheet-level rules to validate ownership without needing to perform additional `get()` operations.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Secures the /clients collection, ensuring only authenticated users can manage their own client data.
+     * @path /clients/{clientId}
+     * @allow (create) - Authenticated user creates a new client document where the clientId matches their auth UID.
+     * @allow (get, update, delete) - Authenticated user accesses, updates, or deletes their own client document.
+     * @deny (create) - An unauthenticated user attempts to create a client document.
+     * @deny (update, delete) - An authenticated user attempts to modify or delete another user's client document.
+     * @principle Enforces document ownership for writes.
+     */
+    match /clients/{clientId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(clientId) {
+        return request.auth.uid == clientId;
+      }
+
+      function isExistingOwner(clientId) {
+          return isOwner(clientId) && resource != null;
+      }
+
+      allow get: if isExistingOwner(clientId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(clientId);
+      allow update: if isExistingOwner(clientId);
+      allow delete: if isExistingOwner(clientId);
+    }
+
+    /**
+     * @description Secures the /clients/{clientId}/sheets collection, ensuring only the owning client can manage their sheets.
+     * @path /clients/{clientId}/sheets/{sheetId}
+     * @allow (create) - Authenticated user creates a new sheet document under their client, with a matching clientId field.
+     * @allow (get, update, delete) - Authenticated user accesses, updates, or deletes their own sheet document.
+     * @deny (create) - An authenticated user attempts to create a sheet document under another user's client.
+     * @deny (update, delete) - An authenticated user attempts to modify or delete a sheet document they don't own.
+     * @principle Enforces document ownership for writes and relational integrity.
+     */
+    match /clients/{clientId}/sheets/{sheetId} {
+        function isSignedIn() {
+          return request.auth != null;
+        }
+
+        function isOwner(clientId) {
+          return request.auth.uid == clientId;
+        }
+
+        function isSheetOwner(clientId) {
+          return resource.data.clientId == clientId;
+        }
+
+        function isValidNewSheet() {
+          return request.resource.data.clientId == clientId;
+        }
+
+        function isExistingOwner(clientId) {
+            return isOwner(clientId) && resource != null;
+        }
+
+        allow get: if isExistingOwner(clientId);
+        allow list: if isOwner(clientId);
+        allow create: if isSignedIn() && isOwner(clientId) && isValidNewSheet();
+        allow update: if isExistingOwner(clientId);
+        allow delete: if isExistingOwner(clientId);
+    }
+
+    /**
+     * @description Secures the /accounts collection, ensuring only authenticated users can manage the accounts.
+     * @path /accounts/{accountId}
+     * @allow (create) - Authenticated user creates a new account document.
+     * @allow (get, update, delete) - Authenticated user accesses, updates, or deletes an existing account document.
+     * @deny (create) - An unauthenticated user attempts to create an account document.
+     * @deny (update, delete) - An unauthenticated user attempts to modify or delete another account document.
+     * @principle Enforces that only authenticated users can manage accounts.
+     */
+    match /accounts/{accountId} {
+        function isSignedIn() {
+            return request.auth != null;
+        }
+
+        function isExistingAccount(accountId) {
+            return isSignedIn() && resource != null;
+        }
+
+        allow get: if isSignedIn();
+        allow list: if false;
+        allow create: if isSignedIn();
+        allow update: if isExistingAccount(accountId);
+        allow delete: if isExistingAccount(accountId);
+    }
+  }
+}
