@@ -764,27 +764,27 @@ const handleHarupApply = () => {
       return;
     }
     
-    const totalDigits = harupADigits.length + harupBDigits.length;
-    const entryTotal = totalDigits * harupAmountValue;
+    const entryTotal = (harupADigits.length * harupAmountValue) + (harupBDigits.length * harupAmountValue);
 
     if (!checkBalance(entryTotal)) return;
 
     saveDataForUndo();
 
-    const perDigitAmount = harupAmountValue; // Use the full amount per digit
+    const perDigitAmountA = harupADigits.length > 0 ? harupAmountValue / 10 : 0;
+    const perDigitAmountB = harupBDigits.length > 0 ? harupAmountValue / 10 : 0;
     const updates: { [key: string]: number } = {};
 
     harupADigits.forEach(digitA => {
       for (let i = 0; i < 10; i++) {
         const key = parseInt(`${digitA}${i}`).toString().padStart(2, '0');
-        updates[key] = (updates[key] || 0) + perDigitAmount;
+        updates[key] = (updates[key] || 0) + perDigitAmountA;
       }
     });
 
     harupBDigits.forEach(digitB => {
       for (let i = 0; i < 10; i++) {
         const key = parseInt(`${i}${digitB}`).toString().padStart(2, '0');
-        updates[key] = (updates[key] || 0) + perDigitAmount;
+        updates[key] = (updates[key] || 0) + perDigitAmountB;
       }
     });
 
