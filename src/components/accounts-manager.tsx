@@ -105,7 +105,7 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
                 const balanceValue = account.balance || 0;
                 const balanceColor = balanceValue >= 0 ? 'text-green-400' : 'text-red-500';
 
-                const activeBalance = client ? parseFloat(client.activeBalance) || 0 : 0;
+                const activeBalance = client ? client.activeBalance || 0 : 0;
                 const totalPlayed = account.draws ? Object.values(account.draws).reduce((sum, d) => sum + (d?.totalAmount || 0), 0) : 0;
                 const remainingBalance = activeBalance - totalPlayed;
                 const hasActiveDraws = account.draws && Object.values(account.draws).some(d => d.totalAmount > 0);

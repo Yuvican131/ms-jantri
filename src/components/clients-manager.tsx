@@ -21,7 +21,7 @@ export type Client = {
   comm: string
   inOut: string
   patti: string
-  activeBalance: string;
+  activeBalance: number;
 }
 
 type ClientsManagerProps = {
@@ -49,13 +49,14 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
     const comm = formData.get("comm") as string
     const inOut = formData.get("inOut") as string
     const patti = formData.get("patti") as string
-    const activeBalance = formData.get("activeBalance") as string;
+    const activeBalanceStr = formData.get("activeBalance") as string;
+    const activeBalance = parseFloat(activeBalanceStr) || 0;
 
     if (editingClient) {
       const updatedClient = { ...editingClient, name, pair, comm, inOut, patti, activeBalance };
       onUpdateClient(updatedClient);
     } else {
-      const newClient: Omit<Client, 'id'> = { name, pair, comm, inOut, patti, activeBalance: activeBalance || '0' }
+      const newClient: Omit<Client, 'id'> = { name, pair, comm, inOut, patti, activeBalance }
       onAddClient(newClient);
     }
     setEditingClient(null)
@@ -156,7 +157,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                 </div>
                 <div>
                   <Label htmlFor="activeBalance">Opening Balance</Label>
-                  <Input id="activeBalance" name="activeBalance" defaultValue={editingClient?.activeBalance} placeholder="e.g. 1000" />
+                  <Input id="activeBalance" name="activeBalance" type="number" defaultValue={editingClient?.activeBalance} placeholder="e.g. 1000" />
                 </div>
                 <DialogFooter>
                   <DialogClose asChild>
@@ -184,7 +185,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
               <TableBody>
                 {clients.map((client, index) => {
                   const account = accounts.find(acc => acc.id === client.id);
-                  const netBalance = account?.balance ?? parseFloat(client.activeBalance) || 0;
+                  const netBalance = account?.balance ?? client.activeBalance ?? 0;
                   const balanceColor = netBalance >= 0 ? 'text-green-500' : 'text-red-500';
 
                   return (
@@ -257,5 +258,3 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
     </>
   )
 }
-
-

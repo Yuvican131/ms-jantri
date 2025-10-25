@@ -92,13 +92,13 @@ export default function Home() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
 
-  const updateAccountsFromLog = useCallback((currentSavedSheetLog: { [draw: string]: SavedSheetInfo[] }) => {
+  const updateAccountsFromLog = useCallback(() => {
     const todayStr = new Date().toISOString().split('T')[0];
     
     const newAccounts = clients.map(client => {
         const clientCommissionPercent = parseFloat(client.comm) / 100;
         const passingMultiplier = parseFloat(client.pair) || 80;
-        let activeBalance = parseFloat(client.activeBalance) || 0;
+        let activeBalance = client.activeBalance || 0;
 
         const updatedDraws: { [key: string]: DrawData } = {};
 
@@ -106,7 +106,7 @@ export default function Home() {
         let totalWinningsToday = 0;
 
         draws.forEach(drawName => {
-            const drawLogs = currentSavedSheetLog[drawName] || [];
+            const drawLogs = savedSheetLog[drawName] || [];
             const clientLogForToday = drawLogs.find(log => log.clientId === client.id && log.date === todayStr);
 
             let totalAmount = 0;
@@ -136,11 +136,11 @@ export default function Home() {
     });
 
     setAccounts(newAccounts);
-  }, [clients, declaredNumbers, draws]);
+  }, [clients, declaredNumbers, draws, savedSheetLog]);
 
   // Recalculate accounts whenever clients, logs, or declared numbers change
   useEffect(() => {
-    updateAccountsFromLog(savedSheetLog);
+    updateAccountsFromLog();
   }, [savedSheetLog, updateAccountsFromLog]);
 
 

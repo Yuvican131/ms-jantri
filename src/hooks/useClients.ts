@@ -32,13 +32,14 @@ export function useClients() {
 
   const updateClient = (clientData: Client) => {
     const clientRef = doc(firestore, 'clients', clientData.id);
-    updateDoc(clientRef, { ...clientData }).catch(error => {
+    const { id, ...dataToUpdate } = clientData;
+    updateDoc(clientRef, dataToUpdate).catch(error => {
       errorEmitter.emit(
         'permission-error',
         new FirestorePermissionError({
           path: clientRef.path,
           operation: 'update',
-          requestResourceData: clientData,
+          requestResourceData: dataToUpdate,
         })
       );
     });
