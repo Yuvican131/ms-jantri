@@ -23,7 +23,7 @@ export type DrawData = {
 export type Account = {
   id: string
   clientName: string
-  balance: string
+  balance: number
   draws?: { [key: string]: DrawData }
 }
 
@@ -102,7 +102,7 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
             <Accordion type="single" collapsible className="w-full">
               {accounts.map((account, index) => {
                 const client = clients.find(c => c.id === account.id);
-                const balanceValue = parseFloat(account.balance) || 0;
+                const balanceValue = account.balance || 0;
                 const balanceColor = balanceValue >= 0 ? 'text-green-400' : 'text-red-500';
 
                 const activeBalance = client ? parseFloat(client.activeBalance) || 0 : 0;

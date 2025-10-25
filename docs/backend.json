@@ -51,7 +51,7 @@
         "comm": { "type": "string" },
         "inOut": { "type": "string" },
         "patti": { "type": "string" },
-        "activeBalance": { "type": "string" }
+        "activeBalance": { "type": "number" }
       },
       "required": [
         "id",
@@ -74,7 +74,7 @@
           "description": "Unique identifier for the Account entity."
         },
         "clientName": { "type": "string" },
-        "balance": { "type": "string" },
+        "balance": { "type": "number" },
         "draws": { "type": "object" }
       },
       "required": [

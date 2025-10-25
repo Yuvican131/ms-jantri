@@ -184,7 +184,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
               <TableBody>
                 {clients.map((client, index) => {
                   const account = accounts.find(acc => acc.id === client.id);
-                  const netBalance = parseFloat(account?.balance || client.activeBalance || '0')
+                  const netBalance = account?.balance ?? parseFloat(client.activeBalance) || 0;
                   const balanceColor = netBalance >= 0 ? 'text-green-500' : 'text-red-500';
 
                   return (
@@ -257,4 +257,5 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
     </>
   )
 }
+
 

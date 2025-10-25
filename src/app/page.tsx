@@ -43,7 +43,7 @@ function GridIcon(props: React.SVGProps<SVGSVGElement>) {
       <path d="M3 7h18" />
       <path d="M12 3v18" />
       <path d="M3 12h18" />
-      <path d="M17 3v18" />
+      <path d="M17' 3v18" />
       <path d="M3 17h18" />
     </svg>
   )
@@ -62,7 +62,7 @@ export type SavedSheetInfo = {
 export default function Home() {
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any, getClientCurrentData: (clientId: string) => any | undefined, getClientPreviousData: (clientId: string) => any | undefined }>(null);
   const [selectedInfo, setSelectedInfo] = useState<{ draw: string; date: Date } | null>(null);
-  const [date, setDate] = useState<Date | undefined>(new Date())
+  const [date, setDate] = useState<Date | undefined>(undefined)
   const [lastEntry, setLastEntry] = useState('');
   const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("sheet");
@@ -78,6 +78,13 @@ export default function Home() {
       signInAnonymously(auth);
     }
   }, [auth]);
+  
+  useEffect(() => {
+    if (!date) {
+      setDate(new Date());
+    }
+  }, [date]);
+
 
   const { clients, addClient, updateClient, deleteClient, updateClientBalance } = useClients();
   const { savedSheetLog, addSheetLogEntry, mergeSheetLogEntry } = useSheetLog();
@@ -123,7 +130,7 @@ export default function Home() {
         return {
             id: client.id,
             clientName: client.name,
-            balance: String(newBalance),
+            balance: newBalance,
             draws: updatedDraws
         };
     });
