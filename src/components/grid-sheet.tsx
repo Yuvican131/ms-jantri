@@ -4,7 +4,7 @@ import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef } f
 import { useToast } from "@/hooks/use-toast"
 import { validateCellContent, ValidateCellContentOutput } from "@/ai/flows/validate-cell-content"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -13,12 +13,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog"
-import type { Client } from "./clients-manager"
 import { format } from "date-fns"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import type { SavedSheetInfo } from "@/app/page";
 import type { Account } from "./accounts-manager";
 import { formatNumber } from "@/lib/utils"
+import type { Client } from "@/hooks/useClients"
+import type { SavedSheetInfo } from "@/hooks/useSheetLog"
 
 
 type CellData = { [key: string]: string }
@@ -578,9 +578,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     if (!selectedClientId) return true;
 
     const client = props.clients.find(c => c.id === selectedClientId);
-    if (!client || !client.activeBalance || client.activeBalance === '0') return true;
+    if (!client || !client.activeBalance) return true;
 
-    const activeBalance = parseFloat(client.activeBalance);
+    const activeBalance = client.activeBalance;
     const logEntry = props.savedSheetLog.find(log => log.clientId === selectedClientId);
     const totalPlayed = logEntry?.gameTotal || 0;
     
@@ -1280,8 +1280,3 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-
-
-
-    

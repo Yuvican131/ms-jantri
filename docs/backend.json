@@ -1,100 +1,49 @@
 {
   "entities": {
-    "Sheet": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Sheet",
-      "type": "object",
-      "description": "Represents a grid sheet with editable cells.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the sheet."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the sheet."
-        },
-        "gridData": {
-          "type": "string",
-          "description": "Stringified JSON representation of the grid data. Each cell is a string.",
-          "format": "json-string"
-        },
-        "clientId": {
-          "type": "string",
-          "description": "Reference to Client. (Relationship: Client 1:N Sheet)"
-        },
-        "accountId": {
-          "type": "string",
-          "description": "Reference to Account. (Relationship: Account 1:N Sheet)"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "gridData",
-        "clientId",
-        "accountId"
-      ]
-    },
     "Client": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Client",
       "type": "object",
       "description": "Represents a client with associated information.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the client."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the client."
-        },
-        "contactInfo": {
-          "type": "string",
-          "description": "Contact information for the client."
-        },
-        "notes": {
-          "type": "string",
-          "description": "Notes about the client."
-        }
+        "name": { "type": "string" },
+        "pair": { "type": "string" },
+        "comm": { "type": "string" },
+        "inOut": { "type": "string" },
+        "patti": { "type": "string" },
+        "activeBalance": { "type": "number", "default": 0 }
       },
-      "required": [
-        "id",
-        "name",
-        "contactInfo"
-      ]
+      "required": ["name", "pair", "comm", "inOut", "patti"]
     },
-    "Account": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Account",
+    "SheetLog": {
+      "title": "SheetLog",
       "type": "object",
-      "description": "Represents an account with associated notes.",
+      "description": "Represents a single saved sheet entry for a client and draw.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the account."
-        },
-        "accountName": {
-          "type": "string",
-          "description": "Name of the account."
-        },
-        "notes": {
-          "type": "string",
-          "description": "Notes about the account."
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "draw": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "gameTotal": { "type": "number" },
+        "data": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
         }
       },
-      "required": [
-        "id",
-        "accountName"
-      ]
+      "required": ["clientId", "clientName", "draw", "date", "gameTotal", "data"]
+    },
+    "DeclaredNumber": {
+      "title": "DeclaredNumber",
+      "type": "object",
+      "description": "Represents a declared winning number for a specific draw.",
+      "properties": {
+        "draw": { "type": "string" },
+        "number": { "type": "string" }
+      },
+      "required": ["draw", "number"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["anonymous"]
   },
   "firestore": {
     "structure": [
@@ -102,63 +51,26 @@
         "path": "/users/{userId}/clients/{clientId}",
         "definition": {
           "entityName": "Client",
-          "schema": {
-            "$ref": "#/backend/entities/Client"
-          },
-          "description": "Stores client data. Path-based ownership enforced via /users/{userId}. Each client is owned by a single user.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The ID of the user owning the client."
-            },
-            {
-              "name": "clientId",
-              "description": "The ID of the client document."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/Client" },
+          "description": "Stores client data for a specific user."
         }
       },
       {
-        "path": "/users/{userId}/accounts/{accountId}",
+        "path": "/users/{userId}/sheetLogs/{sheetLogId}",
         "definition": {
-          "entityName": "Account",
-          "schema": {
-            "$ref": "#/backend/entities/Account"
-          },
-          "description": "Stores account data. Path-based ownership enforced via /users/{userId}. Each account is owned by a single user.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The ID of the user owning the account."
-            },
-            {
-              "name": "accountId",
-              "description": "The ID of the account document."
-            }
-          ]
+          "entityName": "SheetLog",
+          "schema": { "$ref": "#/backend/entities/SheetLog" },
+          "description": "Stores sheet log entries for a specific user."
         }
       },
       {
-        "path": "/users/{userId}/sheets/{sheetId}",
+        "path": "/users/{userId}/declaredNumbers/{drawId}",
         "definition": {
-          "entityName": "Sheet",
-          "schema": {
-            "$ref": "#/backend/entities/Sheet"
-          },
-          "description": "Stores sheet data. Includes denormalized 'clientId' and 'accountId' for authorization independence. Path-based ownership enforced via /users/{userId}.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The ID of the user owning the sheet."
-            },
-            {
-              "name": "sheetId",
-              "description": "The ID of the sheet document."
-            }
-          ]
+          "entityName": "DeclaredNumber",
+          "schema": { "$ref": "#/backend/entities/DeclaredNumber" },
+          "description": "Stores declared numbers for each draw for a specific user."
         }
       }
-    ],
-    "reasoning": "The Firestore structure is designed to ensure data security, scalability, and ease of management, particularly regarding authorization. We leverage path-based ownership for user-specific data and membership maps for collaborative access. Authorization Independence is achieved by denormalizing necessary authorization data (client and account IDs) into the `sheets` collections, eliminating the need for `get()` calls in security rules.\n\n*   **Clients:** `/users/{userId}/clients/{clientId}`\n*   **Accounts:** `/users/{userId}/accounts/{accountId}`\n*   **Sheets:** `/users/{userId}/sheets/{sheetId}`. Each sheet stores `clientId` and `accountId` to enforce consistent ownership.\n\nThis design supports the required QAPs:\n\n*   **Secure List Operations:**  Path-based ownership ensures that users can only list clients, accounts, and sheets that belong to them, as `list` operations are scoped to the user's path.\n*   **Authorization Independence:** The denormalization of `clientId` and `accountId` into each sheet eliminates the need for Firestore `get()` operations in the security rules, making the system more robust and scalable, and allowing atomic operations."
+    ]
   }
 }

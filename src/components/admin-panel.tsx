@@ -5,8 +5,6 @@ import { formatNumber } from "@/lib/utils";
 import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy, Wallet, Calendar as CalendarIcon } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import type { Account } from "./accounts-manager";
-import type { Client } from "./clients-manager";
-import type { SavedSheetInfo } from "@/app/page";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +14,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
+import type { Client } from '@/hooks/useClients';
+import type { SavedSheetInfo } from '@/hooks/useSheetLog';
 
 
 const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];

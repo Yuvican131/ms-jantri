@@ -12,16 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Account } from "./accounts-manager"
 import { formatNumber } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
-
-export type Client = {
-  id: string
-  name: string
-  pair: string
-  comm: string
-  inOut: string
-  patti: string
-  activeBalance: number;
-}
+import type { Client } from "@/hooks/useClients"
 
 type ClientsManagerProps = {
   clients: Client[];

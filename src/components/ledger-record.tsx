@@ -5,10 +5,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Client } from './clients-manager';
-import type { SavedSheetInfo } from '@/app/page';
 import { formatNumber } from "@/lib/utils";
 import { isSameDay, subDays } from "date-fns"
+import type { Client } from '@/hooks/useClients';
+import type { SavedSheetInfo } from '@/hooks/useSheetLog';
 
 type LedgerRecordProps = {
   clients: Client[];

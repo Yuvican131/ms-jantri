@@ -4,11 +4,11 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GridSheet from "@/components/grid-sheet"
-import ClientsManager, { Client } from "@/components/clients-manager"
+import ClientsManager from "@/components/clients-manager"
 import AccountsManager, { Account, DrawData } from "@/components/accounts-manager"
 import LedgerRecord from "@/components/ledger-record"
 import AdminPanel from "@/components/admin-panel"
-import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, ClipboardCopy, FileSpreadsheet, Shield } from 'lucide-react';
+import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, FileSpreadsheet, Shield } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
@@ -18,6 +18,13 @@ import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
+import { useClients } from "@/hooks/useClients"
+import { useSheetLog, type SavedSheetInfo } from "@/hooks/useSheetLog"
+import { useDeclaredNumbers } from "@/hooks/useDeclaredNumbers"
+import type { Client } from "@/hooks/useClients"
+import { useUser } from "@/firebase"
+import { initiateAnonymousSignIn } from "@/firebase"
+import { useAuth } from "@/firebase"
 
 function GridIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -44,16 +51,6 @@ function GridIcon(props: React.SVGProps<SVGSVGElement>) {
   )
 }
 
-export type SavedSheetInfo = {
-  id: string;
-  clientName: string;
-  clientId: string;
-  gameTotal: number;
-  data: { [key: string]: string };
-  date: string; // ISO date string
-  draw: string;
-};
-
 const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
 
 export default function Home() {
@@ -68,10 +65,13 @@ export default function Home() {
   const [declarationDraw, setDeclarationDraw] = useState("");
   const [declarationNumber, setDeclarationNumber] = useState("");
   const { toast } = useToast();
+  
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
 
-  const [clients, setClients] = useState<Client[]>([]);
-  const [savedSheetLog, setSavedSheetLog] = useState<{ [draw: string]: SavedSheetInfo[] }>({});
-  const [declaredNumbers, setDeclaredNumbers] = useState<{ [key: string]: string }>({});
+  const { clients, addClient, updateClient, deleteClient, handleClientTransaction } = useClients(user?.uid);
+  const { savedSheetLog, addSheetLogEntry } = useSheetLog(user?.uid);
+  const { declaredNumbers, setDeclaredNumber, removeDeclaredNumber } = useDeclaredNumbers(user?.uid);
   const [accounts, setAccounts] = useState<Account[]>([]);
 
   useEffect(() => {
@@ -80,8 +80,13 @@ export default function Home() {
     }
   }, []);
 
-  // Recalculate accounts whenever clients, logs, or declared numbers change
   useEffect(() => {
+    if (!isUserLoading && !user) {
+      initiateAnonymousSignIn(auth);
+    }
+  }, [isUserLoading, user, auth]);
+
+  const updateAccountsFromLog = useCallback(() => {
     const todayStr = new Date().toISOString().split('T')[0];
     
     const newAccounts = clients.map(client => {
@@ -104,7 +109,7 @@ export default function Home() {
             if (clientLogForToday) {
                 totalAmount = clientLogForToday.gameTotal;
                 const declaredNumberForDraw = declaredNumbers[drawName];
-                passingAmount = declaredNumberForDraw ? parseFloat(clientLogForToday.data[declaredNumberForDraw]) || 0 : 0;
+                passingAmount = declaredNumberForDraw ? parseFloat(clientLogForToday.data[declaredNumberForDraw] || "0") : 0;
             }
             
             updatedDraws[drawName] = { totalAmount, passingAmount };
@@ -127,24 +132,15 @@ export default function Home() {
     setAccounts(newAccounts);
   }, [clients, savedSheetLog, declaredNumbers]);
 
+  useEffect(() => {
+    updateAccountsFromLog();
+  }, [updateAccountsFromLog]);
+
 
   const handleClientUpdateForSheet = (client: Client) => {
     if (gridSheetRef.current) {
       gridSheetRef.current.handleClientUpdate(client);
     }
-  };
-  
-  const handleAddClient = (client: Omit<Client, 'id'>) => {
-    const newClient = { ...client, id: Date.now().toString(), activeBalance: client.activeBalance || 0 };
-    setClients([...clients, newClient]);
-  };
-  
-  const handleUpdateClient = (updatedClient: Client) => {
-    setClients(clients.map(c => c.id === updatedClient.id ? updatedClient : c));
-  };
-  
-  const handleDeleteClient = (id: string) => {
-    setClients(clients.filter(c => c.id !== id));
   };
   
   const handleSelectDraw = (draw: string) => {
@@ -157,65 +153,45 @@ export default function Home() {
     setSelectedInfo(null);
   };
   
-const handleClientSheetSave = (clientName: string, clientId: string, newData: { [key: string]: string }, draw: string, entryDate: Date) => {
+  const handleClientSheetSave = (clientName: string, clientId: string, newData: { [key: string]: string }, draw: string, entryDate: Date) => {
     const todayStr = entryDate.toISOString().split('T')[0];
 
-    setSavedSheetLog(prevLog => {
-        const newLog = { ...prevLog };
-        if (!newLog[draw]) {
-            newLog[draw] = [];
-        }
+    const existingLog = (savedSheetLog[draw] || []).find(log => log.clientId === clientId && log.date === todayStr);
 
-        const existingLogIndex = newLog[draw].findIndex(log => log.clientId === clientId && log.date === todayStr);
-
-        if (existingLogIndex !== -1) {
-            // Merge with existing entry for the same client and day
-            const existingLog = newLog[draw][existingLogIndex];
-            const mergedData: { [key: string]: string } = { ...existingLog.data };
-            
-            Object.entries(newData).forEach(([key, value]) => {
-                mergedData[key] = String((parseFloat(mergedData[key]) || 0) + (parseFloat(value) || 0));
-            });
-            const newTotal = Object.values(mergedData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
-
-            newLog[draw][existingLogIndex] = {
-                ...existingLog,
-                gameTotal: newTotal,
-                data: mergedData,
-            };
-        } else {
-            // Add as a new entry
-            const newEntryTotal = Object.values(newData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
-            const newEntry: SavedSheetInfo = {
-                id: Date.now().toString(),
-                clientName,
-                clientId,
-                gameTotal: newEntryTotal,
-                data: newData,
-                date: todayStr,
-                draw,
-            };
-            newLog[draw].push(newEntry);
-        }
-        return newLog;
-    });
+    if (existingLog) {
+      const mergedData: { [key: string]: string } = { ...existingLog.data };
+      Object.entries(newData).forEach(([key, value]) => {
+          mergedData[key] = String((parseFloat(mergedData[key]) || 0) + (parseFloat(value) || 0));
+      });
+      const newTotal = Object.values(mergedData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+      const updatedLog = {
+          ...existingLog,
+          gameTotal: newTotal,
+          data: mergedData,
+      };
+      addSheetLogEntry(updatedLog);
+    } else {
+      const newEntryTotal = Object.values(newData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+      const newEntry: Omit<SavedSheetInfo, 'id'> = {
+          clientName,
+          clientId,
+          gameTotal: newEntryTotal,
+          data: newData,
+          date: todayStr,
+          draw,
+      };
+      addSheetLogEntry(newEntry);
+    }
 
     toast({
         title: "Sheet Saved",
         description: `${clientName}'s data has been logged.`,
     });
-};
-
-
-  const handleClientTransaction = (clientId: string, amount: number) => {
-    setClients(clients.map(c => 
-      c.id === clientId ? { ...c, activeBalance: (c.activeBalance || 0) + amount } : c
-    ));
   };
-  
+
   const handleDeclarationInputChange = (draw: string, value: string) => {
     const numValue = value.replace(/[^0-9]/g, "").slice(0, 2);
-    setDeclaredNumbers(prev => ({...prev, [draw]: numValue}));
+    setDeclaredNumber(draw, numValue);
     if (numValue.length === 2) {
       setDeclarationDraw(draw);
       setDeclarationNumber(numValue);
@@ -225,22 +201,21 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
   
   const handleDeclareOrUndeclare = () => {
     if (declarationNumber.length === 2) {
-      setDeclaredNumbers(prev => ({...prev, [declarationDraw]: declarationNumber}));
+      setDeclaredNumber(declarationDraw, declarationNumber);
       toast({ title: "Success", description: `Result processed for draw ${declarationDraw}.` });
     }
     setDeclarationDialogOpen(false);
   };
   
   const handleUndeclare = () => {
-    setDeclaredNumbers(prev => {
-        const newDeclared = { ...prev };
-        delete newDeclared[declarationDraw];
-        return newDeclared;
-    });
+    removeDeclaredNumber(declarationDraw);
     toast({ title: "Success", description: `Result undeclared for draw ${declarationDraw}.` });
     setDeclarationDialogOpen(false);
   };
 
+  if (isUserLoading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
 
   return (
     <div className="flex h-screen w-full flex-col bg-background">
@@ -365,9 +340,9 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
             <ClientsManager 
               clients={clients} 
               accounts={accounts}
-              onAddClient={handleAddClient} 
-              onUpdateClient={handleUpdateClient} 
-              onDeleteClient={handleDeleteClient}
+              onAddClient={addClient} 
+              onUpdateClient={updateClient} 
+              onDeleteClient={deleteClient}
               onClientTransaction={handleClientTransaction}
             />
           </TabsContent>
@@ -400,5 +375,4 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
       </Dialog>
     </div>
   );
-
-    
+}
