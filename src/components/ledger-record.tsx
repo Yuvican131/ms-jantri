@@ -1,4 +1,3 @@
-
 "use client"
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -209,5 +208,3 @@ export default function LedgerRecord({ clients, savedSheetLog, draws, declaredNu
     </Card>
   );
 }
-
-    

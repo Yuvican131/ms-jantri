@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster"
 export const metadata: Metadata = {
   title: 'GridSheet Manager',
   description: 'Manage your grid sheets with ease.',
-  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
