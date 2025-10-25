@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GridSheet from "@/components/grid-sheet"
 import ClientsManager, { Client } from "@/components/clients-manager"
@@ -82,12 +82,58 @@ export default function Home() {
   const { savedSheetLog, addSheetLogEntry, mergeSheetLogEntry } = useSheetLog();
   const { declaredNumbers, setDeclaredNumber, removeDeclaredNumber } = useDeclaredNumbers();
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
 
+  const updateAccountsFromLog = useCallback((currentSavedSheetLog: { [draw: string]: SavedSheetInfo[] }) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    
+    const newAccounts = clients.map(client => {
+        const clientCommissionPercent = parseFloat(client.comm) / 100;
+        const passingMultiplier = parseFloat(client.pair) || 80;
+        let activeBalance = parseFloat(client.activeBalance) || 0;
+
+        const updatedDraws: { [key: string]: { totalAmount: number; passingAmount: number } } = {};
+
+        let totalPlayedToday = 0;
+        let totalWinningsToday = 0;
+
+        draws.forEach(drawName => {
+            const drawLogs = currentSavedSheetLog[drawName] || [];
+            const clientLogForToday = drawLogs.find(log => log.clientId === client.id && log.date === todayStr);
+
+            let totalAmount = 0;
+            let passingAmount = 0;
+
+            if (clientLogForToday) {
+                totalAmount = clientLogForToday.gameTotal;
+                const declaredNumberForDraw = declaredNumbers[drawName];
+                passingAmount = declaredNumberForDraw ? parseFloat(clientLogForToday.data[declaredNumberForDraw]) || 0 : 0;
+            }
+            
+            updatedDraws[drawName] = { totalAmount, passingAmount };
+            totalPlayedToday += totalAmount;
+            totalWinningsToday += passingAmount * passingMultiplier;
+        });
+        
+        const totalCommissionToday = totalPlayedToday * clientCommissionPercent;
+        const netFromGames = totalPlayedToday - totalCommissionToday;
+        const newBalance = activeBalance - (netFromGames - totalWinningsToday);
+
+        return {
+            id: client.id,
+            clientName: client.name,
+            balance: String(newBalance),
+            draws: updatedDraws
+        };
+    });
+
+    setAccounts(newAccounts);
+  }, [clients, declaredNumbers, draws]);
 
   // Recalculate accounts whenever clients, logs, or declared numbers change
   useEffect(() => {
     updateAccountsFromLog(savedSheetLog);
-  }, [clients, savedSheetLog, declaredNumbers]);
+  }, [clients, savedSheetLog, declaredNumbers, updateAccountsFromLog]);
 
 
   const handleClientUpdateForSheet = (client: Client) => {
@@ -140,58 +186,9 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
     });
 };
 
-const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedSheetInfo[] }) => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    
-    const newAccounts = clients.map(client => {
-        const clientCommissionPercent = parseFloat(client.comm) / 100;
-        const passingMultiplier = parseFloat(client.pair) || 80;
-        let activeBalance = parseFloat(client.activeBalance) || 0;
-
-        const updatedDraws: { [key: string]: { totalAmount: number; passingAmount: number } } = {};
-
-        let totalPlayedToday = 0;
-        let totalWinningsToday = 0;
-
-        draws.forEach(drawName => {
-            const drawLogs = currentSavedSheetLog[drawName] || [];
-            const clientLogForToday = drawLogs.find(log => log.clientId === client.id && log.date === todayStr);
-
-            let totalAmount = 0;
-            let passingAmount = 0;
-
-            if (clientLogForToday) {
-                totalAmount = clientLogForToday.gameTotal;
-                const declaredNumberForDraw = declaredNumbers[drawName];
-                passingAmount = declaredNumberForDraw ? parseFloat(clientLogForToday.data[declaredNumberForDraw]) || 0 : 0;
-            }
-            
-            updatedDraws[drawName] = { totalAmount, passingAmount };
-            totalPlayedToday += totalAmount;
-            totalWinningsToday += passingAmount * passingMultiplier;
-        });
-        
-        const totalCommissionToday = totalPlayedToday * clientCommissionPercent;
-        const netFromGames = totalPlayedToday - totalCommissionToday;
-        const newBalance = activeBalance - (netFromGames - totalWinningsToday);
-
-        return {
-            id: client.id,
-            clientName: client.name,
-            balance: String(newBalance),
-            draws: updatedDraws
-        };
-    });
-
-    setAccounts(newAccounts);
-};
-
   const handleClientTransaction = (clientId: string, amount: number) => {
     updateClientBalance(clientId, amount);
   };
-
-
-  const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
 
   const handleDeclarationInputChange = (draw: string, value: string) => {
     const numValue = value.replace(/[^0-9]/g, "").slice(0, 2);
@@ -383,3 +380,5 @@ const updateAccountsFromLog = (currentSavedSheetLog: { [draw: string]: SavedShee
     </div>
   );
 }
+
+    
