@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
@@ -53,6 +54,8 @@ export type SavedSheetInfo = {
   draw: string;
 };
 
+const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
+
 export default function Home() {
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any, getClientCurrentData: (clientId: string) => any | undefined, getClientPreviousData: (clientId: string) => any | undefined }>(null);
   const [selectedInfo, setSelectedInfo] = useState<{ draw: string; date: Date } | null>(null);
@@ -70,7 +73,6 @@ export default function Home() {
   const [savedSheetLog, setSavedSheetLog] = useState<{ [draw: string]: SavedSheetInfo[] }>({});
   const [declaredNumbers, setDeclaredNumbers] = useState<{ [key: string]: string }>({});
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -123,7 +125,7 @@ export default function Home() {
     });
 
     setAccounts(newAccounts);
-  }, [clients, savedSheetLog, declaredNumbers, draws]);
+  }, [clients, savedSheetLog, declaredNumbers]);
 
 
   const handleClientUpdateForSheet = (client: Client) => {
@@ -398,4 +400,5 @@ const handleClientSheetSave = (clientName: string, clientId: string, newData: { 
       </Dialog>
     </div>
   );
-}
+
+    
