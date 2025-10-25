@@ -45,7 +45,7 @@ function GridIcon(props: React.SVGProps<SVGSVGElement>) {
       <path d="M3 7h18" />
       <path d="M12 3v18" />
       <path d="M3 12h18" />
-      <path d="M17 3v18" />
+      <path d="M17-3v18" />
       <path d="M3 17h18" />
     </svg>
   )
@@ -69,7 +69,7 @@ export default function Home() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
 
-  const { clients, addClient, updateClient, deleteClient, handleClientTransaction } = useClients(user?.uid);
+  const { clients, addClient, updateClient, deleteClient, handleClientTransaction, clearClientData } = useClients(user?.uid);
   const { savedSheetLog, addSheetLogEntry } = useSheetLog(user?.uid);
   const { declaredNumbers, setDeclaredNumber, removeDeclaredNumber } = useDeclaredNumbers(user?.uid);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -92,6 +92,8 @@ export default function Home() {
     const newAccounts = clients.map(client => {
       const clientCommissionPercent = parseFloat(client.comm) / 100;
       const passingMultiplier = parseFloat(client.pair) || 80;
+      
+      // Start with the opening balance
       let runningBalance = client.activeBalance || 0;
       
       const updatedDrawsForSelectedDay: { [key: string]: DrawData } = {};
@@ -108,10 +110,14 @@ export default function Home() {
         const netFromGames = gameTotal - commission;
         const winnings = passingAmountInLog * passingMultiplier;
 
-        runningBalance -= (netFromGames - winnings);
+        // This represents the net amount owed to/by the client for this specific log entry
+        const netResultForLog = netFromGames - winnings;
+
+        // The running balance decreases by what the client owes for their plays
+        runningBalance -= netResultForLog;
       });
 
-      // Populate draw data specifically for the selected day for display purposes
+      // Populate draw data specifically for the selected day for display purposes in the ledger
       draws.forEach(drawName => {
         const drawLogs = savedSheetLog[drawName] || [];
         const clientLogForSelectedDay = drawLogs.find(log => 
@@ -364,6 +370,7 @@ export default function Home() {
               onUpdateClient={updateClient} 
               onDeleteClient={deleteClient}
               onClientTransaction={handleClientTransaction}
+              onClearClientData={clearClientData}
             />
           </TabsContent>
           <TabsContent value="accounts">

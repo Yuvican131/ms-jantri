@@ -3,10 +3,11 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { PlusCircle, MoreHorizontal, Edit, Trash2, ArrowUpCircle, ArrowDownCircle } from "lucide-react"
+import { PlusCircle, MoreHorizontal, Edit, Trash2, ArrowUpCircle, ArrowDownCircle, Eraser } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Account } from "./accounts-manager"
@@ -19,16 +20,21 @@ type ClientsManagerProps = {
   accounts: Account[];
   onAddClient: (client: Omit<Client, 'id'>) => void;
   onUpdateClient: (client: Client) => void;
-  onDeleteClient: (id: string) => void;
+  onDeleteClient: (id: string, name: string) => void;
   onClientTransaction: (clientId: string, amount: number) => void;
+  onClearClientData: (clientId: string, name: string) => void;
 }
 
-export default function ClientsManager({ clients, accounts, onAddClient, onUpdateClient, onDeleteClient, onClientTransaction }: ClientsManagerProps) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+export default function ClientsManager({ clients, accounts, onAddClient, onUpdateClient, onDeleteClient, onClientTransaction, onClearClientData }: ClientsManagerProps) {
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [transactionClient, setTransactionClient] = useState<Client | null>(null);
   const [transactionType, setTransactionType] = useState<'deposit' | 'withdraw' | null>(null);
   const [transactionAmount, setTransactionAmount] = useState('');
+  const [dialogAction, setDialogAction] = useState<(() => void) | null>(null);
+  const [dialogTitle, setDialogTitle] = useState('');
+  const [dialogDescription, setDialogDescription] = useState('');
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const handleSaveClient = (e: React.FormEvent<HTMLFormElement>) => {
@@ -50,22 +56,41 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
       onAddClient(newClient);
     }
     setEditingClient(null)
-    setIsDialogOpen(false)
+    setIsFormDialogOpen(false)
     e.currentTarget.reset();
   }
   
   const handleEditClient = (client: Client) => {
     setEditingClient(client)
-    setIsDialogOpen(true)
+    setIsFormDialogOpen(true)
   }
 
-  const handleDeleteClient = (id: string) => {
-    onDeleteClient(id);
-  }
+  const confirmAction = (title: string, description: string, action: () => void) => {
+    setDialogTitle(title);
+    setDialogDescription(description);
+    setDialogAction(() => action); // Use a function to ensure the action is correctly scoped
+    setIsConfirmDialogOpen(true);
+  };
+  
+  const handleDeleteClient = (id: string, name: string) => {
+    confirmAction(
+      `Delete Client: ${name}?`,
+      "This action cannot be undone. This will permanently delete the client and all their associated sheet data.",
+      () => onDeleteClient(id, name)
+    );
+  };
+
+  const handleClearClientData = (id: string, name: string) => {
+    confirmAction(
+      `Clear Sheet Data for ${name}?`,
+      "This action cannot be undone. This will permanently delete all sheet log history for this client.",
+      () => onClearClientData(id, name)
+    );
+  };
 
   const openAddDialog = () => {
     setEditingClient(null)
-    setIsDialogOpen(true)
+    setIsFormDialogOpen(true)
   }
 
   const openTransactionDialog = (client: Client, type: 'deposit' | 'withdraw') => {
@@ -104,11 +129,11 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
       <Card className="h-full flex flex-col">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Manage Clients</CardTitle>
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+          <Dialog open={isFormDialogOpen} onOpenChange={(open) => {
             if (!open) {
               setEditingClient(null);
             }
-            setIsDialogOpen(open)
+            setIsFormDialogOpen(open)
           }}>
             <DialogTrigger asChild>
               <Button size="sm" onClick={openAddDialog}>
@@ -207,8 +232,12 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                                   <Edit className="mr-2 h-4 w-4" />
                                   <span>Edit Details</span>
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleClearClientData(client.id, client.name)}>
+                                  <Eraser className="mr-2 h-4 w-4" />
+                                  <span>Clear Sheet Data</span>
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive" onClick={() => handleDeleteClient(client.id)}>
+                                <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive" onClick={() => handleDeleteClient(client.id, client.name)}>
                                   <Trash2 className="mr-2 h-4 w-4" />
                                   <span>Delete Client</span>
                                 </DropdownMenuItem>
@@ -245,6 +274,25 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
             </DialogFooter>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{dialogTitle}</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogDescription>{dialogDescription}</AlertDialogDescription>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (dialogAction) {
+                dialogAction();
+              }
+              setIsConfirmDialogOpen(false);
+            }}>
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

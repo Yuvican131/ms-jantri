@@ -1,8 +1,9 @@
 'use client';
 import { useMemo } from 'react';
-import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useToast } from './use-toast';
 
 export interface SavedSheetInfo {
   id: string;
@@ -16,6 +17,7 @@ export interface SavedSheetInfo {
 
 export const useSheetLog = (userId?: string) => {
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   const sheetLogColRef = useMemoFirebase(() => {
     if (!userId) return null;
@@ -50,5 +52,30 @@ export const useSheetLog = (userId?: string) => {
     }
   };
 
-  return { savedSheetLog, isLoading, error, addSheetLogEntry };
+  const deleteSheetLogsForClient = async (clientId: string, showToast: boolean = true) => {
+    if (!userId) return;
+
+    try {
+      const q = query(collection(firestore, `users/${userId}/sheetLogs`), where("clientId", "==", clientId));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        if (showToast) toast({ title: "No Data", description: "No sheet data found for this client to clear." });
+        return;
+      }
+
+      const batch = writeBatch(firestore);
+      querySnapshot.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+
+      if (showToast) toast({ title: "Success", description: `Cleared all sheet data for the client.` });
+    } catch (e) {
+      console.error("Error clearing sheet logs: ", e);
+      if (showToast) toast({ title: "Error", description: "Could not clear sheet data.", variant: "destructive" });
+    }
+  };
+
+  return { savedSheetLog, isLoading, error, addSheetLogEntry, deleteSheetLogsForClient };
 };

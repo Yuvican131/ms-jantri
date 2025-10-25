@@ -1,12 +1,14 @@
 'use client';
 import { useMemo } from 'react';
-import { collection, doc, addDoc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, writeBatch, getDocs, query, where } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
 import {
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking
 } from '@/firebase/non-blocking-updates';
+import { useSheetLog } from './useSheetLog';
 
 export type Client = {
   id: string;
@@ -20,6 +22,8 @@ export type Client = {
 
 export const useClients = (userId?: string) => {
   const firestore = useFirestore();
+  const { toast } = useToast();
+  const { deleteSheetLogsForClient } = useSheetLog(userId);
 
   const clientsColRef = useMemoFirebase(() => {
     if (!userId) return null;
@@ -33,6 +37,7 @@ export const useClients = (userId?: string) => {
   const addClient = (client: Omit<Client, 'id'>) => {
     if (!clientsColRef) return;
     addDocumentNonBlocking(clientsColRef, client);
+    toast({ title: "Client Added", description: `${client.name} has been added.` });
   };
 
   const updateClient = (client: Client) => {
@@ -40,13 +45,23 @@ export const useClients = (userId?: string) => {
     const clientRef = doc(firestore, `users/${userId}/clients`, client.id);
     const { id, ...clientData } = client;
     updateDocumentNonBlocking(clientRef, clientData);
+    toast({ title: "Client Updated", description: `${client.name}'s details have been updated.` });
   };
 
-  const deleteClient = (id: string) => {
+  const deleteClient = (id: string, name: string) => {
     if (!userId) return;
-    const clientRef = doc(firestore, `users/${userId}/clients`, id);
-    deleteDocumentNonBlocking(clientRef);
+    // First, delete associated logs, then delete the client
+    deleteSheetLogsForClient(id, false).then(() => {
+      const clientRef = doc(firestore, `users/${userId}/clients`, id);
+      deleteDocumentNonBlocking(clientRef);
+      toast({ title: "Client Deleted", description: `${name} and all their data have been deleted.` });
+    });
   };
+  
+  const clearClientData = (id: string, name: string) => {
+    deleteSheetLogsForClient(id, true);
+    toast({ title: "Client Data Cleared", description: `All sheet data for ${name} has been cleared.` });
+  }
 
   const handleClientTransaction = (clientId: string, amount: number) => {
     if (!userId) return;
@@ -57,5 +72,5 @@ export const useClients = (userId?: string) => {
     }
   };
 
-  return { clients, isLoading, error, addClient, updateClient, deleteClient, handleClientTransaction };
+  return { clients, isLoading, error, addClient, updateClient, deleteClient, handleClientTransaction, clearClientData };
 };
