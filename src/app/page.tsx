@@ -8,12 +8,12 @@ import ClientsManager from "@/components/clients-manager"
 import AccountsManager, { Account, DrawData } from "@/components/accounts-manager"
 import LedgerRecord from "@/components/ledger-record"
 import AdminPanel from "@/components/admin-panel"
-import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, FileSpreadsheet, Shield } from 'lucide-react';
+import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, FileSpreadsheet, Shield, ArrowRight } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { format } from "date-fns"
+import { format, addDays } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -87,7 +87,7 @@ export default function Home() {
   }, [isUserLoading, user, auth]);
 
   const updateAccountsFromLog = useCallback(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = date ? format(date, "yyyy-MM-dd") : new Date().toISOString().split('T')[0];
     
     const newAccounts = clients.map(client => {
         const clientCommissionPercent = parseFloat(client.comm) / 100;
@@ -130,7 +130,7 @@ export default function Home() {
     });
 
     setAccounts(newAccounts);
-  }, [clients, savedSheetLog, declaredNumbers]);
+  }, [clients, savedSheetLog, declaredNumbers, date]);
 
   useEffect(() => {
     updateAccountsFromLog();
@@ -212,6 +212,12 @@ export default function Home() {
     toast({ title: "Success", description: `Result undeclared for draw ${declarationDraw}.` });
     setDeclarationDialogOpen(false);
   };
+  
+  const handleNextDay = () => {
+    if (date) {
+      setDate(addDays(date, 1));
+    }
+  };
 
   if (isUserLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -281,13 +287,13 @@ export default function Home() {
                   <CardTitle>Select a Date and Draw</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
-                  <div>
+                  <div className="flex flex-wrap items-center gap-2">
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
                           variant={"outline"}
                           className={cn(
-                            "w-full sm:w-[280px] justify-start text-left font-normal",
+                            "w-full sm:w-[240px] justify-start text-left font-normal",
                             !date && "text-muted-foreground"
                           )}
                         >
@@ -304,6 +310,9 @@ export default function Home() {
                         />
                       </PopoverContent>
                     </Popover>
+                     <Button onClick={handleNextDay} variant="outline" size="sm">
+                        Next Day <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4">
                     {draws.map((draw) => (
