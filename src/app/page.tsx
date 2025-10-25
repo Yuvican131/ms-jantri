@@ -71,7 +71,7 @@ export default function Home() {
 
   const { clients, addClient, updateClient, deleteClient, handleClientTransaction, clearClientData } = useClients(user?.uid);
   const { savedSheetLog, addSheetLogEntry } = useSheetLog(user?.uid);
-  const { declaredNumbers, setDeclaredNumber, removeDeclaredNumber } = useDeclaredNumbers(user?.uid);
+  const { declaredNumbers, setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber, setDeclaredNumberLocal } = useDeclaredNumbers(user?.uid);
   const [accounts, setAccounts] = useState<Account[]>([]);
 
   useEffect(() => {
@@ -93,16 +93,13 @@ export default function Home() {
       const clientCommissionPercent = parseFloat(client.comm) / 100;
       const passingMultiplier = parseFloat(client.pair) || 80;
       
-      // Start with the opening balance
       let runningBalance = client.activeBalance || 0;
       
-      const updatedDrawsForSelectedDay: { [key: string]: DrawData } = {};
-      
-      // Calculate historical balance from all logs
       const allLogsForClient = Object.values(savedSheetLog).flat().filter(log => log.clientId === client.id);
 
       allLogsForClient.forEach(log => {
-        const logDateStr = new Date(log.date).toISOString().split('T')[0];
+        const logDate = new Date(log.date);
+        const logDateStr = format(logDate, 'yyyy-MM-dd');
         const declarationId = `${log.draw}-${logDateStr}`;
         const declaredNumberForDraw = declaredNumbers[declarationId]?.number;
 
@@ -113,10 +110,12 @@ export default function Home() {
         const netFromGames = gameTotal - commission;
         const winnings = passingAmountInLog * passingMultiplier;
         const netResultForLog = netFromGames - winnings;
+        
         runningBalance -= netResultForLog;
       });
-
-      // Populate draw data specifically for the selected day for display purposes in the ledger
+      
+      const updatedDrawsForSelectedDay: { [key: string]: DrawData } = {};
+      
       draws.forEach(drawName => {
         const drawLogs = savedSheetLog[drawName] || [];
         const clientLogForSelectedDay = drawLogs.find(log => 
@@ -129,7 +128,7 @@ export default function Home() {
 
         if (clientLogForSelectedDay) {
             totalAmount = clientLogForSelectedDay.gameTotal;
-            const logDateStr = new Date(clientLogForSelectedDay.date).toISOString().split('T')[0];
+            const logDateStr = format(selectedDate, 'yyyy-MM-dd');
             const declarationId = `${drawName}-${logDateStr}`;
             const declaredNumberForDraw = declaredNumbers[declarationId]?.number;
             passingAmount = declaredNumberForDraw ? parseFloat(clientLogForSelectedDay.data[declaredNumberForDraw] || "0") : 0;
@@ -209,7 +208,8 @@ export default function Home() {
 
   const handleDeclarationInputChange = (draw: string, value: string, entryDate: Date) => {
     const numValue = value.replace(/[^0-9]/g, "").slice(0, 2);
-    setDeclaredNumber(draw, numValue, entryDate);
+    setDeclaredNumberLocal(draw, numValue, entryDate);
+    
     if (numValue.length === 2) {
       setDeclarationDraw(draw);
       setDeclarationNumber(numValue);
@@ -336,9 +336,7 @@ export default function Home() {
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4">
                     {draws.map((draw) => {
-                      const dateStr = date ? date.toISOString().split('T')[0] : '';
-                      const declarationId = `${draw}-${dateStr}`;
-                      const declaredNumberForDate = declaredNumbers[declarationId]?.number || '';
+                      const declaredNumberForDate = getDeclaredNumber(draw, date) || '';
 
                       return (
                       <div key={draw} className="flex flex-col gap-1">
