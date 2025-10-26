@@ -283,6 +283,7 @@ const MasterSheetViewer = ({
 
 const generateCombinations = (digits1: string[], digits2: string[]): string[] => {
     const combinations = new Set<string>();
+    if (!digits1 || !digits2) return [];
     for (const d1 of digits1) {
         for (const d2 of digits2) {
             combinations.add(`${d1}${d2}`);
@@ -612,7 +613,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     return true;
   };
   
-  const handleMultiTextApply = () => {
+const handleMultiTextApply = () => {
     if (isDataEntryDisabled) {
         showClientSelectionToast();
         return;
@@ -628,36 +629,39 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         let cells: string[] = [];
         let amount = 0;
 
-        if (parts.length === 2) {
-            const amountStr = parts[1];
-            amount = parseFloat(amountStr);
+        if (parts.length === 2) { // Normal or Laddi (e.g., 12,21=100 or 2442=50)
+            amount = parseFloat(parts[1]);
             if (isNaN(amount)) continue;
 
-            const numbersStr = parts[0].trim();
-            // Case: Normal data with spaces or commas
-            if (numbersStr.includes(' ') || numbersStr.includes(',')) {
-                cells = numbersStr.replace(/\s+/g, ',').split(',').filter(c => c.trim() !== '');
-            } else { // Case: Laddi data with no spaces e.g. 2442=50
-                if (numbersStr.length > 2 && numbersStr.length % 2 === 0) {
-                    const mid = Math.ceil(numbersStr.length / 2);
-                    const firstHalf = numbersStr.substring(0, mid).split('');
-                    const secondHalf = numbersStr.substring(mid).split('');
-                    cells = generateCombinations(firstHalf, secondHalf);
-                } else {
-                   cells = [numbersStr];
+            const numbersStr = parts[0].trim().replace(/\s+/g, '');
+            cells = numbersStr.split(',').flatMap(num => {
+                if (num.length > 2 && num.length % 2 === 0) { // Laddi like 2442
+                    const mid = num.length / 2;
+                    const firstHalf = num.substring(0, mid).split('');
+                    const secondHalf = num.substring(mid).split('');
+                    return generateCombinations(firstHalf, secondHalf);
                 }
-            }
-        } else if (parts.length === 3) {
-            const amountStr = parts[2];
-            amount = parseFloat(amountStr);
-            if (isNaN(amount)) continue;
-            
-            const firstGroup = parts[0].trim().split('');
-            const secondGroup = parts[1].trim().split('');
+                return [num]; // Normal number
+            });
 
-            cells = generateCombinations(firstGroup, secondGroup);
+        } else if (parts.length === 3) { // Complex Laddi (e.g., 23471=25=50 or 234178=30=80)
+            amount = parseFloat(parts[2]);
+            if (isNaN(amount)) continue;
+
+            const firstGroup = parts[0].trim().split('');
+            const middlePart = parts[1].trim();
+
+            if (middlePart.length <= 2) { // Assume it's a combination limit, e.g., 234178=30=80
+                const combinationLimit = parseInt(middlePart, 10);
+                if (!isNaN(combinationLimit)) {
+                    let allCombinations = generateCombinations(firstGroup, firstGroup); // self-combination
+                    cells = allCombinations.slice(0, combinationLimit);
+                }
+            } else { // Assume it's a digit group for pairing, e.g., 23471=25=50
+                 cells = generateCombinations(firstGroup, middlePart.split(''));
+            }
         } else {
-          continue;
+            continue;
         }
         
         cells.forEach(cell => {
@@ -954,12 +958,37 @@ const handleHarupApply = () => {
     }
   };
 
+  const formatMultiText = (text: string) => {
+    return text.split('\n').map(line => {
+      // Don't format lines with multiple equals signs (Laddi data)
+      if (line.split('=').length - 1 > 1) {
+        return line;
+      }
+  
+      // Format lines with one equals sign
+      const parts = line.split('=');
+      if (parts.length === 2) {
+        let numbers = parts[0];
+        // Replace spaces with commas
+        numbers = numbers.replace(/\s+/g, ',');
+        // Add commas to long strings of digits
+        numbers = numbers.replace(/(\d{2})(?=\d)/g, '$1,');
+        return `${numbers}=${parts[1]}`;
+      }
+  
+      return line;
+    }).join('\n');
+  };
+  
+
   const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (isDataEntryDisabled) {
       showClientSelectionToast();
       return;
     }
-    setMultiText(e.target.value);
+    const rawValue = e.target.value;
+    const formattedValue = formatMultiText(rawValue);
+    setMultiText(formattedValue);
   };
   
 
@@ -1306,3 +1335,5 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
