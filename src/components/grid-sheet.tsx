@@ -39,7 +39,7 @@ type Sheet = {
 type ClientSheetData = {
   [clientId: string]: {
     data: CellData;
-    rowTotals: { [key: number]: string };
+    rowTotals: { [key: string]: string };
   };
 };
 
@@ -694,61 +694,48 @@ const handleMultiTextApply = () => {
         showClientSelectionToast();
         return;
     }
-    const lines = multiText.split('\n').filter(line => line.trim() !== '');
+
     const updates: { [key: string]: number } = {};
     let totalEntryAmount = 0;
     let errorOccurred = false;
+    let remainingText = multiText.trim();
     let lastEntryString = "";
 
-    lines.forEach(line => {
-        if (errorOccurred) return;
-        lastEntryString += line + '\n';
-        let remainingLine = line.trim();
+    const patterns = [
+        /(?<laddiDigits>\d+)\((?<laddiCount>\d+)gar(?<laddiAmount>\d+)\)/, // Laddi: 235780(30gar10)
+        /(?<cellAmountCells>(?:\d+,)*\d+)\((?<cellAmountAmount>\d+)\)/,      // Cell-Amount: 29,93,92(10)
+        /(?<simpleCells>(?:\d+,?)+)=+(?<simpleAmount>\d+)/,                  // Simple Equals: 12,21=100 or 75===300
+        /(?<laddi3pDigits1>\d+)=(?<laddi3pDigits2>\d+)=(?<laddi3pAmount>\d+)/, // 3-part Laddi: 23471=25=50 or 234178=30=80
+    ];
 
-        // Ignore prefixes like 'Gb'
-        remainingLine = remainingLine.replace(/^[a-zA-Z]+\s*/, '');
+    while (remainingText.length > 0 && !errorOccurred) {
+        let matchFound = false;
+        for (const pattern of patterns) {
+            const match = remainingText.match(pattern);
+            if (match && match.index === 0) {
+                matchFound = true;
+                const matchText = match[0];
+                lastEntryString += matchText;
+                
+                const groups = match.groups || {};
 
-        // Regex for Laddi format: 235780(30gar10)
-        const laddiRegex = /(\d+)\((\d+)gar(\d+)\)/g;
-        // Regex for cell(amount) format: 29,93,92(10)
-        const cellAmountRegex = /((?:\d+,)*\d+)\((\d+)\)/g;
-        // Regex for cell=amount format: 12,21=100 or 12=100
-        const simpleEqualsRegex = /((?:\d+,)*\d+)\s*={1,}\s*(\d+)/g;
-        // Regex for 3-part laddi with count: 234178=30=80
-        const threePartLaddiCountRegex = /(\d+)=(\d+)=(\d+)/g;
-
-        const allMatches = [
-            ...Array.from(remainingLine.matchAll(laddiRegex)),
-            ...Array.from(remainingLine.matchAll(cellAmountRegex)),
-            ...Array.from(remainingLine.matchAll(simpleEqualsRegex)),
-            ...Array.from(remainingLine.matchAll(threePartLaddiCountRegex)),
-        ];
-
-        if (allMatches.length > 0) {
-            allMatches.forEach(match => {
-                if (errorOccurred) return;
-
-                // Laddi Format: 235780(30gar10)
-                if (match[0].includes('gar')) {
-                    const [, digits, countStr, amountStr] = match;
-                    const count = parseInt(countStr, 10);
-                    const amount = parseInt(amountStr, 10);
-                    const uniqueDigits = [...new Set(digits.split(''))];
+                // Pattern 1: Laddi with gar -> 235780(30gar10)
+                if (groups.laddiDigits) {
+                    const { laddiDigits, laddiCount, laddiAmount } = groups;
+                    const uniqueDigits = [...new Set(laddiDigits.split(''))];
                     const n = uniqueDigits.length;
                     const combosWithJodda = n * n;
                     const combosWithoutJodda = n * (n - 1);
+                    const requestedCount = parseInt(laddiCount, 10);
+                    const amount = parseInt(laddiAmount, 10);
 
-                    if (count !== combosWithJodda && count !== combosWithoutJodda) {
-                        toast({
-                            title: "Wrong Laddi Combination",
-                            description: `For ${n} digits, valid combinations are ${combosWithoutJodda} or ${combosWithJodda}, but ${count} were requested.`,
-                            variant: "destructive",
-                        });
+                    if (requestedCount !== combosWithJodda && requestedCount !== combosWithoutJodda) {
+                        toast({ title: "Wrong Laddi Combination", description: `For ${n} digits, valid combinations are ${combosWithoutJodda} or ${combosWithJodda}, but ${requestedCount} were requested.`, variant: "destructive" });
                         errorOccurred = true;
-                        return;
+                        break;
                     }
-                    
-                    const includeJodda = count === combosWithJodda;
+
+                    const includeJodda = requestedCount === combosWithJodda;
                     for (let i = 0; i < n; i++) {
                         for (let j = 0; j < n; j++) {
                             if (!includeJodda && i === j) continue;
@@ -758,37 +745,53 @@ const handleMultiTextApply = () => {
                         }
                     }
                 }
-                // 3-part Laddi: 234178=30=80
-                else if (match.length === 4 && match[0].includes('=')) {
-                    const [, part1, part2, part3] = match;
-                     // Case 1: 234178=30=80 (digits=count=amount)
-                    const uniqueDigits = [...new Set(part1.split(''))];
-                    const n = uniqueDigits.length;
+                // Pattern 2: Cell-Amount -> 29,93,92(10)
+                else if (groups.cellAmountCells) {
+                    const { cellAmountCells, cellAmountAmount } = groups;
+                    const amount = parseInt(cellAmountAmount, 10);
+                    cellAmountCells.split(',').filter(c => c).forEach(cell => {
+                        updates[cell.padStart(2, '0')] = (updates[cell.padStart(2, '0')] || 0) + amount;
+                        totalEntryAmount += amount;
+                    });
+                }
+                // Pattern 3: Simple Equals -> 12,21=100 or 75===300
+                else if (groups.simpleCells) {
+                    const { simpleCells, simpleAmount } = groups;
+                    const amount = parseInt(simpleAmount, 10);
+                    simpleCells.split(',').filter(c => c).forEach(cell => {
+                        updates[cell.padStart(2, '0')] = (updates[cell.padStart(2, '0')] || 0) + amount;
+                        totalEntryAmount += amount;
+                    });
+                }
+                // Pattern 4: 3-part Laddi -> 234178=30=80 or 23471=25=50
+                else if (groups.laddi3pDigits1) {
+                    const { laddi3pDigits1, laddi3pDigits2, laddi3pAmount } = groups;
+                    const digits1 = laddi3pDigits1.split('');
+                    const uniqueDigits1 = [...new Set(digits1)];
+                    const n = uniqueDigits1.length;
                     const combosWithJodda = n * n;
                     const combosWithoutJodda = n * (n - 1);
-                    const requestedCount = parseInt(part2, 10);
-                    const amount = parseInt(part3, 10);
-
-                    if (requestedCount === combosWithoutJodda || requestedCount === combosWithJodda) {
-                         const includeJodda = requestedCount === combosWithJodda;
-                         let combinations = [];
-                         for (let i = 0; i < n; i++) {
-                             for (let j = 0; j < n; j++) {
-                                 if (!includeJodda && i === j) continue;
-                                 combinations.push(`${uniqueDigits[i]}${uniqueDigits[j]}`);
-                             }
-                         }
-                         combinations.forEach(cell => {
-                             const key = cell.padStart(2, '0');
-                             updates[key] = (updates[key] || 0) + amount;
-                             totalEntryAmount += amount;
-                         });
-                    }
-                    // Case 2: 23471=25=50 (digits=digits=amount)
+                    const middlePart = parseInt(laddi3pDigits2, 10);
+                    const amount = parseInt(laddi3pAmount, 10);
+                    
+                    // Case A: Middle part is a combination count (e.g., 234178=30=80)
+                    if (middlePart === combosWithJodda || middlePart === combosWithoutJodda) {
+                        let combinations = [];
+                        const includeJodda = middlePart === combosWithJodda;
+                        for (let i = 0; i < n; i++) {
+                            for (let j = 0; j < n; j++) {
+                                if (!includeJodda && i === j) continue;
+                                combinations.push(`${uniqueDigits1[i]}${uniqueDigits1[j]}`);
+                            }
+                        }
+                        combinations.forEach(cell => {
+                            updates[cell.padStart(2, '0')] = (updates[cell.padStart(2, '0')] || 0) + amount;
+                            totalEntryAmount += amount;
+                        });
+                    } 
+                    // Case B: Middle part is a set of digits for pairing (e.g., 23471=25=50)
                     else {
-                        const digits1 = part1.split('');
-                        const digits2 = part2.split('');
-                        const amount = parseInt(part3, 10);
+                        const digits2 = laddi3pDigits2.split('');
                         for (const d1 of digits1) {
                             for (const d2 of digits2) {
                                 const key = `${d1}${d2}`.padStart(2, '0');
@@ -798,34 +801,18 @@ const handleMultiTextApply = () => {
                         }
                     }
                 }
-                // Simple equals format: 12,21=100
-                else if (match[0].includes('=')) {
-                    const [, cellsStr, amountStr] = match;
-                    const amount = parseInt(amountStr, 10);
-                    const cells = cellsStr.split(',').filter(c => c);
-                    cells.forEach(cell => {
-                        const key = cell.padStart(2, '0');
-                        updates[key] = (updates[key] || 0) + amount;
-                        totalEntryAmount += amount;
-                    });
-                }
-                // Cell(amount) format: 29,93(10)
-                else {
-                    const [, cellsStr, amountStr] = match;
-                    const amount = parseInt(amountStr, 10);
-                    const cells = cellsStr.split(',').filter(c => c);
-                    cells.forEach(cell => {
-                        const key = cell.padStart(2, '0');
-                        updates[key] = (updates[key] || 0) + amount;
-                        totalEntryAmount += amount;
-                    });
-                }
-            });
-        } else if (remainingLine) { // If no regex matches but there is text
-            toast({ title: "Invalid Format", description: `Could not parse: ${remainingLine}`, variant: "destructive" });
-            errorOccurred = true;
+                
+                remainingText = remainingText.substring(matchText.length);
+                break; // Exit the inner for-loop to restart the pattern search
+            }
         }
-    });
+
+        // If no patterns matched the start of the string, remove the first character and try again.
+        if (!matchFound) {
+            remainingText = remainingText.substring(1);
+        }
+    }
+
 
     if (errorOccurred) return;
     if (!checkBalance(totalEntryAmount)) return;
@@ -1121,7 +1108,19 @@ const handleHarupApply = () => {
         showClientSelectionToast();
         return;
     }
-    setMultiText(e.target.value);
+    const rawValue = e.target.value;
+    const formattedLines = rawValue.split('\n').map(line => {
+      // Don't format laddi data
+      if (line.includes('=') && line.split('=').length - 1 > 1) {
+        return line;
+      }
+      // Format normal data: add commas between pairs, replace spaces with commas
+      return line
+        .replace(/\s+/g, ',') // Replace all spaces with a single comma
+        .replace(/(\d{2})(?=\d{2})/g, '$1,') // Add comma between 2-digit numbers
+        .replace(/,,+/g, ','); // Clean up multiple commas
+    }).join('\n');
+    setMultiText(rawValue); // Keep raw value in state for the parser
   };
   
 
