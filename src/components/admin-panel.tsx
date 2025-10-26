@@ -320,27 +320,28 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
             rawTotals[drawName] = allLogs
                 .filter(log => log.draw === drawName)
                 .reduce((sum, log) => sum + log.gameTotal, 0);
+
+            passingTotals[drawName] = allLogs
+                .filter(log => log.draw === drawName)
+                .reduce((sum, log) => {
+                    const dateStr = parseISO(log.date).toISOString().split('T')[0];
+                    const declarationId = `${log.draw}-${dateStr}`;
+                    const declaredNum = declaredNumbers[declarationId]?.number;
+
+                    if (declaredNum) {
+                        const passingAmount = parseFloat(log.data[declaredNum] || "0");
+                        return sum + passingAmount;
+                    }
+                    return sum;
+                }, 0);
         }
-
-        allLogs.forEach(log => {
-            if (!passingTotals[log.draw]) {
-                passingTotals[log.draw] = 0;
-            }
-            const dateStr = parseISO(log.date).toISOString().split('T')[0];
-            const declarationId = `${log.draw}-${dateStr}`;
-            const declaredNum = declaredNumbers[declarationId]?.number;
-
-            if (declaredNum) {
-                const passingAmount = parseFloat(log.data[declaredNum] || "0");
-                passingTotals[log.draw] += passingAmount;
-            }
-        });
         
         return { brokerRawDrawTotals: rawTotals, brokerPassingDrawTotals: passingTotals };
     }, [savedSheetLog, declaredNumbers]);
 
     const finalNetTotalForBroker = useMemo(() => {
-        let grandTotalUpperPayable = 0;
+        let totalClientPayable = 0;
+        let totalUpperPayable = 0;
 
         const allLogs = Object.values(savedSheetLog).flat();
 
@@ -348,37 +349,35 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
             const client = clients.find(c => c.id === log.clientId);
             if (!client) return;
             
-            const clientGameTotal = log.gameTotal;
+            const gameTotal = log.gameTotal;
             const clientCommPercent = parseFloat(client.comm) / 100 || defaultClientComm / 100;
             const clientPairRate = parseFloat(client.pair) || defaultClientPair;
 
-            const clientCommission = clientGameTotal * clientCommPercent;
-            const clientNet = clientGameTotal - clientCommission;
+            const clientCommission = gameTotal * clientCommPercent;
+            const clientNet = gameTotal - clientCommission;
 
             const dateStr = parseISO(log.date).toISOString().split('T')[0];
             const declarationId = `${log.draw}-${dateStr}`;
             const declaredNumber = declaredNumbers[declarationId]?.number;
             
-            let clientPassingAmount = 0;
+            let passingAmount = 0;
             if (declaredNumber && log.data[declaredNumber]) {
-                clientPassingAmount = parseFloat(log.data[declaredNumber]) || 0;
+                passingAmount = parseFloat(log.data[declaredNumber]) || 0;
             }
 
-            const clientWinnings = clientPassingAmount * clientPairRate;
-            const clientPayable = clientNet - clientWinnings;
+            const clientWinnings = passingAmount * clientPairRate;
+            totalClientPayable += (clientNet - clientWinnings);
 
             const upperCommPercent = parseFloat(String(defaultUpperComm)) / 100;
             const upperPairRate = parseFloat(String(defaultUpperPair));
 
-            const upperCommission = clientGameTotal * upperCommPercent;
-            const upperNet = clientGameTotal - upperCommission;
-            const upperWinnings = clientPassingAmount * upperPairRate;
-            const upperPayable = upperNet - upperWinnings;
-
-            grandTotalUpperPayable += (clientPayable - upperPayable);
+            const upperCommission = gameTotal * upperCommPercent;
+            const upperNet = gameTotal - upperCommission;
+            const upperWinnings = passingAmount * upperPairRate;
+            totalUpperPayable += (upperNet - upperWinnings);
         });
 
-        return grandTotalUpperPayable;
+        return totalClientPayable - totalUpperPayable;
 
     }, [clients, savedSheetLog, declaredNumbers]);
 
@@ -402,14 +401,14 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
                         key={drawName}
                         title={drawName} 
                         rawTotal={brokerRawDrawTotals[drawName] || 0} 
-                        passingTotal={brokerPassingDrawTotals[drawName] || 0}
+                        passingTotal={brokerPassingDrawTotals[drawName] * defaultUpperPair || 0}
                     />
                 ))}
                 <GrandTotalSummaryCard
                   title="Final Summary"
                   finalValue={finalNetTotalForBroker}
                   grandRawTotal={grandRawTotal}
-                  grandPassingTotal={grandPassingTotal}
+                  grandPassingTotal={grandPassingTotal * defaultUpperPair}
                 />
             </div>
         </div>
@@ -424,7 +423,5 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
     </Card>
   );
 }
-
-    
 
     
