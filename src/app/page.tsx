@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { format, addDays, isSameDay } from "date-fns"
+import { format, addDays, isSameDay, parseISO } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -94,15 +94,15 @@ export default function Home() {
         const clientCommissionPercent = parseFloat(client.comm) / 100;
         const passingMultiplier = parseFloat(client.pair) || 80;
 
+        // Calculate historical running balance
         let runningBalance = client.activeBalance || 0;
-
         const allLogsForClient = allLogs.filter(log => log.clientId === client.id);
 
         allLogsForClient.forEach(log => {
-            const logDate = new Date(log.date);
-            const declaredNumberForDraw = getDeclaredNumber(log.draw, logDate);
-
-            const passingAmountInLog = declaredNumberForDraw ? parseFloat(log.data[declaredNumberForDraw] || "0") : 0;
+            const logDate = parseISO(log.date);
+            const declaredNumberForLogDate = getDeclaredNumber(log.draw, logDate);
+            const passingAmountInLog = declaredNumberForLogDate ? parseFloat(log.data[declaredNumberForLogDate] || "0") : 0;
+            
             const gameTotal = log.gameTotal;
             const commission = gameTotal * clientCommissionPercent;
             const netFromGames = gameTotal - commission;
@@ -112,23 +112,21 @@ export default function Home() {
             runningBalance -= netResultForLog;
         });
 
+        // Calculate details for the selected day for UI display
         const updatedDrawsForSelectedDay: { [key: string]: DrawData } = {};
-
         draws.forEach(drawName => {
             const drawLogs = savedSheetLog[drawName] || [];
             const clientLogForSelectedDay = drawLogs.find(log =>
                 log.clientId === client.id &&
-                isSameDay(new Date(log.date), selectedDate)
+                isSameDay(parseISO(log.date), selectedDate)
             );
 
-            let totalAmount = 0;
-            let passingAmount = 0;
-
-            if (clientLogForSelectedDay) {
-                totalAmount = clientLogForSelectedDay.gameTotal;
-                const declaredNumberForDraw = getDeclaredNumber(drawName, selectedDate);
-                passingAmount = declaredNumberForDraw ? parseFloat(clientLogForSelectedDay.data[declaredNumberForDraw] || "0") : 0;
-            }
+            const totalAmount = clientLogForSelectedDay?.gameTotal || 0;
+            
+            const declaredNumberForSelectedDay = getDeclaredNumber(drawName, selectedDate);
+            const passingAmount = declaredNumberForSelectedDay && clientLogForSelectedDay
+                ? parseFloat(clientLogForSelectedDay.data[declaredNumberForSelectedDay] || "0")
+                : 0;
 
             updatedDrawsForSelectedDay[drawName] = { totalAmount, passingAmount };
         });
@@ -405,6 +403,8 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
 
