@@ -55,7 +55,7 @@ const BrokerDrawSummaryCard = ({
             </div>
             <div className="p-2 bg-muted/50 border-t flex items-center justify-between">
                 <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1"><TrendingDown className="h-3 w-3" /> Passing</span>
-                <span className="text-sm font-bold">{formatNumber(passingTotal * upperPairRate)}</span>
+                <span className="text-sm font-bold">{formatNumber(passingTotal)}</span>
             </div>
         </Card>
     );
@@ -325,22 +325,20 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
     } = useMemo(() => {
         const upperCommPercent = parseFloat(upperComm) / 100 || defaultUpperComm / 100;
         const upperPairRate = parseFloat(upperPair) || defaultUpperPair;
+        
+        let grandRawTotal = 0;
+        let grandPassingTotal = 0;
+        let totalClientPayable = 0;
 
         const rawTotalsByDraw: { [key: string]: number } = {};
         const passingTotalsByDraw: { [key: string]: number } = {};
-        let totalFromClients = 0;
-        let totalGameAmount = 0;
-        let totalPassingAmount = 0;
-
-        const allLogs = Object.values(savedSheetLog).flat();
-
-        // Initialize totals
         for (const drawName of draws) {
             rawTotalsByDraw[drawName] = 0;
             passingTotalsByDraw[drawName] = 0;
         }
 
-        // Calculate totals from all logs
+        const allLogs = Object.values(savedSheetLog).flat();
+
         allLogs.forEach(log => {
             const client = clients.find(c => c.id === log.clientId);
             if (!client) return;
@@ -348,34 +346,35 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
             const clientCommPercent = parseFloat(client.comm) / 100 || defaultClientComm / 100;
             const clientPairRate = parseFloat(client.pair) || defaultClientPair;
 
-            const gameTotalForLog = log.gameTotal;
-            totalGameAmount += gameTotalForLog;
-            rawTotalsByDraw[log.draw] = (rawTotalsByDraw[log.draw] || 0) + gameTotalForLog;
-
-            const dateStr = parseISO(log.date).toISOString().split('T')[0];
+            const gameTotal = log.gameTotal;
+            grandRawTotal += gameTotal;
+            rawTotalsByDraw[log.draw] = (rawTotalsByDraw[log.draw] || 0) + gameTotal;
+            
+            const dateStr = format(parseISO(log.date), 'yyyy-MM-dd');
             const declarationId = `${log.draw}-${dateStr}`;
             const declaredNum = declaredNumbers[declarationId]?.number;
 
             let passingAmountForLog = 0;
             if (declaredNum && log.data[declaredNum]) {
                 passingAmountForLog = parseFloat(log.data[declaredNum]) || 0;
-                totalPassingAmount += passingAmountForLog;
-                passingTotalsByDraw[log.draw] = (passingTotalsByDraw[log.draw] || 0) + passingAmountForLog;
             }
-            
-            const clientNetFromGame = gameTotalForLog * (1 - clientCommPercent);
+
+            grandPassingTotal += passingAmountForLog;
+            passingTotalsByDraw[log.draw] = (passingTotalsByDraw[log.draw] || 0) + passingAmountForLog;
+
+            const clientNetFromGame = gameTotal * (1 - clientCommPercent);
             const clientWinnings = passingAmountForLog * clientPairRate;
-            totalFromClients += (clientNetFromGame - clientWinnings);
+            totalClientPayable += (clientNetFromGame - clientWinnings);
         });
-        
-        const brokerCost = (totalGameAmount * (1 - upperCommPercent)) - (totalPassingAmount * upperPairRate);
-        const finalProfit = totalFromClients - brokerCost;
+
+        const brokerCost = (grandRawTotal * (1 - upperCommPercent)) - (grandPassingTotal * upperPairRate);
+        const finalProfit = totalClientPayable - brokerCost;
 
         return { 
             brokerRawDrawTotals: rawTotalsByDraw, 
             brokerPassingDrawTotals: passingTotalsByDraw,
-            grandRawTotal: totalGameAmount,
-            grandPassingTotal: totalPassingAmount,
+            grandRawTotal: grandRawTotal,
+            grandPassingTotal: grandPassingTotal,
             finalNetTotalForBroker: finalProfit,
         };
     }, [clients, savedSheetLog, declaredNumbers, upperComm, upperPair]);
@@ -422,5 +421,7 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
     </Card>
   );
 }
+
+    
 
     
