@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { PlusCircle, MoreHorizontal, Edit, Trash2, ArrowUpCircle, ArrowDownCircle, Eraser, Mic, MicOff } from "lucide-react"
+import { PlusCircle, MoreHorizontal, Edit, Trash2, ArrowUpCircle, ArrowDownCircle, Eraser, Mic } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Account } from "./accounts-manager"
@@ -37,9 +37,16 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  const [isListening, setIsListening] = useState(false);
   const [clientNameInput, setClientNameInput] = useState('');
   const recognitionRef = useRef<any>(null);
+  const [isListeningDialogOpen, setIsListeningDialogOpen] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState('');
+
+  const stopListening = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -48,17 +55,42 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
+        
+        recognition.onstart = () => {
+          setInterimTranscript('Listening...');
+        };
+
         recognition.onresult = (event) => {
           const transcript = Array.from(event.results)
             .map(result => result[0])
             .map(result => result.transcript)
             .join('');
-          setClientNameInput(transcript);
+          setInterimTranscript(transcript);
         };
+        
+        recognition.onend = () => {
+          setIsListeningDialogOpen(false);
+        };
+        
+        recognition.onerror = (event) => {
+          console.error("Speech recognition error", event.error);
+          setInterimTranscript(`Error: ${event.error}. Please try again.`);
+          toast({
+            title: "Voice Recognition Error",
+            description: event.error === 'not-allowed' ? "Microphone access was denied." : `An error occurred: ${event.error}`,
+            variant: "destructive"
+          });
+          setIsListeningDialogOpen(false);
+        };
+        
         recognitionRef.current = recognition;
       }
     }
-  }, []);
+
+    return () => {
+      stopListening();
+    };
+  }, [stopListening, toast]);
   
   useEffect(() => {
     if (editingClient) {
@@ -67,18 +99,22 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
       setClientNameInput('');
     }
   }, [editingClient, isFormDialogOpen]);
+  
+  useEffect(() => {
+    // When the listening dialog closes, update the main input with the final transcript.
+    if (!isListeningDialogOpen && interimTranscript !== 'Listening...' && interimTranscript) {
+        setClientNameInput(prev => interimTranscript || prev);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isListeningDialogOpen]);
 
 
   const handleListen = () => {
     const recognition = recognitionRef.current;
     if (recognition) {
-      if (isListening) {
-        recognition.stop();
-        setIsListening(false);
-      } else {
+        setInterimTranscript('');
+        setIsListeningDialogOpen(true);
         recognition.start();
-        setIsListening(true);
-      }
     } else {
       toast({
         title: "Voice Recognition Not Supported",
@@ -184,10 +220,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
           <Dialog open={isFormDialogOpen} onOpenChange={(open) => {
             if (!open) {
               setEditingClient(null);
-              if (isListening) {
-                recognitionRef.current?.stop();
-                setIsListening(false);
-              }
+              stopListening();
             }
             setIsFormDialogOpen(open)
           }}>
@@ -210,17 +243,17 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                       name="name" 
                       value={clientNameInput} 
                       onChange={(e) => setClientNameInput(e.target.value)} 
-                      placeholder="Enter name" 
+                      placeholder="Enter name or use voice" 
                       required 
                     />
                     <Button 
                       type="button" 
-                      variant={isListening ? "destructive" : "outline"}
+                      variant="outline"
                       size="icon" 
                       className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7"
                       onClick={handleListen}
                     >
-                      {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                      <Mic className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -327,6 +360,32 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
           </ScrollArea>
         </CardContent>
       </Card>
+      
+       <Dialog open={isListeningDialogOpen} onOpenChange={(open) => {
+          if (!open) {
+            stopListening();
+          }
+          setIsListeningDialogOpen(open)
+        }}>
+        <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="text-center">Listening...</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center h-48 gap-4">
+            <div className="relative">
+              <Button size="icon" className="h-24 w-24 rounded-full bg-red-500 hover:bg-red-600 relative">
+                <Mic className="h-12 w-12" />
+              </Button>
+              <div className="absolute inset-0 rounded-full border-4 border-red-500 pulse-ring" />
+            </div>
+            <p className="text-lg text-muted-foreground min-h-[28px]">{interimTranscript || '...'}</p>
+          </div>
+          <DialogFooter>
+            <Button variant="destructive" onClick={stopListening}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       <Dialog open={!!transactionClient} onOpenChange={(open) => { if (!open) setTransactionClient(null) }}>
         <DialogContent>
             <DialogHeader>
