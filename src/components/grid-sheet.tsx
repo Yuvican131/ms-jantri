@@ -632,31 +632,40 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         if (isNaN(amount)) continue;
 
         if (parts.length === 3) {
-            // Handles "23471=25=50" format (Laddi style)
-            const firstGroup = parts[0].replace(/[\s,]/g, '').split('');
-            const secondGroup = parts[1].replace(/[\s,]/g, '').split('');
-            if (firstGroup.length > 0 && secondGroup.length > 0) {
-                cells = generateCombinations(firstGroup, secondGroup);
+            const firstGroupDigits = parts[0].replace(/\s/g, '').split('');
+            const combinationCount = parseInt(parts[1], 10);
+            
+            if (!isNaN(combinationCount)) {
+                // New logic: middle number is the combination count
+                const allCombinations = new Set<string>();
+                for (const d1 of firstGroupDigits) {
+                    for (const d2 of firstGroupDigits) {
+                        allCombinations.add(`${d1}${d2}`);
+                        allCombinations.add(`${d2}${d1}`);
+                    }
+                }
+                cells = Array.from(allCombinations).slice(0, combinationCount);
+            } else {
+                // Original logic: middle number is a set of digits for pairing
+                const secondGroupDigits = parts[1].replace(/\s/g, '').split('');
+                cells = generateCombinations(firstGroupDigits, secondGroupDigits);
             }
-        } else {
-            // Handles simple "12,34=50" or "1234=50" (Laddi) formats
+        } else { // parts.length is 2
             const numbersStr = parts[0].replace(/\s/g, ',');
-            
-            // Check for Laddi-style even-length number string without commas
             const isLaddiStyle = !numbersStr.includes(',') && numbersStr.length > 2 && numbersStr.length % 2 === 0;
-            
+
             if (isLaddiStyle) {
-                 const digits = numbersStr.match(/.{1,2}/g) || [];
-                 if (digits.length > 1) {
+                const digits = numbersStr.match(/.{1,2}/g) || [];
+                if (digits.length > 1) {
                     const mid = Math.ceil(digits.length / 2);
                     const firstHalf = digits.slice(0, mid).join('').split('');
                     const secondHalf = digits.slice(mid).join('').split('');
                     if (firstHalf.length > 0 && secondHalf.length > 0) {
                         cells = generateCombinations(firstHalf, secondHalf);
                     }
-                 } else {
-                     cells = numbersStr.split(',');
-                 }
+                } else {
+                    cells = numbersStr.split(',');
+                }
             } else {
                 cells = numbersStr.split(',').filter(c => c.trim() !== '');
             }
@@ -958,13 +967,14 @@ const handleHarupApply = () => {
 
   const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (selectedClientId === null) {
-        showClientSelectionToast();
-        return;
+      showClientSelectionToast();
+      return;
     }
     const rawValue = e.target.value;
     const formattedLines = rawValue.split('\n').map(line => {
       const parts = line.split('=');
-      if (parts.length === 2 && !line.includes(',')) {
+      // Only format if it's a simple case without commas already
+      if (parts.length === 2 && !parts[0].includes(',') && parts[0].trim().length > 2) {
         const numbers = parts[0].replace(/\s+/g, '').replace(/(\d{2})(?=\d)/g, '$1,');
         return `${numbers}=${parts[1]}`;
       }
@@ -1317,5 +1327,3 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-
