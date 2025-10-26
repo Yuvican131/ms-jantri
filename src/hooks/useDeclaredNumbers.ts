@@ -14,7 +14,7 @@ export interface DeclaredNumber {
 
 export const useDeclaredNumbers = (userId?: string) => {
   const firestore = useFirestore();
-  const [localDeclaredNumbers, setLocalDeclaredNumbers] = useState<{ [key: string]: DeclaredNumber | undefined }>({});
+  const [localDeclaredNumbers, setLocalDeclaredNumbers] = useState<{ [key: string]: DeclaredNumber | null | undefined }>({});
 
   const declaredNumbersColRef = useMemoFirebase(() => {
     if (!userId) return null;
@@ -29,8 +29,16 @@ export const useDeclaredNumbers = (userId?: string) => {
       return acc;
     }, {} as { [key: string]: DeclaredNumber }) || {};
 
-    // Merge DB state with local optimistic updates
-    return { ...fromDb, ...localDeclaredNumbers };
+    const merged = { ...fromDb, ...localDeclaredNumbers };
+
+    // Filter out any entries that have been explicitly set to null (optimistically deleted)
+    Object.keys(merged).forEach(key => {
+      if (merged[key] === null) {
+        delete merged[key];
+      }
+    });
+
+    return merged as { [key: string]: DeclaredNumber };
   }, [data, localDeclaredNumbers]);
 
 
@@ -48,7 +56,8 @@ export const useDeclaredNumbers = (userId?: string) => {
     if (!date) return undefined;
     const dateStr = format(date, 'yyyy-MM-dd');
     const docId = `${draw}-${dateStr}`;
-    return declaredNumbers[docId]?.number;
+    const entry = declaredNumbers[docId];
+    return entry ? entry.number : undefined;
   }, [declaredNumbers]);
 
   const setDeclaredNumber = (draw: string, number: string, date: Date) => {
@@ -80,8 +89,9 @@ export const useDeclaredNumbers = (userId?: string) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     const docId = `${draw}-${dateStr}`;
 
-    // Optimistically remove from local state
-    setLocalDeclaredNumbers(prev => ({ ...prev, [docId]: undefined }));
+    // Optimistically update local state to reflect deletion by setting it to null.
+    // The main `declaredNumbers` memo will filter this out.
+    setLocalDeclaredNumbers(prev => ({ ...prev, [docId]: null }));
 
     const docRef = doc(firestore, `users/${userId}/declaredNumbers`, docId);
     deleteDocumentNonBlocking(docRef);
