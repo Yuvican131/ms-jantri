@@ -337,32 +337,33 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
         const upperPairRate = parseFloat(upperPair) || defaultUpperPair;
         
         let grandRawTotal = 0;
-        let grandPassingTotal = 0;
+        let grandPassingTotal = 0; // This will store the raw, un-multiplied passing total
 
         const rawTotalsByDraw: { [key: string]: number } = {};
         const passingTotalsByDraw: { [key: string]: number } = {};
+
         for (const drawName of draws) {
             rawTotalsByDraw[drawName] = 0;
             passingTotalsByDraw[drawName] = 0;
-        }
+            
+            const logsForDraw = savedSheetLog[drawName] || [];
 
-        Object.entries(savedSheetLog).forEach(([drawName, logs]) => {
-            logs.forEach(log => {
+            logsForDraw.forEach(log => {
                 const gameTotal = log.gameTotal;
+                rawTotalsByDraw[drawName] += gameTotal;
                 grandRawTotal += gameTotal;
-                rawTotalsByDraw[drawName] = (rawTotalsByDraw[drawName] || 0) + gameTotal;
-                
+
                 const dateStr = format(parseISO(log.date), 'yyyy-MM-dd');
                 const declarationId = `${drawName}-${dateStr}`;
                 const declaredNum = declaredNumbers[declarationId]?.number;
 
                 if (declaredNum && log.data[declaredNum]) {
                     const passingAmount = parseFloat(log.data[declaredNum]) || 0;
+                    passingTotalsByDraw[drawName] += passingAmount;
                     grandPassingTotal += passingAmount;
-                    passingTotalsByDraw[drawName] = (passingTotalsByDraw[drawName] || 0) + passingAmount;
                 }
             });
-        });
+        }
         
         const brokerCommission = grandRawTotal * upperCommPercent;
         const finalGrandPassingTotal = grandPassingTotal * upperPairRate;
@@ -372,7 +373,7 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
             brokerRawDrawTotals: rawTotalsByDraw, 
             brokerPassingDrawTotals: passingTotalsByDraw,
             grandRawTotal,
-            grandPassingTotal,
+            grandPassingTotal, // raw total
             brokerCommission,
             finalNetTotalForBroker: brokerProfit
         };
@@ -428,6 +429,8 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
     </Card>
   );
 }
+    
+
     
 
     
