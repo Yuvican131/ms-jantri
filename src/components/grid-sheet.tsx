@@ -212,9 +212,9 @@ const MasterSheetViewer = ({
       .join('\n');
     
     const grandTotal = calculateGrandTotal(masterSheetData);
-    const totalString = `\nTotal = ${formatNumber(grandTotal)}`;
+    const totalString = `Total = ${formatNumber(grandTotal)}`;
     
-    const fullContent = `${draw}\n${sheetBody}\n${totalString}`;
+    const fullContent = `${draw}\n${sheetBody}\n\n${totalString}`;
 
     setGeneratedSheetContent(fullContent);
     setIsGeneratedSheetDialogOpen(true);
@@ -703,56 +703,63 @@ const handleMultiTextApply = () => {
     for (const line of lines) {
         if (errorOccurred) continue;
         
-        const lineParts = line.trim().split('=');
-        
         let cells: string[] = [];
         let amount = 0;
 
-        if (lineParts.length === 2) { // Normal or simple Laddi: 12,21=100 or 2442=50
-            const numbersStr = lineParts[0].trim();
-            amount = parseFloat(lineParts[1]);
+        const multiEqualsMatch = line.match(/^([^=]+)(={2,})([^=]+)$/);
+
+        if (multiEqualsMatch) {
+            const numbersStr = multiEqualsMatch[1].trim();
+            amount = parseFloat(multiEqualsMatch[3]);
             if (isNaN(amount)) continue;
-            cells = numbersStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
-
-        } else if (lineParts.length === 3) { // Three-part Laddi
-            const firstGroupStr = lineParts[0].trim();
-            const middlePartStr = lineParts[1].trim();
-            amount = parseFloat(lineParts[2]);
-            if (isNaN(amount)) continue;
-
-            // This is the new logic for `digits=count=amount`
-            const requestedCount = parseInt(middlePartStr, 10);
-            if (!isNaN(requestedCount)) { // It's a count-based Laddi
-                const uniqueDigits = [...new Set(firstGroupStr.split(''))];
-                const n = uniqueDigits.length;
-                const combosWithJodda = n * n;
-                const combosWithoutJodda = n * (n - 1);
-
-                if (requestedCount !== combosWithJodda && requestedCount !== combosWithoutJodda) {
-                    toast({
-                        title: "Wrong Laddi Combination",
-                        description: `For ${n} digits, valid combinations are ${combosWithoutJodda} or ${combosWithJodda}, but ${requestedCount} were requested.`,
-                        variant: "destructive",
-                    });
-                    errorOccurred = true;
-                    continue;
-                }
-
-                const includeJodda = requestedCount === combosWithJodda;
-                const allCombinations: string[] = [];
-                for (let i = 0; i < uniqueDigits.length; i++) {
-                    for (let j = 0; j < uniqueDigits.length; j++) {
-                        if (!includeJodda && i === j) continue;
-                        allCombinations.push(`${uniqueDigits[i]}${uniqueDigits[j]}`);
-                    }
-                }
-                cells = allCombinations;
-
-            } else { // Case: 23471=25=50 (Digit pairing)
-                 cells = generateCombinations(firstGroupStr.split(''), middlePartStr.split(''));
-            }
+            cells = numbersStr.split(/[\s,]/).map(s => s.trim()).filter(s => s.length > 0);
         } else {
-          continue; // Skip lines that don't match expected patterns
+            const lineParts = line.trim().split('=');
+        
+            if (lineParts.length === 2) {
+                const numbersStr = lineParts[0].trim();
+                amount = parseFloat(lineParts[1]);
+                if (isNaN(amount)) continue;
+                cells = numbersStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+            } else if (lineParts.length === 3) {
+                const firstGroupStr = lineParts[0].trim();
+                const middlePartStr = lineParts[1].trim();
+                amount = parseFloat(lineParts[2]);
+                if (isNaN(amount)) continue;
+
+                const requestedCount = parseInt(middlePartStr, 10);
+                if (!isNaN(requestedCount) && /^\d+$/.test(middlePartStr)) {
+                    const uniqueDigits = [...new Set(firstGroupStr.split(''))];
+                    const n = uniqueDigits.length;
+                    const combosWithJodda = n * n;
+                    const combosWithoutJodda = n * (n - 1);
+
+                    if (requestedCount !== combosWithJodda && requestedCount !== combosWithoutJodda) {
+                        toast({
+                            title: "Wrong Laddi Combination",
+                            description: `For ${n} digits, valid combinations are ${combosWithoutJodda} or ${combosWithJodda}, but ${requestedCount} were requested.`,
+                            variant: "destructive",
+                        });
+                        errorOccurred = true;
+                        continue;
+                    }
+
+                    const includeJodda = requestedCount === combosWithJodda;
+                    const allCombinations: string[] = [];
+                    for (let i = 0; i < uniqueDigits.length; i++) {
+                        for (let j = 0; j < uniqueDigits.length; j++) {
+                            if (!includeJodda && i === j) continue;
+                            allCombinations.push(`${uniqueDigits[i]}${uniqueDigits[j]}`);
+                        }
+                    }
+                    cells = allCombinations;
+                } else {
+                     cells = generateCombinations(firstGroupStr.split(''), middlePartStr.split(''));
+                }
+            } else {
+              continue;
+            }
         }
         
         cells.forEach(cell => {
