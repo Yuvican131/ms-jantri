@@ -697,42 +697,51 @@ const handleMultiTextApply = () => {
 
     for (const line of lines) {
         if (errorOccurred) continue;
+        
+        const lineParts = line.trim().split('=');
+        
+        if (lineParts.length < 2 || lineParts.length > 3) continue;
 
-        const parts = line.trim().split(/=+/);
         let cells: string[] = [];
         let amount = 0;
 
-        if (parts.length === 2) { // Normal or Laddi (e.g., 12,21=100 or 2442=50)
-            amount = parseFloat(parts[1]);
+        if (lineParts.length === 2) { // Normal or simple Laddi: 12,21=100 or 2442=50
+            const numbersStr = lineParts[0].trim();
+            amount = parseFloat(lineParts[1]);
             if (isNaN(amount)) continue;
 
-            // Process numbers before the equals sign
-            const numbersStr = parts[0].trim().replace(/\s+/g, ',');
-            const potentialCells = numbersStr.split(',').flatMap(p => p.match(/\d{1,2}/g) || []);
-            
-            if (potentialCells.length > 0 && !numbersStr.includes(',')) { // Likely Laddi if no commas present
-                if(numbersStr.length > 2 && numbersStr.length % 2 === 0){
-                    const mid = numbersStr.length / 2;
-                    cells = Array.from({length: mid}, (_, i) => `${numbersStr[i]}${numbersStr[i+mid]}`);
+            if (numbersStr.includes(',')) {
+                cells = numbersStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            } else if (numbersStr.includes(' ')) {
+                cells = numbersStr.split(/\s+/).map(s => s.trim()).filter(s => s.length > 0);
+            } else {
+                 // Assumes Laddi if no separator: 2442 -> 24, 42
+                const matches = numbersStr.match(/\d{1,2}/g) || [];
+                if (matches.length > 1 && numbersStr.length > 2 && numbersStr.length % 2 === 0) {
+                     cells = Array.from({length: numbersStr.length / 2}, (_, i) => numbersStr.substring(i*2, i*2+2));
                 } else {
-                    cells = potentialCells;
+                    cells = matches;
                 }
-            } else { // Normal comma-separated or space-separated
-                cells = potentialCells;
             }
 
-        } else if (parts.length === 3) { // Complex Laddi (e.g., 234178=30=80 or 23471=25=50)
-            amount = parseFloat(parts[2]);
+        } else if (lineParts.length === 3) { // Three-part Laddi
+            const firstGroupStr = lineParts[0].trim();
+            const middlePartStr = lineParts[1].trim();
+            amount = parseFloat(lineParts[2]);
             if (isNaN(amount)) continue;
-            
-            const firstGroupStr = parts[0].trim();
-            const middlePartStr = parts[1].trim();
-            
-            // Heuristic: If middle part looks like a count, not digits for pairing
-            if (middlePartStr.length <= 2 && parseInt(middlePartStr, 10) > 0) {
-                 const count = parseInt(middlePartStr, 10);
-                 const allCombinations = generateCombinations(firstGroupStr.split(''), firstGroupStr.split(''));
-                 if (allCombinations.length < count) {
+
+            const isCombinationCount = /^\d{1,3}$/.test(middlePartStr) && !firstGroupStr.includes(',') && !firstGroupStr.includes(' ');
+
+            if (isCombinationCount) { // Case: 234178=30=80 (Combination count)
+                const count = parseInt(middlePartStr, 10);
+                const digits = [...new Set(firstGroupStr.split(''))];
+                const allCombinations = [];
+                for (let i = 0; i < digits.length; i++) {
+                    for (let j = 0; j < digits.length; j++) {
+                        allCombinations.push(`${digits[i]}${digits[j]}`);
+                    }
+                }
+                if (allCombinations.length < count) {
                      toast({
                          title: "Wrong Laddi Combination",
                          description: `Input '${firstGroupStr}' can only generate ${allCombinations.length} pairs, but ${count} were requested.`,
@@ -740,15 +749,14 @@ const handleMultiTextApply = () => {
                      });
                      errorOccurred = true;
                      continue;
-                 }
-                 cells = allCombinations.slice(0, count);
-            } else { // It's a digit group pairing
+                }
+                cells = allCombinations.slice(0, count);
+
+            } else { // Case: 23471=25=50 (Digit pairing)
                  cells = generateCombinations(firstGroupStr.split(''), middlePartStr.split(''));
             }
-        } else {
-            continue;
         }
-
+        
         cells.forEach(cell => {
             const key = cell.trim().padStart(2, '0');
             if (!isNaN(parseInt(key, 10)) && parseInt(key, 10) >= 0 && parseInt(key, 10) <= 99) {
@@ -782,7 +790,7 @@ const handleMultiTextApply = () => {
     } else if (lines.length > 0) {
         toast({
             title: "No valid data found",
-            description: "Could not parse the input.",
+            description: "Could not parse the input. Please check the format.",
             variant: "destructive"
         });
     }
@@ -1053,7 +1061,52 @@ const handleHarupApply = () => {
           showClientSelectionToast();
           return;
       }
-      setMultiText(e.target.value);
+      
+      const formatText = (text: string) => {
+        const lines = text.split('\n');
+        const formattedLines = lines.map(line => {
+          // Only format lines that have one equals sign.
+          const parts = line.split('=');
+          if (parts.length !== 2) {
+            return line;
+          }
+    
+          let numbers = parts[0];
+          const amount = parts[1];
+    
+          // Do not format if there's already a comma
+          if (numbers.includes(',')) {
+            return line;
+          }
+
+          // Replace spaces with commas
+          numbers = numbers.replace(/\s+/g, ',');
+
+          // Split into pairs if it's a long string of digits without separators
+          if (!numbers.includes(',') && /^\d+$/.test(numbers.trim())) {
+              const pairedNumbers = numbers.trim().match(/.{1,2}/g);
+              if (pairedNumbers) {
+                  return `${pairedNumbers.join(',')}=${amount}`;
+              }
+          } else {
+             // Handle space-separated numbers that need to be grouped.
+             const numGroups = numbers.split(',').map(s => s.trim()).filter(Boolean);
+             const finalNumGroups: string[] = [];
+             numGroups.forEach(group => {
+                if (/^\d+$/.test(group) && group.length > 2) {
+                    finalNumGroups.push(...(group.match(/.{1,2}/g) || []));
+                } else {
+                    finalNumGroups.push(group);
+                }
+             });
+             return `${finalNumGroups.join(',')}=${amount}`;
+          }
+          return line;
+        });
+        return formattedLines.join('\n');
+      };
+      
+      setMultiText(formatText(e.target.value));
   };
   
 
@@ -1400,8 +1453,3 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-
-
-
-    
