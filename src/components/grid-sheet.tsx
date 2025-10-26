@@ -624,47 +624,46 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     let totalEntryAmount = 0;
 
     for (const line of lines) {
-        const parts = line.split(/=+|ki/i);
+        const parts = line.trim().split(/=+/);
         if (parts.length < 2) continue;
-        
-        let allDigitsAndSeparators = parts[0].trim().replace(/\s+/g, ',');
-        const amountStr = parts[parts.length - 1].trim();
-        const amount = parseFloat(amountStr);
-
-        if (isNaN(amount)) continue;
 
         let cells: string[] = [];
-        
-        if (parts.length === 3) { // Handles "23471=25=50" format
+        const amount = parseFloat(parts[parts.length - 1]);
+        if (isNaN(amount)) continue;
+
+        if (parts.length === 3) {
+            // Handles "23471=25=50" format (Laddi style)
             const firstGroup = parts[0].replace(/[\s,]/g, '').split('');
             const secondGroup = parts[1].replace(/[\s,]/g, '').split('');
-            cells = generateCombinations(firstGroup, secondGroup);
+            if (firstGroup.length > 0 && secondGroup.length > 0) {
+                cells = generateCombinations(firstGroup, secondGroup);
+            }
         } else {
-            const numbersStr = allDigitsAndSeparators;
-            const numberParts = numbersStr.split(',');
-            let isLaddiStyle = false;
-
-            if (numberParts.length === 1 && numberParts[0].length > 2 && numberParts[0].length % 2 === 0) {
-                 const digits = numberParts[0].match(/.{1,2}/g) || [];
+            // Handles simple "12,34=50" or "1234=50" (Laddi) formats
+            const numbersStr = parts[0].replace(/\s/g, ',');
+            
+            // Check for Laddi-style even-length number string without commas
+            const isLaddiStyle = !numbersStr.includes(',') && numbersStr.length > 2 && numbersStr.length % 2 === 0;
+            
+            if (isLaddiStyle) {
+                 const digits = numbersStr.match(/.{1,2}/g) || [];
                  if (digits.length > 1) {
-                    isLaddiStyle = true;
                     const mid = Math.ceil(digits.length / 2);
                     const firstHalf = digits.slice(0, mid).join('').split('');
                     const secondHalf = digits.slice(mid).join('').split('');
                     if (firstHalf.length > 0 && secondHalf.length > 0) {
                         cells = generateCombinations(firstHalf, secondHalf);
                     }
+                 } else {
+                     cells = numbersStr.split(',');
                  }
-            }
-            
-            if (!isLaddiStyle) {
-                const cleanedNumbers = numbersStr.replace(/,+/g, ',');
-                cells = cleanedNumbers.split(',').filter(c => c);
+            } else {
+                cells = numbersStr.split(',').filter(c => c.trim() !== '');
             }
         }
         
         cells.forEach(cell => {
-            const key = cell.padStart(2, '0');
+            const key = cell.trim().padStart(2, '0');
             if (!isNaN(parseInt(key, 10)) && parseInt(key, 10) >= 0 && parseInt(key, 10) <= 99) {
                 updates[key] = (updates[key] || 0) + amount;
                 totalEntryAmount += amount;
@@ -965,7 +964,7 @@ const handleHarupApply = () => {
     const rawValue = e.target.value;
     const formattedLines = rawValue.split('\n').map(line => {
       const parts = line.split('=');
-      if (parts.length === 2) {
+      if (parts.length === 2 && !line.includes(',')) {
         const numbers = parts[0].replace(/\s+/g, '').replace(/(\d{2})(?=\d)/g, '$1,');
         return `${numbers}=${parts[1]}`;
       }
@@ -1140,7 +1139,7 @@ const handleHarupApply = () => {
                       <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
                       <Textarea
                           ref={multiTextRef}
-                          placeholder="e.g. 1221=100 or 12 34=50"
+                          placeholder="e.g. 12,21=100 or 123=45=10"
                           rows={1}
                           value={multiText}
                           onChange={handleMultiTextChange}
@@ -1318,4 +1317,5 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
 
