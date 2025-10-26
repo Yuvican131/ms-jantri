@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { format, addDays, isSameDay, parseISO } from "date-fns"
+import { format, isSameDay, parseISO } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -141,7 +141,7 @@ export default function Home() {
     });
 
     setAccounts(newAccounts);
-}, [clients, savedSheetLog, declaredNumbers, date]);
+}, [clients, savedSheetLog, declaredNumbers, date, getDeclaredNumber]);
 
 
   useEffect(() => {
@@ -373,7 +373,7 @@ export default function Home() {
             <LedgerRecord clients={clients} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />
           </TabsContent>
           <TabsContent value="admin-panel">
-            <AdminPanel accounts={accounts} clients={clients} savedSheetLog={savedSheetLog} declaredNumbers={declaredNumbers} />
+            <AdminPanel userId={user?.uid} accounts={accounts} clients={clients} savedSheetLog={savedSheetLog} />
           </TabsContent>
         </Tabs>
       </main>
@@ -396,7 +396,5 @@ export default function Home() {
     </div>
   );
 }
-
-    
 
     

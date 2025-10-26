@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
 import type { Client } from '@/hooks/useClients';
 import type { SavedSheetInfo } from '@/hooks/useSheetLog';
-import type { DeclaredNumber } from '@/hooks/useDeclaredNumbers';
+import { useDeclaredNumbers, type DeclaredNumber } from '@/hooks/useDeclaredNumbers';
 
 
 const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
@@ -105,10 +105,10 @@ const GrandTotalSummaryCard = ({
     )
 }
 
-const BrokerProfitLoss = ({ clients, savedSheetLog, declaredNumbers, upperComm, setUpperComm, upperPair, setUpperPair }: {
+const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperComm, upperPair, setUpperPair }: {
+    userId?: string;
     clients: Client[];
     savedSheetLog: { [draw: string]: SavedSheetInfo[] };
-    declaredNumbers: { [key: string]: DeclaredNumber };
     upperComm: string;
     setUpperComm: (value: string) => void;
     upperPair: string;
@@ -116,6 +116,7 @@ const BrokerProfitLoss = ({ clients, savedSheetLog, declaredNumbers, upperComm, 
 }) => {
     const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
     const [selectedClientId, setSelectedClientId] = useState<string>('all');
+    const { declaredNumbers } = useDeclaredNumbers(userId);
     
     const dailyReportData: DailyReportRow[] = useMemo(() => {
         const upperCommPercent = parseFloat(upperComm) / 100 || defaultUpperComm / 100;
@@ -314,16 +315,17 @@ const BrokerProfitLoss = ({ clients, savedSheetLog, declaredNumbers, upperComm, 
 
 
 type AdminPanelProps = {
+  userId?: string;
   accounts: Account[];
   clients: Client[];
   savedSheetLog: { [draw: string]: SavedSheetInfo[] };
-  declaredNumbers: { [key: string]: DeclaredNumber };
 };
 
 
-export default function AdminPanel({ accounts, clients, savedSheetLog, declaredNumbers }: AdminPanelProps) {
+export default function AdminPanel({ userId, accounts, clients, savedSheetLog }: AdminPanelProps) {
     const [upperComm, setUpperComm] = useState(defaultUpperComm.toString());
     const [upperPair, setUpperPair] = useState(defaultUpperPair.toString());
+    const { declaredNumbers } = useDeclaredNumbers(userId);
 
     const { 
         brokerRawDrawTotals, 
@@ -416,9 +418,9 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
                 <Wallet className="h-5 w-5" /> Broker Profit & Loss
             </h3>
              <BrokerProfitLoss 
+                userId={userId}
                 clients={clients} 
-                savedSheetLog={savedSheetLog} 
-                declaredNumbers={declaredNumbers}
+                savedSheetLog={savedSheetLog}
                 upperComm={upperComm}
                 setUpperComm={setUpperComm}
                 upperPair={upperPair}
@@ -429,8 +431,5 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
     </Card>
   );
 }
-    
-
-    
 
     
