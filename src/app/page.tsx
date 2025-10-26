@@ -88,65 +88,61 @@ export default function Home() {
 
   const updateAccountsFromLog = useCallback(() => {
     const selectedDate = date || new Date();
+    const allLogs = Object.values(savedSheetLog).flat();
 
     const newAccounts = clients.map(client => {
-      const clientCommissionPercent = parseFloat(client.comm) / 100;
-      const passingMultiplier = parseFloat(client.pair) || 80;
-      
-      let runningBalance = client.activeBalance || 0;
-      
-      const allLogsForClient = Object.values(savedSheetLog).flat().filter(log => log.clientId === client.id);
+        const clientCommissionPercent = parseFloat(client.comm) / 100;
+        const passingMultiplier = parseFloat(client.pair) || 80;
 
-      allLogsForClient.forEach(log => {
-        const logDate = new Date(log.date);
-        const logDateStr = format(logDate, 'yyyy-MM-dd');
-        const declarationId = `${log.draw}-${logDateStr}`;
-        const declaredNumberForDraw = declaredNumbers[declarationId]?.number;
+        let runningBalance = client.activeBalance || 0;
 
-        const passingAmountInLog = declaredNumberForDraw ? parseFloat(log.data[declaredNumberForDraw] || "0") : 0;
-        
-        const gameTotal = log.gameTotal;
-        const commission = gameTotal * clientCommissionPercent;
-        const netFromGames = gameTotal - commission;
-        const winnings = passingAmountInLog * passingMultiplier;
-        const netResultForLog = netFromGames - winnings;
-        
-        runningBalance -= netResultForLog;
-      });
-      
-      const updatedDrawsForSelectedDay: { [key: string]: DrawData } = {};
-      
-      draws.forEach(drawName => {
-        const drawLogs = savedSheetLog[drawName] || [];
-        const clientLogForSelectedDay = drawLogs.find(log => 
-            log.clientId === client.id && 
-            isSameDay(new Date(log.date), selectedDate)
-        );
+        const allLogsForClient = allLogs.filter(log => log.clientId === client.id);
 
-        let totalAmount = 0;
-        let passingAmount = 0;
+        allLogsForClient.forEach(log => {
+            const logDate = new Date(log.date);
+            const declaredNumberForDraw = getDeclaredNumber(log.draw, logDate);
 
-        if (clientLogForSelectedDay) {
-            totalAmount = clientLogForSelectedDay.gameTotal;
-            const logDateStr = format(selectedDate, 'yyyy-MM-dd');
-            const declarationId = `${drawName}-${logDateStr}`;
-            const declaredNumberForDraw = getDeclaredNumber(drawName, selectedDate);
-            passingAmount = declaredNumberForDraw ? parseFloat(clientLogForSelectedDay.data[declaredNumberForDraw] || "0") : 0;
-        }
-        
-        updatedDrawsForSelectedDay[drawName] = { totalAmount, passingAmount };
-      });
+            const passingAmountInLog = declaredNumberForDraw ? parseFloat(log.data[declaredNumberForDraw] || "0") : 0;
+            const gameTotal = log.gameTotal;
+            const commission = gameTotal * clientCommissionPercent;
+            const netFromGames = gameTotal - commission;
+            const winnings = passingAmountInLog * passingMultiplier;
+            const netResultForLog = netFromGames - winnings;
 
-      return {
-          id: client.id,
-          clientName: client.name,
-          balance: runningBalance,
-          draws: updatedDrawsForSelectedDay,
-      };
+            runningBalance -= netResultForLog;
+        });
+
+        const updatedDrawsForSelectedDay: { [key: string]: DrawData } = {};
+
+        draws.forEach(drawName => {
+            const drawLogs = savedSheetLog[drawName] || [];
+            const clientLogForSelectedDay = drawLogs.find(log =>
+                log.clientId === client.id &&
+                isSameDay(new Date(log.date), selectedDate)
+            );
+
+            let totalAmount = 0;
+            let passingAmount = 0;
+
+            if (clientLogForSelectedDay) {
+                totalAmount = clientLogForSelectedDay.gameTotal;
+                const declaredNumberForDraw = getDeclaredNumber(drawName, selectedDate);
+                passingAmount = declaredNumberForDraw ? parseFloat(clientLogForSelectedDay.data[declaredNumberForDraw] || "0") : 0;
+            }
+
+            updatedDrawsForSelectedDay[drawName] = { totalAmount, passingAmount };
+        });
+
+        return {
+            id: client.id,
+            clientName: client.name,
+            balance: runningBalance,
+            draws: updatedDrawsForSelectedDay,
+        };
     });
 
     setAccounts(newAccounts);
-  }, [clients, savedSheetLog, declaredNumbers, date, getDeclaredNumber]);
+}, [clients, savedSheetLog, declaredNumbers, date, getDeclaredNumber]);
 
 
   useEffect(() => {
@@ -409,5 +405,7 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
