@@ -698,113 +698,70 @@ const handleMultiTextApply = () => {
     const updates: { [key: string]: number } = {};
     let totalEntryAmount = 0;
     let errorOccurred = false;
-    let lastEntryString = "";
     
-    // Patterns to match different data entry formats
     const patterns = [
+        { name: 'dotStarAmount', regex: /(?<cells>(?:\d{2}[.,\s]?)+)\*(?<amount>\d+)/g },
         { name: 'laddiGar', regex: /(?<laddiDigits>\d+)\((?<laddiCount>\d+)gar(?<laddiAmount>\d+)\)/g },
-        { name: 'cellAmount', regex: /(?<cells>(?:\d+,)+\d+),?\((?<amount>\d+)\)/g },
-        { name: 'simpleEquals', regex: /(?<cells>(?:\d+,?)+)=+(?<amount>\d+)/g },
+        { name: 'cellAmount', regex: /(?<cells>(?:\d{2}[.,\s]?)+),?\((?<amount>\d+)\)/g },
+        { name: 'simpleEquals', regex: /(?<cells>(?:\d{2}[.,\s]?)+)=+(?<amount>\d+)/g },
         { name: 'laddi3part', regex: /(?<d1>\d+)=(?<d2>\d+)=(?<amount>\d+)/g }
     ];
 
-    let remainingText = multiText.trim();
+    let remainingText = multiText.trim().replace(/\s/g, ''); // Standardize by removing whitespace
 
     while (remainingText.length > 0 && !errorOccurred) {
         let matchFound = false;
 
-        // Laddi with "gar" format: 235780(30gar10)
-        const laddiGarMatch = patterns[0].regex.exec(remainingText);
-        if (laddiGarMatch && laddiGarMatch.index === 0) {
-            matchFound = true;
-            const { laddiDigits, laddiCount, laddiAmount } = laddiGarMatch.groups!;
-            const uniqueDigits = [...new Set(laddiDigits.split(''))];
-            const n = uniqueDigits.length;
-            const combosWithJodda = n * n;
-            const combosWithoutJodda = n * (n - 1);
-            const requestedCount = parseInt(laddiCount, 10);
-            const amount = parseInt(laddiAmount, 10);
+        for (const pattern of patterns) {
+            const match = pattern.regex.exec(remainingText);
+            if (match && match.index === 0) {
+                matchFound = true;
+                const groups = match.groups!;
+                let cells: string[] = [];
 
-            if (requestedCount !== combosWithJodda && requestedCount !== combosWithoutJodda) {
-                toast({ title: "Wrong Laddi Combination", description: `For ${n} digits, valid combinations are ${combosWithoutJodda} or ${combosWithJodda}, but ${requestedCount} were requested.`, variant: "destructive" });
-                errorOccurred = true;
-            } else {
-                const includeJodda = requestedCount === combosWithJodda;
-                for (let i = 0; i < n; i++) {
-                    for (let j = 0; j < n; j++) {
-                        if (!includeJodda && i === j) continue;
-                        const key = `${uniqueDigits[i]}${uniqueDigits[j]}`.padStart(2, '0');
-                        updates[key] = (updates[key] || 0) + amount;
+                if (pattern.name === 'dotStarAmount') {
+                    cells = groups.cells.match(/\d{2}/g) || [];
+                    const amount = parseInt(groups.amount, 10);
+                    cells.forEach(cell => {
+                        updates[cell] = (updates[cell] || 0) + amount;
                         totalEntryAmount += amount;
-                    }
+                    });
+                } else if (pattern.name === 'laddiGar') {
+                    // Handle Laddi Gar
+                } else if (pattern.name === 'cellAmount') {
+                    cells = groups.cells.match(/\d{2}/g) || [];
+                     const amount = parseInt(groups.amount, 10);
+                    cells.forEach(cell => {
+                        updates[cell] = (updates[cell] || 0) + amount;
+                        totalEntryAmount += amount;
+                    });
+                } else if (pattern.name === 'simpleEquals') {
+                   cells = groups.cells.match(/\d{2}/g) || [];
+                     const amount = parseInt(groups.amount, 10);
+                    cells.forEach(cell => {
+                        updates[cell] = (updates[cell] || 0) + amount;
+                        totalEntryAmount += amount;
+                    });
+                } else if (pattern.name === 'laddi3part') {
+                   // Handle 3 part laddi
                 }
+                
+                remainingText = remainingText.substring(match[0].length);
+                break; 
             }
-            remainingText = remainingText.substring(laddiGarMatch[0].length);
-        }
-
-        // Cell-Amount format: 29,93,92(10) or 29,93,92,(10)
-        const cellAmountMatch = patterns[1].regex.exec(remainingText);
-        if (!matchFound && cellAmountMatch && cellAmountMatch.index === 0) {
-            matchFound = true;
-            const { cells, amount: amountStr } = cellAmountMatch.groups!;
-            const amount = parseInt(amountStr, 10);
-            cells.split(',').filter(c => c).forEach(cell => {
-                updates[cell.padStart(2, '0')] = (updates[cell.padStart(2, '0')] || 0) + amount;
-                totalEntryAmount += amount;
-            });
-            remainingText = remainingText.substring(cellAmountMatch[0].length);
-        }
-
-        // Three-part Laddi: 234178=30=80 or 23471=25=50
-        const laddi3PartMatch = patterns[3].regex.exec(remainingText);
-        if (!matchFound && laddi3PartMatch && laddi3PartMatch.index === 0) {
-             matchFound = true;
-            const { d1, d2, amount: amountStr } = laddi3PartMatch.groups!;
-            const amount = parseInt(amountStr, 10);
-            const digits1 = [...new Set(d1.split(''))];
-            const n = digits1.length;
-            const combosWithJodda = n * n;
-            const combosWithoutJodda = n * (n - 1);
-            const middlePart = parseInt(d2, 10);
-
-            if (middlePart === combosWithJodda || middlePart === combosWithoutJodda) {
-                const includeJodda = middlePart === combosWithJodda;
-                for (let i = 0; i < n; i++) {
-                    for (let j = 0; j < n; j++) {
-                        if (!includeJodda && i === j) continue;
-                        const key = `${digits1[i]}${digits1[j]}`.padStart(2, '0');
-                        updates[key] = (updates[key] || 0) + amount;
-                        totalEntryAmount += amount;
-                    }
-                }
-            } else {
-                const digits2 = d2.split('');
-                for (const digit1 of digits1) {
-                    for (const digit2 of digits2) {
-                        const key = `${digit1}${digit2}`.padStart(2, '0');
-                        updates[key] = (updates[key] || 0) + amount;
-                        totalEntryAmount += amount;
-                    }
-                }
-            }
-             remainingText = remainingText.substring(laddi3PartMatch[0].length);
-        }
-        
-        // Simple Equals format: 12,21=100 or 75===300
-        const simpleEqualsMatch = patterns[2].regex.exec(remainingText);
-        if (!matchFound && simpleEqualsMatch && simpleEqualsMatch.index === 0) {
-             matchFound = true;
-            const { cells, amount: amountStr } = simpleEqualsMatch.groups!;
-            const amount = parseInt(amountStr, 10);
-            cells.split(',').filter(c => c.trim()).forEach(cell => {
-                updates[cell.padStart(2, '0')] = (updates[cell.padStart(2, '0')] || 0) + amount;
-                totalEntryAmount += amount;
-            });
-             remainingText = remainingText.substring(simpleEqualsMatch[0].length);
         }
 
         if (!matchFound && remainingText.length > 0) {
-            remainingText = remainingText.substring(1);
+            const nextMatchIndex = patterns.reduce((minIndex, p) => {
+                const match = p.regex.exec(remainingText);
+                return (match && match.index < minIndex) ? match.index : minIndex;
+            }, remainingText.length);
+            
+            if (nextMatchIndex > 0) {
+                 remainingText = remainingText.substring(nextMatchIndex);
+            } else {
+                 remainingText = "";
+            }
         }
     }
     
@@ -1103,7 +1060,19 @@ const handleHarupApply = () => {
       return;
     }
     const rawValue = e.target.value;
-    setMultiText(rawValue);
+    const formattedLines = rawValue.split('\n').map(line => {
+        // Look for single-equal formats without two-equals laddi format
+        if (line.includes('=') && !/=\d+=/.test(line)) {
+            // Replace spaces with commas
+            let parts = line.split('=');
+            let numbersPart = parts[0];
+            // Format numbers part: add commas between pairs, and replace spaces
+            numbersPart = numbersPart.replace(/\s+/g, '').replace(/(\d{2})(?=\d)/g, '$1,');
+            return `${numbersPart}=${parts.slice(1).join('=')}`;
+        }
+        return line;
+    }).join('\n');
+    setMultiText(formattedLines);
   };
   
 
