@@ -345,24 +345,24 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
             passingTotalsByDraw[drawName] = 0;
         }
 
-        const allLogs = Object.values(savedSheetLog).flat();
+        Object.entries(savedSheetLog).forEach(([drawName, logs]) => {
+            logs.forEach(log => {
+                const gameTotal = log.gameTotal;
+                grandRawTotal += gameTotal;
+                rawTotalsByDraw[drawName] = (rawTotalsByDraw[drawName] || 0) + gameTotal;
+                
+                const dateStr = format(parseISO(log.date), 'yyyy-MM-dd');
+                const declarationId = `${drawName}-${dateStr}`;
+                const declaredNum = declaredNumbers[declarationId]?.number;
 
-        allLogs.forEach(log => {
-            const gameTotal = log.gameTotal;
-            grandRawTotal += gameTotal;
-            rawTotalsByDraw[log.draw] = (rawTotalsByDraw[log.draw] || 0) + gameTotal;
-            
-            const dateStr = format(parseISO(log.date), 'yyyy-MM-dd');
-            const declarationId = `${log.draw}-${dateStr}`;
-            const declaredNum = declaredNumbers[declarationId]?.number;
-
-            let passingAmountForLog = 0;
-            if (declaredNum && log.data[declaredNum]) {
-                passingAmountForLog = parseFloat(log.data[declaredNum]) || 0;
-            }
-            
-            grandPassingTotal += passingAmountForLog;
-            passingTotalsByDraw[log.draw] = (passingTotalsByDraw[log.draw] || 0) + passingAmountForLog;
+                let passingAmountForLog = 0;
+                if (declaredNum && log.data[declaredNum]) {
+                    passingAmountForLog = parseFloat(log.data[declaredNum]) || 0;
+                }
+                
+                grandPassingTotal += passingAmountForLog;
+                passingTotalsByDraw[drawName] = (passingTotalsByDraw[drawName] || 0) + passingAmountForLog;
+            });
         });
         
         const brokerCommission = grandRawTotal * upperCommPercent;
@@ -428,9 +428,3 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
     </Card>
   );
 }
-
-    
-
-    
-
-    
