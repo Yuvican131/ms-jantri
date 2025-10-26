@@ -625,44 +625,39 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
     for (const line of lines) {
         const parts = line.trim().split(/=+/);
-        if (parts.length < 2) continue;
-
         let cells: string[] = [];
-        const amount = parseFloat(parts[parts.length - 1]);
-        if (isNaN(amount)) continue;
+        let amount = 0;
 
-        if (parts.length === 3) {
-            const firstGroupDigits = parts[0].replace(/\s/g, '').split('');
-            let allCombinations = [];
-            for (let i = 0; i < firstGroupDigits.length; i++) {
-                for (let j = i + 1; j < firstGroupDigits.length; j++) {
-                    allCombinations.push(`${firstGroupDigits[i]}${firstGroupDigits[j]}`);
-                    allCombinations.push(`${firstGroupDigits[j]}${firstGroupDigits[i]}`);
-                }
-            }
-            const combinationCount = parseInt(parts[1], 10);
-            if (!isNaN(combinationCount)) {
-                cells = allCombinations.slice(0, combinationCount);
-            }
-        } else { // parts.length is 2
-            const numbersStr = parts[0].replace(/\s+/g, ',').replace(/,+/g, ',');
-            const isLaddiStyle = !numbersStr.includes(',') && numbersStr.length > 2 && numbersStr.length % 2 === 0;
+        if (parts.length === 2) {
+            const amountStr = parts[1];
+            amount = parseFloat(amountStr);
+            if (isNaN(amount)) continue;
 
-            if (isLaddiStyle) {
-                const digits = numbersStr.match(/.{1,2}/g) || [];
-                if (digits.length > 1) {
-                    const mid = Math.ceil(digits.length / 2);
-                    const firstHalf = digits.slice(0, mid).join('').split('');
-                    const secondHalf = digits.slice(mid).join('').split('');
-                    if (firstHalf.length > 0 && secondHalf.length > 0) {
-                        cells = generateCombinations(firstHalf, secondHalf);
-                    }
+            const numbersStr = parts[0].trim();
+            // Case: Normal data with spaces or commas
+            if (numbersStr.includes(' ') || numbersStr.includes(',')) {
+                cells = numbersStr.replace(/\s+/g, ',').split(',').filter(c => c.trim() !== '');
+            } else { // Case: Laddi data with no spaces e.g. 2442=50
+                if (numbersStr.length > 2 && numbersStr.length % 2 === 0) {
+                    const mid = Math.ceil(numbersStr.length / 2);
+                    const firstHalf = numbersStr.substring(0, mid).split('');
+                    const secondHalf = numbersStr.substring(mid).split('');
+                    cells = generateCombinations(firstHalf, secondHalf);
                 } else {
-                    cells = numbersStr.split(',').filter(c => c.trim() !== '');
+                   cells = [numbersStr];
                 }
-            } else {
-                cells = numbersStr.split(',').filter(c => c.trim() !== '');
             }
+        } else if (parts.length === 3) {
+            const amountStr = parts[2];
+            amount = parseFloat(amountStr);
+            if (isNaN(amount)) continue;
+            
+            const firstGroup = parts[0].trim().split('');
+            const secondGroup = parts[1].trim().split('');
+
+            cells = generateCombinations(firstGroup, secondGroup);
+        } else {
+          continue;
         }
         
         cells.forEach(cell => {
