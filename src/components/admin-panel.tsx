@@ -355,18 +355,17 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
                 const declarationId = `${drawName}-${dateStr}`;
                 const declaredNum = declaredNumbers[declarationId]?.number;
 
-                let passingAmountForLog = 0;
                 if (declaredNum && log.data[declaredNum]) {
-                    passingAmountForLog = parseFloat(log.data[declaredNum]) || 0;
+                    const passingAmount = parseFloat(log.data[declaredNum]) || 0;
+                    const passingValue = passingAmount * upperPairRate;
+                    grandPassingTotal += passingValue;
+                    passingTotalsByDraw[drawName] = (passingTotalsByDraw[drawName] || 0) + passingValue;
                 }
-                
-                grandPassingTotal += passingAmountForLog;
-                passingTotalsByDraw[drawName] = (passingTotalsByDraw[drawName] || 0) + passingAmountForLog;
             });
         });
         
         const brokerCommission = grandRawTotal * upperCommPercent;
-        const brokerProfit = (grandRawTotal - brokerCommission) - (grandPassingTotal * upperPairRate);
+        const brokerProfit = (grandRawTotal - brokerCommission) - grandPassingTotal;
 
         return { 
             brokerRawDrawTotals: rawTotalsByDraw, 
@@ -396,7 +395,7 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
                         key={drawName}
                         title={drawName} 
                         rawTotal={brokerRawDrawTotals[drawName] || 0} 
-                        passingTotal={(brokerPassingDrawTotals[drawName] || 0) * (parseFloat(upperPair) || defaultUpperPair)}
+                        passingTotal={brokerPassingDrawTotals[drawName] || 0}
                         upperPairRate={parseFloat(upperPair) || defaultUpperPair}
                     />
                 ))}
@@ -404,7 +403,7 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
                   title="Final Summary"
                   finalValue={finalNetTotalForBroker}
                   grandRawTotal={grandRawTotal}
-                  grandPassingTotal={grandPassingTotal * (parseFloat(upperPair) || defaultUpperPair)}
+                  grandPassingTotal={grandPassingTotal}
                   brokerCommission={brokerCommission}
                 />
             </div>
@@ -428,3 +427,5 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
     </Card>
   );
 }
+
+    
