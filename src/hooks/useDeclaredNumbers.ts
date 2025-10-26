@@ -10,11 +10,12 @@ export interface DeclaredNumber {
   number: string;
   draw: string;
   date: string; // ISO date string
+  _deleted?: boolean;
 }
 
 export const useDeclaredNumbers = (userId?: string) => {
   const firestore = useFirestore();
-  const [localDeclaredNumbers, setLocalDeclaredNumbers] = useState<{ [key: string]: DeclaredNumber | null | undefined }>({});
+  const [localDeclaredNumbers, setLocalDeclaredNumbers] = useState<{ [key: string]: DeclaredNumber | null }>({});
 
   const declaredNumbersColRef = useMemoFirebase(() => {
     if (!userId) return null;
@@ -31,9 +32,9 @@ export const useDeclaredNumbers = (userId?: string) => {
 
     const merged = { ...fromDb, ...localDeclaredNumbers };
 
-    // Filter out any entries that have been explicitly set to null (optimistically deleted)
+    // Filter out any entries that have been explicitly set to null or marked as deleted
     Object.keys(merged).forEach(key => {
-      if (merged[key] === null) {
+      if (merged[key] === null || merged[key]?._deleted) {
         delete merged[key];
       }
     });
@@ -67,21 +68,15 @@ export const useDeclaredNumbers = (userId?: string) => {
     const docRef = doc(firestore, `users/${userId}/declaredNumbers`, docId);
     
     // First, apply it optimistically to local state
-    setDeclaredNumberLocal(draw, number, date);
+    setLocalDeclaredNumbers(prev => ({
+        ...prev,
+        [docId]: { id: docId, draw, number, date: dateStr, _deleted: false } // ensure _deleted is false
+    }));
     
     // Then, send it to the database
     setDocumentNonBlocking(docRef, { number, draw, date: dateStr }, { merge: true });
     
-    // Remove from local state after a short delay to allow DB state to propagate
-    setTimeout(() => {
-        setLocalDeclaredNumbers(prev => {
-            const newState = {...prev};
-            if(newState[docId]?.number === number) {
-              delete newState[docId];
-            }
-            return newState;
-        });
-    }, 1000);
+    // No need for timeout removal as the DB state will eventually sync
   };
   
   const removeDeclaredNumber = (draw: string, date: Date) => {
@@ -89,9 +84,8 @@ export const useDeclaredNumbers = (userId?: string) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     const docId = `${draw}-${dateStr}`;
 
-    // Optimistically update local state to reflect deletion by setting it to null.
-    // The main `declaredNumbers` memo will filter this out.
-    setLocalDeclaredNumbers(prev => ({ ...prev, [docId]: null }));
+    // Optimistically update local state to reflect deletion by setting it to a deleted state.
+    setLocalDeclaredNumbers(prev => ({ ...prev, [docId]: { ...prev[docId], _deleted: true } as DeclaredNumber | null }));
 
     const docRef = doc(firestore, `users/${userId}/declaredNumbers`, docId);
     deleteDocumentNonBlocking(docRef);
