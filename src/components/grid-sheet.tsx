@@ -615,7 +615,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     let totalEntryAmount = 0;
 
     for (const line of lines) {
-        const parts = line.split(/=|ki/);
+        const parts = line.split(/=+|ki/);
         if (parts.length === 2) {
             const cells = parts[0].split(/[\s,]/).filter(c => c);
             const amount = parseFloat(parts[1]);
@@ -1286,3 +1286,5 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
