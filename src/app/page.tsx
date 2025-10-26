@@ -8,7 +8,7 @@ import ClientsManager from "@/components/clients-manager"
 import AccountsManager, { Account, DrawData } from "@/components/accounts-manager"
 import LedgerRecord from "@/components/ledger-record"
 import AdminPanel from "@/components/admin-panel"
-import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, FileSpreadsheet, Shield, ArrowRight } from 'lucide-react';
+import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, FileSpreadsheet, Shield } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
@@ -228,11 +228,6 @@ export default function Home() {
     setDeclarationDialogOpen(false);
   };
   
-  const handleNextDay = () => {
-    if (date) {
-      setDate(addDays(date, 1));
-    }
-  };
 
   if (isUserLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -325,9 +320,6 @@ export default function Home() {
                         />
                       </PopoverContent>
                     </Popover>
-                     <Button onClick={handleNextDay} variant="outline" size="sm">
-                        Next Day <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4">
                     {draws.map((draw) => {
@@ -404,5 +396,7 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
