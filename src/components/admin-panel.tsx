@@ -396,7 +396,7 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
                         key={drawName}
                         title={drawName} 
                         rawTotal={brokerRawDrawTotals[drawName] || 0} 
-                        passingTotal={brokerPassingDrawTotals[drawName] || 0}
+                        passingTotal={(brokerPassingDrawTotals[drawName] || 0) * (parseFloat(upperPair) || defaultUpperPair)}
                         upperPairRate={parseFloat(upperPair) || defaultUpperPair}
                     />
                 ))}
@@ -428,6 +428,8 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
     </Card>
   );
 }
+
+    
 
     
 
