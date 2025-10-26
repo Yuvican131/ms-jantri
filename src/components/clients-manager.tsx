@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { PlusCircle, MoreHorizontal, Edit, Trash2, ArrowUpCircle, ArrowDownCircle, Eraser } from "lucide-react"
+import { PlusCircle, MoreHorizontal, Edit, Trash2, ArrowUpCircle, ArrowDownCircle, Eraser, Mic, MicOff } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Account } from "./accounts-manager"
@@ -37,10 +37,61 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const { toast } = useToast();
 
+  const [isListening, setIsListening] = useState(false);
+  const [clientNameInput, setClientNameInput] = useState('');
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.onresult = (event) => {
+          const transcript = Array.from(event.results)
+            .map(result => result[0])
+            .map(result => result.transcript)
+            .join('');
+          setClientNameInput(transcript);
+        };
+        recognitionRef.current = recognition;
+      }
+    }
+  }, []);
+  
+  useEffect(() => {
+    if (editingClient) {
+      setClientNameInput(editingClient.name);
+    } else {
+      setClientNameInput('');
+    }
+  }, [editingClient, isFormDialogOpen]);
+
+
+  const handleListen = () => {
+    const recognition = recognitionRef.current;
+    if (recognition) {
+      if (isListening) {
+        recognition.stop();
+        setIsListening(false);
+      } else {
+        recognition.start();
+        setIsListening(true);
+      }
+    } else {
+      toast({
+        title: "Voice Recognition Not Supported",
+        description: "Your browser does not support voice recognition.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleSaveClient = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
-    const name = formData.get("name") as string
+    const name = clientNameInput;
     const pair = formData.get("pair") as string
     const comm = formData.get("comm") as string
     const inOut = formData.get("inOut") as string
@@ -57,7 +108,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
     }
     setEditingClient(null)
     setIsFormDialogOpen(false)
-    e.currentTarget.reset();
+    setClientNameInput('');
   }
   
   const handleEditClient = (client: Client) => {
@@ -90,6 +141,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
 
   const openAddDialog = () => {
     setEditingClient(null)
+    setClientNameInput('');
     setIsFormDialogOpen(true)
   }
 
@@ -132,6 +184,10 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
           <Dialog open={isFormDialogOpen} onOpenChange={(open) => {
             if (!open) {
               setEditingClient(null);
+              if (isListening) {
+                recognitionRef.current?.stop();
+                setIsListening(false);
+              }
             }
             setIsFormDialogOpen(open)
           }}>
@@ -148,7 +204,25 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
               <form onSubmit={handleSaveClient} className="space-y-4">
                 <div>
                   <Label htmlFor="name">Name</Label>
-                  <Input id="name" name="name" defaultValue={editingClient?.name} placeholder="Enter name" required />
+                  <div className="relative">
+                    <Input 
+                      id="name" 
+                      name="name" 
+                      value={clientNameInput} 
+                      onChange={(e) => setClientNameInput(e.target.value)} 
+                      placeholder="Enter name" 
+                      required 
+                    />
+                    <Button 
+                      type="button" 
+                      variant={isListening ? "destructive" : "outline"}
+                      size="icon" 
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7"
+                      onClick={handleListen}
+                    >
+                      {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
