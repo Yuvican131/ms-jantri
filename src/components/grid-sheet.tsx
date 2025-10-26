@@ -705,8 +705,6 @@ const handleMultiTextApply = () => {
         
         const lineParts = line.trim().split('=');
         
-        if (lineParts.length < 2 || lineParts.length > 3) continue;
-
         let cells: string[] = [];
         let amount = 0;
 
@@ -715,40 +713,46 @@ const handleMultiTextApply = () => {
             amount = parseFloat(lineParts[1]);
             if (isNaN(amount)) continue;
             cells = numbersStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
+
         } else if (lineParts.length === 3) { // Three-part Laddi
             const firstGroupStr = lineParts[0].trim();
             const middlePartStr = lineParts[1].trim();
             amount = parseFloat(lineParts[2]);
             if (isNaN(amount)) continue;
 
-            const isCombinationCount = /^\d{1,3}$/.test(middlePartStr) && !firstGroupStr.includes(',') && !firstGroupStr.includes(' ');
+            // This is the new logic for `digits=count=amount`
+            const requestedCount = parseInt(middlePartStr, 10);
+            if (!isNaN(requestedCount)) { // It's a count-based Laddi
+                const uniqueDigits = [...new Set(firstGroupStr.split(''))];
+                const n = uniqueDigits.length;
+                const combosWithJodda = n * n;
+                const combosWithoutJodda = n * (n - 1);
 
-            if (isCombinationCount) { // Case: 234178=30=80 (Combination count)
-                const count = parseInt(middlePartStr, 10);
-                const digits = [...new Set(firstGroupStr.split(''))];
+                if (requestedCount !== combosWithJodda && requestedCount !== combosWithoutJodda) {
+                    toast({
+                        title: "Wrong Laddi Combination",
+                        description: `For ${n} digits, valid combinations are ${combosWithoutJodda} or ${combosWithJodda}, but ${requestedCount} were requested.`,
+                        variant: "destructive",
+                    });
+                    errorOccurred = true;
+                    continue;
+                }
+
+                const includeJodda = requestedCount === combosWithJodda;
                 const allCombinations: string[] = [];
-                for (let i = 0; i < digits.length; i++) {
-                    for (let j = 0; j < digits.length; j++) {
-                        allCombinations.push(`${digits[i]}${digits[j]}`);
+                for (let i = 0; i < uniqueDigits.length; i++) {
+                    for (let j = 0; j < uniqueDigits.length; j++) {
+                        if (!includeJodda && i === j) continue;
+                        allCombinations.push(`${uniqueDigits[i]}${uniqueDigits[j]}`);
                     }
                 }
-                
-                const uniqueCombinations = [...new Set(allCombinations)];
-
-                if (uniqueCombinations.length < count) {
-                     toast({
-                         title: "Wrong Laddi Combination",
-                         description: `Input '${firstGroupStr}' can only generate ${uniqueCombinations.length} unique pairs, but ${count} were requested.`,
-                         variant: "destructive",
-                     });
-                     errorOccurred = true;
-                     continue;
-                }
-                cells = uniqueCombinations.slice(0, count);
+                cells = allCombinations;
 
             } else { // Case: 23471=25=50 (Digit pairing)
                  cells = generateCombinations(firstGroupStr.split(''), middlePartStr.split(''));
             }
+        } else {
+          continue; // Skip lines that don't match expected patterns
         }
         
         cells.forEach(cell => {
@@ -781,7 +785,7 @@ const handleMultiTextApply = () => {
             description: `${Object.keys(updates).length} cell(s) have been updated.`
         });
         setMultiText("");
-    } else if (lines.length > 0) {
+    } else if (lines.length > 0 && !errorOccurred) {
         toast({
             title: "No valid data found",
             description: "Could not parse the input. Please check the format.",
@@ -1071,17 +1075,9 @@ const handleHarupApply = () => {
             let numbersPart = parts[0];
             const amountPart = parts[1];
 
-            // Replace spaces with commas
-            numbersPart = numbersPart.replace(/\s+/g, ',');
-
-            // Auto-pair long digit strings without separators
-            const commaSeparatedNumbers = numbersPart.split(',').map(numStr => {
-                const trimmed = numStr.trim();
-                if (/^\d+$/.test(trimmed) && trimmed.length > 2) {
-                    return trimmed.match(/.{1,2}/g)?.join(',') || '';
-                }
-                return trimmed;
-            }).join(',');
+            // Replace spaces with commas and then group by 2 digits
+            const allDigits = numbersPart.replace(/[\s,]/g, '');
+            const commaSeparatedNumbers = allDigits.match(/.{1,2}/g)?.join(',') || '';
 
             return `${commaSeparatedNumbers}=${amountPart}`;
         }).join('\n');
