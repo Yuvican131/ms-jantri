@@ -634,8 +634,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         if (isNaN(amount)) continue;
 
         let cells: string[] = [];
-
-        if (parts.length === 3) {
+        
+        if (parts.length === 3) { // Handles "23471=25=50" format
             const firstGroup = parts[0].replace(/[\s,]/g, '').split('');
             const secondGroup = parts[1].replace(/[\s,]/g, '').split('');
             cells = generateCombinations(firstGroup, secondGroup);
@@ -962,7 +962,16 @@ const handleHarupApply = () => {
         showClientSelectionToast();
         return;
     }
-    setMultiText(e.target.value);
+    const rawValue = e.target.value;
+    const formattedLines = rawValue.split('\n').map(line => {
+      const parts = line.split('=');
+      if (parts.length === 2) {
+        const numbers = parts[0].replace(/\s+/g, '').replace(/(\d{2})(?=\d)/g, '$1,');
+        return `${numbers}=${parts[1]}`;
+      }
+      return line;
+    });
+    setMultiText(formattedLines.join('\n'));
   };
   
 
@@ -1131,7 +1140,7 @@ const handleHarupApply = () => {
                       <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
                       <Textarea
                           ref={multiTextRef}
-                          placeholder="e.g. 11 22 33=50"
+                          placeholder="e.g. 1221=100 or 12 34=50"
                           rows={1}
                           value={multiText}
                           onChange={handleMultiTextChange}
@@ -1309,3 +1318,4 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
