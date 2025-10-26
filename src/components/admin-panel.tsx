@@ -321,14 +321,13 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
         brokerPassingDrawTotals, 
         grandRawTotal, 
         grandPassingTotal,
-        finalNetTotalForBroker 
+        finalNetTotalForBroker
     } = useMemo(() => {
         const upperCommPercent = parseFloat(upperComm) / 100 || defaultUpperComm / 100;
         const upperPairRate = parseFloat(upperPair) || defaultUpperPair;
         
         let grandRawTotal = 0;
         let grandPassingTotal = 0;
-        let totalClientPayable = 0;
 
         const rawTotalsByDraw: { [key: string]: number } = {};
         const passingTotalsByDraw: { [key: string]: number } = {};
@@ -340,12 +339,6 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
         const allLogs = Object.values(savedSheetLog).flat();
 
         allLogs.forEach(log => {
-            const client = clients.find(c => c.id === log.clientId);
-            if (!client) return;
-
-            const clientCommPercent = parseFloat(client.comm) / 100 || defaultClientComm / 100;
-            const clientPairRate = parseFloat(client.pair) || defaultClientPair;
-
             const gameTotal = log.gameTotal;
             grandRawTotal += gameTotal;
             rawTotalsByDraw[log.draw] = (rawTotalsByDraw[log.draw] || 0) + gameTotal;
@@ -358,28 +351,23 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
             if (declaredNum && log.data[declaredNum]) {
                 passingAmountForLog = parseFloat(log.data[declaredNum]) || 0;
             }
-
+            
             grandPassingTotal += passingAmountForLog;
             passingTotalsByDraw[log.draw] = (passingTotalsByDraw[log.draw] || 0) + passingAmountForLog;
-
-            const clientNetFromGame = gameTotal * (1 - clientCommPercent);
-            const clientWinnings = passingAmountForLog * clientPairRate;
-            totalClientPayable += (clientNetFromGame - clientWinnings);
         });
-
-        const brokerCost = (grandRawTotal * (1 - upperCommPercent)) - (grandPassingTotal * upperPairRate);
-        const finalProfit = totalClientPayable - brokerCost;
+        
+        // This is the broker's profit against their own upstream provider.
+        const brokerProfit = (grandRawTotal * (1 - upperCommPercent)) - (grandPassingTotal * upperPairRate);
 
         return { 
             brokerRawDrawTotals: rawTotalsByDraw, 
             brokerPassingDrawTotals: passingTotalsByDraw,
             grandRawTotal: grandRawTotal,
             grandPassingTotal: grandPassingTotal,
-            finalNetTotalForBroker: finalProfit,
+            finalNetTotalForBroker: brokerProfit
         };
     }, [clients, savedSheetLog, declaredNumbers, upperComm, upperPair]);
 
-    const upperPairRateValue = parseFloat(upperPair) || defaultUpperPair;
 
   return (
     <Card className="h-full flex flex-col">
@@ -399,14 +387,14 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
                         title={drawName} 
                         rawTotal={brokerRawDrawTotals[drawName] || 0} 
                         passingTotal={brokerPassingDrawTotals[drawName] || 0}
-                        upperPairRate={upperPairRateValue}
+                        upperPairRate={parseFloat(upperPair) || defaultUpperPair}
                     />
                 ))}
                 <GrandTotalSummaryCard
                   title="Final Summary"
                   finalValue={finalNetTotalForBroker}
                   grandRawTotal={grandRawTotal}
-                  grandPassingTotal={grandPassingTotal * upperPairRateValue}
+                  grandPassingTotal={grandPassingTotal * (parseFloat(upperPair) || defaultUpperPair)}
                 />
             </div>
         </div>
@@ -421,7 +409,5 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
     </Card>
   );
 }
-
-    
 
     
