@@ -693,68 +693,62 @@ const handleMultiTextApply = () => {
     const updates: { [key: string]: number } = {};
     let lastEntryString = "";
     let totalEntryAmount = 0;
+    let errorOccurred = false;
+
     for (const line of lines) {
+        if (errorOccurred) continue;
+
         const parts = line.trim().split(/=+/);
         let cells: string[] = [];
         let amount = 0;
-        // This regex will find all numbers (cell numbers) before the first equals sign
-        const numbersMatch = line.trim().match(/^([\d\s]+)=/);
+
         if (parts.length === 2) { // Normal or Laddi (e.g., 12,21=100 or 2442=50)
             amount = parseFloat(parts[1]);
             if (isNaN(amount)) continue;
-            // Process numbers before the first equals sign
-            if (numbersMatch) {
-                const numbersStr = numbersMatch[1].trim().replace(/\s+/g, '');
-                // Handle as Laddi if it's a single block of even-length digits
-                if (numbersStr.length > 2 && numbersStr.length % 2 === 0 && !numbersStr.includes(',')) {
+
+            // Process numbers before the equals sign
+            const numbersStr = parts[0].trim().replace(/\s+/g, ',');
+            const potentialCells = numbersStr.split(',').flatMap(p => p.match(/\d{1,2}/g) || []);
+            
+            if (potentialCells.length > 0 && !numbersStr.includes(',')) { // Likely Laddi if no commas present
+                if(numbersStr.length > 2 && numbersStr.length % 2 === 0){
                     const mid = numbersStr.length / 2;
-                    cells = Array.from({
-                        length: mid
-                    }, (_, i) => `${numbersStr[i]}${numbersStr[i+mid]}`);
-                } else { // Handle as regular comma/space separated numbers
-                    cells = numbersStr.match(/\d{1,2}/g) || [];
+                    cells = Array.from({length: mid}, (_, i) => `${numbersStr[i]}${numbersStr[i+mid]}`);
+                } else {
+                    cells = potentialCells;
                 }
+            } else { // Normal comma-separated or space-separated
+                cells = potentialCells;
             }
+
         } else if (parts.length === 3) { // Complex Laddi (e.g., 234178=30=80 or 23471=25=50)
             amount = parseFloat(parts[2]);
             if (isNaN(amount)) continue;
+            
             const firstGroupStr = parts[0].trim();
             const middlePartStr = parts[1].trim();
-            const middlePartNum = parseInt(middlePartStr, 10);
             
-            // Heuristic: If middle part is short, it's likely a combination count or a second digit group.
-            if (middlePartStr.length <= 2 && !isNaN(middlePartNum)) {
-                let allCombinations = generateCombinations(firstGroupStr.split(''), firstGroupStr.split('')); // Self-combination
-                
-                // If it looks like a pairing (e.g., 23471=25=50), we generate pairs between group 1 and 2
-                if (firstGroupStr.length > middlePartStr.length) { 
-                    const comboTest = generateCombinations(firstGroupStr.split(''), middlePartStr.split(''));
-                    if(comboTest.length > allCombinations.length) { // A heuristic guess
-                       allCombinations = comboTest;
-                    }
-                }
-
-                if (allCombinations.length < middlePartNum) {
-                    toast({
-                        title: "Wrong Laddi Combination",
-                        description: `Input '${firstGroupStr}' can only generate ${allCombinations.length} pairs, but ${middlePartNum} were requested.`,
-                        variant: "destructive",
-                    });
-                    continue; // Skip this invalid line
-                }
-                // If the middle number seems to be a count, slice it. Otherwise, use all generated combos.
-                // A simple heuristic: if middle num is >10 and combos are more, it's likely a count.
-                if (middlePartNum > 10 && allCombinations.length > middlePartNum) {
-                  cells = allCombinations.slice(0, middlePartNum);
-                } else {
-                  cells = generateCombinations(firstGroupStr.split(''), middlePartStr.split(''));
-                }
-            } else { // Fallback for digit group pairing
-                cells = generateCombinations(firstGroupStr.split(''), middlePartStr.split(''));
+            // Heuristic: If middle part looks like a count, not digits for pairing
+            if (middlePartStr.length <= 2 && parseInt(middlePartStr, 10) > 0) {
+                 const count = parseInt(middlePartStr, 10);
+                 const allCombinations = generateCombinations(firstGroupStr.split(''), firstGroupStr.split(''));
+                 if (allCombinations.length < count) {
+                     toast({
+                         title: "Wrong Laddi Combination",
+                         description: `Input '${firstGroupStr}' can only generate ${allCombinations.length} pairs, but ${count} were requested.`,
+                         variant: "destructive",
+                     });
+                     errorOccurred = true;
+                     continue;
+                 }
+                 cells = allCombinations.slice(0, count);
+            } else { // It's a digit group pairing
+                 cells = generateCombinations(firstGroupStr.split(''), middlePartStr.split(''));
             }
         } else {
             continue;
         }
+
         cells.forEach(cell => {
             const key = cell.trim().padStart(2, '0');
             if (!isNaN(parseInt(key, 10)) && parseInt(key, 10) >= 0 && parseInt(key, 10) <= 99) {
@@ -764,11 +758,13 @@ const handleMultiTextApply = () => {
         });
         lastEntryString += line + '\n';
     }
+
+    if (errorOccurred) return;
     if (!checkBalance(totalEntryAmount)) return;
     saveDataForUndo();
+
     if (Object.keys(updates).length > 0) {
-        const newData = { ...currentData
-        };
+        const newData = { ...currentData };
         for (const key in updates) {
             newData[key] = String((parseFloat(newData[key]) || 0) + updates[key]);
         }
@@ -1052,37 +1048,12 @@ const handleHarupApply = () => {
     }
   };
 
-  const formatMultiTextForDisplay = (text: string): string => {
-    return text.split('\n').map(line => {
-      const parts = line.split('=');
-      if (parts.length > 2) {
-        // This is Laddi data, don't format it
-        return line;
-      }
-      if (parts.length === 2) {
-        let numbers = parts[0].trim();
-        // Replace one or more spaces with a single comma
-        numbers = numbers.replace(/\s+/g, ',');
-        // Split by comma and then format each part
-        const formattedNumbers = numbers.split(',').map(numPart => 
-          // Format blocks of digits into pairs
-          numPart.replace(/(\d{2})(?=\d)/g, '$1,')
-        ).join(',');
-        return `${formattedNumbers}=${parts[1]}`;
-      }
-      return line;
-    }).join('\n');
-  };
-  
-
   const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (isDataEntryDisabled) {
-      showClientSelectionToast();
-      return;
-    }
-    const rawValue = e.target.value;
-    const formattedValue = formatMultiTextForDisplay(rawValue);
-    setMultiText(formattedValue);
+      if (isDataEntryDisabled) {
+          showClientSelectionToast();
+          return;
+      }
+      setMultiText(e.target.value);
   };
   
 
@@ -1431,3 +1402,6 @@ GridSheet.displayName = 'GridSheet';
 export default GridSheet;
 
 
+
+
+    
