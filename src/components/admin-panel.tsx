@@ -37,12 +37,10 @@ const BrokerDrawSummaryCard = ({
     title, 
     rawTotal, 
     passingTotal,
-    upperPairRate
 }: { 
     title: string; 
     rawTotal: number; 
     passingTotal: number;
-    upperPairRate: number;
 }) => {
     return (
         <Card className="flex flex-col bg-muted/30">
@@ -66,15 +64,18 @@ const GrandTotalSummaryCard = ({
     finalValue,
     grandRawTotal,
     grandPassingTotal,
-    brokerCommission
+    brokerCommission,
+    upperPairRate
 }: { 
     title: string; 
     finalValue: number;
     grandRawTotal: number;
     grandPassingTotal: number;
     brokerCommission: number;
+    upperPairRate: number;
 }) => {
     const valueColor = finalValue >= 0 ? 'text-green-400' : 'text-red-500';
+    const finalPassingTotal = grandPassingTotal * upperPairRate;
     return (
         <Card className="flex flex-col justify-center p-3 bg-primary/10 border-primary/50 col-span-2 md:col-span-1 lg:col-span-2 xl:col-span-1">
              <div className="flex items-center justify-between mb-2">
@@ -92,7 +93,7 @@ const GrandTotalSummaryCard = ({
                 </div>
                 <div className="flex justify-between items-center">
                      <span className="text-xs text-muted-foreground flex items-center gap-1"><Trophy className="h-3 w-3"/> Total Passing</span>
-                     <span className="font-semibold">{formatNumber(grandPassingTotal)}</span>
+                     <span className="font-semibold">{formatNumber(finalPassingTotal)}</span>
                 </div>
                 <Separator className="my-1 bg-border/50" />
                 <div className="flex justify-between items-center">
@@ -357,15 +358,15 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
 
                 if (declaredNum && log.data[declaredNum]) {
                     const passingAmount = parseFloat(log.data[declaredNum]) || 0;
-                    const passingValue = passingAmount * upperPairRate;
-                    grandPassingTotal += passingValue;
-                    passingTotalsByDraw[drawName] = (passingTotalsByDraw[drawName] || 0) + passingValue;
+                    grandPassingTotal += passingAmount;
+                    passingTotalsByDraw[drawName] = (passingTotalsByDraw[drawName] || 0) + passingAmount;
                 }
             });
         });
         
         const brokerCommission = grandRawTotal * upperCommPercent;
-        const brokerProfit = (grandRawTotal - brokerCommission) - grandPassingTotal;
+        const finalGrandPassingTotal = grandPassingTotal * upperPairRate;
+        const brokerProfit = (grandRawTotal - brokerCommission) - finalGrandPassingTotal;
 
         return { 
             brokerRawDrawTotals: rawTotalsByDraw, 
@@ -396,7 +397,6 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
                         title={drawName} 
                         rawTotal={brokerRawDrawTotals[drawName] || 0} 
                         passingTotal={brokerPassingDrawTotals[drawName] || 0}
-                        upperPairRate={parseFloat(upperPair) || defaultUpperPair}
                     />
                 ))}
                 <GrandTotalSummaryCard
@@ -405,6 +405,7 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
                   grandRawTotal={grandRawTotal}
                   grandPassingTotal={grandPassingTotal}
                   brokerCommission={brokerCommission}
+                  upperPairRate={parseFloat(upperPair) || defaultUpperPair}
                 />
             </div>
         </div>
@@ -427,5 +428,6 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
     </Card>
   );
 }
+    
 
     
