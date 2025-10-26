@@ -633,23 +633,25 @@ const handleMultiTextApply = () => {
 
         if (isNaN(amount)) continue;
 
-        const numbersStr = allDigitsAndSeparators.replace(/[ ,]/g, '');
         let cells: string[] = [];
 
-        if (parts.length === 3) { // Handles "234178=30=80"
-            const firstGroup = parts[0].replace(/\s/g, '').split('');
-            const secondGroup = parts[1].replace(/\s/g, '').split('');
+        if (parts.length === 3) { // Handles "234=178=80" or "23471=25=50"
+            const firstGroup = parts[0].replace(/[\s,]/g, '').split('');
+            const secondGroup = parts[1].replace(/[\s,]/g, '').split('');
             cells = generateCombinations(firstGroup, secondGroup);
-        } else if (numbersStr.length > 0 && numbersStr.length % 2 === 0 && !numbersStr.includes(',')) {
-            // Handles Laddi style like "2442"
-            const mid = numbersStr.length / 2;
-            const digits1 = numbersStr.substring(0, mid).split('');
-            const digits2 = numbersStr.substring(mid).split('');
-            cells = generateCombinations(digits1, digits2);
-        } else {
-            // Handles simple numbers like "02,20,33" or "17 21 14"
-            const cleanedNumbers = allDigitsAndSeparators.replace(/\s+/g, ',').replace(/,+/g, ',');
-            cells = cleanedNumbers.split(',').filter(c => c);
+        } else { // Handles simple numbers and two-part Laddi
+            const numbersStr = allDigitsAndSeparators.replace(/[\s,]/g, '');
+            if (numbersStr.length > 0 && numbersStr.length % 2 === 0 && !isNaN(Number(numbersStr))) {
+                // Handles Laddi style like "2442"
+                const mid = numbersStr.length / 2;
+                const digits1 = numbersStr.substring(0, mid).split('');
+                const digits2 = numbersStr.substring(mid).split('');
+                cells = generateCombinations(digits1, digits2);
+            } else {
+                // Handles simple numbers like "02,20,33" or "17 21 14"
+                const cleanedNumbers = allDigitsAndSeparators.replace(/\s+/g, ',').replace(/,+/g, ',');
+                cells = cleanedNumbers.split(',').filter(c => c);
+            }
         }
         
         cells.forEach(cell => {
@@ -1315,5 +1317,3 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-    
