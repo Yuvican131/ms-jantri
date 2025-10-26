@@ -281,6 +281,15 @@ const MasterSheetViewer = ({
   );
 }
 
+const generateCombinations = (digits1: string[], digits2: string[]): string[] => {
+    const combinations = new Set<string>();
+    for (const d1 of digits1) {
+        for (const d2 of digits2) {
+            combinations.add(`${d1}${d2}`);
+        }
+    }
+    return Array.from(combinations);
+};
 
 const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const { toast } = useToast()
@@ -603,7 +612,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     return true;
   };
   
-  const handleMultiTextApply = () => {
+const handleMultiTextApply = () => {
     if (isDataEntryDisabled) {
         showClientSelectionToast();
         return;
@@ -616,21 +625,49 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
     for (const line of lines) {
         const parts = line.split(/=+|ki/);
-        if (parts.length === 2) {
-            const cells = parts[0].split(/[\s,]/).filter(c => c);
-            const amount = parseFloat(parts[1]);
+        const numbersAndAmount = parts.filter(p => p.trim() !== '');
 
-            if (!isNaN(amount)) {
-                cells.forEach(cell => {
-                    const key = cell.padStart(2, '0');
-                    if (!isNaN(parseInt(key)) && parseInt(key) >= 0 && parseInt(key) <= 99) {
-                        updates[key] = (updates[key] || 0) + amount;
-                        totalEntryAmount += amount;
-                    }
-                });
-                lastEntryString += line + '\n';
+        if (numbersAndAmount.length < 2) continue;
+
+        const amountStr = numbersAndAmount[numbersAndAmount.length - 1];
+        const amount = parseFloat(amountStr);
+
+        if (isNaN(amount)) continue;
+
+        const numbersPart = numbersAndAmount[0].replace(/\s/g, '');
+
+        let cells: string[] = [];
+
+        if (numbersPart.includes(',')) {
+            // Case 1: Simple comma-separated numbers: "11,22,33=50"
+            cells = numbersPart.split(',').filter(c => c);
+        } else {
+            // Case 2 & 3: Laddi-style combinations
+            const digits = numbersPart.match(/\d+/g)?.join('') || '';
+            if (digits.length > 1 && digits.length % 2 === 0) {
+                const mid = digits.length / 2;
+                const digits1 = digits.substring(0, mid).split('');
+                const digits2 = digits.substring(mid).split('');
+                cells = generateCombinations(digits1, digits2);
+            } else if (digits.length > 0 && numbersAndAmount.length > 2) {
+                // Handle case `234678=30=25` - take first and second groups of digits
+                const firstPart = numbersAndAmount[0].split('');
+                const secondPart = numbersAndAmount[1].split('');
+                cells = generateCombinations(firstPart, secondPart);
+            }
+             else {
+                 cells = [numbersPart]
             }
         }
+        
+        cells.forEach(cell => {
+            const key = cell.padStart(2, '0');
+            if (!isNaN(parseInt(key, 10)) && parseInt(key, 10) >= 0 && parseInt(key, 10) <= 99) {
+                updates[key] = (updates[key] || 0) + amount;
+                totalEntryAmount += amount;
+            }
+        });
+        lastEntryString += line + '\n';
     }
     
     if (!checkBalance(totalEntryAmount)) return;
@@ -1286,5 +1323,3 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-    
