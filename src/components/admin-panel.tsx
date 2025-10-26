@@ -98,13 +98,15 @@ const GrandTotalSummaryCard = ({
     )
 }
 
-const BrokerProfitLoss = ({ clients, savedSheetLog, declaredNumbers }: {
+const BrokerProfitLoss = ({ clients, savedSheetLog, declaredNumbers, upperComm, setUpperComm, upperPair, setUpperPair }: {
     clients: Client[];
     savedSheetLog: { [draw: string]: SavedSheetInfo[] };
     declaredNumbers: { [key: string]: DeclaredNumber };
+    upperComm: string;
+    setUpperComm: (value: string) => void;
+    upperPair: string;
+    setUpperPair: (value: string) => void;
 }) => {
-    const [upperComm, setUpperComm] = useState(defaultUpperComm.toString());
-    const [upperPair, setUpperPair] = useState(defaultUpperPair.toString());
     const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
     const [selectedClientId, setSelectedClientId] = useState<string>('all');
     
@@ -356,7 +358,6 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
             passingTotalsByDraw[log.draw] = (passingTotalsByDraw[log.draw] || 0) + passingAmountForLog;
         });
         
-        // This is the broker's profit against their own upstream provider.
         const brokerProfit = (grandRawTotal * (1 - upperCommPercent)) - (grandPassingTotal * upperPairRate);
 
         return { 
@@ -366,7 +367,7 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
             grandPassingTotal: grandPassingTotal,
             finalNetTotalForBroker: brokerProfit
         };
-    }, [clients, savedSheetLog, declaredNumbers, upperComm, upperPair]);
+    }, [savedSheetLog, declaredNumbers, upperComm, upperPair]);
 
 
   return (
@@ -403,7 +404,15 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
             <h3 className="text-lg font-semibold mb-3 text-primary flex items-center gap-2">
                 <Wallet className="h-5 w-5" /> Broker Profit & Loss
             </h3>
-             <BrokerProfitLoss clients={clients} savedSheetLog={savedSheetLog} declaredNumbers={declaredNumbers} />
+             <BrokerProfitLoss 
+                clients={clients} 
+                savedSheetLog={savedSheetLog} 
+                declaredNumbers={declaredNumbers}
+                upperComm={upperComm}
+                setUpperComm={setUpperComm}
+                upperPair={upperPair}
+                setUpperPair={setUpperPair}
+             />
         </div>
       </CardContent>
     </Card>
