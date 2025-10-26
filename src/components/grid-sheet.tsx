@@ -627,7 +627,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const parts = line.split(/=+|ki/i);
         if (parts.length < 2) continue;
         
-        const allDigitsAndSeparators = parts[0].trim();
+        let allDigitsAndSeparators = parts[0].trim();
         const amountStr = parts[parts.length - 1].trim();
         const amount = parseFloat(amountStr);
 
@@ -640,21 +640,26 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
             const secondGroup = parts[1].replace(/[\s,]/g, '').split('');
             cells = generateCombinations(firstGroup, secondGroup);
         } else { // Handles simple numbers and two-part Laddi
-            const numbersStr = allDigitsAndSeparators.replace(/[\s,]/g, '');
-             if (numbersStr.length > 0 && numbersStr.length % 2 === 0 && !isNaN(Number(numbersStr))) {
-                // Handles Laddi style like "2442" by splitting the string
-                const digits = numbersStr.match(/.{1,2}/g) || [];
-                const mid = Math.ceil(digits.length / 2);
-                const firstHalf = digits.slice(0, mid).join('').split('');
-                const secondHalf = digits.slice(mid).join('').split('');
-                if (firstHalf.length > 0 && secondHalf.length > 0) {
-                     cells = generateCombinations(firstHalf, secondHalf);
-                } else {
-                    cells = numbersStr.match(/.{1,2}/g) || [];
-                }
-            } else {
+            const numbersStr = allDigitsAndSeparators.replace(/\s+/g, ',');
+            const numberParts = numbersStr.split(',');
+            let isLaddiStyle = false;
+
+            if (numberParts.length === 1 && numberParts[0].length > 2 && numberParts[0].length % 2 === 0) {
+                 const digits = numberParts[0].match(/.{1,2}/g) || [];
+                 if (digits.length > 1) {
+                    isLaddiStyle = true;
+                    const mid = Math.ceil(digits.length / 2);
+                    const firstHalf = digits.slice(0, mid).join('').split('');
+                    const secondHalf = digits.slice(mid).join('').split('');
+                    if (firstHalf.length > 0 && secondHalf.length > 0) {
+                        cells = generateCombinations(firstHalf, secondHalf);
+                    }
+                 }
+            }
+            
+            if (!isLaddiStyle) {
                 // Handles simple numbers like "02,20,33" or "17 21 14"
-                const cleanedNumbers = allDigitsAndSeparators.replace(/\s+/g, ',').replace(/,+/g, ',');
+                const cleanedNumbers = numbersStr.replace(/,+/g, ',');
                 cells = cleanedNumbers.split(',').filter(c => c);
             }
         }
@@ -955,10 +960,12 @@ const handleHarupApply = () => {
 
   const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (selectedClientId === null) {
-      showClientSelectionToast();
-      return;
+        showClientSelectionToast();
+        return;
     }
-    setMultiText(e.target.value);
+    // Replace spaces with commas for easier parsing, but don't add trailing commas
+    const formattedText = e.target.value.replace(/\s+/g, ',').replace(/,+/g, ',');
+    setMultiText(formattedText);
   };
   
 
