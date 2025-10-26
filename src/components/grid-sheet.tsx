@@ -624,40 +624,32 @@ const handleMultiTextApply = () => {
     let totalEntryAmount = 0;
 
     for (const line of lines) {
-        const parts = line.split(/=+|ki/);
-        const numbersAndAmount = parts.filter(p => p.trim() !== '');
-
-        if (numbersAndAmount.length < 2) continue;
-
-        const amountStr = numbersAndAmount[numbersAndAmount.length - 1];
+        const parts = line.split(/=+|ki/i);
+        if (parts.length < 2) continue;
+        
+        const allDigitsAndSeparators = parts[0].trim();
+        const amountStr = parts[parts.length - 1].trim();
         const amount = parseFloat(amountStr);
 
         if (isNaN(amount)) continue;
 
-        const numbersPart = numbersAndAmount[0].replace(/\s/g, '');
-
+        const numbersStr = allDigitsAndSeparators.replace(/[ ,]/g, '');
         let cells: string[] = [];
 
-        if (numbersPart.includes(',')) {
-            // Case 1: Simple comma-separated numbers: "11,22,33=50"
-            cells = numbersPart.split(',').filter(c => c);
+        if (parts.length === 3) { // Handles "234178=30=80"
+            const firstGroup = parts[0].replace(/\s/g, '').split('');
+            const secondGroup = parts[1].replace(/\s/g, '').split('');
+            cells = generateCombinations(firstGroup, secondGroup);
+        } else if (numbersStr.length > 0 && numbersStr.length % 2 === 0 && !numbersStr.includes(',')) {
+            // Handles Laddi style like "2442"
+            const mid = numbersStr.length / 2;
+            const digits1 = numbersStr.substring(0, mid).split('');
+            const digits2 = numbersStr.substring(mid).split('');
+            cells = generateCombinations(digits1, digits2);
         } else {
-            // Case 2 & 3: Laddi-style combinations
-            const digits = numbersPart.match(/\d+/g)?.join('') || '';
-            if (digits.length > 1 && digits.length % 2 === 0) {
-                const mid = digits.length / 2;
-                const digits1 = digits.substring(0, mid).split('');
-                const digits2 = digits.substring(mid).split('');
-                cells = generateCombinations(digits1, digits2);
-            } else if (digits.length > 0 && numbersAndAmount.length > 2) {
-                // Handle case `234678=30=25` - take first and second groups of digits
-                const firstPart = numbersAndAmount[0].split('');
-                const secondPart = numbersAndAmount[1].split('');
-                cells = generateCombinations(firstPart, secondPart);
-            }
-             else {
-                 cells = [numbersPart]
-            }
+            // Handles simple numbers like "02,20,33" or "17 21 14"
+            const cleanedNumbers = allDigitsAndSeparators.replace(/\s+/g, ',').replace(/,+/g, ',');
+            cells = cleanedNumbers.split(',').filter(c => c);
         }
         
         cells.forEach(cell => {
@@ -1323,3 +1315,5 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
