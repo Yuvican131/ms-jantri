@@ -633,9 +633,9 @@ const handleMultiTextApply = () => {
             amount = parseFloat(parts[1]);
             if (isNaN(amount)) continue;
 
-            const numbersStr = parts[0].trim().replace(/\s+/g, '');
+            const numbersStr = parts[0].trim().replace(/\s+/g, ',');
             cells = numbersStr.split(',').flatMap(num => {
-                if (num.length > 2 && num.length % 2 === 0) { // Laddi like 2442
+                if (num.length > 2 && num.length % 2 === 0 && !num.includes(',')) { // Laddi like 2442
                     const mid = num.length / 2;
                     const firstHalf = num.substring(0, mid).split('');
                     const secondHalf = num.substring(mid).split('');
@@ -644,21 +644,33 @@ const handleMultiTextApply = () => {
                 return [num]; // Normal number
             });
 
-        } else if (parts.length === 3) { // Complex Laddi (e.g., 23471=25=50 or 234178=30=80)
+        } else if (parts.length === 3) { // Complex Laddi (e.g., 234178=30=80 or 23471=25=50)
             amount = parseFloat(parts[2]);
             if (isNaN(amount)) continue;
 
-            const firstGroup = parts[0].trim().split('');
-            const middlePart = parts[1].trim();
-
-            if (middlePart.length <= 2) { // Assume it's a combination limit, e.g., 234178=30=80
-                const combinationLimit = parseInt(middlePart, 10);
+            const firstGroupStr = parts[0].trim();
+            const middlePartStr = parts[1].trim();
+            
+            // Heuristic: If middle part is short (e.g., <=2 digits) and first part is long, it's likely a combination count.
+            if (middlePartStr.length <= 2 && firstGroupStr.length > middlePartStr.length) {
+                const combinationLimit = parseInt(middlePartStr, 10);
                 if (!isNaN(combinationLimit)) {
-                    let allCombinations = generateCombinations(firstGroup, firstGroup); // self-combination
+                    let allCombinations = generateCombinations(firstGroupStr.split(''), firstGroupStr.split(''));
+                    if (allCombinations.length < combinationLimit) {
+                         toast({
+                            title: "Wrong Laddi Combination",
+                            description: `Input '${firstGroupStr}' can only generate ${allCombinations.length} pairs, but ${combinationLimit} were requested.`,
+                            variant: "destructive",
+                        });
+                        continue; // Skip this line
+                    }
                     cells = allCombinations.slice(0, combinationLimit);
+                } else {
+                     // Fallback to digit pairing if middle part isn't a valid number
+                    cells = generateCombinations(firstGroupStr.split(''), middlePartStr.split(''));
                 }
-            } else { // Assume it's a digit group for pairing, e.g., 23471=25=50
-                 cells = generateCombinations(firstGroup, middlePart.split(''));
+            } else { // Otherwise, assume it's digit group pairing
+                 cells = generateCombinations(firstGroupStr.split(''), middlePartStr.split(''));
             }
         } else {
             continue;
@@ -693,7 +705,7 @@ const handleMultiTextApply = () => {
         props.setLastEntry(lastEntryString);
         toast({ title: "Sheet Updated", description: `${Object.keys(updates).length} cell(s) have been updated.` });
         setMultiText("");
-    } else {
+    } else if (lines.length > 0) {
         toast({ title: "No valid data found", description: "Could not parse the input.", variant: "destructive" });
     }
 };
@@ -958,20 +970,20 @@ const handleHarupApply = () => {
     }
   };
 
-  const formatMultiText = (text: string) => {
+  const formatMultiTextForDisplay = (text: string) => {
     return text.split('\n').map(line => {
+      const parts = line.split('=');
       // Don't format lines with multiple equals signs (Laddi data)
-      if (line.split('=').length - 1 > 1) {
+      if (parts.length > 2) {
         return line;
       }
   
       // Format lines with one equals sign
-      const parts = line.split('=');
       if (parts.length === 2) {
-        let numbers = parts[0];
+        let numbers = parts[0].trim();
         // Replace spaces with commas
         numbers = numbers.replace(/\s+/g, ',');
-        // Add commas to long strings of digits
+        // Add commas to long strings of digits by splitting into pairs
         numbers = numbers.replace(/(\d{2})(?=\d)/g, '$1,');
         return `${numbers}=${parts[1]}`;
       }
@@ -987,7 +999,7 @@ const handleHarupApply = () => {
       return;
     }
     const rawValue = e.target.value;
-    const formattedValue = formatMultiText(rawValue);
+    const formattedValue = formatMultiTextForDisplay(rawValue);
     setMultiText(formattedValue);
   };
   
@@ -1336,4 +1348,3 @@ GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
 
-    
