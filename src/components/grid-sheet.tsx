@@ -632,10 +632,18 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         if (isNaN(amount)) continue;
 
         if (parts.length === 3) {
-            // New logic: middle number is the second set of digits for pairing
             const firstGroupDigits = parts[0].replace(/\s/g, '').split('');
-            const secondGroupDigits = parts[1].replace(/\s/g, '').split('');
-            cells = generateCombinations(firstGroupDigits, secondGroupDigits);
+            let allCombinations = [];
+            for (let i = 0; i < firstGroupDigits.length; i++) {
+                for (let j = i + 1; j < firstGroupDigits.length; j++) {
+                    allCombinations.push(`${firstGroupDigits[i]}${firstGroupDigits[j]}`);
+                    allCombinations.push(`${firstGroupDigits[j]}${firstGroupDigits[i]}`);
+                }
+            }
+            const combinationCount = parseInt(parts[1], 10);
+            if (!isNaN(combinationCount)) {
+                cells = allCombinations.slice(0, combinationCount);
+            }
         } else { // parts.length is 2
             const numbersStr = parts[0].replace(/\s+/g, ',').replace(/,+/g, ',');
             const isLaddiStyle = !numbersStr.includes(',') && numbersStr.length > 2 && numbersStr.length % 2 === 0;
@@ -952,21 +960,11 @@ const handleHarupApply = () => {
   };
 
   const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (selectedClientId === null) {
+    if (isDataEntryDisabled) {
       showClientSelectionToast();
       return;
     }
-    const rawValue = e.target.value;
-    const formattedLines = rawValue.split('\n').map(line => {
-      const parts = line.split('=');
-      // Only format if it's a simple case without commas already
-      if (parts.length === 2 && !parts[0].includes(',') && parts[0].trim().length > 2) {
-        const numbers = parts[0].replace(/\s+/g, '').replace(/(\d{2})(?=\d)/g, '$1,');
-        return `${numbers}=${parts[1]}`;
-      }
-      return line;
-    });
-    setMultiText(formattedLines.join('\n'));
+    setMultiText(e.target.value);
   };
   
 
