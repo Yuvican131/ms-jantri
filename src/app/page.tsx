@@ -130,7 +130,7 @@ export default function Home() {
             totalAmount = clientLogForSelectedDay.gameTotal;
             const logDateStr = format(selectedDate, 'yyyy-MM-dd');
             const declarationId = `${drawName}-${logDateStr}`;
-            const declaredNumberForDraw = declaredNumbers[declarationId]?.number;
+            const declaredNumberForDraw = getDeclaredNumber(drawName, selectedDate);
             passingAmount = declaredNumberForDraw ? parseFloat(clientLogForSelectedDay.data[declaredNumberForDraw] || "0") : 0;
         }
         
@@ -146,7 +146,7 @@ export default function Home() {
     });
 
     setAccounts(newAccounts);
-  }, [clients, savedSheetLog, declaredNumbers, date]);
+  }, [clients, savedSheetLog, declaredNumbers, date, getDeclaredNumber]);
 
 
   useEffect(() => {
