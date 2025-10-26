@@ -94,7 +94,7 @@ export default function Home() {
         const clientCommissionPercent = parseFloat(client.comm) / 100;
         const passingMultiplier = parseFloat(client.pair) || 80;
 
-        // Calculate historical running balance
+        // Calculate historical running balance by iterating through all logs
         let runningBalance = client.activeBalance || 0;
         const allLogsForClient = allLogs.filter(log => log.clientId === client.id);
 
@@ -109,7 +109,7 @@ export default function Home() {
             const winnings = passingAmountInLog * passingMultiplier;
             const netResultForLog = netFromGames - winnings;
 
-            runningBalance -= netResultForLog;
+            runningBalance += netResultForLog;
         });
 
         // Calculate details for the selected day for UI display
@@ -140,7 +140,7 @@ export default function Home() {
     });
 
     setAccounts(newAccounts);
-}, [clients, savedSheetLog, declaredNumbers, date, getDeclaredNumber]);
+}, [clients, savedSheetLog, declaredNumbers, date]);
 
 
   useEffect(() => {
@@ -403,9 +403,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
-
-    
-
-    
