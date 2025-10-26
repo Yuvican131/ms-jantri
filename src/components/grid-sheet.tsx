@@ -694,89 +694,111 @@ const handleMultiTextApply = () => {
         showClientSelectionToast();
         return;
     }
-    const lines = multiText.split(/[\n#]/).filter(line => line.trim() !== '');
+    let remainingText = multiText.replace(/\s+/g, '');
+    
     const updates: { [key: string]: number } = {};
-    let lastEntryString = "";
     let totalEntryAmount = 0;
     let errorOccurred = false;
+    let lastEntryString = "";
 
-    for (const line of lines) {
-        if (errorOccurred) continue;
-        
-        let cells: string[] = [];
-        let amount = 0;
+    const patterns = [
+        { name: 'Laddi', regex: /(\d+)\((\d+)gar(\d+)\)/g },
+        { name: 'CellAmount', regex: /([0-9,]+)\((\d+)\)/g }
+    ];
 
-        const multiEqualsMatch = line.match(/^([^=]+)(={2,})([^=]+)$/);
-
-        if (multiEqualsMatch) {
-            const numbersStr = multiEqualsMatch[1].trim();
-            amount = parseFloat(multiEqualsMatch[3]);
-            if (isNaN(amount)) continue;
-            cells = numbersStr.split(/[\s,]/).map(s => s.trim()).filter(s => s.length > 0);
-        } else {
-            const lineParts = line.trim().split('=');
-        
-            if (lineParts.length === 2) {
-                const numbersStr = lineParts[0].trim();
-                amount = parseFloat(lineParts[1]);
-                if (isNaN(amount)) continue;
-                cells = numbersStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
-
-            } else if (lineParts.length === 3) {
-                const firstGroupStr = lineParts[0].trim();
-                const middlePartStr = lineParts[1].trim();
-                amount = parseFloat(lineParts[2]);
-                if (isNaN(amount)) continue;
-
-                const requestedCount = parseInt(middlePartStr, 10);
-                if (!isNaN(requestedCount) && /^\d+$/.test(middlePartStr)) {
-                    const uniqueDigits = [...new Set(firstGroupStr.split(''))];
+    while (remainingText.length > 0 && !errorOccurred) {
+        let matchFound = false;
+        for (const { name, regex } of patterns) {
+            const match = regex.exec(remainingText);
+            if (match) {
+                matchFound = true;
+                const fullMatch = match[0];
+                lastEntryString += fullMatch + '\n';
+                
+                if (name === 'Laddi') {
+                    const digits = match[1];
+                    const count = parseInt(match[2], 10);
+                    const amount = parseInt(match[3], 10);
+                    
+                    const uniqueDigits = [...new Set(digits.split(''))];
                     const n = uniqueDigits.length;
                     const combosWithJodda = n * n;
                     const combosWithoutJodda = n * (n - 1);
-
-                    if (requestedCount !== combosWithJodda && requestedCount !== combosWithoutJodda) {
+                    
+                    if (count !== combosWithJodda && count !== combosWithoutJodda) {
                         toast({
                             title: "Wrong Laddi Combination",
-                            description: `For ${n} digits, valid combinations are ${combosWithoutJodda} or ${combosWithJodda}, but ${requestedCount} were requested.`,
+                            description: `For ${n} digits, valid combinations are ${combosWithoutJodda} or ${combosWithJodda}, but ${count} were requested.`,
                             variant: "destructive",
                         });
                         errorOccurred = true;
-                        continue;
+                        break;
                     }
-
-                    const includeJodda = requestedCount === combosWithJodda;
+                    
+                    const includeJodda = count === combosWithJodda;
                     const allCombinations: string[] = [];
-                    for (let i = 0; i < uniqueDigits.length; i++) {
-                        for (let j = 0; j < uniqueDigits.length; j++) {
+                    for (let i = 0; i < n; i++) {
+                        for (let j = 0; j < n; j++) {
                             if (!includeJodda && i === j) continue;
                             allCombinations.push(`${uniqueDigits[i]}${uniqueDigits[j]}`);
                         }
                     }
-                    cells = allCombinations;
-                } else {
-                     cells = generateCombinations(firstGroupStr.split(''), middlePartStr.split(''));
+
+                    allCombinations.forEach(cell => {
+                        const key = cell.padStart(2, '0');
+                        updates[key] = (updates[key] || 0) + amount;
+                        totalEntryAmount += amount;
+                    });
+
+                } else if (name === 'CellAmount') {
+                    const cellsStr = match[1];
+                    const amount = parseInt(match[2], 10);
+                    const cells = cellsStr.split(',').filter(c => c);
+                    cells.forEach(cell => {
+                        const key = cell.padStart(2, '0');
+                        updates[key] = (updates[key] || 0) + amount;
+                        totalEntryAmount += amount;
+                    });
                 }
-            } else {
-              continue;
+                
+                remainingText = remainingText.replace(fullMatch, '');
+                regex.lastIndex = 0; // Reset regex index
+                break; // Restart pattern matching from the beginning
             }
         }
-        
-        cells.forEach(cell => {
-            const key = cell.trim().padStart(2, '0');
-            if (!isNaN(parseInt(key, 10)) && parseInt(key, 10) >= 0 && parseInt(key, 10) <= 99) {
-                updates[key] = (updates[key] || 0) + amount;
-                totalEntryAmount += amount;
-            }
-        });
-        lastEntryString += line + '\n';
+        if (!matchFound) {
+             // Handle simple format like 12,21=100 or 1221=100
+             const simpleMatch = remainingText.match(/^([\d,]+={1,})(\d+)$/);
+             if(simpleMatch) {
+                 const numbersPart = simpleMatch[1].slice(0, -simpleMatch[1].match(/={1,}$/)![0].length);
+                 const amount = parseInt(simpleMatch[2], 10);
+                 const cells = numbersPart.replace(/\s/g, '').split(',');
+                 
+                 cells.forEach(cell => {
+                     const key = cell.padStart(2, '0');
+                     if (!isNaN(parseInt(key, 10)) && key.length === 2) {
+                         updates[key] = (updates[key] || 0) + amount;
+                         totalEntryAmount += amount;
+                     }
+                 });
+                 lastEntryString += remainingText + '\n';
+                 remainingText = ''; // End loop
+             } else {
+                if (remainingText.trim()) {
+                    toast({ title: "Invalid Format", description: `Could not parse: ${remainingText}`, variant: "destructive" });
+                    errorOccurred = true;
+                }
+                break; // Exit if no patterns match
+             }
+        }
     }
+
 
     if (errorOccurred) return;
     if (!checkBalance(totalEntryAmount)) return;
-    saveDataForUndo();
 
     if (Object.keys(updates).length > 0) {
+        saveDataForUndo();
         const newData = { ...currentData };
         for (const key in updates) {
             newData[key] = String((parseFloat(newData[key]) || 0) + updates[key]);
@@ -792,7 +814,7 @@ const handleMultiTextApply = () => {
             description: `${Object.keys(updates).length} cell(s) have been updated.`
         });
         setMultiText("");
-    } else if (lines.length > 0 && !errorOccurred) {
+    } else if (multiText.trim().length > 0 && !errorOccurred) {
         toast({
             title: "No valid data found",
             description: "Could not parse the input. Please check the format.",
@@ -1066,31 +1088,7 @@ const handleHarupApply = () => {
         showClientSelectionToast();
         return;
     }
-    
-    const formatText = (text: string): string => {
-        return text.split('\n').map(line => {
-            // Leave Laddi data with two equals signs untouched
-            if (line.split('=').length - 1 === 2) {
-                return line;
-            }
-            
-            const parts = line.split('=');
-            if (parts.length !== 2) {
-                return line; // Not a standard key=value line
-            }
-            
-            let numbersPart = parts[0];
-            const amountPart = parts[1];
-
-            // Replace spaces with commas and then group by 2 digits
-            const allDigits = numbersPart.replace(/[\s,]/g, '');
-            const commaSeparatedNumbers = allDigits.match(/.{1,2}/g)?.join(',') || '';
-
-            return `${commaSeparatedNumbers}=${amountPart}`;
-        }).join('\n');
-    };
-      
-    setMultiText(formatText(e.target.value));
+    setMultiText(e.target.value);
   };
   
 
