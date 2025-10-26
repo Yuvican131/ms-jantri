@@ -88,6 +88,9 @@ const MasterSheetViewer = ({
   const [lessValue, setLessValue] = useState("");
   const [dabbaValue, setDabbaValue] = useState("");
   const [selectedLogIndices, setSelectedLogIndices] = useState<number[]>([]);
+  const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
+  const [generatedSheetContent, setGeneratedSheetContent] = useState("");
+
 
   useEffect(() => {
     // When the draw or logs change, select all logs by default.
@@ -184,12 +187,50 @@ const MasterSheetViewer = ({
         : [...prev, index]
     );
   };
+  
+  const handleGenerateSheet = () => {
+    const valueToCells: { [value: string]: number[] } = {};
+
+    for (const key in masterSheetData) {
+      const value = masterSheetData[key];
+      if (value && value.trim() !== '' && !isNaN(Number(value)) && Number(value) !== 0) {
+        let cellNumber = parseInt(key);
+        if (!valueToCells[value]) {
+          valueToCells[value] = [];
+        }
+        valueToCells[value].push(cellNumber);
+      }
+    }
+
+    const generatedText = Object.entries(valueToCells)
+      .map(([value, cells]) => {
+        cells.sort((a, b) => a - b);
+        const formattedCells = cells.map(cell => String(cell).padStart(2, '0'));
+        return `${formattedCells.join(',')}=${value}`;
+      })
+      .join('\n');
+
+    setGeneratedSheetContent(generatedText);
+    setIsGeneratedSheetDialogOpen(true);
+    toast({ title: "Master Sheet Generated", description: "The multi-text area has been populated with the grid data." });
+  };
+  
+  const handleCopyToClipboard = (content: string) => {
+    navigator.clipboard.writeText(content).then(() => {
+        toast({ title: "Copied to clipboard!" });
+    }, (err) => {
+        toast({ title: "Failed to copy", description: "Could not copy text to clipboard.", variant: "destructive" });
+        console.error('Failed to copy: ', err);
+    });
+  };
+
 
   const masterSheetRowTotals = Array.from({ length: GRID_ROWS }, (_, rowIndex) => calculateRowTotal(rowIndex, masterSheetData));
   const masterSheetColumnTotals = Array.from({ length: GRID_COLS }, (_, colIndex) => calculateColumnTotal(colIndex, masterSheetData));
   const masterSheetGrandTotal = calculateGrandTotal(masterSheetData);
   
  return (
+    <>
     <div className="flex h-full flex-col gap-4 bg-background p-4 items-start">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 flex-grow overflow-hidden w-full">
         <div className="flex flex-col min-w-0 h-full">
@@ -247,6 +288,9 @@ const MasterSheetViewer = ({
                       <Button size="sm" className="h-8">Apply</Button>
                   </div>
               </div>
+               <Button onClick={handleGenerateSheet} variant="outline" size="sm">
+                Generate Sheet
+              </Button>
           </div>
           <Card className="flex-grow bg-card min-h-0">
               <CardHeader className="p-3">
@@ -278,6 +322,33 @@ const MasterSheetViewer = ({
         </div>
       </div>
     </div>
+     <Dialog open={isGeneratedSheetDialogOpen} onOpenChange={setIsGeneratedSheetDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Generated Master Sheet Content</DialogTitle>
+          </DialogHeader>
+          <div className="my-4">
+            <Textarea
+              readOnly
+              value={generatedSheetContent}
+              rows={Math.min(15, generatedSheetContent.split('\n').length)}
+              className="bg-muted"
+            />
+          </div>
+          <DialogFooter className="sm:justify-between">
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">
+                Close
+              </Button>
+            </DialogClose>
+            <Button onClick={() => handleCopyToClipboard(generatedSheetContent)}>
+              <Copy className="mr-2 h-4 w-4" />
+              Copy to Clipboard
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -618,64 +689,72 @@ const handleMultiTextApply = () => {
         showClientSelectionToast();
         return;
     }
-
     const lines = multiText.split(/[\n#]/).filter(line => line.trim() !== '');
     const updates: { [key: string]: number } = {};
     let lastEntryString = "";
     let totalEntryAmount = 0;
-
     for (const line of lines) {
         const parts = line.trim().split(/=+/);
         let cells: string[] = [];
         let amount = 0;
-
+        // This regex will find all numbers (cell numbers) before the first equals sign
+        const numbersMatch = line.trim().match(/^([\d\s]+)=/);
         if (parts.length === 2) { // Normal or Laddi (e.g., 12,21=100 or 2442=50)
             amount = parseFloat(parts[1]);
             if (isNaN(amount)) continue;
-
-            const numbersStr = parts[0].trim().replace(/\s+/g, ',');
-            cells = numbersStr.split(',').flatMap(num => {
-                if (num.length > 2 && num.length % 2 === 0 && !num.includes(',')) { // Laddi like 2442
-                    const mid = num.length / 2;
-                    const firstHalf = num.substring(0, mid).split('');
-                    const secondHalf = num.substring(mid).split('');
-                    return generateCombinations(firstHalf, secondHalf);
+            // Process numbers before the first equals sign
+            if (numbersMatch) {
+                const numbersStr = numbersMatch[1].trim().replace(/\s+/g, '');
+                // Handle as Laddi if it's a single block of even-length digits
+                if (numbersStr.length > 2 && numbersStr.length % 2 === 0 && !numbersStr.includes(',')) {
+                    const mid = numbersStr.length / 2;
+                    cells = Array.from({
+                        length: mid
+                    }, (_, i) => `${numbersStr[i]}${numbersStr[i+mid]}`);
+                } else { // Handle as regular comma/space separated numbers
+                    cells = numbersStr.match(/\d{1,2}/g) || [];
                 }
-                return [num]; // Normal number
-            });
-
+            }
         } else if (parts.length === 3) { // Complex Laddi (e.g., 234178=30=80 or 23471=25=50)
             amount = parseFloat(parts[2]);
             if (isNaN(amount)) continue;
-
             const firstGroupStr = parts[0].trim();
             const middlePartStr = parts[1].trim();
+            const middlePartNum = parseInt(middlePartStr, 10);
             
-            // Heuristic: If middle part is short (e.g., <=2 digits) and first part is long, it's likely a combination count.
-            if (middlePartStr.length <= 2 && firstGroupStr.length > middlePartStr.length) {
-                const combinationLimit = parseInt(middlePartStr, 10);
-                if (!isNaN(combinationLimit)) {
-                    let allCombinations = generateCombinations(firstGroupStr.split(''), firstGroupStr.split(''));
-                    if (allCombinations.length < combinationLimit) {
-                         toast({
-                            title: "Wrong Laddi Combination",
-                            description: `Input '${firstGroupStr}' can only generate ${allCombinations.length} pairs, but ${combinationLimit} were requested.`,
-                            variant: "destructive",
-                        });
-                        continue; // Skip this line
+            // Heuristic: If middle part is short, it's likely a combination count or a second digit group.
+            if (middlePartStr.length <= 2 && !isNaN(middlePartNum)) {
+                let allCombinations = generateCombinations(firstGroupStr.split(''), firstGroupStr.split('')); // Self-combination
+                
+                // If it looks like a pairing (e.g., 23471=25=50), we generate pairs between group 1 and 2
+                if (firstGroupStr.length > middlePartStr.length) { 
+                    const comboTest = generateCombinations(firstGroupStr.split(''), middlePartStr.split(''));
+                    if(comboTest.length > allCombinations.length) { // A heuristic guess
+                       allCombinations = comboTest;
                     }
-                    cells = allCombinations.slice(0, combinationLimit);
-                } else {
-                     // Fallback to digit pairing if middle part isn't a valid number
-                    cells = generateCombinations(firstGroupStr.split(''), middlePartStr.split(''));
                 }
-            } else { // Otherwise, assume it's digit group pairing
-                 cells = generateCombinations(firstGroupStr.split(''), middlePartStr.split(''));
+
+                if (allCombinations.length < middlePartNum) {
+                    toast({
+                        title: "Wrong Laddi Combination",
+                        description: `Input '${firstGroupStr}' can only generate ${allCombinations.length} pairs, but ${middlePartNum} were requested.`,
+                        variant: "destructive",
+                    });
+                    continue; // Skip this invalid line
+                }
+                // If the middle number seems to be a count, slice it. Otherwise, use all generated combos.
+                // A simple heuristic: if middle num is >10 and combos are more, it's likely a count.
+                if (middlePartNum > 10 && allCombinations.length > middlePartNum) {
+                  cells = allCombinations.slice(0, middlePartNum);
+                } else {
+                  cells = generateCombinations(firstGroupStr.split(''), middlePartStr.split(''));
+                }
+            } else { // Fallback for digit group pairing
+                cells = generateCombinations(firstGroupStr.split(''), middlePartStr.split(''));
             }
         } else {
             continue;
         }
-        
         cells.forEach(cell => {
             const key = cell.trim().padStart(2, '0');
             if (!isNaN(parseInt(key, 10)) && parseInt(key, 10) >= 0 && parseInt(key, 10) <= 99) {
@@ -685,28 +764,31 @@ const handleMultiTextApply = () => {
         });
         lastEntryString += line + '\n';
     }
-    
     if (!checkBalance(totalEntryAmount)) return;
     saveDataForUndo();
-
     if (Object.keys(updates).length > 0) {
-        const newData = { ...currentData };
+        const newData = { ...currentData
+        };
         for (const key in updates) {
             newData[key] = String((parseFloat(newData[key]) || 0) + updates[key]);
         }
-        
         if (selectedClientId) {
             updateClientData(selectedClientId, newData, currentRowTotals);
         }
-
         setUpdatedCells(Object.keys(updates));
         setTimeout(() => setUpdatedCells([]), 2000);
-        
         props.setLastEntry(lastEntryString);
-        toast({ title: "Sheet Updated", description: `${Object.keys(updates).length} cell(s) have been updated.` });
+        toast({
+            title: "Sheet Updated",
+            description: `${Object.keys(updates).length} cell(s) have been updated.`
+        });
         setMultiText("");
     } else if (lines.length > 0) {
-        toast({ title: "No valid data found", description: "Could not parse the input.", variant: "destructive" });
+        toast({
+            title: "No valid data found",
+            description: "Could not parse the input.",
+            variant: "destructive"
+        });
     }
 };
 
@@ -970,24 +1052,24 @@ const handleHarupApply = () => {
     }
   };
 
-  const formatMultiTextForDisplay = (text: string) => {
+  const formatMultiTextForDisplay = (text: string): string => {
     return text.split('\n').map(line => {
       const parts = line.split('=');
-      // Don't format lines with multiple equals signs (Laddi data)
       if (parts.length > 2) {
+        // This is Laddi data, don't format it
         return line;
       }
-  
-      // Format lines with one equals sign
       if (parts.length === 2) {
         let numbers = parts[0].trim();
-        // Replace spaces with commas
+        // Replace one or more spaces with a single comma
         numbers = numbers.replace(/\s+/g, ',');
-        // Add commas to long strings of digits by splitting into pairs
-        numbers = numbers.replace(/(\d{2})(?=\d)/g, '$1,');
-        return `${numbers}=${parts[1]}`;
+        // Split by comma and then format each part
+        const formattedNumbers = numbers.split(',').map(numPart => 
+          // Format blocks of digits into pairs
+          numPart.replace(/(\d{2})(?=\d)/g, '$1,')
+        ).join(',');
+        return `${formattedNumbers}=${parts[1]}`;
       }
-  
       return line;
     }).join('\n');
   };
@@ -1347,4 +1429,5 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
 
