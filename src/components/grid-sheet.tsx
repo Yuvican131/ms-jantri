@@ -612,7 +612,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     return true;
   };
   
-const handleMultiTextApply = () => {
+  const handleMultiTextApply = () => {
     if (isDataEntryDisabled) {
         showClientSelectionToast();
         return;
@@ -635,7 +635,7 @@ const handleMultiTextApply = () => {
 
         let cells: string[] = [];
 
-        if (parts.length === 3) { // Handles "234=178=80" or "23471=25=50"
+        if (parts.length === 3) { // Handles "23471=25=50"
             const firstGroup = parts[0].replace(/[\s,]/g, '').split('');
             const secondGroup = parts[1].replace(/[\s,]/g, '').split('');
             cells = generateCombinations(firstGroup, secondGroup);
