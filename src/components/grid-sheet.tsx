@@ -140,6 +140,7 @@ const MasterSheetViewer = ({
     return Object.values(data).reduce((sum, value) => sum + (parseFloat(value) || 0), 0);
   };
   
+  const masterSheetGrandTotal = calculateGrandTotal(masterSheetData);
 
   const handleApplyCutting = () => {
     const cutValue = parseFloat(cuttingValue);
@@ -202,15 +203,20 @@ const MasterSheetViewer = ({
       }
     }
 
-    const generatedText = Object.entries(valueToCells)
+    const sheetBody = Object.entries(valueToCells)
       .map(([value, cells]) => {
         cells.sort((a, b) => a - b);
         const formattedCells = cells.map(cell => String(cell).padStart(2, '0'));
         return `${formattedCells.join(',')}=${value}`;
       })
       .join('\n');
+    
+    const grandTotal = calculateGrandTotal(masterSheetData);
+    const totalString = `\nTotal = ${formatNumber(grandTotal)}`;
+    
+    const fullContent = `${draw}\n${sheetBody}\n${totalString}`;
 
-    setGeneratedSheetContent(generatedText);
+    setGeneratedSheetContent(fullContent);
     setIsGeneratedSheetDialogOpen(true);
     toast({ title: "Master Sheet Generated", description: "The multi-text area has been populated with the grid data." });
   };
@@ -227,7 +233,6 @@ const MasterSheetViewer = ({
 
   const masterSheetRowTotals = Array.from({ length: GRID_ROWS }, (_, rowIndex) => calculateRowTotal(rowIndex, masterSheetData));
   const masterSheetColumnTotals = Array.from({ length: GRID_COLS }, (_, colIndex) => calculateColumnTotal(colIndex, masterSheetData));
-  const masterSheetGrandTotal = calculateGrandTotal(masterSheetData);
   
  return (
     <>
@@ -709,21 +714,7 @@ const handleMultiTextApply = () => {
             const numbersStr = lineParts[0].trim();
             amount = parseFloat(lineParts[1]);
             if (isNaN(amount)) continue;
-
-            if (numbersStr.includes(',')) {
-                cells = numbersStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
-            } else if (numbersStr.includes(' ')) {
-                cells = numbersStr.split(/\s+/).map(s => s.trim()).filter(s => s.length > 0);
-            } else {
-                 // Assumes Laddi if no separator: 2442 -> 24, 42
-                const matches = numbersStr.match(/\d{1,2}/g) || [];
-                if (matches.length > 1 && numbersStr.length > 2 && numbersStr.length % 2 === 0) {
-                     cells = Array.from({length: numbersStr.length / 2}, (_, i) => numbersStr.substring(i*2, i*2+2));
-                } else {
-                    cells = matches;
-                }
-            }
-
+            cells = numbersStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
         } else if (lineParts.length === 3) { // Three-part Laddi
             const firstGroupStr = lineParts[0].trim();
             const middlePartStr = lineParts[1].trim();
@@ -735,22 +726,25 @@ const handleMultiTextApply = () => {
             if (isCombinationCount) { // Case: 234178=30=80 (Combination count)
                 const count = parseInt(middlePartStr, 10);
                 const digits = [...new Set(firstGroupStr.split(''))];
-                const allCombinations = [];
+                const allCombinations: string[] = [];
                 for (let i = 0; i < digits.length; i++) {
                     for (let j = 0; j < digits.length; j++) {
                         allCombinations.push(`${digits[i]}${digits[j]}`);
                     }
                 }
-                if (allCombinations.length < count) {
+                
+                const uniqueCombinations = [...new Set(allCombinations)];
+
+                if (uniqueCombinations.length < count) {
                      toast({
                          title: "Wrong Laddi Combination",
-                         description: `Input '${firstGroupStr}' can only generate ${allCombinations.length} pairs, but ${count} were requested.`,
+                         description: `Input '${firstGroupStr}' can only generate ${uniqueCombinations.length} unique pairs, but ${count} were requested.`,
                          variant: "destructive",
                      });
                      errorOccurred = true;
                      continue;
                 }
-                cells = allCombinations.slice(0, count);
+                cells = uniqueCombinations.slice(0, count);
 
             } else { // Case: 23471=25=50 (Digit pairing)
                  cells = generateCombinations(firstGroupStr.split(''), middlePartStr.split(''));
@@ -1057,56 +1051,43 @@ const handleHarupApply = () => {
   };
 
   const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      if (isDataEntryDisabled) {
-          showClientSelectionToast();
-          return;
-      }
-      
-      const formatText = (text: string) => {
-        const lines = text.split('\n');
-        const formattedLines = lines.map(line => {
-          // Only format lines that have one equals sign.
-          const parts = line.split('=');
-          if (parts.length !== 2) {
-            return line;
-          }
+    if (isDataEntryDisabled) {
+        showClientSelectionToast();
+        return;
+    }
     
-          let numbers = parts[0];
-          const amount = parts[1];
-    
-          // Do not format if there's already a comma
-          if (numbers.includes(',')) {
-            return line;
-          }
+    const formatText = (text: string): string => {
+        return text.split('\n').map(line => {
+            // Leave Laddi data with two equals signs untouched
+            if (line.split('=').length - 1 === 2) {
+                return line;
+            }
+            
+            const parts = line.split('=');
+            if (parts.length !== 2) {
+                return line; // Not a standard key=value line
+            }
+            
+            let numbersPart = parts[0];
+            const amountPart = parts[1];
 
-          // Replace spaces with commas
-          numbers = numbers.replace(/\s+/g, ',');
+            // Replace spaces with commas
+            numbersPart = numbersPart.replace(/\s+/g, ',');
 
-          // Split into pairs if it's a long string of digits without separators
-          if (!numbers.includes(',') && /^\d+$/.test(numbers.trim())) {
-              const pairedNumbers = numbers.trim().match(/.{1,2}/g);
-              if (pairedNumbers) {
-                  return `${pairedNumbers.join(',')}=${amount}`;
-              }
-          } else {
-             // Handle space-separated numbers that need to be grouped.
-             const numGroups = numbers.split(',').map(s => s.trim()).filter(Boolean);
-             const finalNumGroups: string[] = [];
-             numGroups.forEach(group => {
-                if (/^\d+$/.test(group) && group.length > 2) {
-                    finalNumGroups.push(...(group.match(/.{1,2}/g) || []));
-                } else {
-                    finalNumGroups.push(group);
+            // Auto-pair long digit strings without separators
+            const commaSeparatedNumbers = numbersPart.split(',').map(numStr => {
+                const trimmed = numStr.trim();
+                if (/^\d+$/.test(trimmed) && trimmed.length > 2) {
+                    return trimmed.match(/.{1,2}/g)?.join(',') || '';
                 }
-             });
-             return `${finalNumGroups.join(',')}=${amount}`;
-          }
-          return line;
-        });
-        return formattedLines.join('\n');
-      };
+                return trimmed;
+            }).join(',');
+
+            return `${commaSeparatedNumbers}=${amountPart}`;
+        }).join('\n');
+    };
       
-      setMultiText(formatText(e.target.value));
+    setMultiText(formatText(e.target.value));
   };
   
 
