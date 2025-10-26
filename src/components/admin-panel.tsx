@@ -337,7 +337,7 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
         const upperPairRate = parseFloat(upperPair) || defaultUpperPair;
         
         let grandRawTotal = 0;
-        let grandPassingTotal = 0; // This will store the raw, un-multiplied passing total
+        let grandPassingTotal = 0;
 
         const rawTotalsByDraw: { [key: string]: number } = {};
         const passingTotalsByDraw: { [key: string]: number } = {};
@@ -373,7 +373,7 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
             brokerRawDrawTotals: rawTotalsByDraw, 
             brokerPassingDrawTotals: passingTotalsByDraw,
             grandRawTotal,
-            grandPassingTotal, // raw total
+            grandPassingTotal,
             brokerCommission,
             finalNetTotalForBroker: brokerProfit
         };
