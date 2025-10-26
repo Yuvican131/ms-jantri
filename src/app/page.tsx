@@ -93,14 +93,15 @@ export default function Home() {
     const newAccounts = clients.map(client => {
         const clientCommissionPercent = parseFloat(client.comm) / 100;
         const passingMultiplier = parseFloat(client.pair) || 80;
-
-        // Calculate historical running balance by iterating through all logs
+        
         let runningBalance = client.activeBalance || 0;
-        const allLogsForClient = allLogs.filter(log => log.clientId === client.id);
+        
+        const allLogsForClient = allLogs.filter(log => log.clientId === client.id).sort((a,b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
 
         allLogsForClient.forEach(log => {
             const logDate = parseISO(log.date);
             const declaredNumberForLogDate = getDeclaredNumber(log.draw, logDate);
+            
             const passingAmountInLog = declaredNumberForLogDate ? parseFloat(log.data[declaredNumberForLogDate] || "0") : 0;
             
             const gameTotal = log.gameTotal;
@@ -403,3 +404,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
