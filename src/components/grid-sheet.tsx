@@ -632,26 +632,12 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         if (isNaN(amount)) continue;
 
         if (parts.length === 3) {
+            // New logic: middle number is the second set of digits for pairing
             const firstGroupDigits = parts[0].replace(/\s/g, '').split('');
-            const combinationCount = parseInt(parts[1], 10);
-            
-            if (!isNaN(combinationCount)) {
-                // New logic: middle number is the combination count
-                const allCombinations = new Set<string>();
-                for (const d1 of firstGroupDigits) {
-                    for (const d2 of firstGroupDigits) {
-                        allCombinations.add(`${d1}${d2}`);
-                        allCombinations.add(`${d2}${d1}`);
-                    }
-                }
-                cells = Array.from(allCombinations).slice(0, combinationCount);
-            } else {
-                // Original logic: middle number is a set of digits for pairing
-                const secondGroupDigits = parts[1].replace(/\s/g, '').split('');
-                cells = generateCombinations(firstGroupDigits, secondGroupDigits);
-            }
+            const secondGroupDigits = parts[1].replace(/\s/g, '').split('');
+            cells = generateCombinations(firstGroupDigits, secondGroupDigits);
         } else { // parts.length is 2
-            const numbersStr = parts[0].replace(/\s/g, ',');
+            const numbersStr = parts[0].replace(/\s+/g, ',').replace(/,+/g, ',');
             const isLaddiStyle = !numbersStr.includes(',') && numbersStr.length > 2 && numbersStr.length % 2 === 0;
 
             if (isLaddiStyle) {
@@ -664,7 +650,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                         cells = generateCombinations(firstHalf, secondHalf);
                     }
                 } else {
-                    cells = numbersStr.split(',');
+                    cells = numbersStr.split(',').filter(c => c.trim() !== '');
                 }
             } else {
                 cells = numbersStr.split(',').filter(c => c.trim() !== '');
