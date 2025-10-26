@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatNumber } from "@/lib/utils";
-import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy, Wallet, Calendar as CalendarIcon } from 'lucide-react';
+import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy, Wallet, Calendar as CalendarIcon, Percent } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import type { Account } from "./accounts-manager";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -65,12 +65,14 @@ const GrandTotalSummaryCard = ({
     title, 
     finalValue,
     grandRawTotal,
-    grandPassingTotal
+    grandPassingTotal,
+    brokerCommission
 }: { 
     title: string; 
     finalValue: number;
     grandRawTotal: number;
     grandPassingTotal: number;
+    brokerCommission: number;
 }) => {
     const valueColor = finalValue >= 0 ? 'text-green-400' : 'text-red-500';
     return (
@@ -83,6 +85,10 @@ const GrandTotalSummaryCard = ({
                 <div className="flex justify-between items-center">
                     <span className="text-xs text-muted-foreground flex items-center gap-1"><CircleDollarSign className="h-3 w-3"/> Total Raw</span>
                     <span className="font-semibold">{formatNumber(grandRawTotal)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                     <span className="text-xs text-muted-foreground flex items-center gap-1"><Percent className="h-3 w-3"/> Broker Comm</span>
+                     <span className="font-semibold">{formatNumber(brokerCommission)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                      <span className="text-xs text-muted-foreground flex items-center gap-1"><Trophy className="h-3 w-3"/> Total Passing</span>
@@ -323,6 +329,7 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
         brokerPassingDrawTotals, 
         grandRawTotal, 
         grandPassingTotal,
+        brokerCommission,
         finalNetTotalForBroker
     } = useMemo(() => {
         const upperCommPercent = parseFloat(upperComm) / 100 || defaultUpperComm / 100;
@@ -358,13 +365,15 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
             passingTotalsByDraw[log.draw] = (passingTotalsByDraw[log.draw] || 0) + passingAmountForLog;
         });
         
-        const brokerProfit = (grandRawTotal * (1 - upperCommPercent)) - (grandPassingTotal * upperPairRate);
+        const brokerCommission = grandRawTotal * upperCommPercent;
+        const brokerProfit = (grandRawTotal - brokerCommission) - (grandPassingTotal * upperPairRate);
 
         return { 
             brokerRawDrawTotals: rawTotalsByDraw, 
             brokerPassingDrawTotals: passingTotalsByDraw,
-            grandRawTotal: grandRawTotal,
-            grandPassingTotal: grandPassingTotal,
+            grandRawTotal,
+            grandPassingTotal,
+            brokerCommission,
             finalNetTotalForBroker: brokerProfit
         };
     }, [savedSheetLog, declaredNumbers, upperComm, upperPair]);
@@ -396,6 +405,7 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
                   finalValue={finalNetTotalForBroker}
                   grandRawTotal={grandRawTotal}
                   grandPassingTotal={grandPassingTotal * (parseFloat(upperPair) || defaultUpperPair)}
+                  brokerCommission={brokerCommission}
                 />
             </div>
         </div>
@@ -418,5 +428,7 @@ export default function AdminPanel({ accounts, clients, savedSheetLog, declaredN
     </Card>
   );
 }
+
+    
 
     
