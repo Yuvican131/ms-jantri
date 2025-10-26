@@ -627,7 +627,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const parts = line.split(/=+|ki/i);
         if (parts.length < 2) continue;
         
-        let allDigitsAndSeparators = parts[0].trim();
+        let allDigitsAndSeparators = parts[0].trim().replace(/\s+/g, ',');
         const amountStr = parts[parts.length - 1].trim();
         const amount = parseFloat(amountStr);
 
@@ -635,12 +635,12 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
         let cells: string[] = [];
 
-        if (parts.length === 3) { // Handles "23471=25=50"
+        if (parts.length === 3) {
             const firstGroup = parts[0].replace(/[\s,]/g, '').split('');
             const secondGroup = parts[1].replace(/[\s,]/g, '').split('');
             cells = generateCombinations(firstGroup, secondGroup);
-        } else { // Handles simple numbers and two-part Laddi
-            const numbersStr = allDigitsAndSeparators.replace(/\s+/g, ',');
+        } else {
+            const numbersStr = allDigitsAndSeparators;
             const numberParts = numbersStr.split(',');
             let isLaddiStyle = false;
 
@@ -658,7 +658,6 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
             }
             
             if (!isLaddiStyle) {
-                // Handles simple numbers like "02,20,33" or "17 21 14"
                 const cleanedNumbers = numbersStr.replace(/,+/g, ',');
                 cells = cleanedNumbers.split(',').filter(c => c);
             }
@@ -963,9 +962,7 @@ const handleHarupApply = () => {
         showClientSelectionToast();
         return;
     }
-    // Replace spaces with commas for easier parsing, but don't add trailing commas
-    const formattedText = e.target.value.replace(/\s+/g, ',').replace(/,+/g, ',');
-    setMultiText(formattedText);
+    setMultiText(e.target.value);
   };
   
 
@@ -1134,7 +1131,7 @@ const handleHarupApply = () => {
                       <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
                       <Textarea
                           ref={multiTextRef}
-                          placeholder="e.g. 11,22,33=50"
+                          placeholder="e.g. 11 22 33=50"
                           rows={1}
                           value={multiText}
                           onChange={handleMultiTextChange}
