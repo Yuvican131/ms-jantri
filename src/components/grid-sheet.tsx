@@ -953,24 +953,7 @@ const handleHarupApply = () => {
       showClientSelectionToast();
       return;
     }
-    const value = e.target.value;
-    const parts = value.split('=');
-    let numbersPart = parts[0];
-    const amountPart = parts.length > 1 ? `=${parts.slice(1).join('=')}` : '';
-
-    const formattedNumbers = numbersPart
-        .replace(/[^0-9,]/g, '') // Allow commas
-        .replace(/,+/g, ',') // Replace multiple commas with a single one
-        .split(',')
-        .map(num => num.replace(/(\d{2})/g, '$1,').replace(/,$/, ''))
-        .join(',')
-        .replace(/,+/g, ',')
-        .replace(/^,|,$/g, '');
-    
-    // A bit of a hack to re-format existing numbers
-    const finalFormatted = formattedNumbers.replace(/,/g, '').replace(/(\d{2})/g, '$1,').replace(/,$/, '');
-
-    setMultiText(`${finalFormatted}${amountPart}`);
+    setMultiText(e.target.value);
   };
   
 
