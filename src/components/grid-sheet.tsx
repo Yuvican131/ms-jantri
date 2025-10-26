@@ -641,12 +641,17 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
             cells = generateCombinations(firstGroup, secondGroup);
         } else { // Handles simple numbers and two-part Laddi
             const numbersStr = allDigitsAndSeparators.replace(/[\s,]/g, '');
-            if (numbersStr.length > 0 && numbersStr.length % 2 === 0 && !isNaN(Number(numbersStr))) {
-                // Handles Laddi style like "2442"
-                const mid = numbersStr.length / 2;
-                const digits1 = numbersStr.substring(0, mid).split('');
-                const digits2 = numbersStr.substring(mid).split('');
-                cells = generateCombinations(digits1, digits2);
+             if (numbersStr.length > 0 && numbersStr.length % 2 === 0 && !isNaN(Number(numbersStr))) {
+                // Handles Laddi style like "2442" by splitting the string
+                const digits = numbersStr.match(/.{1,2}/g) || [];
+                const mid = Math.ceil(digits.length / 2);
+                const firstHalf = digits.slice(0, mid).join('').split('');
+                const secondHalf = digits.slice(mid).join('').split('');
+                if (firstHalf.length > 0 && secondHalf.length > 0) {
+                     cells = generateCombinations(firstHalf, secondHalf);
+                } else {
+                    cells = numbersStr.match(/.{1,2}/g) || [];
+                }
             } else {
                 // Handles simple numbers like "02,20,33" or "17 21 14"
                 const cleanedNumbers = allDigitsAndSeparators.replace(/\s+/g, ',').replace(/,+/g, ',');
