@@ -21,7 +21,6 @@ import { useDeclaredNumbers, type DeclaredNumber } from '@/hooks/useDeclaredNumb
 
 
 const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
-const defaultClientComm = 10;
 const defaultUpperComm = 20;
 const defaultClientPair = 90;
 const defaultUpperPair = 80;
@@ -135,7 +134,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
             clientsToProcess.forEach(client => {
                 let clientGameTotalForDay = 0;
                 let clientPassingAmountForDay = 0;
-                const clientCommPercent = parseFloat(client.comm) / 100 || defaultClientComm / 100;
+                const clientCommPercent = parseFloat(client.comm) / 100;
                 const clientPairRate = parseFloat(client.pair) || defaultClientPair;
 
                 Object.entries(savedSheetLog).forEach(([drawName, logs]) => {
@@ -153,7 +152,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                 });
 
                 if (clientGameTotalForDay > 0) {
-                    const clientCommission = clientGameTotalForDay * clientCommPercent;
+                    const clientCommission = clientGameTotalForDay * (isNaN(clientCommPercent) ? 0 : clientCommPercent);
                     const clientNet = clientGameTotalForDay - clientCommission;
                     const clientWinnings = clientPassingAmountForDay * clientPairRate;
                     const clientPayable = clientNet - clientWinnings;
@@ -316,13 +315,12 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
 
 type AdminPanelProps = {
   userId?: string;
-  accounts: Account[];
   clients: Client[];
   savedSheetLog: { [draw: string]: SavedSheetInfo[] };
 };
 
 
-export default function AdminPanel({ userId, accounts, clients, savedSheetLog }: AdminPanelProps) {
+export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPanelProps) {
     const [upperComm, setUpperComm] = useState(defaultUpperComm.toString());
     const [upperPair, setUpperPair] = useState(defaultUpperPair.toString());
     const { declaredNumbers } = useDeclaredNumbers(userId);
@@ -341,19 +339,13 @@ export default function AdminPanel({ userId, accounts, clients, savedSheetLog }:
         const rawTotalsByDraw: { [key: string]: number } = {};
         const passingTotalsByDraw: { [key: string]: number } = {};
 
-        // Use the official `draws` array as the source of truth to iterate.
-        // This ensures all draws are initialized and processed.
         for (const drawName of draws) {
             rawTotalsByDraw[drawName] = 0;
             passingTotalsByDraw[drawName] = 0;
-
             const logsForDraw = savedSheetLog[drawName] || [];
 
             for (const log of logsForDraw) {
-                // Accumulate raw total for the draw
                 rawTotalsByDraw[drawName] += log.gameTotal;
-
-                // Check for passing amount
                 const dateStr = format(new Date(log.date), 'yyyy-MM-dd');
                 const declarationId = `${log.draw}-${dateStr}`;
                 const declaredNum = declaredNumbers[declarationId]?.number;
@@ -380,7 +372,7 @@ export default function AdminPanel({ userId, accounts, clients, savedSheetLog }:
             brokerCommission,
             finalNetTotalForBroker: brokerProfit
         };
-    }, [savedSheetLog, declaredNumbers, upperComm, upperPair]);
+    }, [savedSheetLog, declaredNumbers, upperComm, upperPair, draws]);
 
 
   return (
@@ -436,5 +428,7 @@ export default function AdminPanel({ userId, accounts, clients, savedSheetLog }:
 
     
 
+
+    
 
     
