@@ -96,13 +96,13 @@ export default function Home() {
         }
     });
 
-    const hasAnyLogs = allUsedDraws.size > 0;
-
-    if (!hasAnyLogs) {
-        setDisplayedDraws(draws);
+    // Always show all used draws, sorted by the master 'draws' array order.
+    // If no logs exist at all, show the default full list.
+    if (allUsedDraws.size === 0) {
+      setDisplayedDraws(draws);
     } else {
-        const sortedUsedDraws = Array.from(allUsedDraws).sort((a, b) => draws.indexOf(a) - draws.indexOf(b));
-        setDisplayedDraws(sortedUsedDraws);
+      const sortedUsedDraws = Array.from(allUsedDraws).sort((a, b) => draws.indexOf(a) - draws.indexOf(b));
+      setDisplayedDraws(sortedUsedDraws);
     }
   }, [savedSheetLog]);
 
@@ -482,6 +482,5 @@ export default function Home() {
       </AlertDialog>
     </div>
   );
-}
 
     
