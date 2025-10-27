@@ -101,7 +101,7 @@ export default function Home() {
     if (allUsedDraws.size === 0) {
       setDisplayedDraws(draws);
     } else {
-      const sortedUsedDraws = Array.from(allUsedDraws).sort((a, b) => draws.indexOf(a) - draws.indexOf(b));
+      const sortedUsedDraws = draws.filter(d => allUsedDraws.has(d));
       setDisplayedDraws(sortedUsedDraws);
     }
   }, [savedSheetLog]);
@@ -122,21 +122,27 @@ export default function Home() {
         
         let runningBalance = client.activeBalance || 0;
         
-        const allLogsForClient = allLogs.filter(log => log.clientId === client.id).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const allLogsForClient = allLogs
+            .filter(log => log.clientId === client.id)
+            .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
         allLogsForClient.forEach(log => {
             const logDate = new Date(log.date);
-            const declaredNumberForLogDate = getDeclaredNumber(log.draw, logDate);
             
-            const passingAmountInLog = declaredNumberForLogDate ? parseFloat(log.data[declaredNumberForLogDate] || "0") : 0;
-            
-            const gameTotal = log.gameTotal;
-            const commission = gameTotal * clientCommissionPercent;
-            const netFromGames = gameTotal - commission;
-            const winnings = passingAmountInLog * passingMultiplier;
-            const netResultForLog = netFromGames - winnings;
+            // Only include logs from *before* the selected date in the running balance
+            if (logDate < selectedDate && !isSameDay(logDate, selectedDate)) {
+                const declaredNumberForLogDate = getDeclaredNumber(log.draw, logDate);
+                
+                const passingAmountInLog = declaredNumberForLogDate ? parseFloat(log.data[declaredNumberForLogDate] || "0") : 0;
+                
+                const gameTotal = log.gameTotal;
+                const commission = gameTotal * clientCommissionPercent;
+                const netFromGames = gameTotal - commission;
+                const winnings = passingAmountInLog * passingMultiplier;
+                const netResultForLog = netFromGames - winnings;
 
-            runningBalance += netResultForLog;
+                runningBalance += netResultForLog;
+            }
         });
 
         // Calculate details for the selected day for UI display
@@ -154,6 +160,14 @@ export default function Home() {
             const passingAmount = declaredNumberForSelectedDay && clientLogForSelectedDay
                 ? parseFloat(clientLogForSelectedDay.data[declaredNumberForSelectedDay] || "0")
                 : 0;
+            
+            const commissionOnDay = totalAmount * clientCommissionPercent;
+            const netFromGamesOnDay = totalAmount - commissionOnDay;
+            const winningsOnDay = passingAmount * passingMultiplier;
+            const netResultForDay = netFromGamesOnDay - winningsOnDay;
+
+            // Add today's result to the running balance
+            runningBalance += netResultForDay;
 
             updatedDrawsForSelectedDay[drawName] = { totalAmount, passingAmount };
         });
@@ -482,5 +496,7 @@ export default function Home() {
       </AlertDialog>
     </div>
   );
+
+    
 
     
