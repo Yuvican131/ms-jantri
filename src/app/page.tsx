@@ -129,7 +129,7 @@ export default function Home() {
         allLogsForClient.forEach(log => {
             const logDate = new Date(log.date);
             
-            if (logDate < selectedDate && !isSameDay(logDate, selectedDate)) {
+            if (logDate.getTime() < selectedDate.setHours(0,0,0,0)) {
                 const declaredNumberForLogDate = getDeclaredNumber(log.draw, logDate);
                 
                 const passingAmountInLog = declaredNumberForLogDate ? parseFloat(log.data[declaredNumberForLogDate] || "0") : 0;

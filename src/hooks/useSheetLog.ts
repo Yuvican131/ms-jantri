@@ -123,7 +123,12 @@ export const useSheetLog = (userId?: string) => {
         return;
       }
       
-      setSheetLogData(prevData => prevData?.filter(log => !(log.draw === draw && log.date === dateStr)) || null);
+      const logsToDelete = querySnapshot.docs.map(doc => doc.id);
+      
+      setSheetLogData(prevData => {
+        if (!prevData) return null;
+        return prevData.filter(log => !logsToDelete.includes(log.id));
+      });
 
       const batch = writeBatch(firestore);
       querySnapshot.forEach((doc) => {
