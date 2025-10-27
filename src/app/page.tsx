@@ -89,27 +89,22 @@ export default function Home() {
   }, []);
   
   useEffect(() => {
-    if (date) {
-        const activeDrawsForDay = new Set<string>();
-        Object.values(savedSheetLog).flat().forEach(log => {
-            if (isSameDay(new Date(log.date), date)) {
-                activeDrawsForDay.add(log.draw);
-            }
-        });
-
-        const hasAnyLogs = Object.values(savedSheetLog).some(logs => logs.length > 0);
-
-        if (!hasAnyLogs) {
-            setDisplayedDraws(draws);
-        } else {
-            // Show only draws that have entries for the current day
-            const drawsWithEntries = Array.from(activeDrawsForDay);
-            // Sort them according to the master `draws` array order
-            const sortedDraws = drawsWithEntries.sort((a, b) => draws.indexOf(a) - draws.indexOf(b));
-            setDisplayedDraws(sortedDraws);
+    const allUsedDraws = new Set<string>();
+    Object.keys(savedSheetLog).forEach(draw => {
+        if (savedSheetLog[draw] && savedSheetLog[draw].length > 0) {
+            allUsedDraws.add(draw);
         }
+    });
+
+    const hasAnyLogs = allUsedDraws.size > 0;
+
+    if (!hasAnyLogs) {
+        setDisplayedDraws(draws);
+    } else {
+        const sortedUsedDraws = Array.from(allUsedDraws).sort((a, b) => draws.indexOf(a) - draws.indexOf(b));
+        setDisplayedDraws(sortedUsedDraws);
     }
-  }, [date, savedSheetLog]);
+  }, [savedSheetLog]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
