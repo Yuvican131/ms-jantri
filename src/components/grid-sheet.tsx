@@ -78,9 +78,13 @@ type GridSheetProps = {
 const MasterSheetViewer = ({
   savedSheetLog,
   draw,
+  date,
+  onDeleteLog,
 }: {
   savedSheetLog: SavedSheetInfo[];
   draw: string;
+  date: Date;
+  onDeleteLog: (logId: string, clientName: string) => void;
 }) => {
   const { toast } = useToast();
   const [masterSheetData, setMasterSheetData] = useState<CellData>({});
@@ -299,13 +303,13 @@ const MasterSheetViewer = ({
           </div>
           <Card className="flex-grow bg-card min-h-0">
               <CardHeader className="p-3">
-                  <CardTitle className="text-sm">Client Entries</CardTitle>
+                  <CardTitle className="text-sm">Client Entries for {format(date, 'PPP')}</CardTitle>
               </CardHeader>
               <CardContent className="p-3 h-[calc(100%-48px)]">
                   <ScrollArea className="h-full">
                       <div className="space-y-2 pr-2">
                           {savedSheetLog.length > 0 ? savedSheetLog.map((log, index) => (
-                              <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted text-sm">
+                              <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted text-sm group">
                                   <div className="flex items-center gap-2">
                                       <Checkbox
                                           id={`log-${draw}-${index}`}
@@ -315,7 +319,18 @@ const MasterSheetViewer = ({
                                       />
                                       <label htmlFor={`log-${draw}-${index}`} className="cursor-pointer text-muted-foreground">{index + 1}. {log.clientName}</label>
                                   </div>
-                                  <span className="font-mono font-semibold text-foreground">₹{formatNumber(log.gameTotal)}</span>
+                                  <div className="flex items-center gap-2">
+                                      <span className="font-mono font-semibold text-foreground">₹{formatNumber(log.gameTotal)}</span>
+                                       <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive"
+                                          onClick={() => onDeleteLog(log.id, log.clientName)}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                          <span className="sr-only">Delete Log</span>
+                                        </Button>
+                                  </div>
                               </div>
                           )) : (
                               <div className="text-center text-muted-foreground italic h-full flex items-center justify-center">No logs for this draw.</div>
@@ -370,12 +385,14 @@ const generateCombinations = (digits1: string[], digits2: string[]): string[] =>
 
 const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const { toast } = useToast()
-  const { getPreviousDataForClient } = useSheetLog();
+  const { getPreviousDataForClient, deleteSheetLogEntry } = useSheetLog();
   const [sheets, setSheets] = useState<Sheet[]>(initialSheets)
   const [activeSheetId, setActiveSheetId] = useState<string>("1")
   const [clientSheetData, setClientSheetData] = useState<ClientSheetData>({});
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isMasterSheetDialogOpen, setIsMasterSheetDialogOpen] = useState(false);
+  const [logToDelete, setLogToDelete] = useState<{ id: string, name: string } | null>(null);
+
 
   const [validations, setValidations] = useState<CellValidation>({})
   const [multiText, setMultiText] = useState("");
@@ -1139,6 +1156,14 @@ const handleHarupApply = () => {
     updateClientData(selectedClientId, {}, {});
     setPreviousSheetState(null);
   };
+  
+  const handleDeleteLogEntry = () => {
+    if (logToDelete) {
+        deleteSheetLogEntry(logToDelete.id);
+        toast({ title: "Log Deleted", description: `The entry for ${logToDelete.name} has been deleted.` });
+    }
+    setLogToDelete(null);
+  };
 
 
   if (!activeSheet) {
@@ -1413,7 +1438,24 @@ const handleHarupApply = () => {
            <MasterSheetViewer 
              savedSheetLog={props.savedSheetLog}
              draw={props.draw}
+             date={props.date}
+             onDeleteLog={(id, name) => setLogToDelete({ id, name })}
            />
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={!!logToDelete} onOpenChange={() => setLogToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Log Entry?</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the sheet for <strong className="font-bold">{logToDelete?.name}</strong>? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLogToDelete(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteLogEntry}>Delete</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

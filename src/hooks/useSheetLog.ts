@@ -1,9 +1,9 @@
 
 'use client';
 import { useMemo } from 'react';
-import { collection, addDoc, updateDoc, doc, writeBatch, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, writeBatch, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from './use-toast';
 import { format, isSameDay } from 'date-fns';
 
@@ -53,6 +53,12 @@ export const useSheetLog = (userId?: string) => {
       addDocumentNonBlocking(sheetLogColRef, entry);
     }
   };
+  
+  const deleteSheetLogEntry = (logId: string) => {
+    if (!userId) return;
+    const docRef = doc(firestore, `users/${userId}/sheetLogs`, logId);
+    deleteDocumentNonBlocking(docRef);
+  };
 
   const deleteSheetLogsForClient = async (clientId: string, showToast: boolean = true) => {
     if (!userId) return;
@@ -87,19 +93,18 @@ export const useSheetLog = (userId?: string) => {
     try {
       const q = query(
         collection(firestore, `users/${userId}/sheetLogs`),
-        where("draw", "==", draw)
+        where("draw", "==", draw),
+        where("date", "==", dateStr)
       );
       const querySnapshot = await getDocs(q);
-      
-      const logsForDate = querySnapshot.docs.filter(d => isSameDay(new Date(d.data().date), date));
 
-      if (logsForDate.length === 0) {
+      if (querySnapshot.empty) {
         toast({ title: "No Data", description: `No sheet data found for draw ${draw} on this date.` });
         return;
       }
 
       const batch = writeBatch(firestore);
-      logsForDate.forEach((doc) => {
+      querySnapshot.forEach((doc) => {
         batch.delete(doc.ref);
       });
       await batch.commit();
@@ -117,7 +122,7 @@ export const useSheetLog = (userId?: string) => {
     return log?.data;
   };
 
-  return { savedSheetLog, isLoading, error, addSheetLogEntry, deleteSheetLogsForClient, getPreviousDataForClient, deleteSheetLogsForDraw };
+  return { savedSheetLog, isLoading, error, addSheetLogEntry, deleteSheetLogsForClient, getPreviousDataForClient, deleteSheetLogsForDraw, deleteSheetLogEntry };
 };
 
     
