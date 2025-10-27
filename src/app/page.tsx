@@ -96,10 +96,8 @@ export default function Home() {
         }
     });
 
-    // Always show all used draws, sorted by the master 'draws' array order.
-    // If no logs exist at all, show the default full list.
     if (allUsedDraws.size === 0) {
-      setDisplayedDraws(draws);
+      setDisplayedDraws([]);
     } else {
       const sortedUsedDraws = draws.filter(d => allUsedDraws.has(d));
       setDisplayedDraws(sortedUsedDraws);
@@ -113,7 +111,9 @@ export default function Home() {
   }, [isUserLoading, user, auth]);
 
   const updateAccountsFromLog = useCallback(() => {
-    const selectedDate = date || new Date();
+    const selectedDate = date;
+    if (!selectedDate) return;
+
     const allLogs = Object.values(savedSheetLog).flat();
 
     const newAccounts = clients.map(client => {
@@ -129,7 +129,6 @@ export default function Home() {
         allLogsForClient.forEach(log => {
             const logDate = new Date(log.date);
             
-            // Only include logs from *before* the selected date in the running balance
             if (logDate < selectedDate && !isSameDay(logDate, selectedDate)) {
                 const declaredNumberForLogDate = getDeclaredNumber(log.draw, logDate);
                 
@@ -145,7 +144,6 @@ export default function Home() {
             }
         });
 
-        // Calculate details for the selected day for UI display
         const updatedDrawsForSelectedDay: { [key: string]: DrawData } = {};
         draws.forEach(drawName => {
             const drawLogs = savedSheetLog[drawName] || [];
@@ -166,8 +164,9 @@ export default function Home() {
             const winningsOnDay = passingAmount * passingMultiplier;
             const netResultForDay = netFromGamesOnDay - winningsOnDay;
 
-            // Add today's result to the running balance
-            runningBalance += netResultForDay;
+            if (clientLogForSelectedDay) {
+                runningBalance += netResultForDay;
+            }
 
             updatedDrawsForSelectedDay[drawName] = { totalAmount, passingAmount };
         });
@@ -496,6 +495,8 @@ export default function Home() {
       </AlertDialog>
     </div>
   );
+
+    
 
     
 
