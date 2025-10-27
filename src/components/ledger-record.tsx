@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatNumber } from "@/lib/utils";
-import { isSameDay, subDays, format, parseISO } from "date-fns"
+import { isSameDay, subDays, format } from "date-fns"
 import type { Client } from '@/hooks/useClients';
 import type { SavedSheetInfo } from '@/hooks/useSheetLog';
 import type { DeclaredNumber } from '@/hooks/useDeclaredNumbers';
@@ -46,12 +46,12 @@ const ClientProfitLoss = ({ clients, savedSheetLog, draws, declaredNumbers }: Le
             let filteredLogs = logs;
             const now = new Date();
             if (dateRange === 'today') {
-                filteredLogs = logs.filter(log => isSameDay(parseISO(log.date), now));
+                filteredLogs = logs.filter(log => isSameDay(new Date(log.date), now));
             } else if (dateRange === 'yesterday') {
-                filteredLogs = logs.filter(log => isSameDay(parseISO(log.date), subDays(now, 1)));
+                filteredLogs = logs.filter(log => isSameDay(new Date(log.date), subDays(now, 1)));
             } else if (dateRange === 'last7') {
                 const sevenDaysAgo = subDays(now, 7);
-                filteredLogs = logs.filter(log => parseISO(log.date) >= sevenDaysAgo);
+                filteredLogs = logs.filter(log => new Date(log.date) >= sevenDaysAgo);
             }
 
             filteredLogs.forEach(log => {
@@ -74,7 +74,7 @@ const ClientProfitLoss = ({ clients, savedSheetLog, draws, declaredNumbers }: Le
                 const clientComm = totalInvested * (parseFloat(client.comm) / 100);
                 const clientNet = totalInvested - clientComm;
 
-                const dateStr = format(parseISO(log.date), 'yyyy-MM-dd');
+                const dateStr = format(new Date(log.date), 'yyyy-MM-dd');
                 const declarationId = `${drawName}-${dateStr}`;
                 const declaredNumber = declaredNumbers[declarationId]?.number;
 
@@ -213,5 +213,7 @@ export default function LedgerRecord({ clients, savedSheetLog, draws, declaredNu
     </Card>
   );
 }
+
+    
 
     

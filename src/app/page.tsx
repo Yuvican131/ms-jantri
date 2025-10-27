@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { format, isSameDay, parseISO, isToday } from "date-fns"
+import { format, isSameDay, isToday } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -98,10 +98,10 @@ export default function Home() {
         
         let runningBalance = client.activeBalance || 0;
         
-        const allLogsForClient = allLogs.filter(log => log.clientId === client.id).sort((a,b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
+        const allLogsForClient = allLogs.filter(log => log.clientId === client.id).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
         allLogsForClient.forEach(log => {
-            const logDate = parseISO(log.date);
+            const logDate = new Date(log.date);
             const declaredNumberForLogDate = getDeclaredNumber(log.draw, logDate);
             
             const passingAmountInLog = declaredNumberForLogDate ? parseFloat(log.data[declaredNumberForLogDate] || "0") : 0;
@@ -121,7 +121,7 @@ export default function Home() {
             const drawLogs = savedSheetLog[drawName] || [];
             const clientLogForSelectedDay = drawLogs.find(log =>
                 log.clientId === client.id &&
-                isSameDay(parseISO(log.date), selectedDate)
+                isSameDay(new Date(log.date), selectedDate)
             );
 
             const totalAmount = clientLogForSelectedDay?.gameTotal || 0;
@@ -393,7 +393,7 @@ export default function Home() {
             <LedgerRecord clients={clients} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />
           </TabsContent>
           <TabsContent value="admin-panel">
-            <AdminPanel userId={user?.uid} accounts={accounts} clients={clients} savedSheetLog={savedSheetLog} />
+            <AdminPanel userId={user?.uid} clients={clients} savedSheetLog={savedSheetLog} />
           </TabsContent>
         </Tabs>
       </main>
@@ -416,3 +416,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

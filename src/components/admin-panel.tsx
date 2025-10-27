@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
 import type { Client } from '@/hooks/useClients';
 import type { SavedSheetInfo } from '@/hooks/useSheetLog';
 import { useDeclaredNumbers, type DeclaredNumber } from '@/hooks/useDeclaredNumbers';
@@ -139,7 +139,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                 const clientPairRate = parseFloat(client.pair) || defaultClientPair;
 
                 Object.entries(savedSheetLog).forEach(([drawName, logs]) => {
-                    const clientLogsForDraw = logs.filter(log => log.clientId === client.id && isSameDay(parseISO(log.date), day));
+                    const clientLogsForDraw = logs.filter(log => log.clientId === client.id && isSameDay(new Date(log.date), day));
                     clientLogsForDraw.forEach(log => {
                         clientGameTotalForDay += log.gameTotal;
                         const dateStr = format(day, 'yyyy-MM-dd');
@@ -168,7 +168,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
             Object.entries(savedSheetLog).forEach(([drawName, logs]) => {
                 logs.forEach(log => {
                     const clientMatches = selectedClientId === 'all' || log.clientId === selectedClientId;
-                    if (clientMatches && isSameDay(parseISO(log.date), day)) {
+                    if (clientMatches && isSameDay(new Date(log.date), day)) {
                         totalGameAmountForDay += log.gameTotal;
                         const declarationId = `${drawName}-${dateStr}`;
                         const declaredNumber = declaredNumbers[declarationId]?.number;
@@ -354,7 +354,7 @@ export default function AdminPanel({ userId, accounts, clients, savedSheetLog }:
                 rawTotalsByDraw[drawName] += log.gameTotal;
 
                 // Check for passing amount
-                const dateStr = format(parseISO(log.date), 'yyyy-MM-dd');
+                const dateStr = format(new Date(log.date), 'yyyy-MM-dd');
                 const declarationId = `${log.draw}-${dateStr}`;
                 const declaredNum = declaredNumbers[declarationId]?.number;
 
@@ -433,5 +433,8 @@ export default function AdminPanel({ userId, accounts, clients, savedSheetLog }:
   );
 }
     
+
+    
+
 
     
