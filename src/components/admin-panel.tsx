@@ -114,9 +114,9 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
     upperPair: string;
     setUpperPair: (value: string) => void;
 }) => {
+    const { declaredNumbers } = useDeclaredNumbers(userId);
     const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
     const [selectedClientId, setSelectedClientId] = useState<string>('all');
-    const { declaredNumbers } = useDeclaredNumbers(userId);
     
     const dailyReportData: DailyReportRow[] = useMemo(() => {
         const upperCommPercent = parseFloat(upperComm) / 100 || defaultUpperComm / 100;
@@ -341,29 +341,28 @@ export default function AdminPanel({ userId, accounts, clients, savedSheetLog }:
         const rawTotalsByDraw: { [key: string]: number } = {};
         const passingTotalsByDraw: { [key: string]: number } = {};
 
-        // Initialize totals for all draws
+        // Use the official `draws` array as the source of truth to iterate.
+        // This ensures all draws are initialized and processed.
         for (const drawName of draws) {
             rawTotalsByDraw[drawName] = 0;
             passingTotalsByDraw[drawName] = 0;
-        }
 
-        // Iterate over all logs from all draws
-        for (const drawName in savedSheetLog) {
             const logsForDraw = savedSheetLog[drawName] || [];
 
-            logsForDraw.forEach(log => {
-                const gameTotal = log.gameTotal;
-                rawTotalsByDraw[log.draw] = (rawTotalsByDraw[log.draw] || 0) + gameTotal;
+            for (const log of logsForDraw) {
+                // Accumulate raw total for the draw
+                rawTotalsByDraw[drawName] += log.gameTotal;
 
+                // Check for passing amount
                 const dateStr = format(parseISO(log.date), 'yyyy-MM-dd');
                 const declarationId = `${log.draw}-${dateStr}`;
                 const declaredNum = declaredNumbers[declarationId]?.number;
 
                 if (declaredNum && log.data[declaredNum]) {
                     const passingAmount = parseFloat(log.data[declaredNum]) || 0;
-                    passingTotalsByDraw[log.draw] = (passingTotalsByDraw[log.draw] || 0) + passingAmount;
+                    passingTotalsByDraw[drawName] += passingAmount;
                 }
-            });
+            }
         }
         
         const grandRawTotal = Object.values(rawTotalsByDraw).reduce((sum, total) => sum + total, 0);
