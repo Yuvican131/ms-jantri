@@ -77,32 +77,40 @@ export const useSheetLog = (userId?: string) => {
   }, [userId, firestore, setSheetLogData]);
 
   const deleteSheetLogsForClient = useCallback(async (clientId: string, showToast: boolean = true) => {
-    if (!userId) return;
+    if (!userId) return Promise.resolve();
 
-    const logsToDelete: string[] = [];
-    try {
-      const q = query(collection(firestore, `users/${userId}/sheetLogs`), where("clientId", "==", clientId));
-      const querySnapshot = await getDocs(q);
-      
-      if (querySnapshot.empty) {
-        if (showToast) toast({ title: "No Data", description: "No sheet data found for this client to clear." });
-        return;
-      }
-      
-      setSheetLogData(prevData => prevData?.filter(log => log.clientId !== clientId) || null);
+    return new Promise(async (resolve, reject) => {
+        try {
+            const q = query(collection(firestore, `users/${userId}/sheetLogs`), where("clientId", "==", clientId));
+            const querySnapshot = await getDocs(q);
 
-      const batch = writeBatch(firestore);
-      querySnapshot.forEach((doc) => {
-        logsToDelete.push(doc.id);
-        batch.delete(doc.ref);
-      });
-      await batch.commit();
+            if (querySnapshot.empty) {
+                if (showToast) toast({ title: "No Data", description: "No sheet data found for this client to clear." });
+                resolve();
+                return;
+            }
 
-      if (showToast) toast({ title: "Success", description: `Cleared all sheet data for the client.` });
-    } catch (e) {
-      console.error("Error clearing sheet logs: ", e);
-      if (showToast) toast({ title: "Error", description: "Could not clear sheet data.", variant: "destructive" });
-    }
+            const batch = writeBatch(firestore);
+            querySnapshot.forEach((doc) => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+
+            // After successful deletion, update the local state.
+            setSheetLogData(currentLogs => {
+                if (!currentLogs) return null;
+                return currentLogs.filter(log => log.clientId !== clientId);
+            });
+
+            if (showToast) toast({ title: "Success", description: `Cleared all sheet data for the client.` });
+            resolve();
+
+        } catch (e) {
+            console.error("Error clearing sheet logs: ", e);
+            if (showToast) toast({ title: "Error", description: "Could not clear sheet data.", variant: "destructive" });
+            reject(e);
+        }
+    });
   }, [userId, firestore, setSheetLogData, toast]);
   
   const deleteSheetLogsForDraw = useCallback(async (draw: string, date: Date) => {
