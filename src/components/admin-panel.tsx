@@ -338,35 +338,37 @@ export default function AdminPanel({ userId, accounts, clients, savedSheetLog }:
         const upperCommPercent = parseFloat(upperComm) / 100 || defaultUpperComm / 100;
         const upperPairRate = parseFloat(upperPair) || defaultUpperPair;
         
-        let grandRawTotal = 0;
-        let grandPassingTotal = 0;
-
         const rawTotalsByDraw: { [key: string]: number } = {};
         const passingTotalsByDraw: { [key: string]: number } = {};
 
+        // Initialize totals for all draws
         for (const drawName of draws) {
             rawTotalsByDraw[drawName] = 0;
             passingTotalsByDraw[drawName] = 0;
-            
+        }
+
+        // Iterate over all logs from all draws
+        for (const drawName in savedSheetLog) {
             const logsForDraw = savedSheetLog[drawName] || [];
 
             logsForDraw.forEach(log => {
                 const gameTotal = log.gameTotal;
-                rawTotalsByDraw[drawName] += gameTotal;
-                grandRawTotal += gameTotal;
+                rawTotalsByDraw[log.draw] = (rawTotalsByDraw[log.draw] || 0) + gameTotal;
 
                 const dateStr = format(parseISO(log.date), 'yyyy-MM-dd');
-                const declarationId = `${drawName}-${dateStr}`;
+                const declarationId = `${log.draw}-${dateStr}`;
                 const declaredNum = declaredNumbers[declarationId]?.number;
 
                 if (declaredNum && log.data[declaredNum]) {
                     const passingAmount = parseFloat(log.data[declaredNum]) || 0;
-                    passingTotalsByDraw[drawName] += passingAmount;
-                    grandPassingTotal += passingAmount;
+                    passingTotalsByDraw[log.draw] = (passingTotalsByDraw[log.draw] || 0) + passingAmount;
                 }
             });
         }
         
+        const grandRawTotal = Object.values(rawTotalsByDraw).reduce((sum, total) => sum + total, 0);
+        const grandPassingTotal = Object.values(passingTotalsByDraw).reduce((sum, total) => sum + total, 0);
+
         const brokerCommission = grandRawTotal * upperCommPercent;
         const finalGrandPassingTotal = grandPassingTotal * upperPairRate;
         const brokerProfit = (grandRawTotal - brokerCommission) - finalGrandPassingTotal;
@@ -431,5 +433,6 @@ export default function AdminPanel({ userId, accounts, clients, savedSheetLog }:
     </Card>
   );
 }
+    
 
     
