@@ -96,13 +96,17 @@ export default function Home() {
                 activeDrawsForDay.add(log.draw);
             }
         });
-        
+
         const hasAnyLogs = Object.values(savedSheetLog).some(logs => logs.length > 0);
 
         if (!hasAnyLogs) {
             setDisplayedDraws(draws);
         } else {
-            setDisplayedDraws(Array.from(activeDrawsForDay));
+            // Show only draws that have entries for the current day
+            const drawsWithEntries = Array.from(activeDrawsForDay);
+            // Sort them according to the master `draws` array order
+            const sortedDraws = drawsWithEntries.sort((a, b) => draws.indexOf(a) - draws.indexOf(b));
+            setDisplayedDraws(sortedDraws);
         }
     }
   }, [date, savedSheetLog]);
