@@ -13,10 +13,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { format, isSameDay, parseISO } from "date-fns"
+import { format, isSameDay, parseISO, isToday } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { useClients } from "@/hooks/useClients"
 import { useSheetLog, type SavedSheetInfo } from "@/hooks/useSheetLog"
@@ -321,6 +322,9 @@ export default function Home() {
                         />
                       </PopoverContent>
                     </Popover>
+                    {date && isToday(date) && (
+                      <Badge variant="outline">Today</Badge>
+                    )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button>
