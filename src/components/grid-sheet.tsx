@@ -236,7 +236,7 @@ const MasterSheetViewer = ({
   
  return (
     <>
-    <div className="flex h-full flex-col gap-4 bg-background p-4 items-start">
+    <div className="flex h-full flex-col gap-4 bg-background p-1 md:p-4 items-start">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 flex-grow overflow-hidden w-full">
         <div className="flex flex-col min-w-0 h-full">
             <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${GRID_ROWS + 1}, minmax(0, 1fr))`}}>
@@ -1178,7 +1178,7 @@ const handleHarupApply = () => {
   return (
     <>
       <Card className="h-full flex flex-col overflow-hidden">
-        <CardContent className="p-2 flex-grow flex flex-col min-h-0">
+        <CardContent className="p-1 md:p-2 flex-grow flex flex-col min-h-0">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-2 flex-grow min-h-0">
             <div className="flex flex-col min-w-0 h-full">
                <div className="grid gap-0.5 w-full flex-grow grid-sheet-layout">

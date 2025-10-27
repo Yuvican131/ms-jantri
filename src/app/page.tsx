@@ -264,23 +264,23 @@ export default function Home() {
   
   const TabListContent = () => (
     <TabsList className={cn("grid w-full grid-cols-5 p-0.5 gap-0.5", !isMobile && "md:w-auto")}>
-      <TabsTrigger value="sheet" className="gap-1 rounded-sm h-12 md:h-10">
+      <TabsTrigger value="sheet" className="gap-1 rounded-sm h-14 md:h-10">
         <GridIcon className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">Home</span>
       </TabsTrigger>
-      <TabsTrigger value="clients" className="gap-1 rounded-sm h-12 md:h-10">
+      <TabsTrigger value="clients" className="gap-1 rounded-sm h-14 md:h-10">
         <Users className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">CLIENTS</span>
       </TabsTrigger>
-      <TabsTrigger value="accounts" className="gap-1 rounded-sm h-12 md:h-10">
+      <TabsTrigger value="accounts" className="gap-1 rounded-sm h-14 md:h-10">
         <Building className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">ACCOUNT LEDGER</span>
       </TabsTrigger>
-      <TabsTrigger value="ledger-record" className="gap-1 rounded-sm h-12 md:h-10">
+      <TabsTrigger value="ledger-record" className="gap-1 rounded-sm h-14 md:h-10">
         <FileSpreadsheet className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">Client Performance</span>
       </TabsTrigger>
-      <TabsTrigger value="admin-panel" className="gap-1 rounded-sm h-12 md:h-10">
+      <TabsTrigger value="admin-panel" className="gap-1 rounded-sm h-14 md:h-10">
         <Shield className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">Admin Panel</span>
       </TabsTrigger>
@@ -293,9 +293,9 @@ export default function Home() {
 
   return (
     <div className="flex h-screen w-full flex-col bg-background">
-      <main className="flex-1 p-2 flex flex-col min-h-0">
+      <main className="flex-1 p-2 md:p-4 flex flex-col min-h-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col min-h-0">
-          <div className="flex items-center justify-between pb-1.5 flex-wrap gap-2">
+          <div className="flex items-center justify-between pb-2 flex-wrap gap-2">
             <div className="flex items-center flex-grow">
               {isMobile ? (
                   <ScrollArea className="w-full whitespace-nowrap">
@@ -388,7 +388,7 @@ export default function Home() {
 
                       return (
                       <div key={draw} className="flex flex-col gap-1 relative group">
-                          <Button onClick={() => handleSelectDraw(draw)} className="h-20 text-xl font-bold bg-gradient-to-br from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white shadow-lg md:h-24 md:text-2xl">
+                          <Button onClick={() => handleSelectDraw(draw)} className="h-24 text-2xl font-bold bg-gradient-to-br from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white shadow-lg md:h-24 md:text-2xl">
                             {draw}
                           </Button>
                           <Button
@@ -406,7 +406,7 @@ export default function Home() {
                            <Input
                               type="text"
                               placeholder="00"
-                              className="w-full h-10 text-center text-lg md:h-8"
+                              className="w-full h-12 text-center text-xl md:h-8"
                               maxLength={2}
                               value={declaredNumberForDate}
                               onChange={(e) => {
