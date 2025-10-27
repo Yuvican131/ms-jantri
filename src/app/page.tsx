@@ -73,6 +73,7 @@ export default function Home() {
   const { savedSheetLog, addSheetLogEntry } = useSheetLog(user?.uid);
   const { declaredNumbers, setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber, setDeclaredNumberLocal } = useDeclaredNumbers(user?.uid);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [displayedDraws, setDisplayedDraws] = useState<string[]>([]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -85,6 +86,40 @@ export default function Home() {
       initiateAnonymousSignIn(auth);
     }
   }, [isUserLoading, user, auth]);
+
+  useEffect(() => {
+    if (date) {
+        const activeDrawsForDate = new Set<string>();
+        
+        // Find which draws have entries for the selected date.
+        Object.entries(savedSheetLog).forEach(([drawName, logs]) => {
+            const hasEntryForDate = logs.some(log => isSameDay(parseISO(log.date), date));
+            if (hasEntryForDate) {
+                activeDrawsForDate.add(drawName);
+            }
+        });
+
+        // Sort all draws: active ones first, then inactive ones.
+        const sortedDraws = [...draws].sort((a, b) => {
+            const aIsActive = activeDrawsForDate.has(a);
+            const bIsActive = activeDrawsForDate.has(b);
+            if (aIsActive && !bIsActive) return -1;
+            if (!aIsActive && bIsActive) return 1;
+            return 0; // Keep original order for draws in the same group (active/inactive)
+        });
+
+        // Only show draws that have at least one log entry ever.
+        const visibleDraws = sortedDraws.filter(drawName => savedSheetLog[drawName] && savedSheetLog[drawName].length > 0);
+        
+        // If no draws have any data at all, show the default fresh list.
+        if (Object.keys(savedSheetLog).length === 0) {
+            setDisplayedDraws(draws);
+        } else {
+            setDisplayedDraws(visibleDraws);
+        }
+    }
+  }, [date, savedSheetLog]);
+
 
   const updateAccountsFromLog = useCallback(() => {
     const selectedDate = date || new Date();
@@ -322,7 +357,7 @@ export default function Home() {
                     </Popover>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4">
-                    {draws.map((draw) => {
+                    {displayedDraws.map((draw) => {
                       const declaredNumberForDate = getDeclaredNumber(draw, date) || '';
 
                       return (
@@ -396,5 +431,7 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
