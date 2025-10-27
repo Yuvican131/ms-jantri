@@ -5,6 +5,7 @@ import { collection, addDoc, updateDoc, doc, writeBatch, query, where, getDocs }
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from './use-toast';
+import { format, isSameDay } from 'date-fns';
 
 export interface SavedSheetInfo {
   id: string;
@@ -78,11 +79,45 @@ export const useSheetLog = (userId?: string) => {
     }
   };
   
+  const deleteSheetLogsForDraw = async (draw: string, date: Date) => {
+    if (!userId) return;
+    
+    const dateStr = format(date, 'yyyy-MM-dd');
+
+    try {
+      const q = query(
+        collection(firestore, `users/${userId}/sheetLogs`),
+        where("draw", "==", draw)
+      );
+      const querySnapshot = await getDocs(q);
+      
+      const logsForDate = querySnapshot.docs.filter(d => isSameDay(new Date(d.data().date), date));
+
+      if (logsForDate.length === 0) {
+        toast({ title: "No Data", description: `No sheet data found for draw ${draw} on this date.` });
+        return;
+      }
+
+      const batch = writeBatch(firestore);
+      logsForDate.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+
+      toast({ title: "Success", description: `Cleared all sheet data for draw ${draw} on ${dateStr}.` });
+    } catch (e) {
+      console.error("Error clearing draw sheet logs: ", e);
+      toast({ title: "Error", description: `Could not clear sheet data for draw ${draw}.`, variant: "destructive" });
+    }
+  };
+
   const getPreviousDataForClient = (clientId: string, draw: string, dateStr: string) => {
     if (!sheetLogData) return undefined;
     const log = sheetLogData.find(l => l.clientId === clientId && l.draw === draw && l.date === dateStr);
     return log?.data;
   };
 
-  return { savedSheetLog, isLoading, error, addSheetLogEntry, deleteSheetLogsForClient, getPreviousDataForClient };
+  return { savedSheetLog, isLoading, error, addSheetLogEntry, deleteSheetLogsForClient, getPreviousDataForClient, deleteSheetLogsForDraw };
 };
+
+    

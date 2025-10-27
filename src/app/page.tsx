@@ -8,7 +8,7 @@ import ClientsManager from "@/components/clients-manager"
 import AccountsManager, { Account, DrawData } from "@/components/accounts-manager"
 import LedgerRecord from "@/components/ledger-record"
 import AdminPanel from "@/components/admin-panel"
-import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, FileSpreadsheet, Shield, PlusCircle } from 'lucide-react';
+import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, FileSpreadsheet, Shield, PlusCircle, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
@@ -16,6 +16,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { format, isSameDay, isToday } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
@@ -72,15 +73,44 @@ export default function Home() {
   const { user, isUserLoading } = useUser();
 
   const { clients, addClient, updateClient, deleteClient, handleClientTransaction, clearClientData } = useClients(user?.uid);
-  const { savedSheetLog, addSheetLogEntry } = useSheetLog(user?.uid);
+  const { savedSheetLog, addSheetLogEntry, deleteSheetLogsForDraw } = useSheetLog(user?.uid);
   const { declaredNumbers, setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber, setDeclaredNumberLocal } = useDeclaredNumbers(user?.uid);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [displayedDraws, setDisplayedDraws] = useState<string[]>([]);
+  const [drawToDelete, setDrawToDelete] = useState<{ draw: string; date: Date } | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setDate(new Date());
     }
   }, []);
+  
+  useEffect(() => {
+    if (date) {
+        const activeDrawsForDay = new Set<string>();
+        Object.entries(savedSheetLog).forEach(([drawName, logs]) => {
+            if (logs.some(log => isSameDay(new Date(log.date), date))) {
+                activeDrawsForDay.add(drawName);
+            }
+        });
+        
+        const sortedDraws = [...draws].sort((a, b) => {
+            const aIsActive = activeDrawsForDay.has(a);
+            const bIsActive = activeDrawsForDay.has(b);
+            if (aIsActive && !bIsActive) return -1;
+            if (!aIsActive && bIsActive) return 1;
+            return 0; // Keep original order among active/inactive groups
+        });
+
+        const hasAnyLogs = Object.values(savedSheetLog).some(logs => logs.length > 0);
+
+        if (!hasAnyLogs) {
+            setDisplayedDraws(draws); // Show all draws if no logs exist at all
+        } else {
+            setDisplayedDraws(Array.from(activeDrawsForDay));
+        }
+    }
+  }, [date, savedSheetLog]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -143,7 +173,7 @@ export default function Home() {
     });
 
     setAccounts(newAccounts);
-}, [clients, savedSheetLog, declaredNumbers, date, getDeclaredNumber]);
+}, [clients, savedSheetLog, getDeclaredNumber, date]);
 
 
   useEffect(() => {
@@ -228,6 +258,13 @@ export default function Home() {
       toast({ title: "Success", description: `Result undeclared for draw ${declarationDraw}.` });
     }
     setDeclarationDialogOpen(false);
+  };
+
+  const handleDeleteDrawSheets = () => {
+    if (drawToDelete && user?.uid) {
+        deleteSheetLogsForDraw(drawToDelete.draw, drawToDelete.date);
+    }
+    setDrawToDelete(null);
   };
   
 
@@ -342,13 +379,25 @@ export default function Home() {
                     </DropdownMenu>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4">
-                    {draws.map((draw) => {
+                    {displayedDraws.map((draw) => {
                       const declaredNumberForDate = getDeclaredNumber(draw, date) || '';
 
                       return (
-                      <div key={draw} className="flex flex-col gap-1">
+                      <div key={draw} className="flex flex-col gap-1 relative group">
                           <Button onClick={() => handleSelectDraw(draw)} className="h-16 sm:h-20 text-lg sm:text-xl font-bold bg-gradient-to-br from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white shadow-lg">
                             {draw}
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if(date) setDrawToDelete({ draw, date });
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            <span className="sr-only">Delete {draw} sheets</span>
                           </Button>
                            <Input
                               type="text"
@@ -413,8 +462,25 @@ export default function Home() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!drawToDelete} onOpenChange={() => setDrawToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all saved sheets for draw <strong className="font-bold">{drawToDelete?.draw}</strong> on <strong className="font-bold">{drawToDelete ? format(drawToDelete.date, 'PPP') : ''}</strong>. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteDrawSheets}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
+    
 
     
