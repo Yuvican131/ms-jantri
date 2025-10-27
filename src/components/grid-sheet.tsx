@@ -1181,7 +1181,7 @@ const handleHarupApply = () => {
         <CardContent className="p-2 flex-grow flex flex-col min-h-0">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-2 flex-grow min-h-0">
             <div className="flex flex-col min-w-0 h-full">
-               <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${GRID_ROWS + 1}, minmax(0, 1fr))`}}>
+               <div className="grid gap-0.5 w-full flex-grow grid-sheet-layout">
                 {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                   <React.Fragment key={`row-${rowIndex}`}>
                     {Array.from({ length: GRID_COLS }, (_, colIndex) => {
@@ -1190,12 +1190,12 @@ const handleHarupApply = () => {
                         const isUpdated = updatedCells.includes(key);
 
                         return (
-                            <div key={key} className="relative flex items-center border rounded-sm" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                               <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
+                            <div key={key} className="relative flex items-center border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+                               <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
                               <Input
                                   type="text"
-                                  style={{ fontSize: 'clamp(0.7rem, 1.5vh, 1rem)', color: 'var(--grid-cell-amount-color)' }}
-                                  className={`p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold focus:ring-2 focus:z-10 focus:ring-var(--grid-cell-focus-ring-color) ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                                  className={`p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold focus:ring-2 focus:z-10 focus:ring-var(--grid-cell-focus-ring-color) grid-cell-input ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                                  style={{ color: 'var(--grid-cell-amount-color)' }}
                                   value={currentData[key] || ''}
                                   onChange={(e) => handleCellChange(key, e.target.value)}
                                   onBlur={() => handleCellBlur(key)}
@@ -1222,18 +1222,18 @@ const handleHarupApply = () => {
                             </div>
                         )
                     })}
-                     <div className="flex items-center justify-center font-medium border rounded-sm bg-transparent" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                      <Input readOnly value={rowTotals[rowIndex] ? formatNumber(rowTotals[rowIndex]) : ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent" style={{ fontSize: 'clamp(0.6rem, 1.2vh, 0.8rem)', color: 'var(--grid-cell-total-color)' }}/>
+                     <div className="flex items-center justify-center font-medium border rounded-sm bg-transparent grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+                      <Input readOnly value={rowTotals[rowIndex] ? formatNumber(rowTotals[rowIndex]) : ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent grid-cell-total" style={{ color: 'var(--grid-cell-total-color)' }}/>
                     </div>
                   </React.Fragment>
                 ))}
                 {/* Column Totals */}
                 {Array.from({ length: GRID_COLS }, (_, colIndex) => (
-                  <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border rounded-sm bg-transparent" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                    <Input readOnly value={columnTotals[colIndex] ? formatNumber(columnTotals[colIndex]) : ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent" style={{ fontSize: 'clamp(0.6rem, 1.2vh, 0.8rem)', color: 'var(--grid-cell-total-color)' }}/>
+                  <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border rounded-sm bg-transparent grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+                    <Input readOnly value={columnTotals[colIndex] ? formatNumber(columnTotals[colIndex]) : ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent grid-cell-total" style={{ color: 'var(--grid-cell-total-color)' }}/>
                   </div>
                 ))}
-                <div className="flex items-center justify-center font-bold text-lg border rounded-sm" style={{ borderColor: 'var(--grid-cell-border-color)', color: 'var(--grid-cell-total-color)' }}>
+                <div className="flex items-center justify-center font-bold text-lg border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)', color: 'var(--grid-cell-total-color)' }}>
                     {formatNumber(grandTotal)}
                 </div>
               </div>
@@ -1402,7 +1402,7 @@ const handleHarupApply = () => {
       </Dialog>
       
       <Dialog open={isMasterSheetDialogOpen} onOpenChange={setIsMasterSheetDialogOpen}>
-        <DialogContent className="max-w-full w-full h-full max-h-full sm:max-w-full p-0">
+        <DialogContent className="max-w-full w-full h-full max-h-screen sm:max-w-7xl p-0">
           <DialogHeader className="flex-row items-center p-4 border-b">
             <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="mr-2">
                 <ArrowLeft className="h-4 w-4" />
@@ -1451,3 +1451,5 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    

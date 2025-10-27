@@ -25,7 +25,7 @@ import { useSheetLog, type SavedSheetInfo } from "@/hooks/useSheetLog"
 import { useDeclaredNumbers } from "@/hooks/useDeclaredNumbers"
 import type { Client } from "@/hooks/useClients"
 import { useUser } from "@/firebase"
-import { initiateAnonymousSignIn } from "@/firebase"
+import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login"
 import { useAuth } from "@/firebase"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -91,24 +91,16 @@ export default function Home() {
   useEffect(() => {
     if (date) {
         const activeDrawsForDay = new Set<string>();
-        Object.entries(savedSheetLog).forEach(([drawName, logs]) => {
-            if (logs.some(log => isSameDay(new Date(log.date), date))) {
-                activeDrawsForDay.add(drawName);
+        Object.values(savedSheetLog).flat().forEach(log => {
+            if (isSameDay(new Date(log.date), date)) {
+                activeDrawsForDay.add(log.draw);
             }
         });
         
-        const sortedDraws = [...draws].sort((a, b) => {
-            const aIsActive = activeDrawsForDay.has(a);
-            const bIsActive = activeDrawsForDay.has(b);
-            if (aIsActive && !bIsActive) return -1;
-            if (!aIsActive && bIsActive) return 1;
-            return 0; // Keep original order among active/inactive groups
-        });
-
         const hasAnyLogs = Object.values(savedSheetLog).some(logs => logs.length > 0);
 
         if (!hasAnyLogs) {
-            setDisplayedDraws(draws); // Show all draws if no logs exist at all
+            setDisplayedDraws(draws);
         } else {
             setDisplayedDraws(Array.from(activeDrawsForDay));
         }
@@ -272,24 +264,24 @@ export default function Home() {
   
   const TabListContent = () => (
     <TabsList className={cn("grid w-full grid-cols-5 p-0.5 gap-0.5", !isMobile && "md:w-auto")}>
-      <TabsTrigger value="sheet" className="gap-1 rounded-sm">
-        <GridIcon className="h-4 w-4" />
+      <TabsTrigger value="sheet" className="gap-1 rounded-sm h-12 md:h-10">
+        <GridIcon className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">Home</span>
       </TabsTrigger>
-      <TabsTrigger value="clients" className="gap-1 rounded-sm">
-        <Users className="h-4 w-4" />
+      <TabsTrigger value="clients" className="gap-1 rounded-sm h-12 md:h-10">
+        <Users className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">CLIENTS</span>
       </TabsTrigger>
-      <TabsTrigger value="accounts" className="gap-1 rounded-sm">
-        <Building className="h-4 w-4" />
+      <TabsTrigger value="accounts" className="gap-1 rounded-sm h-12 md:h-10">
+        <Building className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">ACCOUNT LEDGER</span>
       </TabsTrigger>
-      <TabsTrigger value="ledger-record" className="gap-1 rounded-sm">
-        <FileSpreadsheet className="h-4 w-4" />
+      <TabsTrigger value="ledger-record" className="gap-1 rounded-sm h-12 md:h-10">
+        <FileSpreadsheet className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">Client Performance</span>
       </TabsTrigger>
-      <TabsTrigger value="admin-panel" className="gap-1 rounded-sm">
-        <Shield className="h-4 w-4" />
+      <TabsTrigger value="admin-panel" className="gap-1 rounded-sm h-12 md:h-10">
+        <Shield className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">Admin Panel</span>
       </TabsTrigger>
     </TabsList>
@@ -396,7 +388,7 @@ export default function Home() {
 
                       return (
                       <div key={draw} className="flex flex-col gap-1 relative group">
-                          <Button onClick={() => handleSelectDraw(draw)} className="h-16 sm:h-20 text-lg sm:text-xl font-bold bg-gradient-to-br from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white shadow-lg">
+                          <Button onClick={() => handleSelectDraw(draw)} className="h-20 text-xl font-bold bg-gradient-to-br from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white shadow-lg md:h-24 md:text-2xl">
                             {draw}
                           </Button>
                           <Button
@@ -414,7 +406,7 @@ export default function Home() {
                            <Input
                               type="text"
                               placeholder="00"
-                              className="w-full h-8 text-center"
+                              className="w-full h-10 text-center text-lg md:h-8"
                               maxLength={2}
                               value={declaredNumberForDate}
                               onChange={(e) => {
@@ -492,7 +484,5 @@ export default function Home() {
     </div>
   );
 }
-
-    
 
     
