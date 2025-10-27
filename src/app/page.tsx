@@ -8,7 +8,7 @@ import ClientsManager from "@/components/clients-manager"
 import AccountsManager, { Account, DrawData } from "@/components/accounts-manager"
 import LedgerRecord from "@/components/ledger-record"
 import AdminPanel from "@/components/admin-panel"
-import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, FileSpreadsheet, Shield } from 'lucide-react';
+import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, FileSpreadsheet, Shield, PlusCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
@@ -25,6 +25,7 @@ import type { Client } from "@/hooks/useClients"
 import { useUser } from "@/firebase"
 import { initiateAnonymousSignIn } from "@/firebase"
 import { useAuth } from "@/firebase"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 function GridIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -73,7 +74,6 @@ export default function Home() {
   const { savedSheetLog, addSheetLogEntry } = useSheetLog(user?.uid);
   const { declaredNumbers, setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber, setDeclaredNumberLocal } = useDeclaredNumbers(user?.uid);
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [displayedDraws, setDisplayedDraws] = useState<string[]>(draws);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -86,42 +86,6 @@ export default function Home() {
       initiateAnonymousSignIn(auth);
     }
   }, [isUserLoading, user, auth]);
-
-  useEffect(() => {
-    if (date) {
-      if (Object.keys(savedSheetLog).length === 0) {
-        setDisplayedDraws(draws);
-        return;
-      }
-  
-      const activeDrawsForDate = new Set<string>();
-      Object.entries(savedSheetLog).forEach(([drawName, logs]) => {
-        const hasEntryForDate = logs.some(log => isSameDay(parseISO(log.date), date));
-        if (hasEntryForDate) {
-          activeDrawsForDate.add(drawName);
-        }
-      });
-  
-      const sortedDraws = [...draws].sort((a, b) => {
-        const aIsActive = activeDrawsForDate.has(a);
-        const bIsActive = activeDrawsForDate.has(b);
-        if (aIsActive && !bIsActive) return -1;
-        if (!aIsActive && bIsActive) return 1;
-        return 0;
-      });
-  
-      const visibleDraws = sortedDraws.filter(drawName => savedSheetLog[drawName] && savedSheetLog[drawName].length > 0);
-      
-      // If no draws have any data, show the default list. Otherwise, show the sorted/filtered list.
-      if (visibleDraws.length > 0) {
-        setDisplayedDraws(visibleDraws);
-      } else {
-         // Fallback to all draws if the filtering results in an empty list, but logs exist for other dates.
-        setDisplayedDraws(draws);
-      }
-    }
-  }, [date, savedSheetLog]);
-
 
   const updateAccountsFromLog = useCallback(() => {
     const selectedDate = date || new Date();
@@ -357,9 +321,24 @@ export default function Home() {
                         />
                       </PopoverContent>
                     </Popover>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button>
+                          <PlusCircle className="mr-2 h-4 w-4" />
+                          Create Sheet
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        {draws.map(draw => (
+                          <DropdownMenuItem key={draw} onClick={() => handleSelectDraw(draw)}>
+                            {draw}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4">
-                    {displayedDraws.map((draw) => {
+                    {draws.map((draw) => {
                       const declaredNumberForDate = getDeclaredNumber(draw, date) || '';
 
                       return (
@@ -433,9 +412,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
-
-    
-
-    
