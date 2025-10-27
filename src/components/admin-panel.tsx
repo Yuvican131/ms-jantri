@@ -134,7 +134,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
             clientsToProcess.forEach(client => {
                 let clientGameTotalForDay = 0;
                 let clientPassingAmountForDay = 0;
-                const clientCommPercent = parseFloat(client.comm) / 100;
+                const clientCommPercent = (client.comm && !isNaN(parseFloat(client.comm))) ? parseFloat(client.comm) / 100 : 0;
                 const clientPairRate = parseFloat(client.pair) || defaultClientPair;
 
                 Object.entries(savedSheetLog).forEach(([drawName, logs]) => {
@@ -152,7 +152,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                 });
 
                 if (clientGameTotalForDay > 0) {
-                    const clientCommission = clientGameTotalForDay * (isNaN(clientCommPercent) ? 0 : clientCommPercent);
+                    const clientCommission = clientGameTotalForDay * clientCommPercent;
                     const clientNet = clientGameTotalForDay - clientCommission;
                     const clientWinnings = clientPassingAmountForDay * clientPairRate;
                     const clientPayable = clientNet - clientWinnings;
@@ -202,7 +202,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-4 border rounded-lg bg-muted/50">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 border rounded-lg bg-muted/50">
                 <div className="space-y-2">
                     <Label htmlFor="upper-comm">Upper Broker Comm (%)</Label>
                     <Input 

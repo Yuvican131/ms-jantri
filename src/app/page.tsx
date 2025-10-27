@@ -28,6 +28,8 @@ import { useUser } from "@/firebase"
 import { initiateAnonymousSignIn } from "@/firebase"
 import { useAuth } from "@/firebase"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 function GridIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -71,6 +73,7 @@ export default function Home() {
   
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
+  const isMobile = useIsMobile();
 
   const { clients, addClient, updateClient, deleteClient, handleClientTransaction, clearClientData } = useClients(user?.uid);
   const { savedSheetLog, addSheetLogEntry, deleteSheetLogsForDraw } = useSheetLog(user?.uid);
@@ -267,6 +270,30 @@ export default function Home() {
     setDrawToDelete(null);
   };
   
+  const TabListContent = () => (
+    <TabsList className={cn("grid w-full grid-cols-5 p-0.5 gap-0.5", !isMobile && "md:w-auto")}>
+      <TabsTrigger value="sheet" className="gap-1 rounded-sm">
+        <GridIcon className="h-4 w-4" />
+        <span className="hidden md:inline">Home</span>
+      </TabsTrigger>
+      <TabsTrigger value="clients" className="gap-1 rounded-sm">
+        <Users className="h-4 w-4" />
+        <span className="hidden md:inline">CLIENTS</span>
+      </TabsTrigger>
+      <TabsTrigger value="accounts" className="gap-1 rounded-sm">
+        <Building className="h-4 w-4" />
+        <span className="hidden md:inline">ACCOUNT LEDGER</span>
+      </TabsTrigger>
+      <TabsTrigger value="ledger-record" className="gap-1 rounded-sm">
+        <FileSpreadsheet className="h-4 w-4" />
+        <span className="hidden md:inline">Client Performance</span>
+      </TabsTrigger>
+      <TabsTrigger value="admin-panel" className="gap-1 rounded-sm">
+        <Shield className="h-4 w-4" />
+        <span className="hidden md:inline">Admin Panel</span>
+      </TabsTrigger>
+    </TabsList>
+  );
 
   if (isUserLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -276,30 +303,16 @@ export default function Home() {
     <div className="flex h-screen w-full flex-col bg-background">
       <main className="flex-1 p-2 flex flex-col min-h-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col min-h-0">
-          <div className="flex items-center justify-between pb-1.5">
-            <div className="flex items-center">
-              <TabsList className="grid grid-cols-5 md:w-auto p-0.5 gap-0.5">
-                <TabsTrigger value="sheet" className="gap-1 rounded-sm">
-                  <GridIcon className="h-4 w-4" />
-                  Home
-                </TabsTrigger>
-                <TabsTrigger value="clients" className="gap-1 rounded-sm">
-                  <Users className="h-4 w-4" />
-                  CLIENTS
-                </TabsTrigger>
-                <TabsTrigger value="accounts" className="gap-1 rounded-sm">
-                  <Building className="h-4 w-4" />
-                  ACCOUNT LEDGER
-                </TabsTrigger>
-                <TabsTrigger value="ledger-record" className="gap-1 rounded-sm">
-                  <FileSpreadsheet className="h-4 w-4" />
-                  Client Performance
-                </TabsTrigger>
-                <TabsTrigger value="admin-panel" className="gap-1 rounded-sm">
-                  <Shield className="h-4 w-4" />
-                  Admin Panel
-                </TabsTrigger>
-              </TabsList>
+          <div className="flex items-center justify-between pb-1.5 flex-wrap gap-2">
+            <div className="flex items-center flex-grow">
+              {isMobile ? (
+                  <ScrollArea className="w-full whitespace-nowrap">
+                      <TabListContent />
+                  </ScrollArea>
+              ) : (
+                  <TabListContent />
+              )}
+            </div>
                {selectedInfo && activeTab === 'sheet' && (
                  <div className="flex items-center">
                     <Button onClick={handleBackToDraws} variant="ghost" className="ml-2">
@@ -312,7 +325,6 @@ export default function Home() {
                     </Button>
                 </div>
               )}
-            </div>
           </div>
           <TabsContent value="sheet" className="flex-1 flex flex-col min-h-0">
             {selectedInfo && date ? (

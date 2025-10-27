@@ -13,6 +13,7 @@ import type { Client } from "./clients-manager"
 import { useToast } from "@/hooks/use-toast"
 import { formatNumber } from "@/lib/utils"
 import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy } from 'lucide-react';
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 
 export type DrawData = {
@@ -134,13 +135,15 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
                         
                         {hasActiveDraws ? (
                           <Tabs defaultValue={draws[0]} className="w-full">
-                            <TabsList className="grid w-full grid-cols-6 h-auto">
-                              {draws.map(draw => (
-                                <TabsTrigger key={draw} value={draw} className="text-xs px-1">
-                                  {draw}
-                                </TabsTrigger>
-                              ))}
-                            </TabsList>
+                            <ScrollArea>
+                                <TabsList className="grid w-full grid-cols-6 h-auto">
+                                  {draws.map(draw => (
+                                    <TabsTrigger key={draw} value={draw} className="text-xs px-1">
+                                      {draw}
+                                    </TabsTrigger>
+                                  ))}
+                                </TabsList>
+                            </ScrollArea>
                             {draws.map(draw => (
                               <TabsContent key={draw} value={draw}>
                                 <DrawDetailsPanel 

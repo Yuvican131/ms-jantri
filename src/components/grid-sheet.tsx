@@ -1191,10 +1191,10 @@ const handleHarupApply = () => {
 
                         return (
                             <div key={key} className="relative flex items-center border rounded-sm" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                               <div className="absolute top-1 left-1.5 text-xs select-none pointer-events-none z-10" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
+                               <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
                               <Input
                                   type="text"
-                                  style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)', color: 'var(--grid-cell-amount-color)' }}
+                                  style={{ fontSize: 'clamp(0.7rem, 1.5vh, 1rem)', color: 'var(--grid-cell-amount-color)' }}
                                   className={`p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold focus:ring-2 focus:z-10 focus:ring-var(--grid-cell-focus-ring-color) ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : ''}`}
                                   value={currentData[key] || ''}
                                   onChange={(e) => handleCellChange(key, e.target.value)}
@@ -1223,14 +1223,14 @@ const handleHarupApply = () => {
                         )
                     })}
                      <div className="flex items-center justify-center font-medium border rounded-sm bg-transparent" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                      <Input readOnly value={rowTotals[rowIndex] ? formatNumber(rowTotals[rowIndex]) : ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)', color: 'var(--grid-cell-total-color)' }}/>
+                      <Input readOnly value={rowTotals[rowIndex] ? formatNumber(rowTotals[rowIndex]) : ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent" style={{ fontSize: 'clamp(0.6rem, 1.2vh, 0.8rem)', color: 'var(--grid-cell-total-color)' }}/>
                     </div>
                   </React.Fragment>
                 ))}
                 {/* Column Totals */}
                 {Array.from({ length: GRID_COLS }, (_, colIndex) => (
                   <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border rounded-sm bg-transparent" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                    <Input readOnly value={columnTotals[colIndex] ? formatNumber(columnTotals[colIndex]) : ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)', color: 'var(--grid-cell-total-color)' }}/>
+                    <Input readOnly value={columnTotals[colIndex] ? formatNumber(columnTotals[colIndex]) : ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent" style={{ fontSize: 'clamp(0.6rem, 1.2vh, 0.8rem)', color: 'var(--grid-cell-total-color)' }}/>
                   </div>
                 ))}
                 <div className="flex items-center justify-center font-bold text-lg border rounded-sm" style={{ borderColor: 'var(--grid-cell-border-color)', color: 'var(--grid-cell-total-color)' }}>
@@ -1337,7 +1337,7 @@ const handleHarupApply = () => {
                             <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={selectedClientId === null || runningLaddi} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
                             <Label htmlFor="remove-jodda" className={`text-xs ${selectedClientId === null || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Jodda</Label>
                              <Checkbox id="reverse-laddi" checked={reverseLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setReverseLaddi(Boolean(checked)) }} disabled={selectedClientId === null || runningLaddi} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
-                            <Label htmlFor="reverse-laddi" className={`textxs ${selectedClientId === null || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Reverse</Label>
+                            <Label htmlFor="reverse-laddi" className={`text-xs ${selectedClientId === null || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Reverse</Label>
                             <Checkbox id="running-laddi" checked={runningLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRunningLaddi(Boolean(checked)); setLaddiNum1(''); setLaddiNum2(''); }} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
                             <Label htmlFor="running-laddi" className={`text-xs ${selectedClientId === null ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Running</Label>
                         </div>
