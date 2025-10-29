@@ -67,7 +67,7 @@ type ActiveSheet = {
 export default function Home() {
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any, getClientCurrentData: (clientId: string) => any | undefined, getClientPreviousData: (clientId: string) => any | undefined }>(null);
   const [selectedDraw, setSelectedDraw] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [lastEntry, setLastEntry] = useState('');
   const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("sheet");
@@ -119,7 +119,7 @@ export default function Home() {
 
 
   const updateAccountsFromLog = useCallback(() => {
-    const dateForCalc = formSelectedDate;
+    const dateForCalc = selectedDate || new Date();
 
     const allLogs = Object.values(savedSheetLog).flat();
 
@@ -188,7 +188,7 @@ export default function Home() {
     });
 
     setAccounts(newAccounts);
-}, [clients, savedSheetLog, getDeclaredNumber, formSelectedDate]);
+}, [clients, savedSheetLog, getDeclaredNumber, selectedDate]);
 
 
   useEffect(() => {
@@ -257,7 +257,7 @@ export default function Home() {
   };
   
   const handleDeclareOrUndeclare = () => {
-    const dateToUse = new Date();
+    const dateToUse = selectedDate || new Date();
     if (declarationNumber.length === 2) {
       setDeclaredNumber(declarationDraw, declarationNumber, dateToUse);
       toast({ title: "Success", description: `Result processed for draw ${declarationDraw}.` });
@@ -267,7 +267,7 @@ export default function Home() {
   };
   
   const handleUndeclare = () => {
-    const dateToUse = new Date();
+    const dateToUse = selectedDate || new Date();
     removeDeclaredNumber(declarationDraw, dateToUse);
     toast({ title: "Success", description: `Result undeclared for draw ${declarationDraw}.` });
     setIsDeclarationDialogOpen(false);
@@ -442,7 +442,7 @@ export default function Home() {
                              variant="ghost" 
                              size="icon" 
                              className="text-muted-foreground hover:text-primary" 
-                             onClick={() => { setDeclarationDraw(sheet.draw); setIsDeclarationDialogOpen(true); }}>
+                             onClick={() => { setDeclarationDraw(sheet.draw); setSelectedDate(sheet.date); setIsDeclarationDialogOpen(true); }}>
                              <Megaphone className="h-5 w-5" />
                            </Button>
                            <Button variant="outline" className="text-primary border-primary hover:bg-primary hover:text-primary-foreground" onClick={() => handleOpenSheet(sheet)}>
@@ -523,7 +523,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
-
-    
