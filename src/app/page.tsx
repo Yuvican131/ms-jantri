@@ -67,14 +67,14 @@ type ActiveSheet = {
 export default function Home() {
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any, getClientCurrentData: (clientId: string) => any | undefined, getClientPreviousData: (clientId: string) => any | undefined }>(null);
   const [selectedDraw, setSelectedDraw] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [lastEntry, setLastEntry] = useState('');
   const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("sheet");
 
-  const [declarationDialogOpen, setDeclarationDialogOpen] = useState(false);
   const [declarationDraw, setDeclarationDraw] = useState("");
   const [declarationNumber, setDeclarationNumber] = useState("");
+  const [isDeclarationDialogOpen, setIsDeclarationDialogOpen] = useState(false);
   const { toast } = useToast();
   
   const auth = useAuth();
@@ -89,6 +89,7 @@ export default function Home() {
   
   const [formSelectedDraw, setFormSelectedDraw] = useState<string | null>(null);
   const [activeSheets, setActiveSheets] = useState<ActiveSheet[]>([]);
+  const [formSelectedDate, setFormSelectedDate] = useState<Date>(new Date());
 
 
   useEffect(() => {
@@ -106,20 +107,19 @@ export default function Home() {
 
     const activeSheetsFromLogs = Array.from(allUsedDraws).map(draw => ({
         draw,
-        date: selectedDate, // Use the currently selected date
+        date: new Date(),
     }));
     
-    // Only show draws that have existing data.
     if (allUsedDraws.size === 0) {
       setActiveSheets([]);
     } else {
       setActiveSheets(activeSheetsFromLogs);
     }
-  }, [savedSheetLog, selectedDate]);
+  }, [savedSheetLog]);
 
 
   const updateAccountsFromLog = useCallback(() => {
-    const dateForCalc = selectedDate;
+    const dateForCalc = formSelectedDate;
 
     const allLogs = Object.values(savedSheetLog).flat();
 
@@ -188,7 +188,7 @@ export default function Home() {
     });
 
     setAccounts(newAccounts);
-}, [clients, savedSheetLog, getDeclaredNumber, selectedDate]);
+}, [clients, savedSheetLog, getDeclaredNumber, formSelectedDate]);
 
 
   useEffect(() => {
@@ -204,7 +204,7 @@ export default function Home() {
   
   const handleAddSheet = () => {
     if(formSelectedDraw) {
-        const newSheet: ActiveSheet = { draw: formSelectedDraw, date: new Date() };
+        const newSheet: ActiveSheet = { draw: formSelectedDraw, date: formSelectedDate };
         if (!activeSheets.some(s => s.draw === newSheet.draw && isSameDay(s.date, newSheet.date))) {
             setActiveSheets(prev => [...prev, newSheet]);
         }
@@ -220,8 +220,8 @@ export default function Home() {
     setSelectedDraw(null);
   };
   
-  const handleClientSheetSave = (clientName: string, clientId: string, newData: { [key: string]: string }, draw: string, entryDate: Date) => {
-    const todayStr = entryDate.toISOString().split('T')[0];
+  const handleClientSheetSave = (clientName: string, clientId: string, newData: { [key: string]: string }, draw: string, date: Date) => {
+    const todayStr = date.toISOString().split('T')[0];
 
     const existingLog = (savedSheetLog[draw] || []).find(log => log.clientId === clientId && log.date === todayStr);
 
@@ -262,7 +262,7 @@ export default function Home() {
       setDeclaredNumber(declarationDraw, declarationNumber, dateToUse);
       toast({ title: "Success", description: `Result processed for draw ${declarationDraw}.` });
     }
-    setDeclarationDialogOpen(false);
+    setIsDeclarationDialogOpen(false);
     setDeclarationNumber("");
   };
   
@@ -270,7 +270,7 @@ export default function Home() {
     const dateToUse = new Date();
     removeDeclaredNumber(declarationDraw, dateToUse);
     toast({ title: "Success", description: `Result undeclared for draw ${declarationDraw}.` });
-    setDeclarationDialogOpen(false);
+    setIsDeclarationDialogOpen(false);
     setDeclarationNumber("");
   };
 
@@ -311,7 +311,7 @@ export default function Home() {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
-  const isSheetAlreadyAdded = activeSheets.some(s => s.draw === formSelectedDraw && isSameDay(s.date, new Date()));
+  const isSheetAlreadyAdded = activeSheets.some(s => s.draw === formSelectedDraw && isSameDay(s.date, formSelectedDate));
 
 
   return (
@@ -342,7 +342,7 @@ export default function Home() {
               )}
           </div>
           <TabsContent value="sheet" className="flex-1 flex flex-col min-h-0">
-            {selectedDraw ? (
+            {selectedDraw && selectedDate ? (
               <GridSheet 
                 ref={gridSheetRef} 
                 draw={selectedDraw} 
@@ -359,35 +359,65 @@ export default function Home() {
               />
             ) : (
               <div className="flex flex-col items-center justify-start w-full h-full pt-8 space-y-8">
-                <div className="w-full max-w-xl">
-                  <Card className="p-4">
-                    <CardHeader className="p-2">
-                      <CardTitle className="text-lg">Create or Open a Sheet</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-2">
-                        <div className="flex items-center w-full p-2 border border-primary rounded-lg">
-                            <Select onValueChange={setFormSelectedDraw} value={formSelectedDraw || undefined}>
-                                <SelectTrigger className="flex-grow border-none focus:ring-0">
-                                    <SelectValue placeholder="Select Draw..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {draws.map(draw => (
-                                        <SelectItem key={draw} value={draw}>{draw}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <Button onClick={handleAddSheet} className="ml-2" disabled={!formSelectedDraw || isSheetAlreadyAdded}>
-                              <PlusCircle className="mr-2 h-4 w-4" /> Create
-                            </Button>
-                        </div>
-                        {isSheetAlreadyAdded && (
-                          <p className="text-sm text-center text-muted-foreground pt-2">This sheet has already been added.</p>
-                        )}
-                    </CardContent>
-                  </Card>
+                <div className="w-full max-w-2xl">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Create or Open a Sheet</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                                <div className="space-y-2">
+                                    <Label htmlFor="form-draw-select">Select a Draw</Label>
+                                    <Select onValueChange={setFormSelectedDraw} value={formSelectedDraw || undefined}>
+                                        <SelectTrigger id="form-draw-select">
+                                            <SelectValue placeholder="Select Draw..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {draws.map(draw => (
+                                                <SelectItem key={draw} value={draw}>{draw}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                 <div className="space-y-2">
+                                  <Label>Pick a date</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant={"outline"}
+                                                className={cn(
+                                                    "w-full justify-start text-left font-normal",
+                                                    !formSelectedDate && "text-muted-foreground"
+                                                )}
+                                            >
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {formSelectedDate ? format(formSelectedDate, "PPP") : <span>Pick a date</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0">
+                                            <Calendar
+                                                mode="single"
+                                                selected={formSelectedDate}
+                                                onSelect={(date) => date && setFormSelectedDate(date)}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                            </div>
+                            <div className="mt-4">
+                                <Button onClick={handleAddSheet} className="w-full" disabled={!formSelectedDraw || !formSelectedDate || isSheetAlreadyAdded}>
+                                  <PlusCircle className="mr-2 h-4 w-4" /> Add Sheet
+                                </Button>
+                            </div>
+                            {isSheetAlreadyAdded && (
+                              <p className="text-sm text-center text-muted-foreground pt-2">This sheet has already been added.</p>
+                            )}
+                        </CardContent>
+                    </Card>
                 </div>
 
-                <div className="w-full max-w-xl">
+                <div className="w-full max-w-2xl">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-semibold text-foreground">Recent Sheets</h2>
                   </div>
@@ -399,20 +429,20 @@ export default function Home() {
                         className="flex items-center justify-between p-3 cursor-pointer transition-colors hover:bg-muted/50"
                       >
                         <div className="flex items-center gap-4" onClick={() => handleOpenSheet(sheet)}>
-                           <div className="flex items-center justify-center h-8 w-8 rounded-full border-2 border-primary text-primary font-bold">
-                              {index + 1}
+                           <div className="flex items-center justify-center h-10 w-10 rounded-full border-2 border-primary text-primary font-bold text-lg">
+                              {sheet.draw}
                            </div>
                            <div>
-                              <p className="font-semibold text-foreground">{sheet.draw}</p>
+                              <p className="font-semibold text-foreground">Draw: {sheet.draw}</p>
                               <p className="text-sm text-muted-foreground">{format(sheet.date, "dd-MM-yyyy")}</p>
                            </div>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
                            <Button 
                              variant="ghost" 
                              size="icon" 
                              className="text-muted-foreground hover:text-primary" 
-                             onClick={() => { setDeclarationDraw(sheet.draw); setDeclarationDialogOpen(true); }}>
+                             onClick={() => { setDeclarationDraw(sheet.draw); setIsDeclarationDialogOpen(true); }}>
                              <Megaphone className="h-5 w-5" />
                            </Button>
                            <Button variant="outline" className="text-primary border-primary hover:bg-primary hover:text-primary-foreground" onClick={() => handleOpenSheet(sheet)}>
@@ -453,7 +483,7 @@ export default function Home() {
         </Tabs>
       </main>
 
-       <Dialog open={declarationDialogOpen} onOpenChange={setDeclarationDialogOpen}>
+       <Dialog open={isDeclarationDialogOpen} onOpenChange={setIsDeclarationDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Declare Result for Draw {declarationDraw}</DialogTitle>
@@ -493,5 +523,7 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
