@@ -280,24 +280,24 @@ export default function Home() {
   };
   
   const TabListContent = () => (
-    <TabsList className={cn("grid w-full grid-cols-5 p-0.5 gap-0.5", !isMobile && "md:w-auto")}>
-      <TabsTrigger value="sheet" className="gap-1 rounded-sm h-14 md:h-10">
+    <TabsList className={cn("grid w-full grid-cols-5", !isMobile && "md:w-auto")}>
+      <TabsTrigger value="sheet" className="gap-1.5 h-14 md:h-auto">
         <GridIcon className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">Home</span>
       </TabsTrigger>
-      <TabsTrigger value="clients" className="gap-1 rounded-sm h-14 md:h-10">
+      <TabsTrigger value="clients" className="gap-1.5 h-14 md:h-auto">
         <Users className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">CLIENTS</span>
       </TabsTrigger>
-      <TabsTrigger value="accounts" className="gap-1 rounded-sm h-14 md:h-10">
+      <TabsTrigger value="accounts" className="gap-1.5 h-14 md:h-auto">
         <Building className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">ACCOUNT LEDGER</span>
       </TabsTrigger>
-      <TabsTrigger value="ledger-record" className="gap-1 rounded-sm h-14 md:h-10">
+      <TabsTrigger value="ledger-record" className="gap-1.5 h-14 md:h-auto">
         <FileSpreadsheet className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">Client Performance</span>
       </TabsTrigger>
-      <TabsTrigger value="admin-panel" className="gap-1 rounded-sm h-14 md:h-10">
+      <TabsTrigger value="admin-panel" className="gap-1.5 h-14 md:h-auto">
         <Shield className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">Admin Panel</span>
       </TabsTrigger>
@@ -496,5 +496,7 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
