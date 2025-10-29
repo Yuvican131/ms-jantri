@@ -204,7 +204,7 @@ export default function Home() {
   
   const handleAddSheet = () => {
     if(formSelectedDraw) {
-        const newSheet: ActiveSheet = { draw: formSelectedDraw, date: selectedDate };
+        const newSheet: ActiveSheet = { draw: formSelectedDraw, date: new Date() };
         if (!activeSheets.some(s => s.draw === newSheet.draw && isSameDay(s.date, newSheet.date))) {
             setActiveSheets(prev => [...prev, newSheet]);
         }
@@ -257,8 +257,8 @@ export default function Home() {
   };
   
   const handleDeclareOrUndeclare = () => {
-    const dateToUse = selectedDate;
-    if (declarationNumber.length === 2 && dateToUse) {
+    const dateToUse = new Date();
+    if (declarationNumber.length === 2) {
       setDeclaredNumber(declarationDraw, declarationNumber, dateToUse);
       toast({ title: "Success", description: `Result processed for draw ${declarationDraw}.` });
     }
@@ -267,11 +267,9 @@ export default function Home() {
   };
   
   const handleUndeclare = () => {
-    const dateToUse = selectedDate;
-    if (dateToUse) {
-      removeDeclaredNumber(declarationDraw, dateToUse);
-      toast({ title: "Success", description: `Result undeclared for draw ${declarationDraw}.` });
-    }
+    const dateToUse = new Date();
+    removeDeclaredNumber(declarationDraw, dateToUse);
+    toast({ title: "Success", description: `Result undeclared for draw ${declarationDraw}.` });
     setDeclarationDialogOpen(false);
     setDeclarationNumber("");
   };
@@ -279,6 +277,7 @@ export default function Home() {
   const handleDeleteDrawSheets = () => {
     if (drawToDelete && user?.uid) {
         deleteSheetLogsForDraw(drawToDelete.draw, drawToDelete.date);
+        setActiveSheets(prev => prev.filter(s => !(s.draw === drawToDelete.draw && isSameDay(s.date, drawToDelete.date))));
     }
     setDrawToDelete(null);
   };
@@ -312,7 +311,7 @@ export default function Home() {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
-  const isSheetAlreadyAdded = activeSheets.some(s => s.draw === formSelectedDraw && selectedDate && isSameDay(s.date, selectedDate));
+  const isSheetAlreadyAdded = activeSheets.some(s => s.draw === formSelectedDraw && isSameDay(s.date, new Date()));
 
 
   return (
@@ -361,52 +360,36 @@ export default function Home() {
             ) : (
               <div className="flex flex-col items-center justify-start w-full h-full pt-8 space-y-8">
                 <div className="w-full max-w-xl">
-                  <div className="flex items-center w-full p-2 border border-primary rounded-lg">
-                    <Select onValueChange={setFormSelectedDraw} value={formSelectedDraw || undefined}>
-                        <SelectTrigger className="flex-grow border-none focus:ring-0">
-                            <SelectValue placeholder="Select Draw..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {draws.map(draw => (
-                                <SelectItem key={draw} value={draw}>{draw}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Button onClick={handleAddSheet} className="ml-2" disabled={!formSelectedDraw || isSheetAlreadyAdded}>
-                      <PlusCircle className="mr-2 h-4 w-4" /> Create
-                    </Button>
-                  </div>
-                   {isSheetAlreadyAdded && (
-                      <p className="text-sm text-center text-muted-foreground pt-2">This sheet has already been added.</p>
-                  )}
+                  <Card className="p-4">
+                    <CardHeader className="p-2">
+                      <CardTitle className="text-lg">Create or Open a Sheet</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-2">
+                        <div className="flex items-center w-full p-2 border border-primary rounded-lg">
+                            <Select onValueChange={setFormSelectedDraw} value={formSelectedDraw || undefined}>
+                                <SelectTrigger className="flex-grow border-none focus:ring-0">
+                                    <SelectValue placeholder="Select Draw..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {draws.map(draw => (
+                                        <SelectItem key={draw} value={draw}>{draw}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Button onClick={handleAddSheet} className="ml-2" disabled={!formSelectedDraw || isSheetAlreadyAdded}>
+                              <PlusCircle className="mr-2 h-4 w-4" /> Create
+                            </Button>
+                        </div>
+                        {isSheetAlreadyAdded && (
+                          <p className="text-sm text-center text-muted-foreground pt-2">This sheet has already been added.</p>
+                        )}
+                    </CardContent>
+                  </Card>
                 </div>
 
                 <div className="w-full max-w-xl">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-semibold text-foreground">Recent Sheets</h2>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          id="select-date"
-                          variant={"outline"}
-                          className={cn(
-                            "w-[180px] justify-start text-left font-normal",
-                            !selectedDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={selectedDate}
-                          onSelect={(date) => date && setSelectedDate(date)}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
                   </div>
 
                   <div className="space-y-3">
@@ -510,3 +493,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
