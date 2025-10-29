@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { useClients } from "@/hooks/useClients"
@@ -67,7 +68,7 @@ type ActiveSheet = {
 export default function Home() {
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any, getClientCurrentData: (clientId: string) => any | undefined, getClientPreviousData: (clientId: string) => any | undefined }>(null);
   const [selectedDraw, setSelectedDraw] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [lastEntry, setLastEntry] = useState('');
   const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("sheet");
@@ -99,7 +100,7 @@ export default function Home() {
   }, [isUserLoading, user, auth]);
 
   const updateAccountsFromLog = useCallback(() => {
-    const dateForCalc = new Date(); // Always use current date context
+    const dateForCalc = new Date();
 
     const allLogs = Object.values(savedSheetLog).flat();
 
@@ -115,8 +116,6 @@ export default function Home() {
 
         allLogsForClient.forEach(log => {
             const logDate = new Date(log.date);
-            // This calculation part should probably use the date of the log itself for historical balance.
-            // For the daily summary, we should only consider logs up to the start of the currently selected day.
             const selectedDayStart = new Date(dateForCalc);
             selectedDayStart.setHours(0,0,0,0);
             
@@ -339,7 +338,7 @@ export default function Home() {
               )}
           </div>
           <TabsContent value="sheet" className="flex-1 flex flex-col min-h-0">
-            {selectedDraw ? (
+            {selectedDraw && selectedDate ? (
               <GridSheet 
                 ref={gridSheetRef} 
                 draw={selectedDraw} 
@@ -356,54 +355,59 @@ export default function Home() {
               />
             ) : (
               <div className="flex flex-col items-center justify-start w-full h-full pt-8">
-                <Card className="w-full max-w-md mb-8">
+                <Card className="w-full max-w-xl mb-8">
                     <CardHeader>
                         <CardTitle>Create or Open a Sheet</CardTitle>
                         <CardDescription>Select a draw and a date to add it to your dashboard.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Select onValueChange={setFormSelectedDraw}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a Draw" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {draws.map(draw => (
-                                        <SelectItem key={draw} value={draw}>{draw}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                           <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant={"outline"}
-                                  className={cn(
-                                    "w-full justify-start text-left font-normal",
-                                    !formSelectedDate && "text-muted-foreground"
-                                  )}
-                                >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {formSelectedDate ? format(formSelectedDate, "PPP") : <span>Pick a date</span>}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0">
-                                <Calendar
-                                  mode="single"
-                                  selected={formSelectedDate}
-                                  onSelect={(date) => date && setFormSelectedDate(date)}
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="select-draw">Select a Draw</Label>
+                                <Select onValueChange={setFormSelectedDraw} value={formSelectedDraw || undefined}>
+                                    <SelectTrigger id="select-draw">
+                                        <SelectValue placeholder="Select..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {draws.map(draw => (
+                                            <SelectItem key={draw} value={draw}>{draw}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="select-date">Select a Date</Label>
+                               <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      id="select-date"
+                                      variant={"outline"}
+                                      className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !formSelectedDate && "text-muted-foreground"
+                                      )}
+                                    >
+                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      {formSelectedDate ? format(formSelectedDate, "PPP") : <span>Pick a date</span>}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                      mode="single"
+                                      selected={formSelectedDate}
+                                      onSelect={(date) => date && setFormSelectedDate(date)}
+                                      initialFocus
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                            </div>
                         </div>
                         <Button onClick={handleAddSheet} className="w-full" disabled={!formSelectedDraw || !formSelectedDate || isSheetAlreadyAdded}>
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Add Sheet
                         </Button>
                          {isSheetAlreadyAdded && (
-                            <p className="text-sm text-center text-muted-foreground">This sheet has already been added.</p>
+                            <p className="text-sm text-center text-muted-foreground pt-2">This sheet has already been added.</p>
                         )}
                     </CardContent>
                 </Card>
@@ -496,6 +500,8 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
 
