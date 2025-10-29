@@ -60,8 +60,8 @@ const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
 
 export default function Home() {
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any, getClientCurrentData: (clientId: string) => any | undefined, getClientPreviousData: (clientId: string) => any | undefined }>(null);
-  const [selectedInfo, setSelectedInfo] = useState<{ draw: string; date: Date } | null>(null);
-  const [date, setDate] = useState<Date | undefined>();
+  const [selectedDraw, setSelectedDraw] = useState<string | null>(null);
+  const date = new Date();
   const [lastEntry, setLastEntry] = useState('');
   const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("sheet");
@@ -83,17 +83,9 @@ export default function Home() {
   const [drawToDelete, setDrawToDelete] = useState<{ draw: string; date: Date } | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setDate(new Date());
-    }
-  }, []);
-  
-  useEffect(() => {
     const allUsedDraws = new Set<string>();
-    Object.keys(savedSheetLog).forEach(draw => {
-        if (savedSheetLog[draw] && savedSheetLog[draw].length > 0) {
-            allUsedDraws.add(draw);
-        }
+    Object.values(savedSheetLog).flat().forEach(log => {
+      allUsedDraws.add(log.draw);
     });
 
     if (allUsedDraws.size === 0) {
@@ -197,13 +189,11 @@ export default function Home() {
   };
   
   const handleSelectDraw = (draw: string) => {
-    if (date) {
-      setSelectedInfo({ draw, date });
-    }
+    setSelectedDraw(draw);
   };
 
   const handleBackToDraws = () => {
-    setSelectedInfo(null);
+    setSelectedDraw(null);
   };
   
   const handleClientSheetSave = (clientName: string, clientId: string, newData: { [key: string]: string }, draw: string, entryDate: Date) => {
@@ -319,7 +309,7 @@ export default function Home() {
                   <TabListContent />
               )}
             </div>
-               {selectedInfo && activeTab === 'sheet' && (
+               {selectedDraw && activeTab === 'sheet' && (
                  <div className="flex items-center">
                     <Button onClick={handleBackToDraws} variant="ghost" className="ml-2">
                       <ArrowLeft className="mr-2 h-4 w-4" />
@@ -333,10 +323,10 @@ export default function Home() {
               )}
           </div>
           <TabsContent value="sheet" className="flex-1 flex flex-col min-h-0">
-            {selectedInfo && date ? (
+            {selectedDraw ? (
               <GridSheet 
                 ref={gridSheetRef} 
-                draw={selectedInfo.draw} 
+                draw={selectedDraw} 
                 date={date} 
                 lastEntry={lastEntry} 
                 setLastEntry={setLastEntry} 
@@ -344,42 +334,17 @@ export default function Home() {
                 setIsLastEntryDialogOpen={setIsLastEntryDialogOpen}
                 clients={clients}
                 onClientSheetSave={handleClientSheetSave}
-                savedSheetLog={savedSheetLog[selectedInfo.draw] || []}
+                savedSheetLog={savedSheetLog[selectedDraw] || []}
                 accounts={accounts}
                 draws={draws}
               />
             ) : (
               <Card>
                 <CardHeader>
-                  <CardTitle>Select a Date and Draw</CardTitle>
+                  <CardTitle>Select a Draw</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full sm:w-[240px] justify-start text-left font-normal",
-                            !date && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {date ? format(date, "PPP") : <span>Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={date}
-                          onSelect={(d) => d && setDate(d)}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    {date && isToday(date) && (
-                      <Badge variant="outline">Today</Badge>
-                    )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button>
@@ -498,3 +463,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
