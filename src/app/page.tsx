@@ -99,7 +99,7 @@ export default function Home() {
   }, [isUserLoading, user, auth]);
 
   const updateAccountsFromLog = useCallback(() => {
-    const dateForCalc = selectedDate || new Date();
+    const dateForCalc = new Date(); // Always use current date context
 
     const allLogs = Object.values(savedSheetLog).flat();
 
@@ -115,12 +115,13 @@ export default function Home() {
 
         allLogsForClient.forEach(log => {
             const logDate = new Date(log.date);
-            const selectedDateStartOfDay = new Date(dateForCalc);
-            selectedDateStartOfDay.setHours(0, 0, 0, 0);
-
-            if (logDate.getTime() < selectedDateStartOfDay.getTime()) {
+            // This calculation part should probably use the date of the log itself for historical balance.
+            // For the daily summary, we should only consider logs up to the start of the currently selected day.
+            const selectedDayStart = new Date(dateForCalc);
+            selectedDayStart.setHours(0,0,0,0);
+            
+            if (logDate < selectedDayStart) {
                 const declaredNumberForLogDate = getDeclaredNumber(log.draw, logDate);
-                
                 const passingAmountInLog = declaredNumberForLogDate ? parseFloat(log.data[declaredNumberForLogDate] || "0") : 0;
                 
                 const gameTotal = log.gameTotal;
@@ -169,7 +170,7 @@ export default function Home() {
     });
 
     setAccounts(newAccounts);
-}, [clients, savedSheetLog, getDeclaredNumber, selectedDate]);
+}, [clients, savedSheetLog, getDeclaredNumber]);
 
 
   useEffect(() => {
@@ -253,16 +254,18 @@ export default function Home() {
   };
   
   const handleDeclareOrUndeclare = () => {
-    if (declarationNumber.length === 2 && selectedDate) {
-      setDeclaredNumber(declarationDraw, declarationNumber, selectedDate);
+    const dateToUse = selectedDate || new Date();
+    if (declarationNumber.length === 2 && dateToUse) {
+      setDeclaredNumber(declarationDraw, declarationNumber, dateToUse);
       toast({ title: "Success", description: `Result processed for draw ${declarationDraw}.` });
     }
     setDeclarationDialogOpen(false);
   };
   
   const handleUndeclare = () => {
-    if (selectedDate) {
-      removeDeclaredNumber(declarationDraw, selectedDate);
+    const dateToUse = selectedDate || new Date();
+    if (dateToUse) {
+      removeDeclaredNumber(declarationDraw, dateToUse);
       toast({ title: "Success", description: `Result undeclared for draw ${declarationDraw}.` });
     }
     setDeclarationDialogOpen(false);
