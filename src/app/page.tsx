@@ -8,12 +8,12 @@ import ClientsManager from "@/components/clients-manager"
 import AccountsManager, { Account, DrawData } from "@/components/accounts-manager"
 import LedgerRecord from "@/components/ledger-record"
 import AdminPanel from "@/components/admin-panel"
-import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, FileSpreadsheet, Shield, PlusCircle, Trash2, X } from 'lucide-react';
+import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, FileSpreadsheet, Shield, PlusCircle, Trash2, X, RotateCw, Megaphone, ArrowUpRight } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { format, isSameDay, isToday } from "date-fns"
+import { format, isSameDay } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -28,7 +28,6 @@ import type { Client } from "@/hooks/useClients"
 import { useUser } from "@/firebase"
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login"
 import { useAuth } from "@/firebase"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -68,7 +67,7 @@ type ActiveSheet = {
 export default function Home() {
   const gridSheetRef = useRef<{ handleClientUpdate: (client: Client) => void; clearSheet: () => void; getClientData: (clientId: string) => any, getClientCurrentData: (clientId: string) => any | undefined, getClientPreviousData: (clientId: string) => any | undefined }>(null);
   const [selectedDraw, setSelectedDraw] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [lastEntry, setLastEntry] = useState('');
   const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("sheet");
@@ -84,12 +83,11 @@ export default function Home() {
 
   const { clients, addClient, updateClient, deleteClient, handleClientTransaction, clearClientData } = useClients(user?.uid);
   const { savedSheetLog, addSheetLogEntry, deleteSheetLogsForDraw } = useSheetLog(user?.uid);
-  const { declaredNumbers, setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber, setDeclaredNumberLocal } = useDeclaredNumbers(user?.uid);
+  const { declaredNumbers, setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber } = useDeclaredNumbers(user?.uid);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [drawToDelete, setDrawToDelete] = useState<{ draw: string; date: Date } | null>(null);
   
   const [formSelectedDraw, setFormSelectedDraw] = useState<string | null>(null);
-  const [formSelectedDate, setFormSelectedDate] = useState<Date>(new Date());
   const [activeSheets, setActiveSheets] = useState<ActiveSheet[]>([]);
 
 
@@ -98,9 +96,30 @@ export default function Home() {
       initiateAnonymousSignIn(auth);
     }
   }, [isUserLoading, user, auth]);
+  
+  useEffect(() => {
+    // When the component mounts or data changes, determine which draws have entries
+    const allUsedDraws = new Set<string>();
+    Object.values(savedSheetLog).flat().forEach(log => {
+        allUsedDraws.add(log.draw);
+    });
+
+    const activeSheetsFromLogs = Array.from(allUsedDraws).map(draw => ({
+        draw,
+        date: selectedDate, // Use the currently selected date
+    }));
+    
+    // Only show draws that have existing data.
+    if (allUsedDraws.size === 0) {
+      setActiveSheets([]);
+    } else {
+      setActiveSheets(activeSheetsFromLogs);
+    }
+  }, [savedSheetLog, selectedDate]);
+
 
   const updateAccountsFromLog = useCallback(() => {
-    const dateForCalc = new Date();
+    const dateForCalc = selectedDate;
 
     const allLogs = Object.values(savedSheetLog).flat();
 
@@ -169,7 +188,7 @@ export default function Home() {
     });
 
     setAccounts(newAccounts);
-}, [clients, savedSheetLog, getDeclaredNumber]);
+}, [clients, savedSheetLog, getDeclaredNumber, selectedDate]);
 
 
   useEffect(() => {
@@ -184,8 +203,8 @@ export default function Home() {
   };
   
   const handleAddSheet = () => {
-    if(formSelectedDraw && formSelectedDate) {
-        const newSheet: ActiveSheet = { draw: formSelectedDraw, date: formSelectedDate };
+    if(formSelectedDraw) {
+        const newSheet: ActiveSheet = { draw: formSelectedDraw, date: selectedDate };
         if (!activeSheets.some(s => s.draw === newSheet.draw && isSameDay(s.date, newSheet.date))) {
             setActiveSheets(prev => [...prev, newSheet]);
         }
@@ -197,10 +216,6 @@ export default function Home() {
     setSelectedDate(sheet.date);
   };
   
-  const handleRemoveSheet = (sheetToRemove: ActiveSheet) => {
-    setActiveSheets(prev => prev.filter(s => !(s.draw === sheetToRemove.draw && isSameDay(s.date, sheetToRemove.date))));
-  };
-
   const handleBackToDraws = () => {
     setSelectedDraw(null);
   };
@@ -240,63 +255,53 @@ export default function Home() {
         description: `${clientName}'s data has been logged.`,
     });
   };
-
-  const handleDeclarationInputChange = (draw: string, value: string, entryDate: Date) => {
-    const numValue = value.replace(/[^0-9]/g, "").slice(0, 2);
-    setDeclaredNumberLocal(draw, numValue, entryDate);
-    
-    if (numValue.length === 2) {
-      setDeclarationDraw(draw);
-      setDeclarationNumber(numValue);
-      setDeclarationDialogOpen(true);
-    }
-  };
   
   const handleDeclareOrUndeclare = () => {
-    const dateToUse = selectedDate || new Date();
+    const dateToUse = selectedDate;
     if (declarationNumber.length === 2 && dateToUse) {
       setDeclaredNumber(declarationDraw, declarationNumber, dateToUse);
       toast({ title: "Success", description: `Result processed for draw ${declarationDraw}.` });
     }
     setDeclarationDialogOpen(false);
+    setDeclarationNumber("");
   };
   
   const handleUndeclare = () => {
-    const dateToUse = selectedDate || new Date();
+    const dateToUse = selectedDate;
     if (dateToUse) {
       removeDeclaredNumber(declarationDraw, dateToUse);
       toast({ title: "Success", description: `Result undeclared for draw ${declarationDraw}.` });
     }
     setDeclarationDialogOpen(false);
+    setDeclarationNumber("");
   };
 
   const handleDeleteDrawSheets = () => {
     if (drawToDelete && user?.uid) {
         deleteSheetLogsForDraw(drawToDelete.draw, drawToDelete.date);
-        handleRemoveSheet({ draw: drawToDelete.draw, date: drawToDelete.date });
     }
     setDrawToDelete(null);
   };
   
   const TabListContent = () => (
-    <TabsList className={cn("grid w-full grid-cols-5", !isMobile && "md:w-auto")}>
-      <TabsTrigger value="sheet" className="gap-1.5 h-14 md:h-auto">
+    <TabsList className="grid w-full grid-cols-5 md:w-auto md:grid-cols-5 border-none p-0">
+      <TabsTrigger value="sheet" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
         <GridIcon className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">Home</span>
       </TabsTrigger>
-      <TabsTrigger value="clients" className="gap-1.5 h-14 md:h-auto">
+      <TabsTrigger value="clients" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
         <Users className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">CLIENTS</span>
       </TabsTrigger>
-      <TabsTrigger value="accounts" className="gap-1.5 h-14 md:h-auto">
+      <TabsTrigger value="accounts" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
         <Building className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">ACCOUNT LEDGER</span>
       </TabsTrigger>
-      <TabsTrigger value="ledger-record" className="gap-1.5 h-14 md:h-auto">
+      <TabsTrigger value="ledger-record" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
         <FileSpreadsheet className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">Client Performance</span>
       </TabsTrigger>
-      <TabsTrigger value="admin-panel" className="gap-1.5 h-14 md:h-auto">
+      <TabsTrigger value="admin-panel" className="gap-1.5 h-14 md:h-auto rounded-none border-b-2 border-transparent data-[state=active]:border-primary">
         <Shield className="h-5 w-5 md:h-4 md:w-4" />
         <span className="hidden md:inline">Admin Panel</span>
       </TabsTrigger>
@@ -307,7 +312,7 @@ export default function Home() {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
-  const isSheetAlreadyAdded = activeSheets.some(s => s.draw === formSelectedDraw && formSelectedDate && isSameDay(s.date, formSelectedDate));
+  const isSheetAlreadyAdded = activeSheets.some(s => s.draw === formSelectedDraw && selectedDate && isSameDay(s.date, selectedDate));
 
 
   return (
@@ -338,7 +343,7 @@ export default function Home() {
               )}
           </div>
           <TabsContent value="sheet" className="flex-1 flex flex-col min-h-0">
-            {selectedDraw && selectedDate ? (
+            {selectedDraw ? (
               <GridSheet 
                 ref={gridSheetRef} 
                 draw={selectedDraw} 
@@ -354,92 +359,90 @@ export default function Home() {
                 draws={draws}
               />
             ) : (
-              <div className="flex flex-col items-center justify-start w-full h-full pt-8">
-                <Card className="w-full max-w-xl mb-8">
-                    <CardHeader>
-                        <CardTitle>Create or Open a Sheet</CardTitle>
-                        <CardDescription>Select a draw and a date to add it to your dashboard.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="select-draw">Select a Draw</Label>
-                                <Select onValueChange={setFormSelectedDraw} value={formSelectedDraw || undefined}>
-                                    <SelectTrigger id="select-draw">
-                                        <SelectValue placeholder="Select..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {draws.map(draw => (
-                                            <SelectItem key={draw} value={draw}>{draw}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="select-date">Select a Date</Label>
-                               <Popover>
-                                  <PopoverTrigger asChild>
-                                    <Button
-                                      id="select-date"
-                                      variant={"outline"}
-                                      className={cn(
-                                        "w-full justify-start text-left font-normal",
-                                        !formSelectedDate && "text-muted-foreground"
-                                      )}
-                                    >
-                                      <CalendarIcon className="mr-2 h-4 w-4" />
-                                      {formSelectedDate ? format(formSelectedDate, "PPP") : <span>Pick a date</span>}
-                                    </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-auto p-0">
-                                    <Calendar
-                                      mode="single"
-                                      selected={formSelectedDate}
-                                      onSelect={(date) => date && setFormSelectedDate(date)}
-                                      initialFocus
-                                    />
-                                  </PopoverContent>
-                                </Popover>
-                            </div>
-                        </div>
-                        <Button onClick={handleAddSheet} className="w-full" disabled={!formSelectedDraw || !formSelectedDate || isSheetAlreadyAdded}>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Add Sheet
-                        </Button>
-                         {isSheetAlreadyAdded && (
-                            <p className="text-sm text-center text-muted-foreground pt-2">This sheet has already been added.</p>
-                        )}
-                    </CardContent>
-                </Card>
-                
-                {activeSheets.length > 0 && (
-                    <div className="w-full max-w-4xl">
-                        <h2 className="text-xl font-semibold mb-4 text-center">Today's Sheets</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {activeSheets.map((sheet, index) => (
-                                <Card key={index} className="flex flex-col cursor-pointer hover:border-primary transition-colors">
-                                    <CardHeader className="flex-row items-center justify-between pb-2">
-                                        <CardTitle className="text-lg">{sheet.draw}</CardTitle>
-                                        <div className="flex items-center gap-1">
-                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDrawToDelete({ draw: sheet.draw, date: sheet.date }) }}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-primary" onClick={(e) => { e.stopPropagation(); handleRemoveSheet(sheet) }}>
-                                                <X className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="pb-4" onClick={() => handleOpenSheet(sheet)}>
-                                        <p className="text-sm text-muted-foreground">{format(sheet.date, "PPP")}</p>
-                                    </CardContent>
-                                     <CardFooter className="p-2 pt-0 mt-auto border-t" onClick={() => handleOpenSheet(sheet)}>
-                                        <Button variant="ghost" className="w-full h-8">Open</Button>
-                                    </CardFooter>
-                                </Card>
+              <div className="flex flex-col items-center justify-start w-full h-full pt-8 space-y-8">
+                <div className="w-full max-w-xl">
+                  <div className="flex items-center w-full p-2 border border-primary rounded-lg">
+                    <Select onValueChange={setFormSelectedDraw} value={formSelectedDraw || undefined}>
+                        <SelectTrigger className="flex-grow border-none focus:ring-0">
+                            <SelectValue placeholder="Select Draw..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {draws.map(draw => (
+                                <SelectItem key={draw} value={draw}>{draw}</SelectItem>
                             ))}
+                        </SelectContent>
+                    </Select>
+                    <Button onClick={handleAddSheet} className="ml-2" disabled={!formSelectedDraw || isSheetAlreadyAdded}>
+                      <PlusCircle className="mr-2 h-4 w-4" /> Create
+                    </Button>
+                  </div>
+                   {isSheetAlreadyAdded && (
+                      <p className="text-sm text-center text-muted-foreground pt-2">This sheet has already been added.</p>
+                  )}
+                </div>
+
+                <div className="w-full max-w-xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-foreground">Recent Sheets</h2>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id="select-date"
+                          variant={"outline"}
+                          className={cn(
+                            "w-[180px] justify-start text-left font-normal",
+                            !selectedDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={(date) => date && setSelectedDate(date)}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div className="space-y-3">
+                    {activeSheets.map((sheet, index) => (
+                      <Card 
+                        key={index} 
+                        className="flex items-center justify-between p-3 cursor-pointer transition-colors hover:bg-muted/50"
+                      >
+                        <div className="flex items-center gap-4" onClick={() => handleOpenSheet(sheet)}>
+                           <div className="flex items-center justify-center h-8 w-8 rounded-full border-2 border-primary text-primary font-bold">
+                              {index + 1}
+                           </div>
+                           <div>
+                              <p className="font-semibold text-foreground">{sheet.draw}</p>
+                              <p className="text-sm text-muted-foreground">{format(sheet.date, "dd-MM-yyyy")}</p>
+                           </div>
                         </div>
-                    </div>
-                )}
+                        <div className="flex items-center gap-3">
+                           <Button 
+                             variant="ghost" 
+                             size="icon" 
+                             className="text-muted-foreground hover:text-primary" 
+                             onClick={() => { setDeclarationDraw(sheet.draw); setDeclarationDialogOpen(true); }}>
+                             <Megaphone className="h-5 w-5" />
+                           </Button>
+                           <Button variant="outline" className="text-primary border-primary hover:bg-primary hover:text-primary-foreground" onClick={() => handleOpenSheet(sheet)}>
+                              Open <ArrowUpRight className="ml-2 h-4 w-4" />
+                           </Button>
+                           <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDrawToDelete({ draw: sheet.draw, date: sheet.date }) }}>
+                              <Trash2 className="h-4 w-4" />
+                           </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
 
               </div>
             )}
@@ -472,13 +475,20 @@ export default function Home() {
           <DialogHeader>
             <DialogTitle>Declare Result for Draw {declarationDraw}</DialogTitle>
           </DialogHeader>
-          <div className="my-4 text-center">
-            <p className="text-lg">Are you sure you want to declare the number <strong className="text-primary">{declarationNumber}</strong>?</p>
-            <p className="text-sm text-muted-foreground">This will finalize calculations for this draw.</p>
+          <div className="my-4 space-y-4">
+             <Label htmlFor="declaration-number">Enter 2-digit number</Label>
+             <Input 
+                id="declaration-number"
+                value={declarationNumber}
+                onChange={(e) => setDeclarationNumber(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
+                placeholder="00"
+                maxLength={2}
+                className="text-center text-2xl font-bold h-16"
+             />
           </div>
           <DialogFooter>
             <Button onClick={handleUndeclare} variant="destructive">Undeclare</Button>
-            <Button onClick={handleDeclareOrUndeclare}>Declare</Button>
+            <Button onClick={handleDeclareOrUndeclare} disabled={declarationNumber.length !== 2}>Declare</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -500,9 +510,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
-
-    
-
-    
