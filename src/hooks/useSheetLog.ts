@@ -131,11 +131,12 @@ export const useSheetLog = (userId?: string) => {
         return;
       }
       
-      const logsToDelete = querySnapshot.docs.map(doc => doc.id);
+      const logsToDeleteIds = querySnapshot.docs.map(doc => doc.id);
       
+      // Optimistically update the UI by filtering out the logs that are about to be deleted.
       setSheetLogData(prevData => {
         if (!prevData) return null;
-        return prevData.filter(log => !logsToDelete.includes(log.id));
+        return prevData.filter(log => !logsToDeleteIds.includes(log.id));
       });
 
       const batch = writeBatch(firestore);
@@ -148,6 +149,7 @@ export const useSheetLog = (userId?: string) => {
     } catch (e) {
       console.error("Error clearing draw sheet logs: ", e);
       toast({ title: "Error", description: `Could not clear sheet data for draw ${draw}.`, variant: "destructive" });
+      // Optionally, you could revert the optimistic update here if the batch commit fails.
     }
   }, [userId, firestore, setSheetLogData, toast]);
 
