@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogClose, DialogDescription, DialogTitle } from "@/components/ui/dialog"
-import { format } from "date-fns"
+import { format, isSameDay } from "date-fns"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Account } from "./accounts-manager";
 import { formatNumber } from "@/lib/utils"
@@ -94,20 +94,22 @@ const MasterSheetViewer = ({
   const [selectedLogIndices, setSelectedLogIndices] = useState<number[]>([]);
   const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
+  const [currentLogs, setCurrentLogs] = useState<SavedSheetInfo[]>([]);
 
 
   useEffect(() => {
+    const logsForDate = (savedSheetLog || []).filter(log => isSameDay(new Date(log.date), date));
+    setCurrentLogs(logsForDate);
     // When the component mounts or data changes, select all logs by default.
-    setSelectedLogIndices(savedSheetLog.map((_, index) => index));
-  }, [draw, savedSheetLog]);
+    setSelectedLogIndices(logsForDate.map((_, index) => index));
+  }, [draw, date, savedSheetLog]);
 
   useEffect(() => {
     // Recalculate master sheet data when selected logs or draw change
     const newMasterData: CellData = {};
-    const logsToProcess = savedSheetLog || [];
     
     selectedLogIndices.forEach(index => {
-      const logEntry = logsToProcess[index];
+      const logEntry = currentLogs[index];
       if (logEntry) {
         Object.entries(logEntry.data).forEach(([key, value]) => {
           const numericValue = parseFloat(value) || 0;
@@ -116,7 +118,7 @@ const MasterSheetViewer = ({
       }
     });
     setMasterSheetData(newMasterData);
-  }, [selectedLogIndices, draw, savedSheetLog]);
+  }, [selectedLogIndices, currentLogs]);
 
   const calculateRowTotal = (rowIndex: number, data: CellData) => {
     let total = 0;
@@ -250,7 +252,7 @@ const MasterSheetViewer = ({
                             const key = String(rowIndex * GRID_COLS + colIndex).padStart(2, '0');
                             return (
                                 <div key={`master-cell-${key}`} className="relative flex items-center border rounded-sm" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                                    <div className="absolute top-1 left-1.5 text-xs select-none pointer-events-none z-10" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
+                                    <div className="absolute top-1 left-1.5 text-xs select-none pointer-events-none z-10 font-bold" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
                                     <Input
                                         type="text"
                                         readOnly
@@ -308,7 +310,7 @@ const MasterSheetViewer = ({
               <CardContent className="p-3 h-[calc(100%-48px)]">
                   <ScrollArea className="h-full">
                       <div className="space-y-2 pr-2">
-                          {savedSheetLog.length > 0 ? savedSheetLog.map((log, index) => (
+                          {currentLogs.length > 0 ? currentLogs.map((log, index) => (
                               <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted text-sm group">
                                   <div className="flex items-center gap-2">
                                       <Checkbox
@@ -604,7 +606,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
             return;
         }
     }
-    if (calculateCombinations(laddiNum1, newLaddiNum2, removeJodda, reverseLaddi, runningLaddi) > MAX_COMBINATIONS) {
+    if (calculateCombinations(laddiNum1, newLaddiNum2, removeJodda, reverseLaddi, runningLaddi) > MAX_COMBINations) {
         toast({ title: "Combination Limit Exceeded", description: `You cannot create more than ${MAX_COMBINATIONS} combinations.`, variant: "destructive" });
         return;
     }
@@ -1218,7 +1220,7 @@ const handleHarupApply = () => {
                           <div key={key} className="relative flex border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
                             <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number font-bold" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
                             <div
-                              className={`p-0 h-auto w-full justify-center bg-transparent border-0 focus:ring-0 flex items-end font-bold grid-cell-input ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                              className={`p-0 h-full w-full justify-center bg-transparent border-0 focus:ring-0 flex items-end font-bold grid-cell-input ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : ''}`}
                               onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                             >
                               <span className="w-full text-center pb-1" style={{ color: 'var(--grid-cell-amount-color)' }}>
