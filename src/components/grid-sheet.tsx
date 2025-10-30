@@ -1217,17 +1217,21 @@ const handleHarupApply = () => {
                         return (
                             <div key={key} className="relative flex border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
                                <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number font-bold" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
-                              <Input
-                                  type="text"
-                                  className={`p-0 h-full w-full pb-1 transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold focus:ring-2 focus:z-10 focus:ring-var(--grid-cell-focus-ring-color) grid-cell-input flex items-end text-center ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                              <div
+                                  className={`p-0 h-full w-full justify-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold focus:ring-2 focus:z-10 focus:ring-var(--grid-cell-focus-ring-color) grid-cell-input flex items-end pb-1 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : ''}`}
                                   style={{ color: 'var(--grid-cell-amount-color)' }}
+                                  onClick={selectedClientId === null ? showClientSelectionToast : undefined}
+                              >
+                               <Input
+                                  type="text"
+                                  className={`p-0 h-auto w-full text-center bg-transparent border-0 focus:ring-0`}
                                   value={currentData[key] || ''}
                                   onChange={(e) => handleCellChange(key, e.target.value)}
                                   onBlur={() => handleCellBlur(key)}
                                   aria-label={`Cell ${key}`}
                                   disabled={selectedClientId === null}
-                                  onClick={selectedClientId === null ? showClientSelectionToast : undefined}
-                              />
+                                />
+                              </div>
                               {(validation?.isLoading || (validation && !validation.isValid)) && (
                                   <div className="absolute top-1/2 right-1 -translate-y-1/2 z-10">
                                   {validation.isLoading ? (
@@ -1449,7 +1453,7 @@ const handleHarupApply = () => {
           <DialogHeader>
             <DialogTitle>Delete Log Entry?</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete the sheet for <strong className="font-bold">{logToDelete?.name}</strong>? This action cannot be undone.
+              Are you sure you want to delete the sheet for <strong>{logToDelete?.name}</strong>? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -1493,5 +1497,3 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-    
