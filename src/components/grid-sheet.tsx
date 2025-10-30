@@ -254,7 +254,7 @@ const MasterSheetViewer = ({
                                     <Input
                                         type="text"
                                         readOnly
-                                        style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)', color: 'var(--grid-cell-amount-color)' }}
+                                        style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)'}}
                                         className="p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold"
                                         value={masterSheetData[key] || ''}
                                         aria-label={`Cell ${key}`}
@@ -1215,38 +1215,33 @@ const handleHarupApply = () => {
                         const isUpdated = updatedCells.includes(key);
 
                         return (
-                            <div key={key} className="relative flex border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                               <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number font-bold" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
-                                <Input
-                                  type="text"
-                                  className={`p-0 h-auto w-full justify-center bg-transparent border-0 focus:ring-0 flex items-end font-bold grid-cell-input ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : ''}`}
-                                  onChange={(e) => handleCellChange(key, e.target.value)}
-                                  onBlur={() => handleCellBlur(key)}
-                                  aria-label={`Cell ${key}`}
-                                  disabled={selectedClientId === null}
-                                  onClick={selectedClientId === null ? showClientSelectionToast : undefined}
-                                >
-                                  <span className="w-full text-center pb-1" style={{ color: 'var(--grid-cell-amount-color)' }}>
-                                    {currentData[key] || ''}
-                                  </span>
-                                </Input>
-                              {(validation?.isLoading || (validation && !validation.isValid)) && (
-                                  <div className="absolute top-1/2 right-1 -translate-y-1/2 z-10">
-                                  {validation.isLoading ? (
-                                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                                  ) : (
-                                      <Popover>
-                                      <PopoverTrigger asChild>
-                                          <button aria-label="Show validation error">
-                                          <AlertCircle className="h-3 w-3 text-destructive" />
-                                          </button>
-                                      </PopoverTrigger>
-                                      <PopoverContent className="text-sm">{validation.recommendation}</PopoverContent>
-                                      </Popover>
-                                  )}
-                                  </div>
-                              )}
+                          <div key={key} className="relative flex border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+                            <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number font-bold" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
+                            <div
+                              className={`p-0 h-auto w-full justify-center bg-transparent border-0 focus:ring-0 flex items-end font-bold grid-cell-input ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                              onClick={selectedClientId === null ? showClientSelectionToast : undefined}
+                            >
+                              <span className="w-full text-center pb-1" style={{ color: 'var(--grid-cell-amount-color)' }}>
+                                {currentData[key] || ''}
+                              </span>
                             </div>
+                            {(validation?.isLoading || (validation && !validation.isValid)) && (
+                              <div className="absolute top-1/2 right-1 -translate-y-1/2 z-10">
+                                {validation.isLoading ? (
+                                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                ) : (
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <button aria-label="Show validation error">
+                                        <AlertCircle className="h-3 w-3 text-destructive" />
+                                      </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="text-sm">{validation.recommendation}</PopoverContent>
+                                  </Popover>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         )
                     })}
                      <div className="flex items-center justify-center font-medium border rounded-sm bg-transparent grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
@@ -1495,3 +1490,5 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
