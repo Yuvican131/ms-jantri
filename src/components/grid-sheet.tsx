@@ -97,7 +97,7 @@ const MasterSheetViewer = ({
 
 
   useEffect(() => {
-    // When the draw or logs change, select all logs by default.
+    // When the component mounts or data changes, select all logs by default.
     setSelectedLogIndices(savedSheetLog.map((_, index) => index));
   }, [draw, savedSheetLog]);
 
@@ -1197,7 +1197,7 @@ const handleHarupApply = () => {
     return `${client.name} - ${formatNumber(totalAmount)}`;
   };
   
-  const allSavedLogsForDraw = Object.values(props.savedSheetLog).flat();
+  const allSavedLogsForDraw = props.savedSheetLog;
 
 
   return (
@@ -1216,7 +1216,7 @@ const handleHarupApply = () => {
 
                         return (
                             <div key={key} className="relative flex items-center border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                               <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
+                               <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number font-bold" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
                               <Input
                                   type="text"
                                   className={`p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold focus:ring-2 focus:z-10 focus:ring-var(--grid-cell-focus-ring-color) grid-cell-input ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : ''}`}
@@ -1436,7 +1436,7 @@ const handleHarupApply = () => {
             <DialogTitle>Master Sheet : {props.draw}</DialogTitle>
           </DialogHeader>
            <MasterSheetViewer 
-             savedSheetLog={props.savedSheetLog}
+             savedSheetLog={allSavedLogsForDraw}
              draw={props.draw}
              date={props.date}
              onDeleteLog={(id, name) => setLogToDelete({ id, name })}
