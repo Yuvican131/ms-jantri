@@ -105,11 +105,11 @@ const MasterSheetViewer = ({
   }, [draw, date, savedSheetLog]);
 
   useEffect(() => {
-    // Recalculate master sheet data when selected logs or draw change
+    const logsToProcess = (savedSheetLog || []).filter(log => isSameDay(new Date(log.date), date));
     const newMasterData: CellData = {};
     
     selectedLogIndices.forEach(index => {
-      const logEntry = currentLogs[index];
+      const logEntry = logsToProcess[index];
       if (logEntry) {
         Object.entries(logEntry.data).forEach(([key, value]) => {
           const numericValue = parseFloat(value) || 0;
@@ -118,7 +118,7 @@ const MasterSheetViewer = ({
       }
     });
     setMasterSheetData(newMasterData);
-  }, [selectedLogIndices, currentLogs]);
+  }, [selectedLogIndices, savedSheetLog, date]);
 
   const calculateRowTotal = (rowIndex: number, data: CellData) => {
     let total = 0;
@@ -311,7 +311,7 @@ const MasterSheetViewer = ({
                   <ScrollArea className="h-full">
                       <div className="space-y-2 pr-2">
                           {currentLogs.length > 0 ? currentLogs.map((log, index) => (
-                              <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted text-sm group">
+                              <div key={log.id} className="flex justify-between items-center p-2 rounded-md bg-muted text-sm group">
                                   <div className="flex items-center gap-2">
                                       <Checkbox
                                           id={`log-${draw}-${index}`}
@@ -606,7 +606,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
             return;
         }
     }
-    if (calculateCombinations(laddiNum1, newLaddiNum2, removeJodda, reverseLaddi, runningLaddi) > MAX_COMBINations) {
+    if (calculateCombinations(laddiNum1, newLaddiNum2, removeJodda, reverseLaddi, runningLaddi) > MAX_COMBINATIONS) {
         toast({ title: "Combination Limit Exceeded", description: `You cannot create more than ${MAX_COMBINATIONS} combinations.`, variant: "destructive" });
         return;
     }
@@ -864,11 +864,11 @@ const handleMultiTextApply = () => {
         const digits1 = laddiNum1.split('');
         const digits2 = laddiNum2.split('');
         for (const d1 of digits1) {
-            for (const d2 of digits1) {
-                if (removeJodda && d1 === d2) continue;
-                combinations.add(`${d1}${d2}`);
+            for (const d1 of digits1) {
+                if (removeJodda && d1 === d1) continue;
+                combinations.add(`${d1}${d1}`);
                 if (reverseLaddi) {
-                    combinations.add(`${d2}${d1}`);
+                    combinations.add(`${d1}${d1}`);
                 }
             }
         }
@@ -1198,8 +1198,6 @@ const handleHarupApply = () => {
     const totalAmount = logEntry?.gameTotal || 0;
     return `${client.name} - ${formatNumber(totalAmount)}`;
   };
-  
-  const allSavedLogsForDraw = props.savedSheetLog;
 
 
   return (
@@ -1435,7 +1433,7 @@ const handleHarupApply = () => {
             <DialogTitle>Master Sheet : {props.draw}</DialogTitle>
           </DialogHeader>
            <MasterSheetViewer 
-             savedSheetLog={allSavedLogsForDraw}
+             savedSheetLog={props.savedSheetLog}
              draw={props.draw}
              date={props.date}
              onDeleteLog={(id, name) => setLogToDelete({ id, name })}
