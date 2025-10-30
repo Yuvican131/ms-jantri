@@ -1217,21 +1217,19 @@ const handleHarupApply = () => {
                         return (
                             <div key={key} className="relative flex border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
                                <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number font-bold" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
-                              <div
-                                  className={`p-0 h-full w-full justify-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold focus:ring-2 focus:z-10 focus:ring-var(--grid-cell-focus-ring-color) grid-cell-input flex items-end pb-1 ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : ''}`}
-                                  style={{ color: 'var(--grid-cell-amount-color)' }}
-                                  onClick={selectedClientId === null ? showClientSelectionToast : undefined}
-                              >
-                               <Input
+                                <Input
                                   type="text"
-                                  className={`p-0 h-auto w-full text-center bg-transparent border-0 focus:ring-0`}
-                                  value={currentData[key] || ''}
+                                  className={`p-0 h-auto w-full justify-center bg-transparent border-0 focus:ring-0 flex items-end font-bold grid-cell-input ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : ''}`}
                                   onChange={(e) => handleCellChange(key, e.target.value)}
                                   onBlur={() => handleCellBlur(key)}
                                   aria-label={`Cell ${key}`}
                                   disabled={selectedClientId === null}
-                                />
-                              </div>
+                                  onClick={selectedClientId === null ? showClientSelectionToast : undefined}
+                                >
+                                  <span className="w-full text-center pb-1" style={{ color: 'var(--grid-cell-amount-color)' }}>
+                                    {currentData[key] || ''}
+                                  </span>
+                                </Input>
                               {(validation?.isLoading || (validation && !validation.isValid)) && (
                                   <div className="absolute top-1/2 right-1 -translate-y-1/2 z-10">
                                   {validation.isLoading ? (
