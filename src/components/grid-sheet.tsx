@@ -544,7 +544,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     
     if (digits1.length > 0 && digits2.length > 0) {
         for (const d1 of digits1) {
-            for (const d2 of digits2) {
+            for (const d2 of digits1) {
                 if (removeJoddaFlag && d1 === d2) continue;
                 combinations.add(`${d1}${d2}`);
                 if (reverseFlag) {
@@ -862,7 +862,7 @@ const handleMultiTextApply = () => {
         const digits1 = laddiNum1.split('');
         const digits2 = laddiNum2.split('');
         for (const d1 of digits1) {
-            for (const d2 of digits2) {
+            for (const d2 of digits1) {
                 if (removeJodda && d1 === d2) continue;
                 combinations.add(`${d1}${d2}`);
                 if (reverseLaddi) {
@@ -1215,11 +1215,11 @@ const handleHarupApply = () => {
                         const isUpdated = updatedCells.includes(key);
 
                         return (
-                            <div key={key} className="relative flex items-end border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+                            <div key={key} className="relative flex border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
                                <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number font-bold" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
                               <Input
                                   type="text"
-                                  className={`p-0 h-full w-full pb-1 text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold focus:ring-2 focus:z-10 focus:ring-var(--grid-cell-focus-ring-color) grid-cell-input ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                                  className={`p-0 h-full w-full pb-1 transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold focus:ring-2 focus:z-10 focus:ring-var(--grid-cell-focus-ring-color) grid-cell-input flex items-end text-center ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : ''}`}
                                   style={{ color: 'var(--grid-cell-amount-color)' }}
                                   value={currentData[key] || ''}
                                   onChange={(e) => handleCellChange(key, e.target.value)}
