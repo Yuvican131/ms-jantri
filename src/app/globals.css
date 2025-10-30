@@ -44,7 +44,7 @@ body {
     --sidebar-ring: 0 0% 98%;
     --grid-cell-border-color: 240 3.7% 20%;
     --grid-cell-number-color: hsl(0 80% 60%);
-    --grid-cell-amount-color: hsl(55 90% 55%);
+    --grid-cell-amount-color: hsl(210 90% 65%);
     --grid-cell-total-color: hsl(120 70% 45%);
     --grid-cell-focus-ring-color: 35 90% 45%;
   }
