@@ -1,4 +1,3 @@
-
 'use client';
 import { useMemo, useCallback } from 'react';
 import { collection, doc, writeBatch, query, where, getDocs } from 'firebase/firestore';
@@ -49,32 +48,15 @@ export const useSheetLog = (userId?: string) => {
       // This is an update to an existing entry
       const docRef = doc(firestore, sheetLogColRef.path, entry.id);
       const { id, ...entryData } = entry;
-      
-      // Optimistically update the UI state
-      setSheetLogData(prevData => {
-        if (!prevData) return [{ ...entryData, id }]; // Should not happen if updating
-        
-        const existingIndex = prevData.findIndex(item => item.id === id);
-        if (existingIndex > -1) {
-          const newData = [...prevData];
-          newData[existingIndex] = { ...entryData, id }; // Replace the item
-          return newData;
-        }
-        // If for some reason it wasn't found, add it.
-        return [...prevData, { ...entryData, id }];
-      });
-      
+      // The useCollection hook will handle the UI update via its real-time listener.
+      // No manual/optimistic update is needed here.
       updateDocumentNonBlocking(docRef, entryData);
     } else {
       // This is a new entry
-       addDocumentNonBlocking(sheetLogColRef, entry).then(docRef => {
-         if (docRef) {
-            // Optimistically add the new entry with its ID
-            setSheetLogData(prevData => [...(prevData || []), { ...entry, id: docRef.id }]);
-         }
-       });
+      // The useCollection hook will handle the UI update via its real-time listener.
+      addDocumentNonBlocking(sheetLogColRef, entry);
     }
-  }, [sheetLogColRef, firestore, setSheetLogData]);
+  }, [sheetLogColRef, firestore]);
   
   const deleteSheetLogEntry = useCallback((logId: string) => {
     if (!userId) return;
