@@ -243,7 +243,7 @@ const MasterSheetViewer = ({
  return (
     <>
     <div className="flex h-full flex-col gap-4 bg-background p-1 md:p-4 items-start">
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 flex-grow overflow-hidden w-full">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 flex-grow overflow-y-auto w-full">
         <div className="flex flex-col min-w-0 h-full">
             <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${GRID_ROWS + 1}, minmax(0, 1fr))`}}>
                 {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
@@ -303,11 +303,11 @@ const MasterSheetViewer = ({
                 Generate Sheet
               </Button>
           </div>
-          <Card className="flex-grow bg-card min-h-0">
+          <Card className="flex flex-col flex-grow bg-card min-h-0">
               <CardHeader className="p-3">
                   <CardTitle className="text-sm">Client Entries for {format(date, 'PPP')}</CardTitle>
               </CardHeader>
-              <CardContent className="p-3 h-[calc(100%-48px)]">
+              <CardContent className="p-3 flex-grow h-0">
                   <ScrollArea className="h-full">
                       <div className="space-y-2 pr-2">
                           {currentLogs.length > 0 ? currentLogs.map((log, index) => (
