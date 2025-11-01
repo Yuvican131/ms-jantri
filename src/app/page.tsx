@@ -8,7 +8,7 @@ import ClientsManager from "@/components/clients-manager"
 import AccountsManager, { Account, DrawData } from "@/components/accounts-manager"
 import LedgerRecord from "@/components/ledger-record"
 import AdminPanel from "@/components/admin-panel"
-import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, FileSpreadsheet, Shield, PlusCircle, Trash2, X, RotateCw, Megaphone, ArrowUpRight } from 'lucide-react';
+import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, FileSpreadsheet, Shield, PlusCircle, Trash2, X, RotateCw, Megaphone, ArrowUpRight, Sun, Moon } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
@@ -31,6 +31,8 @@ import { useAuth } from "@/firebase"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTheme } from "next-themes";
+import { Switch } from "@/components/ui/switch";
 
 function GridIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -80,6 +82,7 @@ export default function Home() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const isMobile = useIsMobile();
+  const { theme, setTheme } = useTheme();
 
   const { clients, addClient, updateClient, deleteClient, handleClientTransaction, clearClientData } = useClients(user?.uid);
   const { savedSheetLog, addSheetLogEntry, deleteSheetLogsForDraw } = useSheetLog(user?.uid);
@@ -328,6 +331,17 @@ export default function Home() {
                   <TabListContent />
               )}
             </div>
+               <div className="flex items-center gap-4">
+                <div className="flex items-center space-x-2">
+                  <Sun className="h-5 w-5" />
+                  <Switch
+                    checked={theme === 'dark'}
+                    onCheckedChange={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    id="theme-switch"
+                  />
+                  <Moon className="h-5 w-5" />
+                </div>
+
                {selectedDraw && activeTab === 'sheet' && (
                  <div className="flex items-center">
                     <Button onClick={handleBackToDraws} variant="ghost" className="ml-2">
@@ -340,6 +354,7 @@ export default function Home() {
                     </Button>
                 </div>
               )}
+            </div>
           </div>
           <TabsContent value="sheet" className="flex-1 flex flex-col min-h-0">
             {selectedDraw && selectedDate ? (
