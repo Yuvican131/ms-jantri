@@ -546,11 +546,11 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     
     if (digits1.length > 0 && digits2.length > 0) {
         for (const d1 of digits1) {
-            for (const d1 of digits1) {
-                if (removeJoddaFlag && d1 === d1) continue;
-                combinations.add(`${d1}${d1}`);
+            for (const d2 of digits2) {
+                if (removeJoddaFlag && d1 === d2) continue;
+                combinations.add(`${d1}${d2}`);
                 if (reverseFlag) {
-                    combinations.add(`${d1}${d1}`);
+                    combinations.add(`${d2}${d1}`);
                 }
             }
         }
@@ -867,11 +867,11 @@ const handleMultiTextApply = () => {
         const digits1 = laddiNum1.split('');
         const digits2 = laddiNum2.split('');
         for (const d1 of digits1) {
-            for (const d1 of digits1) {
-                if (removeJodda && d1 === d1) continue;
-                combinations.add(`${d1}${d1}`);
+            for (const d2 of digits2) {
+                if (removeJodda && d1 === d2) continue;
+                combinations.add(`${d1}${d2}`);
                 if (reverseLaddi) {
-                    combinations.add(`${d1}${d1}`);
+                    combinations.add(`${d2}${d1}`);
                 }
             }
         }
