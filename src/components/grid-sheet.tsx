@@ -1083,15 +1083,37 @@ const handleHarupApply = () => {
     });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent, handler: () => void) => {
-    if (selectedClientId === null) {
-      showClientSelectionToast();
-      e.preventDefault();
-      return;
-    }
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handler();
+      if (isDataEntryDisabled) {
+        showClientSelectionToast();
+        return;
+      }
+      
+      const textarea = e.currentTarget;
+      const cursorPosition = textarea.selectionStart;
+      const text = textarea.value;
+      
+      // Find the start and end of the current line
+      let lineStart = text.lastIndexOf('\n', cursorPosition - 1) + 1;
+      let lineEnd = text.indexOf('\n', cursorPosition);
+      if (lineEnd === -1) lineEnd = text.length;
+      
+      const currentLine = text.substring(lineStart, lineEnd);
+      
+      if (!currentLine.includes('=')) {
+        // If no equals sign, add one
+        const newValue = text.substring(0, lineEnd) + '=' + text.substring(lineEnd);
+        setMultiText(newValue);
+        // We need to wait for the state to update before setting the cursor
+        setTimeout(() => {
+          textarea.selectionStart = textarea.selectionEnd = lineEnd + 1;
+        }, 0);
+      } else {
+        // If there is an equals sign, apply the logic
+        handleMultiTextApply();
+      }
     }
   };
 
@@ -1302,8 +1324,8 @@ const handleHarupApply = () => {
                           rows={4}
                           value={multiText}
                           onChange={handleMultiTextChange}
-                          onKeyDown={(e) => handleKeyDown(e, handleMultiTextApply)}
-                          className="w-full text-xs"
+                          onKeyDown={handleKeyDown}
+                          className="w-full text-base"
                           disabled={selectedClientId === null}
                           onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                       />
@@ -1493,5 +1515,7 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
 
     
