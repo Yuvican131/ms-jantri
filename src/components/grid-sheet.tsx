@@ -416,6 +416,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   
   const [previousSheetState, setPreviousSheetState] = useState<{ data: CellData, rowTotals: { [key: number]: string } } | null>(null);
 
+  const laddiNum1Ref = useRef<HTMLInputElement>(null);
+  const laddiNum2Ref = useRef<HTMLInputElement>(null);
+  const laddiAmountRef = useRef<HTMLInputElement>(null);
   
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
   
@@ -1083,36 +1086,45 @@ const handleHarupApply = () => {
     });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent, action?: () => void) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (isDataEntryDisabled) {
-        showClientSelectionToast();
-        return;
-      }
       
-      const textarea = e.currentTarget;
-      const cursorPosition = textarea.selectionStart;
-      const text = textarea.value;
-      
-      // Find the start and end of the current line
-      let lineStart = text.lastIndexOf('\n', cursorPosition - 1) + 1;
-      let lineEnd = text.indexOf('\n', cursorPosition);
-      if (lineEnd === -1) lineEnd = text.length;
-      
-      const currentLine = text.substring(lineStart, lineEnd);
-      
-      if (!currentLine.includes('=')) {
-        // If no equals sign, add one
-        const newValue = text.substring(0, lineEnd) + '=' + text.substring(lineEnd);
-        setMultiText(newValue);
-        // We need to wait for the state to update before setting the cursor
-        setTimeout(() => {
-          textarea.selectionStart = textarea.selectionEnd = lineEnd + 1;
-        }, 0);
-      } else {
-        // If there is an equals sign, apply the logic
-        handleMultiTextApply();
+      const target = e.target as HTMLElement;
+
+      if (target.id === 'laddiNum1') {
+        laddiNum2Ref.current?.focus();
+      } else if (target.id === 'laddiNum2') {
+        laddiAmountRef.current?.focus();
+      } else if (target.id === 'amount' && action) {
+        action();
+      } else if (target.tagName === 'TEXTAREA') {
+        const textarea = e.currentTarget as HTMLTextAreaElement;
+        const cursorPosition = textarea.selectionStart;
+        const text = textarea.value;
+        
+        let lineStart = text.lastIndexOf('\n', cursorPosition - 1) + 1;
+        let lineEnd = text.indexOf('\n', cursorPosition);
+        if (lineEnd === -1) lineEnd = text.length;
+        
+        const currentLine = text.substring(lineStart, lineEnd);
+        
+        if (isDataEntryDisabled) {
+          showClientSelectionToast();
+          return;
+        }
+
+        if (!currentLine.includes('=')) {
+          const newValue = text.substring(0, lineEnd) + '=' + text.substring(lineEnd);
+          setMultiText(newValue);
+          setTimeout(() => {
+            textarea.selectionStart = textarea.selectionEnd = lineEnd + 1;
+          }, 0);
+        } else {
+          handleMultiTextApply();
+        }
+      } else if (action) {
+        action();
       }
     }
   };
@@ -1346,8 +1358,9 @@ const handleHarupApply = () => {
                     <div className="flex items-center gap-2 mb-1">
                         <div className="flex-1 flex flex-col items-center gap-1">
                             <Input
+                              ref={laddiNum1Ref}
                               id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "Start" : "Num 1"}
-                              value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
+                              value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={handleKeyDown} disabled={selectedClientId === null}
                               onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                             />
                             <Label htmlFor="laddiNum1" className="text-xs whitespace-nowrap">{runningLaddi ? "Start" : "Pair"}</Label>
@@ -1358,8 +1371,9 @@ const handleHarupApply = () => {
                         </div>
                         <div className="flex-1 flex flex-col items-center gap-1">
                             <Input
+                              ref={laddiNum2Ref}
                               id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "End" : "Num 2"}
-                              value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
+                              value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={handleKeyDown} disabled={selectedClientId === null}
                               onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                             />
                             <Label htmlFor="laddiNum2" className="text-xs whitespace-nowrap">{runningLaddi ? "End" : "Pair"}</Label>
@@ -1369,6 +1383,7 @@ const handleHarupApply = () => {
                       <div className="col-span-3 flex items-center gap-1">
                         <span className="font-bold text-center">=</span>
                         <Input
+                          ref={laddiAmountRef}
                           id="amount" type="text" className="text-center font-bold h-8 text-sm"
                           value={laddiAmount} onChange={(e) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
                           placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
@@ -1515,7 +1530,3 @@ const handleHarupApply = () => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-    
-
-    
