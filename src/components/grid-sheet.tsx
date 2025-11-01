@@ -335,7 +335,7 @@ const MasterSheetViewer = ({
                                   </div>
                               </div>
                           )) : (
-                              <div className="text-center text-muted-foreground italic h-full flex items-center justify-center">No logs for this draw.</div>
+                              <div className="text-center text-muted-foreground italic h-full flex items-center justify-center">No logs for this draw on this date.</div>
                           )}
                       </div>
                   </ScrollArea>
@@ -419,6 +419,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const laddiNum1Ref = useRef<HTMLInputElement>(null);
   const laddiNum2Ref = useRef<HTMLInputElement>(null);
   const laddiAmountRef = useRef<HTMLInputElement>(null);
+  const harupAInputRef = useRef<HTMLInputElement>(null);
+  const harupBInputRef = useRef<HTMLInputElement>(null);
+  const harupAmountInputRef = useRef<HTMLInputElement>(null);
   
   const activeSheet = sheets.find(s => s.id === activeSheetId)!
   
@@ -1096,8 +1099,14 @@ const handleHarupApply = () => {
         laddiNum2Ref.current?.focus();
       } else if (target.id === 'laddiNum2') {
         laddiAmountRef.current?.focus();
-      } else if (target.id === 'amount' && action) {
-        action();
+      } else if (target.id === 'laddiAmount') {
+        handleLaddiApply();
+      } else if (target.id === 'harupA') {
+        harupBInputRef.current?.focus();
+      } else if (target.id === 'harupB') {
+        harupAmountInputRef.current?.focus();
+      } else if (target.id === 'harupAmount') {
+        handleHarupApply();
       } else if (target.tagName === 'TEXTAREA') {
         const textarea = e.currentTarget as HTMLTextAreaElement;
         const cursorPosition = textarea.selectionStart;
@@ -1255,7 +1264,7 @@ const handleHarupApply = () => {
                           <div key={key} className="relative flex border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
                             <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number font-bold" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
                             <div
-                              className={`p-0 h-full w-full justify-center bg-transparent border-0 focus:ring-0 flex items-end font-bold grid-cell-input ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : ''}`}
+                              className={`p-0 h-full w-full justify-center bg-transparent border-0 focus:ring-0 flex items-end font-bold grid-cell-input ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'cursor-pointer'}`}
                               onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                             >
                               <span className="w-full text-center pb-1" style={{ color: 'var(--grid-cell-amount-color)' }}>
@@ -1384,7 +1393,7 @@ const handleHarupApply = () => {
                         <span className="font-bold text-center">=</span>
                         <Input
                           ref={laddiAmountRef}
-                          id="amount" type="text" className="text-center font-bold h-8 text-sm"
+                          id="laddiAmount" type="text" className="text-center font-bold h-8 text-sm"
                           value={laddiAmount} onChange={(e) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
                           placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
                           onClick={selectedClientId === null ? showClientSelectionToast : undefined}
@@ -1411,16 +1420,16 @@ const handleHarupApply = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                       <div className="flex items-center gap-1">
                           <Label htmlFor="harupA" className="w-6 text-center shrink-0 text-xs">A</Label>
-                          <Input id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                          <Input ref={harupAInputRef} id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
                       </div>
                       <div className="flex items-center gap-1">
                           <Label htmlFor="harupB" className="w-6 text-center shrink-0 text-xs">B</Label>
-                          <Input id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                          <Input ref={harupBInputRef} id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
                       </div>
                     </div>
                      <div className="flex items-center gap-2 mt-1">
                         <Label htmlFor="harupAmount" className="w-6 text-center shrink-0 text-xs">=</Label>
-                        <Input id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                        <Input ref={harupAmountInputRef} id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
                         <Button onClick={handleHarupApply} disabled={selectedClientId === null} size="sm" className="h-8 text-xs">Apply</Button>
                     </div>
                   </div>
