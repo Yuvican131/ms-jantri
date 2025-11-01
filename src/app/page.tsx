@@ -231,7 +231,7 @@ export default function Home() {
           mergedData[key] = String((parseFloat(mergedData[key]) || 0) + (parseFloat(value) || 0));
       });
       const newTotal = Object.values(mergedData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
-      const updatedLog = {
+      const updatedLog: SavedSheetInfo = {
           ...existingLog,
           gameTotal: newTotal,
           data: mergedData,
@@ -311,7 +311,7 @@ export default function Home() {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
-  const isSheetAlreadyAdded = activeSheets.some(s => s.draw === formSelectedDraw && isSameDay(s.date, formSelectedDate));
+  const isSheetAlreadyAdded = formSelectedDraw ? activeSheets.some(s => s.draw === formSelectedDraw && isSameDay(s.date, formSelectedDate)) : false;
 
 
   return (

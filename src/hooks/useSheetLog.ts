@@ -46,23 +46,30 @@ export const useSheetLog = (userId?: string) => {
     if (!sheetLogColRef) return;
     
     if ('id' in entry) {
+      // This is an update to an existing entry
       const docRef = doc(firestore, sheetLogColRef.path, entry.id);
       const { id, ...entryData } = entry;
-      // Optimistic UI update
+      
+      // Optimistically update the UI state
       setSheetLogData(prevData => {
-        if (!prevData) return [{ ...entryData, id: entry.id }];
-        const existingIndex = prevData.findIndex(item => item.id === entry.id);
+        if (!prevData) return [{ ...entryData, id }]; // Should not happen if updating
+        
+        const existingIndex = prevData.findIndex(item => item.id === id);
         if (existingIndex > -1) {
           const newData = [...prevData];
-          newData[existingIndex] = { ...newData[existingIndex], ...entryData };
+          newData[existingIndex] = { ...entryData, id }; // Replace the item
           return newData;
         }
-        return [...prevData, { ...entryData, id: entry.id }];
+        // If for some reason it wasn't found, add it.
+        return [...prevData, { ...entryData, id }];
       });
+      
       updateDocumentNonBlocking(docRef, entryData);
     } else {
+      // This is a new entry
        addDocumentNonBlocking(sheetLogColRef, entry).then(docRef => {
          if (docRef) {
+            // Optimistically add the new entry with its ID
             setSheetLogData(prevData => [...(prevData || []), { ...entry, id: docRef.id }]);
          }
        });
