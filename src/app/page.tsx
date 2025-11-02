@@ -102,22 +102,29 @@ export default function Home() {
   }, [isUserLoading, user, auth]);
   
   useEffect(() => {
-    // When the component mounts or data changes, determine which draws have entries
-    const allUsedDraws = new Set<string>();
+    const uniqueSheetKeys = new Set<string>();
+    const sheetsFromLogs: ActiveSheet[] = [];
+
     Object.values(savedSheetLog).flat().forEach(log => {
-        allUsedDraws.add(log.draw);
+      // Create a unique key for each draw and date combination
+      const key = `${log.draw}-${log.date}`;
+      if (!uniqueSheetKeys.has(key)) {
+        uniqueSheetKeys.add(key);
+        // The date from the log is a string 'yyyy-MM-dd', so we need to parse it.
+        // Adding timezone offset to avoid off-by-one day errors.
+        const dateParts = log.date.split('-').map(Number);
+        const logDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+        sheetsFromLogs.push({
+          draw: log.draw,
+          date: logDate,
+        });
+      }
     });
 
-    const activeSheetsFromLogs = Array.from(allUsedDraws).map(draw => ({
-        draw,
-        date: new Date(),
-    }));
-    
-    if (allUsedDraws.size === 0) {
-      setActiveSheets([]);
-    } else {
-      setActiveSheets(activeSheetsFromLogs);
-    }
+    // Sort sheets by date, most recent first
+    sheetsFromLogs.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    setActiveSheets(sheetsFromLogs);
   }, [savedSheetLog]);
 
 
@@ -225,37 +232,37 @@ export default function Home() {
   
   const handleClientSheetSave = (clientName: string, clientId: string, newData: { [key: string]: string }, draw: string, date: Date) => {
     const todayStr = date.toISOString().split('T')[0];
-
+  
     const existingLog = (savedSheetLog[draw] || []).find(log => log.clientId === clientId && log.date === todayStr);
-
+  
     if (existingLog) {
       const mergedData: { [key: string]: string } = { ...existingLog.data };
       Object.entries(newData).forEach(([key, value]) => {
-          mergedData[key] = String((parseFloat(mergedData[key]) || 0) + (parseFloat(value) || 0));
+        mergedData[key] = String((parseFloat(mergedData[key]) || 0) + (parseFloat(value) || 0));
       });
       const newTotal = Object.values(mergedData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
       const updatedLog: SavedSheetInfo = {
-          ...existingLog,
-          gameTotal: newTotal,
-          data: mergedData,
+        ...existingLog,
+        gameTotal: newTotal,
+        data: mergedData,
       };
       addSheetLogEntry(updatedLog);
     } else {
       const newEntryTotal = Object.values(newData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
       const newEntry: Omit<SavedSheetInfo, 'id'> = {
-          clientName,
-          clientId,
-          gameTotal: newEntryTotal,
-          data: newData,
-          date: todayStr,
-          draw,
+        clientName,
+        clientId,
+        gameTotal: newEntryTotal,
+        data: newData,
+        date: todayStr,
+        draw,
       };
       addSheetLogEntry(newEntry);
     }
-
+  
     toast({
-        title: "Sheet Saved",
-        description: `${clientName}'s data has been logged.`,
+      title: "Sheet Saved",
+      description: `${clientName}'s data has been logged.`,
     });
   };
   
