@@ -96,17 +96,14 @@ const MasterSheetViewer = ({
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
   const [currentLogs, setCurrentLogs] = useState<SavedSheetInfo[]>([]);
 
-  const savedSheetLog = allSavedLogs[draw] || [];
-
   useEffect(() => {
-    const logsForDate = (savedSheetLog || []).filter(log => isSameDay(new Date(log.date), date));
+    const logsForDate = (allSavedLogs[draw] || []).filter(log => isSameDay(new Date(log.date), date));
     setCurrentLogs(logsForDate);
-    // When the component mounts or data changes, select all logs by default.
     setSelectedLogIndices(logsForDate.map((_, index) => index));
-  }, [draw, date, savedSheetLog]);
+  }, [draw, date, allSavedLogs]);
 
   useEffect(() => {
-    const logsToProcess = (savedSheetLog || []).filter(log => isSameDay(new Date(log.date), date));
+    const logsToProcess = (allSavedLogs[draw] || []).filter(log => isSameDay(new Date(log.date), date));
     const newMasterData: CellData = {};
     
     selectedLogIndices.forEach(index => {
@@ -119,7 +116,7 @@ const MasterSheetViewer = ({
       }
     });
     setMasterSheetData(newMasterData);
-  }, [selectedLogIndices, savedSheetLog, date]);
+  }, [selectedLogIndices, allSavedLogs, date, draw]);
 
   const calculateRowTotal = (rowIndex: number, data: CellData) => {
     let total = 0;
@@ -1242,9 +1239,9 @@ const handleHarupApply = () => {
   const grandTotal = rowTotals.reduce((acc, total) => acc + total, 0);
 
   const getClientDisplay = (client: Client) => {
-    const todayStr = props.date.toISOString().split('T')[0];
-    const logsForDraw = props.savedSheetLog[props.draw] || [];
-    const logEntry = logsForDraw.find(log => log.clientId === client.id && log.date === todayStr);
+    const dateStr = props.date.toISOString().split('T')[0];
+    const allLogs = Object.values(props.savedSheetLog).flat();
+    const logEntry = allLogs.find(log => log.clientId === client.id && log.date === dateStr && log.draw === props.draw);
     const totalAmount = logEntry?.gameTotal || 0;
     return `${client.name} - ${formatNumber(totalAmount)}`;
   };
