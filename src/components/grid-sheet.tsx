@@ -70,18 +70,18 @@ type GridSheetProps = {
   setIsLastEntryDialogOpen: (open: boolean) => void;
   clients: Client[];
   onClientSheetSave: (clientName: string, clientId: string, data: CellData, draw: string, date: Date) => void;
-  savedSheetLog: SavedSheetInfo[];
+  savedSheetLog: { [draw: string]: SavedSheetInfo[] };
   accounts: Account[];
   draws: string[];
 }
 
 const MasterSheetViewer = ({
-  savedSheetLog,
+  allSavedLogs,
   draw,
   date,
   onDeleteLog,
 }: {
-  savedSheetLog: SavedSheetInfo[];
+  allSavedLogs: { [draw: string]: SavedSheetInfo[] };
   draw: string;
   date: Date;
   onDeleteLog: (logId: string, clientName: string) => void;
@@ -96,6 +96,7 @@ const MasterSheetViewer = ({
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
   const [currentLogs, setCurrentLogs] = useState<SavedSheetInfo[]>([]);
 
+  const savedSheetLog = allSavedLogs[draw] || [];
 
   useEffect(() => {
     const logsForDate = (savedSheetLog || []).filter(log => isSameDay(new Date(log.date), date));
@@ -459,8 +460,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       if (!clientSheetData[clientId]) {
         // When selecting a new client, check for previous data for the selected date
         const dateStr = props.date.toISOString().split('T')[0];
-        const prevData = getPreviousDataForClient(clientId, props.draw, dateStr);
-        updateClientData(clientId, prevData || {}, {});
+        const logsForDraw = props.savedSheetLog[props.draw] || [];
+        const prevDataLog = logsForDraw.find(l => l.clientId === clientId && l.date === dateStr);
+        updateClientData(clientId, prevDataLog?.data || {}, {});
       }
     }
   };
@@ -531,7 +533,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     },
     getClientPreviousData: (clientId: string) => {
       const dateStr = props.date.toISOString().split('T')[0];
-      const log = props.savedSheetLog.find(l => l.clientId === clientId && l.date === dateStr);
+      const log = (props.savedSheetLog[props.draw] || []).find(l => l.clientId === clientId && l.date === dateStr);
       return log ? log.data : {};
     },
   }));
@@ -701,7 +703,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     if (!client || !client.activeBalance) return true;
 
     const activeBalance = client.activeBalance;
-    const logEntry = props.savedSheetLog.find(log => log.clientId === selectedClientId);
+    const logsForDraw = props.savedSheetLog[props.draw] || [];
+    const logEntry = logsForDraw.find(log => log.clientId === selectedClientId);
     const totalPlayed = logEntry?.gameTotal || 0;
     
     const remainingBalance = activeBalance - totalPlayed;
@@ -1240,7 +1243,8 @@ const handleHarupApply = () => {
 
   const getClientDisplay = (client: Client) => {
     const todayStr = props.date.toISOString().split('T')[0];
-    const logEntry = props.savedSheetLog.find(log => log.clientId === client.id && log.date === todayStr);
+    const logsForDraw = props.savedSheetLog[props.draw] || [];
+    const logEntry = logsForDraw.find(log => log.clientId === client.id && log.date === todayStr);
     const totalAmount = logEntry?.gameTotal || 0;
     return `${client.name} - ${formatNumber(totalAmount)}`;
   };
@@ -1482,7 +1486,7 @@ const handleHarupApply = () => {
             <DialogTitle>Master Sheet : {props.draw}</DialogTitle>
           </DialogHeader>
            <MasterSheetViewer 
-             savedSheetLog={props.savedSheetLog}
+             allSavedLogs={props.savedSheetLog}
              draw={props.draw}
              date={props.date}
              onDeleteLog={(id, name) => setLogToDelete({ id, name })}

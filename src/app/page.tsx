@@ -375,7 +375,7 @@ export default function Home() {
                 setIsLastEntryDialogOpen={setIsLastEntryDialogOpen}
                 clients={clients}
                 onClientSheetSave={handleClientSheetSave}
-                savedSheetLog={savedSheetLog[selectedDraw] || []}
+                savedSheetLog={savedSheetLog}
                 accounts={accounts}
                 draws={draws}
               />
