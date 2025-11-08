@@ -451,30 +451,35 @@ export default function Home() {
                       return (
                       <Card 
                         key={index} 
-                        className="flex items-center justify-between p-3 cursor-pointer transition-colors hover:bg-muted/50"
+                        className="flex items-center justify-between p-3 transition-colors hover:bg-muted/50"
                       >
-                        <div className="flex items-center gap-4" onClick={() => handleOpenSheet(sheet)}>
+                        <div className="flex items-center gap-4 flex-grow cursor-pointer" onClick={() => handleOpenSheet(sheet)}>
                            <div className="flex items-center justify-center h-10 w-10 rounded-full border-2 border-primary text-primary font-bold text-lg">
                               {sheet.draw}
                            </div>
                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="font-semibold text-foreground">Draw: {sheet.draw}</p>
-                                {declaredNumber && (
-                                  <Badge variant="secondary" className="text-xs">Declared: {declaredNumber}</Badge>
-                                )}
-                              </div>
+                              <p className="font-semibold text-foreground">Draw: {sheet.draw}</p>
                               <p className="text-sm text-muted-foreground">{format(sheet.date, "dd-MM-yyyy")}</p>
                            </div>
                         </div>
                         <div className="flex items-center gap-2">
-                           <Button 
-                             variant="ghost" 
-                             size="icon" 
-                             className="text-muted-foreground hover:text-primary" 
-                             onClick={() => { setDeclarationDraw(sheet.draw); setSelectedDate(sheet.date); setIsDeclarationDialogOpen(true); }}>
-                             <Megaphone className="h-5 w-5" />
-                           </Button>
+                          <div 
+                            className="flex items-center justify-center cursor-pointer"
+                            onClick={() => { setDeclarationDraw(sheet.draw); setSelectedDate(sheet.date); setIsDeclarationDialogOpen(true); }}
+                          >
+                           {declaredNumber ? (
+                              <Badge variant="secondary" className="text-lg h-9 w-12 flex items-center justify-center font-bold border-2 border-primary text-primary">
+                                {declaredNumber}
+                              </Badge>
+                           ) : (
+                             <Button 
+                               variant="ghost" 
+                               size="icon" 
+                               className="text-muted-foreground hover:text-primary">
+                               <Megaphone className="h-5 w-5" />
+                             </Button>
+                           )}
+                          </div>
                            <Button variant="outline" className="text-primary border-primary hover:bg-primary hover:text-primary-foreground" onClick={() => handleOpenSheet(sheet)}>
                               Open <ArrowUpRight className="ml-2 h-4 w-4" />
                            </Button>
