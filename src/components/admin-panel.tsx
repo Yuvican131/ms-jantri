@@ -104,7 +104,7 @@ const GrandTotalSummaryCard = ({
     )
 }
 
-const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperComm, upperPair, setUpperPair }: {
+const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperComm, upperPair, setUpperPair, onApply, appliedUpperComm, appliedUpperPair }: {
     userId?: string;
     clients: Client[];
     savedSheetLog: { [draw: string]: SavedSheetInfo[] };
@@ -112,14 +112,17 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
     setUpperComm: (value: string) => void;
     upperPair: string;
     setUpperPair: (value: string) => void;
+    onApply: () => void;
+    appliedUpperComm: string;
+    appliedUpperPair: string;
 }) => {
     const { declaredNumbers } = useDeclaredNumbers(userId);
     const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
     const [selectedClientId, setSelectedClientId] = useState<string>('all');
     
     const dailyReportData: DailyReportRow[] = useMemo(() => {
-        const upperCommPercent = parseFloat(upperComm) / 100 || defaultUpperComm / 100;
-        const upperPairRate = parseFloat(upperPair) || defaultUpperPair;
+        const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
+        const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
     
         const monthStart = startOfMonth(selectedMonth);
         const monthEnd = endOfMonth(selectedMonth);
@@ -194,7 +197,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
             };
         });
     
-    }, [selectedMonth, upperComm, upperPair, clients, savedSheetLog, declaredNumbers, selectedClientId]);
+    }, [selectedMonth, appliedUpperComm, appliedUpperPair, clients, savedSheetLog, declaredNumbers, selectedClientId]);
   
     const monthlyTotalProfit = useMemo(() => {
       return dailyReportData.reduce((acc, row) => acc + row.brokerProfit, 0);
@@ -202,25 +205,30 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 border rounded-lg bg-muted/50">
-                <div className="space-y-2">
-                    <Label htmlFor="upper-comm">Upper Broker Comm (%)</Label>
-                    <Input 
-                    id="upper-comm" 
-                    value={upperComm} 
-                    onChange={(e) => setUpperComm(e.target.value)} 
-                    placeholder={String(defaultUpperComm)}
-                    />
+            <div className="p-4 border rounded-lg bg-muted/50">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+                    <div className="space-y-2">
+                        <Label htmlFor="upper-comm">Upper Broker Comm (%)</Label>
+                        <Input 
+                        id="upper-comm" 
+                        value={upperComm} 
+                        onChange={(e) => setUpperComm(e.target.value)} 
+                        placeholder={String(defaultUpperComm)}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="upper-pair">Upper Broker Pair Rate</Label>
+                        <Input 
+                        id="upper-pair" 
+                        value={upperPair} 
+                        onChange={(e) => setUpperPair(e.target.value)} 
+                        placeholder={String(defaultUpperPair)}
+                        />
+                    </div>
+                    <Button onClick={onApply}>Apply Settings</Button>
                 </div>
-                <div className="space-y-2">
-                    <Label htmlFor="upper-pair">Upper Broker Pair Rate</Label>
-                    <Input 
-                    id="upper-pair" 
-                    value={upperPair} 
-                    onChange={(e) => setUpperPair(e.target.value)} 
-                    placeholder={String(defaultUpperPair)}
-                    />
-                </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                     <Label>Select Month</Label>
                     <Popover>
@@ -323,7 +331,14 @@ type AdminPanelProps = {
 export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPanelProps) {
     const [upperComm, setUpperComm] = useState(defaultUpperComm.toString());
     const [upperPair, setUpperPair] = useState(defaultUpperPair.toString());
+    const [appliedUpperComm, setAppliedUpperComm] = useState(defaultUpperComm.toString());
+    const [appliedUpperPair, setAppliedUpperPair] = useState(defaultUpperPair.toString());
     const { declaredNumbers } = useDeclaredNumbers(userId);
+
+    const handleApplySettings = () => {
+        setAppliedUpperComm(upperComm);
+        setAppliedUpperPair(upperPair);
+    };
 
     const { 
         brokerRawDrawTotals, 
@@ -333,8 +348,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         brokerCommission,
         finalNetTotalForBroker
     } = useMemo(() => {
-        const upperCommPercent = parseFloat(upperComm) / 100 || defaultUpperComm / 100;
-        const upperPairRate = parseFloat(upperPair) || defaultUpperPair;
+        const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
+        const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
         
         const rawTotalsByDraw: { [key: string]: number } = {};
         const passingTotalsByDraw: { [key: string]: number } = {};
@@ -372,7 +387,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             brokerCommission,
             finalNetTotalForBroker: brokerProfit
         };
-    }, [savedSheetLog, declaredNumbers, upperComm, upperPair, draws]);
+    }, [savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair]);
 
 
   return (
@@ -401,7 +416,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                   grandRawTotal={grandRawTotal}
                   grandPassingTotal={grandPassingTotal}
                   brokerCommission={brokerCommission}
-                  upperPairRate={parseFloat(upperPair) || defaultUpperPair}
+                  upperPairRate={parseFloat(appliedUpperPair) || defaultUpperPair}
                 />
             </div>
         </div>
@@ -418,6 +433,9 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 setUpperComm={setUpperComm}
                 upperPair={upperPair}
                 setUpperPair={setUpperPair}
+                onApply={handleApplySettings}
+                appliedUpperComm={appliedUpperComm}
+                appliedUpperPair={appliedUpperPair}
              />
         </div>
       </CardContent>
@@ -428,6 +446,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
     
 
+
+    
 
     
 
