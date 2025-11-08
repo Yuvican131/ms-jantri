@@ -52,7 +52,7 @@ const BrokerDrawSummaryCard = ({
             </div>
             <div className="p-2 bg-muted/50 border-t flex items-center justify-between">
                 <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1"><TrendingDown className="h-3 w-3" /> Passing</span>
-                <span className="text-sm font-bold text-red-500">{formatNumber(passingTotal)}</span>
+                <span className={`text-sm font-bold ${passingTotal > 0 ? 'text-red-500' : 'text-foreground'}`}>{formatNumber(passingTotal)}</span>
             </div>
         </Card>
     );
@@ -458,20 +458,4 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
   );
 }
     
-
-    
-
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
     
