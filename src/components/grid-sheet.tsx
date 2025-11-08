@@ -103,7 +103,7 @@ const MasterSheetViewer = ({
   }, [draw, date, allSavedLogs]);
 
   useEffect(() => {
-    const logsToProcess = (allSavedLogs[draw] || []).filter(log => isSameDay(new Date(log.date), date));
+    const logsToProcess = (currentLogs || []);
     const newMasterData: CellData = {};
     
     selectedLogIndices.forEach(index => {
@@ -116,7 +116,7 @@ const MasterSheetViewer = ({
       }
     });
     setMasterSheetData(newMasterData);
-  }, [selectedLogIndices, allSavedLogs, date, draw]);
+  }, [selectedLogIndices, currentLogs]);
 
   const calculateRowTotal = (rowIndex: number, data: CellData) => {
     let total = 0;
@@ -240,10 +240,10 @@ const MasterSheetViewer = ({
   
  return (
     <>
-    <div className="flex h-full flex-col gap-4 bg-background p-1 md:p-4 items-start">
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 flex-grow overflow-y-auto w-full">
-        <div className="flex flex-col min-w-0 h-full">
-            <div className="grid gap-0.5 w-full flex-grow" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${GRID_ROWS + 1}, minmax(0, 1fr))`}}>
+    <div className="flex h-full flex-col gap-4 bg-background p-1 md:p-4 items-start overflow-y-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 w-full">
+        <div className="flex flex-col min-w-0">
+            <div className="grid gap-0.5 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${GRID_ROWS + 1}, minmax(0, 1fr))`}}>
                 {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                     <React.Fragment key={`master-row-${rowIndex}`}>
                         {Array.from({ length: GRID_COLS }, (_, colIndex) => {
@@ -305,7 +305,7 @@ const MasterSheetViewer = ({
               <CardHeader className="p-3">
                   <CardTitle className="text-sm">Client Entries for {format(date, 'PPP')}</CardTitle>
               </CardHeader>
-              <CardContent className="p-3 flex-grow h-0">
+              <CardContent className="p-3 flex-grow min-h-0">
                   <ScrollArea className="h-full">
                       <div className="space-y-2 pr-2">
                           {currentLogs.length > 0 ? currentLogs.map((log, index) => (
@@ -537,12 +537,12 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
   const calculateCombinations = (num1: string, num2: string, removeJoddaFlag: boolean, reverseFlag: boolean, runningFlag: boolean): number => {
     if (runningFlag) {
-      const start = parseInt(num1, 10);
-      const end = parseInt(num2, 10);
-      if (!isNaN(start) && !isNaN(end) && end >= start) {
-          return end - start + 1;
-      }
-      return 0;
+        const start = parseInt(num1, 10);
+        const end = parseInt(num2, 10);
+        if (!isNaN(start) && !isNaN(end) && end >= start) {
+            return end - start + 1;
+        }
+        return 0;
     }
 
     const digits1 = num1.split('');
@@ -554,7 +554,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
             for (const d2 of digits2) {
                 if (removeJoddaFlag && d1 === d2) continue;
                 combinations.add(`${d1}${d2}`);
-                if (reverseFlag) {
+                if (reverseFlag && d1 !== d2) {
                     combinations.add(`${d2}${d1}`);
                 }
             }
@@ -876,7 +876,7 @@ const handleMultiTextApply = () => {
             for (const d2 of digits2) {
                 if (removeJodda && d1 === d2) continue;
                 combinations.add(`${d1}${d2}`);
-                if (reverseLaddi) {
+                if (reverseLaddi && d1 !== d2) {
                     combinations.add(`${d2}${d1}`);
                 }
             }
@@ -1240,8 +1240,7 @@ const handleHarupApply = () => {
 
   const getClientDisplay = (client: Client) => {
     const dateStr = props.date.toISOString().split('T')[0];
-    const allLogs = Object.values(props.savedSheetLog).flat();
-    const logEntry = allLogs.find(log => log.clientId === client.id && log.date === dateStr && log.draw === props.draw);
+    const logEntry = (props.savedSheetLog[props.draw] || []).find(log => log.clientId === client.id && log.date === dateStr);
     const totalAmount = logEntry?.gameTotal || 0;
     return `${client.name} - ${formatNumber(totalAmount)}`;
   };

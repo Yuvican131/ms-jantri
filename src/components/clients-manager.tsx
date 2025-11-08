@@ -1,8 +1,7 @@
 "use client"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input"
@@ -292,72 +291,135 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
           </Dialog>
         </CardHeader>
         <CardContent className="flex-1 min-h-0">
-          <ScrollArea className="h-full">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>SI.No</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Pair</TableHead>
-                  <TableHead>Comm</TableHead>
-                  <TableHead>Net Balance</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {clients.map((client, index) => {
+          <div className="hidden md:block">
+            <ScrollArea className="h-full">
+              <table className="w-full text-sm text-left">
+                <thead className="text-xs text-muted-foreground uppercase bg-muted/50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3">SI.No</th>
+                    <th scope="col" className="px-6 py-3">Name</th>
+                    <th scope="col" className="px-6 py-3">Pair</th>
+                    <th scope="col" className="px-6 py-3">Comm</th>
+                    <th scope="col" className="px-6 py-3">Net Balance</th>
+                    <th scope="col" className="px-6 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clients.map((client, index) => {
+                    const account = accounts.find(acc => acc.id === client.id);
+                    const netBalance = account?.balance ?? client.activeBalance ?? 0;
+                    const balanceColor = netBalance >= 0 ? 'text-green-500' : 'text-red-500';
+
+                    return (
+                      <tr key={client.id} className="bg-card border-b hover:bg-muted/50">
+                        <td className="px-6 py-4">{index + 1}</td>
+                        <td className="px-6 py-4 font-medium whitespace-nowrap">{client.name}</td>
+                        <td className="px-6 py-4">{client.pair}</td>
+                        <td className="px-6 py-4">{client.comm}%</td>
+                        <td className={`px-6 py-4 font-bold ${balanceColor}`}>{formatNumber(netBalance)}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-2">
+                              <Button variant="outline" size="sm" onClick={() => openTransactionDialog(client, 'deposit')}>
+                                  <ArrowUpCircle className="mr-2 h-4 w-4 text-green-500" />
+                                  Deposit
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => openTransactionDialog(client, 'withdraw')}>
+                                  <ArrowDownCircle className="mr-2 h-4 w-4 text-red-500" />
+                                  Withdrawal
+                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Open menu</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleEditClient(client)}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    <span>Edit Details</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleClearClientData(client.id, client.name)}>
+                                    <Eraser className="mr-2 h-4 w-4" />
+                                    <span>Clear Sheet Data</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive" onClick={() => handleDeleteClient(client.id, client.name)}>
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <span>Delete Client</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </ScrollArea>
+          </div>
+          <div className="md:hidden">
+            <ScrollArea className="h-full">
+              <div className="space-y-4">
+                {clients.map((client) => {
                   const account = accounts.find(acc => acc.id === client.id);
                   const netBalance = account?.balance ?? client.activeBalance ?? 0;
                   const balanceColor = netBalance >= 0 ? 'text-green-500' : 'text-red-500';
 
                   return (
-                    <TableRow key={client.id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell className="font-medium">{client.name}</TableCell>
-                      <TableCell>{client.pair}</TableCell>
-                      <TableCell>{client.comm}%</TableCell>
-                      <TableCell className={`font-bold ${balanceColor}`}>{formatNumber(netBalance)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                            <Button variant="outline" size="sm" onClick={() => openTransactionDialog(client, 'deposit')}>
-                                <ArrowUpCircle className="mr-2 h-4 w-4 text-green-500" />
-                                Deposit
-                            </Button>
-                             <Button variant="outline" size="sm" onClick={() => openTransactionDialog(client, 'withdraw')}>
-                                <ArrowDownCircle className="mr-2 h-4 w-4 text-red-500" />
-                                Withdrawal
-                            </Button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <span className="sr-only">Open menu</span>
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleEditClient(client)}>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  <span>Edit Details</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleClearClientData(client.id, client.name)}>
-                                  <Eraser className="mr-2 h-4 w-4" />
-                                  <span>Clear Sheet Data</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive" onClick={() => handleDeleteClient(client.id, client.name)}>
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  <span>Delete Client</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                    <Card key={client.id} className="p-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-lg">{client.name}</CardTitle>
+                          <CardDescription>
+                            Pair: {client.pair} | Comm: {client.comm}%
+                          </CardDescription>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  )
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Open menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditClient(client)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              <span>Edit Details</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleClearClientData(client.id, client.name)}>
+                              <Eraser className="mr-2 h-4 w-4" />
+                              <span>Clear Sheet Data</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive" onClick={() => handleDeleteClient(client.id, client.name)}>
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              <span>Delete Client</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      <div className="mt-4">
+                        <p className="text-sm text-muted-foreground">Net Balance</p>
+                        <p className={`text-2xl font-bold ${balanceColor}`}>₹{formatNumber(netBalance)}</p>
+                      </div>
+                      <div className="mt-4 flex gap-2">
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => openTransactionDialog(client, 'deposit')}>
+                            <ArrowUpCircle className="mr-2 h-4 w-4 text-green-500" />
+                            Deposit
+                        </Button>
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => openTransactionDialog(client, 'withdraw')}>
+                            <ArrowDownCircle className="mr-2 h-4 w-4 text-red-500" />
+                            Withdrawal
+                        </Button>
+                      </div>
+                    </Card>
+                  );
                 })}
-              </TableBody>
-            </Table>
-          </ScrollArea>
+              </div>
+            </ScrollArea>
+          </div>
         </CardContent>
       </Card>
       
