@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
@@ -445,7 +446,9 @@ export default function Home() {
                   </div>
 
                   <div className="space-y-3">
-                    {activeSheets.map((sheet, index) => (
+                    {activeSheets.map((sheet, index) => {
+                      const declaredNumber = getDeclaredNumber(sheet.draw, sheet.date);
+                      return (
                       <Card 
                         key={index} 
                         className="flex items-center justify-between p-3 cursor-pointer transition-colors hover:bg-muted/50"
@@ -455,7 +458,12 @@ export default function Home() {
                               {sheet.draw}
                            </div>
                            <div>
-                              <p className="font-semibold text-foreground">Draw: {sheet.draw}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-semibold text-foreground">Draw: {sheet.draw}</p>
+                                {declaredNumber && (
+                                  <Badge variant="secondary" className="text-xs">Declared: {declaredNumber}</Badge>
+                                )}
+                              </div>
                               <p className="text-sm text-muted-foreground">{format(sheet.date, "dd-MM-yyyy")}</p>
                            </div>
                         </div>
@@ -475,7 +483,7 @@ export default function Home() {
                            </Button>
                         </div>
                       </Card>
-                    ))}
+                    )})}
                   </div>
                 </div>
 
