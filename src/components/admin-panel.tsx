@@ -1,6 +1,6 @@
 
 "use client"
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatNumber } from "@/lib/utils";
 import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy, Wallet, Calendar as CalendarIcon, Percent } from 'lucide-react';
@@ -335,9 +335,24 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     const [appliedUpperPair, setAppliedUpperPair] = useState(defaultUpperPair.toString());
     const { declaredNumbers } = useDeclaredNumbers(userId);
 
+    useEffect(() => {
+        const savedComm = localStorage.getItem('upperBrokerComm');
+        const savedPair = localStorage.getItem('upperBrokerPair');
+        if (savedComm) {
+            setUpperComm(savedComm);
+            setAppliedUpperComm(savedComm);
+        }
+        if (savedPair) {
+            setUpperPair(savedPair);
+            setAppliedUpperPair(savedPair);
+        }
+    }, []);
+
     const handleApplySettings = () => {
         setAppliedUpperComm(upperComm);
         setAppliedUpperPair(upperPair);
+        localStorage.setItem('upperBrokerComm', upperComm);
+        localStorage.setItem('upperBrokerPair', upperPair);
     };
 
     const { 
@@ -446,6 +461,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
     
 
+
+    
 
     
 
