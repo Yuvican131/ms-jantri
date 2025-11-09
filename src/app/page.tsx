@@ -288,6 +288,7 @@ export default function Home() {
   const handleDeleteDrawSheets = () => {
     if (drawToDelete && user?.uid) {
         deleteSheetLogsForDraw(drawToDelete.draw, drawToDelete.date);
+        removeDeclaredNumber(drawToDelete.draw, drawToDelete.date);
         setActiveSheets(prev => prev.filter(s => !(s.draw === drawToDelete.draw && isSameDay(s.date, drawToDelete.date))));
     }
     setDrawToDelete(null);
