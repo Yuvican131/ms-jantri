@@ -106,26 +106,44 @@ export default function Home() {
     const uniqueSheetKeys = new Set<string>();
     const sheetsFromLogs: ActiveSheet[] = [];
 
+    // Combine active (unsaved) sheets with saved sheets from logs
+    const allSheets = [...activeSheets];
+
     Object.values(savedSheetLog).flat().forEach(log => {
-      // Create a unique key for each draw and date combination
-      const key = `${log.draw}-${log.date}`;
-      if (!uniqueSheetKeys.has(key)) {
-        uniqueSheetKeys.add(key);
-        // The date from the log is a string 'yyyy-MM-dd', so we need to parse it.
-        // Adding timezone offset to avoid off-by-one day errors.
-        const dateParts = log.date.split('-').map(Number);
-        const logDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
-        sheetsFromLogs.push({
-          draw: log.draw,
-          date: logDate,
-        });
-      }
+        const key = `${log.draw}-${log.date}`;
+        if (!uniqueSheetKeys.has(key)) {
+            uniqueSheetKeys.add(key);
+            // The date from the log is a string 'yyyy-MM-dd'.
+            // To avoid timezone issues, parse it as UTC.
+            const dateParts = log.date.split('-').map(Number);
+            const logDate = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
+            
+            // Check if this sheet is already in our active sheets list
+            const alreadyExists = allSheets.some(s => s.draw === log.draw && isSameDay(s.date, logDate));
+            if (!alreadyExists) {
+                allSheets.push({
+                    draw: log.draw,
+                    date: logDate,
+                });
+            }
+        }
     });
 
     // Sort sheets by date, most recent first
-    sheetsFromLogs.sort((a, b) => b.date.getTime() - a.date.getTime());
+    allSheets.sort((a, b) => b.date.getTime() - a.date.getTime());
+    
+    // Deduplicate one last time to be safe
+    const finalUniqueSheets: ActiveSheet[] = [];
+    const finalKeys = new Set<string>();
+    allSheets.forEach(sheet => {
+        const key = `${sheet.draw}-${format(sheet.date, 'yyyy-MM-dd')}`;
+        if (!finalKeys.has(key)) {
+            finalKeys.add(key);
+            finalUniqueSheets.push(sheet);
+        }
+    });
 
-    setActiveSheets(sheetsFromLogs);
+    setActiveSheets(finalUniqueSheets);
   }, [savedSheetLog]);
 
 
