@@ -197,6 +197,7 @@ export function DataEntryControls({
         if (Object.keys(updates).length > 0) {
             onDataUpdate(updates, multiText);
             setMultiText("");
+            multiTextRef.current?.focus();
         } else if (multiText.trim().length > 0 && !errorOccurred) {
             toast({
                 title: "No valid data found",
@@ -265,6 +266,7 @@ export function DataEntryControls({
             setRemoveJodda(false);
             setReverseLaddi(false);
             setRunningLaddi(false);
+            multiTextRef.current?.focus();
         } else {
             toast({ title: "No Laddi Updates", description: "No valid cell combinations found to update.", variant: "destructive" });
         }
@@ -320,6 +322,7 @@ export function DataEntryControls({
             setHarupA('');
             setHarupB('');
             setHarupAmount('');
+            multiTextRef.current?.focus();
         } else {
             toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
         }
