@@ -1,4 +1,3 @@
-
 "use client"
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef } from "react"
 import { useToast } from "@/hooks/use-toast"
@@ -8,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, X, Save, RotateCcw, Undo2, Eye, FileSpreadsheet, ArrowLeft } from "lucide-react"
+import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, X, Save, RotateCcw, Undo2, Eye, FileSpreadsheet, ArrowLeft, Grid, Edit } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -20,6 +19,8 @@ import { formatNumber } from "@/lib/utils"
 import type { Client } from "@/hooks/useClients"
 import type { SavedSheetInfo } from "@/hooks/useSheetLog"
 import { useSheetLog } from "@/hooks/useSheetLog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 
 type CellData = { [key: string]: string }
@@ -392,6 +393,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isMasterSheetDialogOpen, setIsMasterSheetDialogOpen] = useState(false);
   const [logToDelete, setLogToDelete] = useState<{ id: string, name: string } | null>(null);
+  const isMobile = useIsMobile();
 
 
   const [validations, setValidations] = useState<CellValidation>({})
@@ -1244,205 +1246,228 @@ const handleHarupApply = () => {
     const totalAmount = logEntry?.gameTotal || 0;
     return `${client.name} - ${formatNumber(totalAmount)}`;
   };
+  
+  const DataEntryControls = () => (
+    <div className="flex flex-col gap-2 w-full min-h-0">
+      <div className="border rounded-lg p-2 flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+              <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
+                  <SelectTrigger className="flex-grow h-8 text-xs">
+                      <SelectValue>
+                        {selectedClientId && props.clients.find(c => c.id === selectedClientId) ? getClientDisplay(props.clients.find(c => c.id === selectedClientId)!) : "Select Client"}
+                      </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="None">None (Master Sheet)</SelectItem>
+                      {props.clients.map(client => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {getClientDisplay(client)}
+                          </SelectItem>
+                      ))}
+                  </SelectContent>
+              </Select>
+              <Button onClick={handleSaveSheet} disabled={!selectedClientId} size="sm" className="h-8 text-xs">
+                  <Save className="h-3 w-3 mr-1" />
+                  Save
+              </Button>
+              <Button onClick={handleRevertLastEntry} variant="outline" disabled={!previousSheetState || selectedClientId === null} size="sm" className="h-8 text-xs">
+                  <Undo2 className="h-3 w-3 mr-1" />
+                  Revert
+              </Button>
+          </div>
+      </div>
+      <ScrollArea className="flex-grow pr-2 -mr-2">
+      <div className="space-y-2 pr-2">
+        <div className="border rounded-lg p-2 flex flex-col gap-2">
+            <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
+            <Textarea
+                ref={multiTextRef}
+                placeholder="e.g. 12,21=100 or 123=45=10"
+                rows={4}
+                value={multiText}
+                onChange={handleMultiTextChange}
+                onKeyDown={handleKeyDown}
+                className="w-full text-base"
+                disabled={selectedClientId === null}
+                onClick={selectedClientId === null ? showClientSelectionToast : undefined}
+            />
+            <div className="flex flex-wrap gap-2 mt-1 items-start">
+                <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={selectedClientId === null} size="sm">Apply</Button>
+                <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={selectedClientId === null} size="sm">
+                    Generate
+                </Button>
+                <Button onClick={handleClearSheet} variant="destructive" className="shrink-0 text-xs h-8" disabled={selectedClientId === null} size="sm">
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Clear
+                </Button>
+            </div>
+        </div>
+        
+        <div className="border rounded-lg p-2 flex flex-col gap-2">
+          <h3 className="font-semibold mb-1 text-xs">Laddi</h3>
+          <div className="flex items-center gap-2 mb-1">
+              <div className="flex-1 flex flex-col items-center gap-1">
+                  <Input
+                    ref={laddiNum1Ref}
+                    id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "Start" : "Num 1"}
+                    value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={handleKeyDown} disabled={selectedClientId === null}
+                    onClick={selectedClientId === null ? showClientSelectionToast : undefined}
+                  />
+                  <Label htmlFor="laddiNum1" className="text-xs whitespace-nowrap">{runningLaddi ? "Start" : "Pair"}</Label>
+              </div>
+                <div className="flex flex-col items-center justify-center px-2 my-1">
+                <div className="text-xs font-bold text-primary">{combinationCount}</div>
+                <span className="font-bold text-center text-sm">x</span>
+              </div>
+              <div className="flex-1 flex flex-col items-center gap-1">
+                  <Input
+                    ref={laddiNum2Ref}
+                    id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "End" : "Num 2"}
+                    value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={handleKeyDown} disabled={selectedClientId === null}
+                    onClick={selectedClientId === null ? showClientSelectionToast : undefined}
+                  />
+                  <Label htmlFor="laddiNum2" className="text-xs whitespace-nowrap">{runningLaddi ? "End" : "Pair"}</Label>
+              </div>
+          </div>
+          <div className="grid grid-cols-5 items-center gap-1">
+            <div className="col-span-3 flex items-center gap-1">
+              <span className="font-bold text-center">=</span>
+              <Input
+                ref={laddiAmountRef}
+                id="laddiAmount" type="text" className="text-center font-bold h-8 text-sm"
+                value={laddiAmount} onChange={(e) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
+                placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
+                onClick={selectedClientId === null ? showClientSelectionToast : undefined}
+              />
+            </div>
+            <div className="col-span-2 flex justify-end">
+              <Button onClick={handleLaddiApply} disabled={selectedClientId === null} size="sm" className="h-8 text-xs">Apply</Button>
+            </div>
+          </div>
+          <div className="flex justify-between items-center gap-2 mt-1">
+              <div className="flex items-center gap-2">
+                  <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={selectedClientId === null || runningLaddi} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                  <Label htmlFor="remove-jodda" className={`text-xs ${selectedClientId === null || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Jodda</Label>
+                    <Checkbox id="reverse-laddi" checked={reverseLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setReverseLaddi(Boolean(checked)) }} disabled={selectedClientId === null || runningLaddi} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                  <Label htmlFor="reverse-laddi" className={`text-xs ${selectedClientId === null || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Reverse</Label>
+                  <Checkbox id="running-laddi" checked={runningLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRunningLaddi(Boolean(checked)); setLaddiNum1(''); setLaddiNum2(''); }} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                  <Label htmlFor="running-laddi" className={`text-xs ${selectedClientId === null ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Running</Label>
+              </div>
+          </div>
+        </div>
+      
+        <div className="border rounded-lg p-2 flex flex-col gap-2">
+          <h3 className="font-semibold mb-1 text-xs">HARUP</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+            <div className="flex items-center gap-1">
+                <Label htmlFor="harupA" className="w-6 text-center shrink-0 text-xs">A</Label>
+                <Input ref={harupAInputRef} id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+            </div>
+            <div className="flex items-center gap-1">
+                <Label htmlFor="harupB" className="w-6 text-center shrink-0 text-xs">B</Label>
+                <Input ref={harupBInputRef} id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+            </div>
+          </div>
+            <div className="flex items-center gap-2 mt-1">
+              <Label htmlFor="harupAmount" className="w-6 text-center shrink-0 text-xs">=</Label>
+              <Input ref={harupAmountInputRef} id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+              <Button onClick={handleHarupApply} disabled={selectedClientId === null} size="sm" className="h-8 text-xs">Apply</Button>
+          </div>
+        </div>
+      </div>
+    </ScrollArea>
+    <div className="border rounded-lg p-2 mt-2">
+        <Button onClick={() => setIsMasterSheetDialogOpen(true)} variant="outline" className="w-full">
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            View Master Sheet
+        </Button>
+    </div>
+  </div>
+  );
 
+  const GridView = () => (
+    <div className="grid gap-0.5 w-full flex-grow grid-sheet-layout">
+      {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
+        <React.Fragment key={`row-${rowIndex}`}>
+          {Array.from({ length: GRID_COLS }, (_, colIndex) => {
+              const key = String(rowIndex * GRID_COLS + colIndex).padStart(2, '0');
+              const validation = validations[key]
+              const isUpdated = updatedCells.includes(key);
+
+              return (
+                <div key={key} className="relative flex border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+                  <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number font-bold" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
+                  <div
+                    className={`p-0 h-full w-full justify-center bg-transparent border-0 focus:ring-0 flex items-end font-bold grid-cell-input ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    onClick={selectedClientId === null ? showClientSelectionToast : undefined}
+                  >
+                    <span className="w-full text-center pb-1" style={{ color: 'var(--grid-cell-amount-color)' }}>
+                      {currentData[key] || ''}
+                    </span>
+                  </div>
+                  {(validation?.isLoading || (validation && !validation.isValid)) && (
+                    <div className="absolute top-1/2 right-1 -translate-y-1/2 z-10">
+                      {validation.isLoading ? (
+                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                      ) : (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button aria-label="Show validation error">
+                              <AlertCircle className="h-3 w-3 text-destructive" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="text-sm">{validation.recommendation}</PopoverContent>
+                        </Popover>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+          })}
+            <div className="flex items-center justify-center font-medium border rounded-sm bg-transparent grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+            <Input readOnly value={rowTotals[rowIndex] ? formatNumber(rowTotals[rowIndex]) : ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent grid-cell-total" style={{ color: 'var(--grid-cell-total-color)' }}/>
+          </div>
+        </React.Fragment>
+      ))}
+      {/* Column Totals */}
+      {Array.from({ length: GRID_COLS }, (_, colIndex) => (
+        <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border rounded-sm bg-transparent grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+          <Input readOnly value={columnTotals[colIndex] ? formatNumber(columnTotals[colIndex]) : ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent grid-cell-total" style={{ color: 'var(--grid-cell-total-color)' }}/>
+        </div>
+      ))}
+      <div className="flex items-center justify-center font-bold text-lg border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)', color: 'var(--grid-cell-total-color)' }}>
+          {formatNumber(grandTotal)}
+      </div>
+    </div>
+  );
 
   return (
     <>
       <Card className="h-full flex flex-col overflow-hidden">
         <CardContent className="p-1 md:p-2 flex-grow flex flex-col min-h-0">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-2 flex-grow min-h-0">
-            <div className="flex flex-col min-w-0 h-full">
-               <div className="grid gap-0.5 w-full flex-grow grid-sheet-layout">
-                {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
-                  <React.Fragment key={`row-${rowIndex}`}>
-                    {Array.from({ length: GRID_COLS }, (_, colIndex) => {
-                        const key = String(rowIndex * GRID_COLS + colIndex).padStart(2, '0');
-                        const validation = validations[key]
-                        const isUpdated = updatedCells.includes(key);
-
-                        return (
-                          <div key={key} className="relative flex border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                            <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number font-bold" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
-                            <div
-                              className={`p-0 h-full w-full justify-center bg-transparent border-0 focus:ring-0 flex items-end font-bold grid-cell-input ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'cursor-pointer'}`}
-                              onClick={selectedClientId === null ? showClientSelectionToast : undefined}
-                            >
-                              <span className="w-full text-center pb-1" style={{ color: 'var(--grid-cell-amount-color)' }}>
-                                {currentData[key] || ''}
-                              </span>
-                            </div>
-                            {(validation?.isLoading || (validation && !validation.isValid)) && (
-                              <div className="absolute top-1/2 right-1 -translate-y-1/2 z-10">
-                                {validation.isLoading ? (
-                                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                                ) : (
-                                  <Popover>
-                                    <PopoverTrigger asChild>
-                                      <button aria-label="Show validation error">
-                                        <AlertCircle className="h-3 w-3 text-destructive" />
-                                      </button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="text-sm">{validation.recommendation}</PopoverContent>
-                                  </Popover>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        )
-                    })}
-                     <div className="flex items-center justify-center font-medium border rounded-sm bg-transparent grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                      <Input readOnly value={rowTotals[rowIndex] ? formatNumber(rowTotals[rowIndex]) : ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent grid-cell-total" style={{ color: 'var(--grid-cell-total-color)' }}/>
-                    </div>
-                  </React.Fragment>
-                ))}
-                {/* Column Totals */}
-                {Array.from({ length: GRID_COLS }, (_, colIndex) => (
-                  <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border rounded-sm bg-transparent grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                    <Input readOnly value={columnTotals[colIndex] ? formatNumber(columnTotals[colIndex]) : ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent grid-cell-total" style={{ color: 'var(--grid-cell-total-color)' }}/>
-                  </div>
-                ))}
-                <div className="flex items-center justify-center font-bold text-lg border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)', color: 'var(--grid-cell-total-color)' }}>
-                    {formatNumber(grandTotal)}
+          {isMobile ? (
+            <Tabs defaultValue="grid" className="w-full flex flex-col min-h-0">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="grid" className="gap-1.5"><Grid className="h-4 w-4" /> Grid</TabsTrigger>
+                <TabsTrigger value="entry" className="gap-1.5"><Edit className="h-4 w-4" /> Entry</TabsTrigger>
+              </TabsList>
+              <TabsContent value="grid" className="flex-grow min-h-0 mt-2">
+                <div className="flex flex-col min-w-0 h-full">
+                  <GridView />
                 </div>
+              </TabsContent>
+              <TabsContent value="entry" className="flex-grow min-h-0 mt-2">
+                <DataEntryControls />
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-2 flex-grow min-h-0">
+              <div className="flex flex-col min-w-0 h-full">
+                <GridView />
               </div>
+              <DataEntryControls />
             </div>
-
-            <div className="flex flex-col gap-2 w-full lg:w-[320px] xl:w-[360px] min-h-0">
-               <div className="border rounded-lg p-2 flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                        <Select value={selectedClientId || 'None'} onValueChange={handleSelectedClientChange}>
-                            <SelectTrigger className="flex-grow h-8 text-xs">
-                                <SelectValue>
-                                  {selectedClientId && props.clients.find(c => c.id === selectedClientId) ? getClientDisplay(props.clients.find(c => c.id === selectedClientId)!) : "Select Client"}
-                                </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="None">None (Master Sheet)</SelectItem>
-                                {props.clients.map(client => (
-                                    <SelectItem key={client.id} value={client.id}>
-                                      {getClientDisplay(client)}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Button onClick={handleSaveSheet} disabled={!selectedClientId} size="sm" className="h-8 text-xs">
-                            <Save className="h-3 w-3 mr-1" />
-                            Save
-                        </Button>
-                        <Button onClick={handleRevertLastEntry} variant="outline" disabled={!previousSheetState || selectedClientId === null} size="sm" className="h-8 text-xs">
-                            <Undo2 className="h-3 w-3 mr-1" />
-                            Revert
-                        </Button>
-                    </div>
-                </div>
-               <ScrollArea className="flex-grow pr-2 -mr-2">
-                <div className="space-y-2 pr-2">
-                  <div className="border rounded-lg p-2 flex flex-col gap-2">
-                      <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
-                      <Textarea
-                          ref={multiTextRef}
-                          placeholder="e.g. 12,21=100 or 123=45=10"
-                          rows={4}
-                          value={multiText}
-                          onChange={handleMultiTextChange}
-                          onKeyDown={handleKeyDown}
-                          className="w-full text-base"
-                          disabled={selectedClientId === null}
-                          onClick={selectedClientId === null ? showClientSelectionToast : undefined}
-                      />
-                      <div className="flex flex-wrap gap-2 mt-1 items-start">
-                          <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={selectedClientId === null} size="sm">Apply</Button>
-                          <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={selectedClientId === null} size="sm">
-                              Generate
-                          </Button>
-                          <Button onClick={handleClearSheet} variant="destructive" className="shrink-0 text-xs h-8" disabled={selectedClientId === null} size="sm">
-                              <Trash2 className="h-3 w-3 mr-1" />
-                              Clear
-                          </Button>
-                      </div>
-                  </div>
-                  
-                  <div className="border rounded-lg p-2 flex flex-col gap-2">
-                    <h3 className="font-semibold mb-1 text-xs">Laddi</h3>
-                    <div className="flex items-center gap-2 mb-1">
-                        <div className="flex-1 flex flex-col items-center gap-1">
-                            <Input
-                              ref={laddiNum1Ref}
-                              id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "Start" : "Num 1"}
-                              value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={handleKeyDown} disabled={selectedClientId === null}
-                              onClick={selectedClientId === null ? showClientSelectionToast : undefined}
-                            />
-                            <Label htmlFor="laddiNum1" className="text-xs whitespace-nowrap">{runningLaddi ? "Start" : "Pair"}</Label>
-                        </div>
-                         <div className="flex flex-col items-center justify-center px-2 my-1">
-                          <div className="text-xs font-bold text-primary">{combinationCount}</div>
-                          <span className="font-bold text-center text-sm">x</span>
-                        </div>
-                        <div className="flex-1 flex flex-col items-center gap-1">
-                            <Input
-                              ref={laddiNum2Ref}
-                              id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "End" : "Num 2"}
-                              value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={handleKeyDown} disabled={selectedClientId === null}
-                              onClick={selectedClientId === null ? showClientSelectionToast : undefined}
-                            />
-                            <Label htmlFor="laddiNum2" className="text-xs whitespace-nowrap">{runningLaddi ? "End" : "Pair"}</Label>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-5 items-center gap-1">
-                      <div className="col-span-3 flex items-center gap-1">
-                        <span className="font-bold text-center">=</span>
-                        <Input
-                          ref={laddiAmountRef}
-                          id="laddiAmount" type="text" className="text-center font-bold h-8 text-sm"
-                          value={laddiAmount} onChange={(e) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
-                          placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
-                          onClick={selectedClientId === null ? showClientSelectionToast : undefined}
-                        />
-                      </div>
-                      <div className="col-span-2 flex justify-end">
-                        <Button onClick={handleLaddiApply} disabled={selectedClientId === null} size="sm" className="h-8 text-xs">Apply</Button>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center gap-2 mt-1">
-                        <div className="flex items-center gap-2">
-                            <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={selectedClientId === null || runningLaddi} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
-                            <Label htmlFor="remove-jodda" className={`text-xs ${selectedClientId === null || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Jodda</Label>
-                             <Checkbox id="reverse-laddi" checked={reverseLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setReverseLaddi(Boolean(checked)) }} disabled={selectedClientId === null || runningLaddi} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
-                            <Label htmlFor="reverse-laddi" className={`text-xs ${selectedClientId === null || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Reverse</Label>
-                            <Checkbox id="running-laddi" checked={runningLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRunningLaddi(Boolean(checked)); setLaddiNum1(''); setLaddiNum2(''); }} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
-                            <Label htmlFor="running-laddi" className={`text-xs ${selectedClientId === null ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Running</Label>
-                        </div>
-                    </div>
-                  </div>
-                
-                  <div className="border rounded-lg p-2 flex flex-col gap-2">
-                    <h3 className="font-semibold mb-1 text-xs">HARUP</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                      <div className="flex items-center gap-1">
-                          <Label htmlFor="harupA" className="w-6 text-center shrink-0 text-xs">A</Label>
-                          <Input ref={harupAInputRef} id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
-                      </div>
-                      <div className="flex items-center gap-1">
-                          <Label htmlFor="harupB" className="w-6 text-center shrink-0 text-xs">B</Label>
-                          <Input ref={harupBInputRef} id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
-                      </div>
-                    </div>
-                     <div className="flex items-center gap-2 mt-1">
-                        <Label htmlFor="harupAmount" className="w-6 text-center shrink-0 text-xs">=</Label>
-                        <Input ref={harupAmountInputRef} id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setHarupAmount(e.target.value) }} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
-                        <Button onClick={handleHarupApply} disabled={selectedClientId === null} size="sm" className="h-8 text-xs">Apply</Button>
-                    </div>
-                  </div>
-                </div>
-              </ScrollArea>
-              <div className="border rounded-lg p-2 mt-2">
-                  <Button onClick={() => setIsMasterSheetDialogOpen(true)} variant="outline" className="w-full">
-                      <FileSpreadsheet className="mr-2 h-4 w-4" />
-                      View Master Sheet
-                  </Button>
-              </div>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
       <Dialog open={isGeneratedSheetDialogOpen} onOpenChange={setIsGeneratedSheetDialogOpen}>
