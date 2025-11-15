@@ -391,7 +391,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [updatedCells, setUpdatedCells] = useState<string[]>([]);
   
   // State for Laddi inputs
-  const [laddiState, setLaddiState] = useState({ num1: '', num2: '', amount: ''});
+  const [laddiNum1, setLaddiNum1] = useState('');
+  const [laddiNum2, setLaddiNum2] = useState('');
+  const [laddiAmount, setLaddiAmount] = useState('');
+  
   const [removeJodda, setRemoveJodda] = useState(false);
   const [reverseLaddi, setReverseLaddi] = useState(false);
   const [runningLaddi, setRunningLaddi] = useState(false);
@@ -554,53 +557,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   };
 
   useEffect(() => {
-    const count = calculateCombinations(laddiState.num1, laddiState.num2, removeJodda, reverseLaddi, runningLaddi);
+    const count = calculateCombinations(laddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi);
     setCombinationCount(count);
-  }, [laddiState.num1, laddiState.num2, removeJodda, reverseLaddi, runningLaddi]);
-
-
-  const handleLaddiInputChange = (field: 'num1' | 'num2' | 'amount', value: string) => {
-    if (isDataEntryDisabled && field !== 'amount') {
-      showClientSelectionToast();
-      return;
-    }
-
-    let processedValue = value.replace(/[^0-9]/g, '');
-
-    if (field === 'num1' || field === 'num2') {
-        const nextState = { ...laddiState, [field]: processedValue };
-        setLaddiState(nextState);
-    } else {
-       setLaddiState(prevState => ({ ...prevState, amount: processedValue }));
-    }
-  };
-
-
-  const handleHarupAChange = (value: string) => {
-    if (selectedClientId === null) {
-      showClientSelectionToast();
-      return;
-    }
-    const newHarupA = value.replace(/[^0-9]/g, '');
-    if (new Set(newHarupA.split('')).size !== newHarupA.length) {
-      toast({ title: "Validation Error", description: "Duplicate digits are not allowed in this field.", variant: "destructive" });
-      return;
-    }
-    setHarupA(newHarupA);
-  };
-  
-  const handleHarupBChange = (value: string) => {
-    if (selectedClientId === null) {
-      showClientSelectionToast();
-      return;
-    }
-    const newHarupB = value.replace(/[^0-9]/g, '');
-    if (new Set(newHarupB.split('')).size !== newHarupB.length) {
-      toast({ title: "Validation Error", description: "Duplicate digits are not allowed in this field.", variant: "destructive" });
-      return;
-    }
-    setHarupB(newHarupB);
-  };
+  }, [laddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi]);
 
   const handleCellChange = (key: string, value: string) => {
     if (selectedClientId === null) {
@@ -797,12 +756,12 @@ const handleMultiTextApply = () => {
         showClientSelectionToast();
         return;
     }
-    if ((!laddiState.num1 || !laddiState.num2) && !runningLaddi || !laddiState.amount) {
+    if ((!laddiNum1 || !laddiNum2) && !runningLaddi || !laddiAmount) {
         toast({ title: "Laddi Error", description: "Please fill all required Laddi fields.", variant: "destructive" });
         return;
     }
     
-    const amountValue = parseFloat(laddiState.amount);
+    const amountValue = parseFloat(laddiAmount);
     if (isNaN(amountValue)) {
         toast({ title: "Laddi Error", description: "Invalid amount.", variant: "destructive" });
         return;
@@ -811,8 +770,8 @@ const handleMultiTextApply = () => {
     const combinations = new Set<string>();
     
     if (runningLaddi) {
-        const start = parseInt(laddiState.num1, 10);
-        const end = parseInt(laddiState.num2, 10);
+        const start = parseInt(laddiNum1, 10);
+        const end = parseInt(laddiNum2, 10);
         if (isNaN(start) || isNaN(end) || start < 0 || end > 99 || start > end) {
             toast({ title: "Running Error", description: "Invalid range. Please enter two-digit numbers (00-99) with start <= end.", variant: "destructive" });
             return;
@@ -821,8 +780,8 @@ const handleMultiTextApply = () => {
             combinations.add(i.toString().padStart(2, '0'));
         }
     } else {
-        const digits1 = laddiState.num1.split('');
-        const digits2 = laddiState.num2.split('');
+        const digits1 = laddiNum1.split('');
+        const digits2 = laddiNum2.split('');
         for (const d1 of digits1) {
             for (const d2 of digits2) {
                 if (removeJodda && d1 === d2) continue;
@@ -859,7 +818,7 @@ const handleMultiTextApply = () => {
             newData[key] = String(currentValue + addedValue);
         });
 
-        const lastEntryString = `Laddi: ${laddiState.num1}x${laddiState.num2}=${laddiState.amount} (Jodda: ${removeJodda}, Reverse: ${reverseLaddi}, Running: ${runningLaddi})`;
+        const lastEntryString = `Laddi: ${laddiNum1}x${laddiNum2}=${laddiAmount} (Jodda: ${removeJodda}, Reverse: ${reverseLaddi}, Running: ${runningLaddi})`;
 
         if (selectedClientId) {
             updateClientData(selectedClientId, newData, currentRowTotals);
@@ -874,7 +833,9 @@ const handleMultiTextApply = () => {
         setTimeout(() => setUpdatedCells([]), 2000);
         toast({ title: "Laddi Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
 
-        setLaddiState({ num1: '', num2: '', amount: '' });
+        setLaddiNum1('');
+        setLaddiNum2('');
+        setLaddiAmount('');
         setRemoveJodda(false);
         setReverseLaddi(false);
         setRunningLaddi(false);
@@ -1250,7 +1211,7 @@ const handleHarupApply = () => {
                   <Input
                     ref={laddiNum1Ref}
                     id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "Start" : "Num 1"}
-                    value={laddiState.num1} onChange={(e) => handleLaddiInputChange('num1', e.target.value)} onKeyDown={handleKeyDown} disabled={selectedClientId === null}
+                    value={laddiNum1} onChange={(e) => setLaddiNum1(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={handleKeyDown} disabled={selectedClientId === null}
                     onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                   />
               </div>
@@ -1262,7 +1223,7 @@ const handleHarupApply = () => {
                   <Input
                     ref={laddiNum2Ref}
                     id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "End" : "Num 2"}
-                    value={laddiState.num2} onChange={(e) => handleLaddiInputChange('num2', e.target.value)} onKeyDown={handleKeyDown} disabled={selectedClientId === null}
+                    value={laddiNum2} onChange={(e) => setLaddiNum2(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={handleKeyDown} disabled={selectedClientId === null}
                     onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                   />
               </div>
@@ -1273,7 +1234,7 @@ const handleHarupApply = () => {
                 <Input
                   ref={laddiAmountRef}
                   id="laddiAmount" type="text" className="text-center font-bold h-8 text-sm"
-                  value={laddiState.amount} onChange={(e) => handleLaddiInputChange('amount', e.target.value)}
+                  value={laddiAmount} onChange={(e) => setLaddiAmount(e.target.value.replace(/[^0-9]/g, ''))}
                   placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
                   onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                 />
@@ -1290,7 +1251,7 @@ const handleHarupApply = () => {
                     <Label htmlFor="reverse-laddi" className={`text-xs ${selectedClientId === null || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Reverse</Label>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <Checkbox id="running-laddi" checked={runningLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRunningLaddi(Boolean(checked)); setLaddiState({ num1: '', num2: '', amount: laddiState.amount }); }} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                    <Checkbox id="running-laddi" checked={runningLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRunningLaddi(Boolean(checked)); setLaddiNum1(''); setLaddiNum2(''); }} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
                     <Label htmlFor="running-laddi" className={`text-xs ${selectedClientId === null ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Running</Label>
                   </div>
               </div>
@@ -1303,11 +1264,11 @@ const handleHarupApply = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
             <div className="flex items-center gap-1">
                 <Label htmlFor="harupA" className="w-6 text-center shrink-0 text-xs">A</Label>
-                <Input ref={harupAInputRef} id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => handleHarupAChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                <Input ref={harupAInputRef} id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => setHarupA(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
             </div>
             <div className="flex items-center gap-1">
                 <Label htmlFor="harupB" className="w-6 text-center shrink-0 text-xs">B</Label>
-                <Input ref={harupBInputRef} id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => handleHarupBChange(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                <Input ref={harupBInputRef} id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => setHarupB(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
             </div>
           </div>
             <div className="flex items-center gap-2 mt-1">
@@ -1339,18 +1300,28 @@ const handleHarupApply = () => {
               return (
                 <div key={key} className="relative flex border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
                   <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number font-bold" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
-                  <Input
-                    id={`cell-${key}`}
-                    type="text"
-                    value={currentData[key] || ''}
-                    onChange={(e) => handleCellChange(key, e.target.value)}
-                    onBlur={() => handleCellBlur(key)}
-                    disabled={isDataEntryDisabled}
-                    onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
-                    className={`p-0 h-full w-full text-center bg-transparent border-0 focus:ring-0 font-bold grid-cell-input transition-colors duration-300 ${isUpdated ? "bg-primary/20" : ""} ${isDataEntryDisabled ? 'cursor-not-allowed bg-muted/50' : ''}`}
-                    style={{ color: 'var(--grid-cell-amount-color)' }}
-                    aria-label={`Cell ${key} value ${currentData[key] || 'empty'}`}
-                  />
+                   {isMobile ? (
+                    <span
+                      className={`p-0 h-full w-full text-center bg-transparent border-0 font-bold grid-cell-input flex items-center justify-center transition-colors duration-300 ${isUpdated ? "bg-primary/20" : ""} ${isDataEntryDisabled ? 'cursor-not-allowed bg-muted/50' : ''}`}
+                      style={{ color: 'var(--grid-cell-amount-color)' }}
+                      aria-label={`Cell ${key} value ${currentData[key] || 'empty'}`}
+                    >
+                      {currentData[key] || ''}
+                    </span>
+                  ) : (
+                    <Input
+                      id={`cell-${key}`}
+                      type="text"
+                      value={currentData[key] || ''}
+                      onChange={(e) => handleCellChange(key, e.target.value)}
+                      onBlur={() => handleCellBlur(key)}
+                      disabled={isDataEntryDisabled}
+                      onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
+                      className={`p-0 h-full w-full text-center bg-transparent border-0 focus:ring-0 font-bold grid-cell-input transition-colors duration-300 ${isUpdated ? "bg-primary/20" : ""} ${isDataEntryDisabled ? 'cursor-not-allowed bg-muted/50' : ''}`}
+                      style={{ color: 'var(--grid-cell-amount-color)' }}
+                      aria-label={`Cell ${key} value ${currentData[key] || 'empty'}`}
+                    />
+                  )}
                    {validation && !validation.isValid && !validation.isLoading && (
                     <Popover>
                       <PopoverTrigger asChild>
