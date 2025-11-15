@@ -1328,7 +1328,7 @@ const handleHarupApply = () => {
   );
 
   const GridView = () => (
-    <div className="grid gap-0.5 w-full flex-grow grid-sheet-layout">
+    <div className="grid gap-0.5 w-full grid-sheet-layout">
       {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
         <React.Fragment key={`row-${rowIndex}`}>
           {Array.from({ length: GRID_COLS }, (_, colIndex) => {
@@ -1412,7 +1412,7 @@ const handleHarupApply = () => {
             </Tabs>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-2 flex-grow min-h-0">
-              <div className="flex flex-col min-w-0 h-full">
+              <div className="flex flex-col min-w-0">
                 <GridView />
               </div>
               <DataEntryControls />
