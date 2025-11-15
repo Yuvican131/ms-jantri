@@ -325,22 +325,14 @@ export function DataEntryControls({
         }
     };
     
-    const handleKeyDown = (e: React.KeyboardEvent, action?: () => void) => {
+    const handleKeyDown = (e: React.KeyboardEvent, nextRef?: React.RefObject<HTMLInputElement | HTMLTextAreaElement>, action?: () => void) => {
         if (e.key === 'Enter') {
-          e.preventDefault();
-          const target = e.target as HTMLElement;
-
-          if (target.id === 'laddiNum1') laddiNum2Ref.current?.focus();
-          else if (target.id === 'laddiNum2') laddiAmountRef.current?.focus();
-          else if (target.id === 'laddiAmount') handleLaddiApply();
-          else if (target.id === 'harupA') harupBInputRef.current?.focus();
-          else if (target.id === 'harupB') harupAmountInputRef.current?.focus();
-          else if (target.id === 'harupAmount') handleHarupApply();
-          else if (target.tagName === 'TEXTAREA') {
-              // Logic for multi-text textarea
-          } else if (action) {
-            action();
-          }
+            e.preventDefault();
+            if (nextRef?.current) {
+                nextRef.current.focus();
+            } else if (action) {
+                action();
+            }
         }
     };
 
@@ -413,7 +405,7 @@ export function DataEntryControls({
                     rows={4}
                     value={multiText}
                     onChange={handleMultiTextChange}
-                    onKeyDown={handleKeyDown}
+                    onKeyDown={(e) => handleKeyDown(e, undefined, handleMultiTextApply)}
                     className="w-full text-base"
                     disabled={isDataEntryDisabled}
                     onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
@@ -437,7 +429,7 @@ export function DataEntryControls({
                       <Input
                         ref={laddiNum1Ref}
                         id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "Start" : "Num 1"}
-                        value={laddiNum1} onChange={(e) => setLaddiNum1(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={handleKeyDown} disabled={isDataEntryDisabled}
+                        value={laddiNum1} onChange={(e) => setLaddiNum1(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={(e) => handleKeyDown(e, laddiNum2Ref)} disabled={isDataEntryDisabled}
                         onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
                       />
                   </div>
@@ -449,7 +441,7 @@ export function DataEntryControls({
                       <Input
                         ref={laddiNum2Ref}
                         id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "End" : "Num 2"}
-                        value={laddiNum2} onChange={(e) => setLaddiNum2(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={handleKeyDown} disabled={isDataEntryDisabled}
+                        value={laddiNum2} onChange={(e) => setLaddiNum2(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={(e) => handleKeyDown(e, laddiAmountRef)} disabled={isDataEntryDisabled}
                         onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
                       />
                   </div>
@@ -461,7 +453,7 @@ export function DataEntryControls({
                       ref={laddiAmountRef}
                       id="laddiAmount" type="text" className="text-center font-bold h-8 text-sm"
                       value={laddiAmount} onChange={(e) => setLaddiAmount(e.target.value.replace(/[^0-9]/g, ''))}
-                      placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={isDataEntryDisabled}
+                      placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, undefined, handleLaddiApply)} disabled={isDataEntryDisabled}
                       onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
                     />
                   </div>
@@ -490,16 +482,16 @@ export function DataEntryControls({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                 <div className="flex items-center gap-1">
                     <Label htmlFor="harupA" className="w-6 text-center shrink-0 text-xs">A</Label>
-                    <Input ref={harupAInputRef} id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => setHarupA(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
+                    <Input ref={harupAInputRef} id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => setHarupA(e.target.value)} onKeyDown={(e) => handleKeyDown(e, harupBInputRef)} disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
                 </div>
                 <div className="flex items-center gap-1">
                     <Label htmlFor="harupB" className="w-6 text-center shrink-0 text-xs">B</Label>
-                    <Input ref={harupBInputRef} id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => setHarupB(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
+                    <Input ref={harupBInputRef} id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => setHarupB(e.target.value)} onKeyDown={(e) => handleKeyDown(e, harupAmountInputRef)} disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
                 </div>
               </div>
                 <div className="flex items-center gap-2 mt-1">
                   <Label htmlFor="harupAmount" className="w-6 text-center shrink-0 text-xs">=</Label>
-                  <Input ref={harupAmountInputRef} id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)} onKeyDown={(e) => handleKeyDown(e, handleHarupApply)} disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
+                  <Input ref={harupAmountInputRef} id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)} onKeyDown={(e) => handleKeyDown(e, undefined, handleHarupApply)} disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
                   <Button onClick={handleHarupApply} disabled={isDataEntryDisabled} size="sm" className="h-8 text-xs">Apply</Button>
               </div>
             </div>

@@ -414,12 +414,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       setSelectedClientId(null);
     } else {
       setSelectedClientId(clientId);
-      if (!clientSheetData[clientId]) {
-        const dateStr = props.date.toISOString().split('T')[0];
-        const logsForDraw = props.savedSheetLog[props.draw] || [];
-        const prevDataLog = logsForDraw.find(l => l.clientId === clientId && l.date === dateStr);
-        updateClientData(clientId, prevDataLog?.data || {});
-      }
+      // Always start with a blank sheet for new entries.
+      updateClientData(clientId, {});
     }
   };
 
