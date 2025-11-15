@@ -101,27 +101,32 @@ body {
 
 @layer utilities {
   .grid-sheet-layout {
+    display: grid;
     grid-template-columns: repeat(11, 1fr);
-    grid-template-rows: repeat(11, 1fr);
+    grid-auto-rows: 1fr;
+    aspect-ratio: 11 / 11;
   }
   
   .grid-sheet-layout .grid-cell {
-    min-height: 52px; /* Base size for mobile */
+    min-height: 32px;
   }
 
   .grid-sheet-layout .grid-cell-number {
-     font-size: 0.8rem; /* 12px */
+     font-size: 0.7rem; 
   }
 
   .grid-sheet-layout .grid-cell-input {
-    font-size: 1.1rem; /* 16px */
+    font-size: 1rem;
   }
 
   .grid-sheet-layout .grid-cell-total {
-    font-size: 0.9rem; /* 14px */
+    font-size: 0.8rem;
   }
 
   @media (min-width: 768px) { /* md breakpoint */
+    .grid-sheet-layout {
+      grid-template-rows: repeat(11, 1fr);
+    }
     .grid-sheet-layout .grid-cell {
       min-height: 0; /* Reset min-height for desktop */
     }

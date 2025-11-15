@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef } from "react"
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef, useCallback } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { validateCellContent, ValidateCellContentOutput } from "@/ai/flows/validate-cell-content"
 import { Button } from "@/components/ui/button"
@@ -373,20 +373,9 @@ const MasterSheetViewer = ({
   );
 }
 
-const generateCombinations = (digits1: string[], digits2: string[]): string[] => {
-    const combinations = new Set<string>();
-    if (!digits1 || !digits2) return [];
-    for (const d1 of digits1) {
-        for (const d2 of digits2) {
-            combinations.add(`${d1}${d2}`);
-        }
-    }
-    return Array.from(combinations);
-};
-
 const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const { toast } = useToast()
-  const { getPreviousDataForClient, deleteSheetLogEntry } = useSheetLog();
+  const { deleteSheetLogEntry } = useSheetLog();
   const [sheets, setSheets] = useState<Sheet[]>(initialSheets)
   const [activeSheetId, setActiveSheetId] = useState<string>("1")
   const [clientSheetData, setClientSheetData] = useState<ClientSheetData>({});
@@ -400,9 +389,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [multiText, setMultiText] = useState("");
   const multiTextRef = useRef<HTMLTextAreaElement>(null);
   const [updatedCells, setUpdatedCells] = useState<string[]>([]);
-  const [laddiNum1, setLaddiNum1] = useState('');
-  const [laddiNum2, setLaddiNum2] = useState('');
-  const [laddiAmount, setLaddiAmount] = useState('');
+  
+  // State for Laddi inputs
+  const [laddiState, setLaddiState] = useState({ num1: '', num2: '', amount: ''});
   const [removeJodda, setRemoveJodda] = useState(false);
   const [reverseLaddi, setReverseLaddi] = useState(false);
   const [runningLaddi, setRunningLaddi] = useState(false);
@@ -457,7 +446,6 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     } else {
       setSelectedClientId(clientId);
       if (!clientSheetData[clientId]) {
-        // When selecting a new client, check for previous data for the selected date
         const dateStr = props.date.toISOString().split('T')[0];
         const logsForDraw = props.savedSheetLog[props.draw] || [];
         const prevDataLog = logsForDraw.find(l => l.clientId === clientId && l.date === dateStr);
@@ -566,62 +554,43 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   };
 
   useEffect(() => {
-    const count = calculateCombinations(laddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi);
+    const count = calculateCombinations(laddiState.num1, laddiState.num2, removeJodda, reverseLaddi, runningLaddi);
     setCombinationCount(count);
-  }, [laddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi]);
+  }, [laddiState.num1, laddiState.num2, removeJodda, reverseLaddi, runningLaddi]);
 
 
-  const handleLaddiNum1Change = (value: string) => {
-    if (selectedClientId === null) {
-      showClientSelectionToast();
-      return;
-    }
-    let newLaddiNum1 = value.replace(/[^0-9]/g, '');
-
-    if (runningLaddi) {
-        if (newLaddiNum1.length > 2) {
-            newLaddiNum1 = newLaddiNum1.slice(0, 2);
-        }
-    } else {
-        if (new Set(newLaddiNum1.split('')).size !== newLaddiNum1.length) {
-            toast({ title: "Validation Error", description: "Duplicate digits are not allowed in this field.", variant: "destructive" });
-            return;
-        }
-    }
-
-    if (calculateCombinations(newLaddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi) > MAX_COMBINATIONS) {
-        toast({ title: "Combination Limit Exceeded", description: `You cannot create more than ${MAX_COMBINATIONS} combinations.`, variant: "destructive" });
+ const handleLaddiInputChange = useCallback((field: 'num1' | 'num2' | 'amount', value: string) => {
+    if (selectedClientId === null && field !== 'amount') {
+        showClientSelectionToast();
         return;
     }
-    setLaddiNum1(newLaddiNum1);
-    if (!runningLaddi) {
-        setLaddiNum2(newLaddiNum1);
-    }
-  }
 
-  const handleLaddiNum2Change = (value: string) => {
-    if (selectedClientId === null) {
-      showClientSelectionToast();
-      return;
-    }
-    let newLaddiNum2 = value.replace(/[^0-9]/g, '');
+    let processedValue = value.replace(/[^0-9]/g, '');
 
-    if (runningLaddi) {
-        if (newLaddiNum2.length > 2) {
-            newLaddiNum2 = newLaddiNum2.slice(0, 2);
+    if (field === 'num1' || field === 'num2') {
+        if (runningLaddi) {
+            if (processedValue.length > 2) processedValue = processedValue.slice(0, 2);
+        } else {
+            if (new Set(processedValue.split('')).size !== processedValue.length) {
+                toast({ title: "Validation Error", description: "Duplicate digits are not allowed in this field.", variant: "destructive" });
+                return;
+            }
         }
-    } else {
-        if (new Set(newLaddiNum2.split('')).size !== newLaddiNum2.length) {
-            toast({ title: "Validation Error", description: "Duplicate digits are not allowed in this field.", variant: "destructive" });
+
+        const nextState = { ...laddiState, [field]: processedValue };
+        if (!runningLaddi && field === 'num1') {
+            nextState.num2 = processedValue;
+        }
+        
+        if (calculateCombinations(nextState.num1, nextState.num2, removeJodda, reverseLaddi, runningLaddi) > MAX_COMBINATIONS) {
+            toast({ title: "Combination Limit Exceeded", description: `You cannot create more than ${MAX_COMBINATIONS} combinations.`, variant: "destructive" });
             return;
         }
+        setLaddiState(nextState);
+    } else {
+       setLaddiState(prevState => ({ ...prevState, amount: processedValue }));
     }
-    if (calculateCombinations(laddiNum1, newLaddiNum2, removeJodda, reverseLaddi, runningLaddi) > MAX_COMBINATIONS) {
-        toast({ title: "Combination Limit Exceeded", description: `You cannot create more than ${MAX_COMBINATIONS} combinations.`, variant: "destructive" });
-        return;
-    }
-    setLaddiNum2(newLaddiNum2);
-  }
+  }, [selectedClientId, runningLaddi, removeJodda, reverseLaddi, laddiState, toast]);
 
   const handleHarupAChange = (value: string) => {
     if (selectedClientId === null) {
@@ -735,7 +704,6 @@ const handleMultiTextApply = () => {
         let processed = false;
         let currentLine = line.trim();
 
-        // Rule 1: Laddi format like 234178=30=80
         const laddiMatch = currentLine.match(/^(\d+)=(\d+)=(\d+)$/);
         if (laddiMatch) {
             const [, digitsStr, countStr, amountStr] = laddiMatch;
@@ -776,18 +744,15 @@ const handleMultiTextApply = () => {
             processed = true;
         }
 
-        // Other patterns
         if (!processed) {
-            // Remove ignored prefixes like 'gb'
             currentLine = currentLine.replace(/^[a-zA-Z]+\s*/, '');
-            // Standardize delimiters
             let sanitizedLine = currentLine.replace(/[\s.]+/g, ',');
 
             const linePatterns = [
-                /((\d{2},)*\d{2}),?\((\d+)\)/g, // 29,93,..,42,(10)
-                /((\d+,)*\d+)\*(\d+)/g, // 04,24,..,86*30
-                /((\d+,)*\d+)=+(\d+)/g, // 15,60=10 or 75=======300
-                /(\d{2,})=(\d+)/g // 51=15
+                /((\d{2},)*\d{2}),?\((\d+)\)/g, 
+                /((\d+,)*\d+)\*(\d+)/g, 
+                /((\d+,)*\d+)=+(\d+)/g, 
+                /(\d{2,})=(\d+)/g 
             ];
 
             let lineHandled = false;
@@ -848,12 +813,12 @@ const handleMultiTextApply = () => {
         showClientSelectionToast();
         return;
     }
-    if ((!laddiNum1 || !laddiNum2) && !runningLaddi || !laddiAmount) {
+    if ((!laddiState.num1 || !laddiState.num2) && !runningLaddi || !laddiState.amount) {
         toast({ title: "Laddi Error", description: "Please fill all required Laddi fields.", variant: "destructive" });
         return;
     }
     
-    const amountValue = parseFloat(laddiAmount);
+    const amountValue = parseFloat(laddiState.amount);
     if (isNaN(amountValue)) {
         toast({ title: "Laddi Error", description: "Invalid amount.", variant: "destructive" });
         return;
@@ -862,8 +827,8 @@ const handleMultiTextApply = () => {
     const combinations = new Set<string>();
     
     if (runningLaddi) {
-        const start = parseInt(laddiNum1, 10);
-        const end = parseInt(laddiNum2, 10);
+        const start = parseInt(laddiState.num1, 10);
+        const end = parseInt(laddiState.num2, 10);
         if (isNaN(start) || isNaN(end) || start < 0 || end > 99 || start > end) {
             toast({ title: "Running Error", description: "Invalid range. Please enter two-digit numbers (00-99) with start <= end.", variant: "destructive" });
             return;
@@ -872,8 +837,8 @@ const handleMultiTextApply = () => {
             combinations.add(i.toString().padStart(2, '0'));
         }
     } else {
-        const digits1 = laddiNum1.split('');
-        const digits2 = laddiNum2.split('');
+        const digits1 = laddiState.num1.split('');
+        const digits2 = laddiState.num2.split('');
         for (const d1 of digits1) {
             for (const d2 of digits2) {
                 if (removeJodda && d1 === d2) continue;
@@ -910,7 +875,7 @@ const handleMultiTextApply = () => {
             newData[key] = String(currentValue + addedValue);
         });
 
-        const lastEntryString = `Laddi: ${laddiNum1}x${laddiNum2}=${laddiAmount} (Jodda: ${removeJodda}, Reverse: ${reverseLaddi}, Running: ${runningLaddi})`;
+        const lastEntryString = `Laddi: ${laddiState.num1}x${laddiState.num2}=${laddiState.amount} (Jodda: ${removeJodda}, Reverse: ${reverseLaddi}, Running: ${runningLaddi})`;
 
         if (selectedClientId) {
             updateClientData(selectedClientId, newData, currentRowTotals);
@@ -925,9 +890,7 @@ const handleMultiTextApply = () => {
         setTimeout(() => setUpdatedCells([]), 2000);
         toast({ title: "Laddi Updated", description: `${updatedKeys.length} cell(s) have been updated.` });
 
-        setLaddiNum1('');
-        setLaddiNum2('');
-        setLaddiAmount('');
+        setLaddiState({ num1: '', num2: '', amount: '' });
         setRemoveJodda(false);
         setReverseLaddi(false);
         setRunningLaddi(false);
@@ -1147,24 +1110,20 @@ const handleHarupApply = () => {
       }
       const rawValue = e.target.value;
       const formattedLines = rawValue.split('\n').map(line => {
-          // Skip formatting for lines with multiple '=' which are likely laddi
           if ((line.match(/=/g) || []).length > 1) {
               return line;
           }
           
-          // Format lines with a single '='
           const parts = line.split('=');
           if (parts.length === 2) {
               let numbersPart = parts[0].trim();
               const amountPart = parts[1];
               
-              // Replace spaces and dots with commas, then ensure pairs
               numbersPart = numbersPart.replace(/[\s.]+/g, '').replace(/(\d{2})(?=\d)/g, '$1,');
               
               return `${numbersPart}=${amountPart}`;
           }
           
-          // Format lines without '=' by adding commas between pairs
           if (!line.includes('=')) {
               return line.replace(/(\d{2})(?=\d)/g, '$1,');
           }
@@ -1185,7 +1144,6 @@ const handleHarupApply = () => {
       return;
     }
     
-    // Pass only the new data to be merged in page.tsx
     const newEntries = { ...(clientSheetData[selectedClientId]?.data || {}) };
     
     if (Object.keys(newEntries).length === 0) {
@@ -1199,10 +1157,8 @@ const handleHarupApply = () => {
     
     const clientName = props.clients.find(c => c.id === selectedClientId)?.name || "Unknown Client";
     
-    // Let page.tsx handle the merging logic
     props.onClientSheetSave(clientName, selectedClientId, newEntries, props.draw, props.date);
     
-    // Clear the sheet for the next entry for this client
     updateClientData(selectedClientId, {}, {});
     setPreviousSheetState(null);
   };
@@ -1305,54 +1261,56 @@ const handleHarupApply = () => {
         
         <div className="border rounded-lg p-2 flex flex-col gap-2">
           <h3 className="font-semibold mb-1 text-xs">Laddi</h3>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-start gap-2 mb-1">
               <div className="flex-1 flex flex-col items-center gap-1">
                   <Input
                     ref={laddiNum1Ref}
                     id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "Start" : "Num 1"}
-                    value={laddiNum1} onChange={(e) => handleLaddiNum1Change(e.target.value)} onKeyDown={handleKeyDown} disabled={selectedClientId === null}
+                    value={laddiState.num1} onChange={(e) => handleLaddiInputChange('num1', e.target.value)} onKeyDown={handleKeyDown} disabled={selectedClientId === null}
                     onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                   />
-                  <Label htmlFor="laddiNum1" className="text-xs whitespace-nowrap">{runningLaddi ? "Start" : "Pair"}</Label>
               </div>
-                <div className="flex flex-col items-center justify-center px-2 my-1">
-                <div className="text-xs font-bold text-primary">{combinationCount}</div>
-                <span className="font-bold text-center text-sm">x</span>
+              <div className="flex flex-col items-center justify-center px-1 pt-1">
+                  <div className="text-xs font-bold text-primary">{combinationCount}</div>
+                  <span className="font-bold text-center text-sm">x</span>
               </div>
               <div className="flex-1 flex flex-col items-center gap-1">
                   <Input
                     ref={laddiNum2Ref}
                     id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "End" : "Num 2"}
-                    value={laddiNum2} onChange={(e) => handleLaddiNum2Change(e.target.value)} onKeyDown={handleKeyDown} disabled={selectedClientId === null}
+                    value={laddiState.num2} onChange={(e) => handleLaddiInputChange('num2', e.target.value)} onKeyDown={handleKeyDown} disabled={selectedClientId === null}
                     onClick={selectedClientId === null ? showClientSelectionToast : undefined}
                   />
-                  <Label htmlFor="laddiNum2" className="text-xs whitespace-nowrap">{runningLaddi ? "End" : "Pair"}</Label>
               </div>
-          </div>
-          <div className="grid grid-cols-5 items-center gap-1">
-            <div className="col-span-3 flex items-center gap-1">
-              <span className="font-bold text-center">=</span>
-              <Input
-                ref={laddiAmountRef}
-                id="laddiAmount" type="text" className="text-center font-bold h-8 text-sm"
-                value={laddiAmount} onChange={(e) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setLaddiAmount(e.target.value) }}
-                placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
-                onClick={selectedClientId === null ? showClientSelectionToast : undefined}
-              />
-            </div>
-            <div className="col-span-2 flex justify-end">
-              <Button onClick={handleLaddiApply} disabled={selectedClientId === null} size="sm" className="h-8 text-xs">Apply</Button>
-            </div>
+              <div className="flex flex-col items-center justify-center px-1 pt-1">
+                  <span className="font-bold text-center text-sm">=</span>
+              </div>
+              <div className="flex-1 flex flex-col items-center gap-1">
+                <Input
+                  ref={laddiAmountRef}
+                  id="laddiAmount" type="text" className="text-center font-bold h-8 text-sm"
+                  value={laddiState.amount} onChange={(e) => handleLaddiInputChange('amount', e.target.value)}
+                  placeholder="Amount" onKeyDown={(e) => handleKeyDown(e, handleLaddiApply)} disabled={selectedClientId === null}
+                  onClick={selectedClientId === null ? showClientSelectionToast : undefined}
+                />
+              </div>
           </div>
           <div className="flex justify-between items-center gap-2 mt-1">
-              <div className="flex items-center gap-2">
-                  <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={selectedClientId === null || runningLaddi} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
-                  <Label htmlFor="remove-jodda" className={`text-xs ${selectedClientId === null || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Jodda</Label>
+              <div className="flex items-center gap-x-3">
+                  <div className="flex items-center gap-1.5">
+                    <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={selectedClientId === null || runningLaddi} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                    <Label htmlFor="remove-jodda" className={`text-xs ${selectedClientId === null || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Jodda</Label>
+                  </div>
+                  <div className="flex items-center gap-1.5">
                     <Checkbox id="reverse-laddi" checked={reverseLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setReverseLaddi(Boolean(checked)) }} disabled={selectedClientId === null || runningLaddi} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
-                  <Label htmlFor="reverse-laddi" className={`text-xs ${selectedClientId === null || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Reverse</Label>
-                  <Checkbox id="running-laddi" checked={runningLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRunningLaddi(Boolean(checked)); setLaddiNum1(''); setLaddiNum2(''); }} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
-                  <Label htmlFor="running-laddi" className={`text-xs ${selectedClientId === null ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Running</Label>
+                    <Label htmlFor="reverse-laddi" className={`text-xs ${selectedClientId === null || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Reverse</Label>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Checkbox id="running-laddi" checked={runningLaddi} onCheckedChange={(checked) => { if (selectedClientId === null) { showClientSelectionToast(); return; } setRunningLaddi(Boolean(checked)); setLaddiState({ num1: '', num2: '', amount: laddiState.amount }); }} disabled={selectedClientId === null} onClick={selectedClientId === null ? showClientSelectionToast : undefined}/>
+                    <Label htmlFor="running-laddi" className={`text-xs ${selectedClientId === null ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Running</Label>
+                  </div>
               </div>
+              <Button onClick={handleLaddiApply} disabled={selectedClientId === null} size="sm" className="h-8 text-xs">Apply</Button>
           </div>
         </div>
       
@@ -1391,48 +1349,33 @@ const handleHarupApply = () => {
         <React.Fragment key={`row-${rowIndex}`}>
           {Array.from({ length: GRID_COLS }, (_, colIndex) => {
               const key = String(rowIndex * GRID_COLS + colIndex).padStart(2, '0');
-              const validation = validations[key]
               const isUpdated = updatedCells.includes(key);
 
               return (
                 <div key={key} className="relative flex border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
                   <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number font-bold" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
                   <div
-                    className={`p-0 h-full w-full justify-center bg-transparent border-0 focus:ring-0 flex items-end font-bold grid-cell-input ${validation && !validation.isValid ? 'border-destructive ring-destructive ring-1' : ''} ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50 cursor-not-allowed' : 'cursor-pointer'}`}
-                    onClick={selectedClientId === null ? showClientSelectionToast : undefined}
+                    className={`p-0 h-full w-full justify-center bg-transparent border-0 focus:ring-0 flex items-end font-bold grid-cell-input ${isUpdated ? 'bg-primary/20' : ''} ${selectedClientId === null ? 'bg-muted/50' : ''}`}
                   >
                     <span className="w-full text-center pb-1" style={{ color: 'var(--grid-cell-amount-color)' }}>
                       {currentData[key] || ''}
                     </span>
                   </div>
-                  {(validation?.isLoading || (validation && !validation.isValid)) && (
-                    <div className="absolute top-1/2 right-1 -translate-y-1/2 z-10">
-                      {validation.isLoading ? (
-                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                      ) : (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button aria-label="Show validation error">
-                              <AlertCircle className="h-3 w-3 text-destructive" />
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="text-sm">{validation.recommendation}</PopoverContent>
-                        </Popover>
-                      )}
-                    </div>
-                  )}
                 </div>
               )
           })}
             <div className="flex items-center justify-center font-medium border rounded-sm bg-transparent grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-            <Input readOnly value={rowTotals[rowIndex] ? formatNumber(rowTotals[rowIndex]) : ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent grid-cell-total" style={{ color: 'var(--grid-cell-total-color)' }}/>
+            <span className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent grid-cell-total flex items-center justify-center" style={{ color: 'var(--grid-cell-total-color)' }}>
+                {rowTotals[rowIndex] ? formatNumber(rowTotals[rowIndex]) : ''}
+            </span>
           </div>
         </React.Fragment>
       ))}
-      {/* Column Totals */}
       {Array.from({ length: GRID_COLS }, (_, colIndex) => (
         <div key={`col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border rounded-sm bg-transparent grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-          <Input readOnly value={columnTotals[colIndex] ? formatNumber(columnTotals[colIndex]) : ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent grid-cell-total" style={{ color: 'var(--grid-cell-total-color)' }}/>
+          <span className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent grid-cell-total flex items-center justify-center" style={{ color: 'var(--grid-cell-total-color)' }}>
+            {columnTotals[colIndex] ? formatNumber(columnTotals[colIndex]) : ''}
+          </span>
         </div>
       ))}
       <div className="flex items-center justify-center font-bold text-lg border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)', color: 'var(--grid-cell-total-color)' }}>
