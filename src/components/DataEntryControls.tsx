@@ -352,7 +352,13 @@ export function DataEntryControls({
                     handleHarupApply();
                     break;
                 case 'multiText':
-                    handleMultiTextApply();
+                    if (multiText.trim().length > 0) {
+                        if (multiText.includes('=')) {
+                            handleMultiTextApply();
+                        } else {
+                            setMultiText(prev => prev.trim() + '=');
+                        }
+                    }
                     break;
             }
         }
@@ -363,22 +369,7 @@ export function DataEntryControls({
             showClientSelectionToast();
             return;
         }
-        const rawValue = e.target.value;
-        const formattedLines = rawValue.split('\n').map(line => {
-            if ((line.match(/=/g) || []).length > 1) return line;
-            const parts = line.split('=');
-            if (parts.length === 2) {
-                let numbersPart = parts[0].trim();
-                const amountPart = parts[1];
-                numbersPart = numbersPart.replace(/[\s.]+/g, '').replace(/(\d{2})(?=\d)/g, '$1,');
-                return `${numbersPart}=${amountPart}`;
-            }
-            if (!line.includes('=')) {
-                return line.replace(/(\d{2})(?=\d)/g, '$1,');
-            }
-            return line;
-        }).join('\n');
-        setMultiText(formattedLines);
+        setMultiText(e.target.value);
     };
 
     const handleGenerateSheet = () => {
