@@ -103,7 +103,7 @@ body {
   .grid-sheet-layout {
     display: grid;
     grid-template-columns: repeat(11, 1fr);
-    grid-auto-rows: minmax(32px, 1fr);
+    grid-template-rows: repeat(11, minmax(0, 1fr));
   }
   
   .grid-sheet-layout .grid-cell {
@@ -120,24 +120,6 @@ body {
 
   .grid-sheet-layout .grid-cell-total {
     font-size: 0.8rem;
-  }
-
-  @media (min-width: 768px) { /* md breakpoint */
-    .grid-sheet-layout {
-      grid-template-rows: repeat(11, 1fr);
-    }
-    .grid-sheet-layout .grid-cell {
-      min-height: 0; /* Reset min-height for desktop */
-    }
-    .grid-sheet-layout .grid-cell-number {
-       font-size: 0.75rem;
-    }
-    .grid-sheet-layout .grid-cell-input {
-      font-size: 1rem;
-    }
-    .grid-sheet-layout .grid-cell-total {
-      font-size: 0.875rem;
-    }
   }
 }
 

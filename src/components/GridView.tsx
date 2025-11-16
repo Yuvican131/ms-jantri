@@ -54,7 +54,7 @@ export function GridView({
     const grandTotal = rowTotals.reduce((acc, total) => acc + total, 0);
 
     return (
-        <div className="grid gap-0.5 w-full grid-sheet-layout">
+        <div className="grid-sheet-layout h-full w-full">
             {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                 <React.Fragment key={`row-${rowIndex}`}>
                     {Array.from({ length: GRID_COLS }, (_, colIndex) => {
