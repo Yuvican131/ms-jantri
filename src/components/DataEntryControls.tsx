@@ -162,11 +162,10 @@ export function DataEntryControls({
                 let sanitizedLine = currentLine.replace(/[\s.]+/g, ',');
 
                 const linePatterns = [
-                    /((\d{2},)*\d{2}),?\((\d+)\)/g, 
-                    /((\d+,)*\d+)\*(\d+)/g, 
-                    /((\d+,)*\d+)=+(\d+)/g, 
-                    /(\d{2,})=(\d+)/g 
+                    /((\d{2,},?)+)=?\(?(\d+)\)?/g, // Main pattern for num,num,num=amount or (amount)
+                    /((\d+,)*\d+)\*(\d+)/g, // num,num,num*amount
                 ];
+
 
                 let lineHandled = false;
                 for (const pattern of linePatterns) {
@@ -174,7 +173,8 @@ export function DataEntryControls({
                         lineHandled = true;
                         const cellsStr = match[1];
                         const amount = parseInt(match[match.length - 1], 10);
-                        const cells = cellsStr.split(',').filter(c => c.length === 2);
+                        // Filter out empty strings from trailing commas and ensure they are 2 digits
+                        const cells = cellsStr.split(',').filter(c => c && c.length >= 2);
 
                         if (isNaN(amount) || cells.length === 0) continue;
 
@@ -185,7 +185,9 @@ export function DataEntryControls({
                         }
                         totalEntryAmount += entryTotal;
                         cells.forEach(cell => {
-                            updates[cell] = (updates[cell] || 0) + amount;
+                            // Ensure the cell is padded to 2 digits if it's not already
+                            const formattedCell = cell.padStart(2, '0');
+                            updates[formattedCell] = (updates[formattedCell] || 0) + amount;
                         });
                     }
                     if (lineHandled || errorOccurred) break;
@@ -531,6 +533,8 @@ export function DataEntryControls({
       </div>
     );
 }
+
+    
 
     
 
