@@ -158,8 +158,18 @@ export function DataEntryControls({
             }
 
             if (!processed) {
-                currentLine = currentLine.replace(/^[a-zA-Z]+\s*/, '');
-                let sanitizedLine = currentLine.replace(/[\s.]+/g, ',');
+                // Sanitize line: replace spaces/dots with commas ONLY in the numbers part
+                let sanitizedLine;
+                if (currentLine.includes('=')) {
+                    const parts = currentLine.split('=');
+                    const numbersPart = parts[0].replace(/[\s.]+/g, ',');
+                    sanitizedLine = `${numbersPart}=${parts[1]}`;
+                } else {
+                    sanitizedLine = currentLine.replace(/[\s.]+/g, ',');
+                }
+
+                // Remove any leading/trailing commas that might result
+                sanitizedLine = sanitizedLine.replace(/^,|,$/g, '');
 
                 const linePatterns = [
                     /((\d{2,},?)+)=?\(?(\d+)\)?/g, // Main pattern for num,num,num=amount or (amount)
@@ -533,6 +543,8 @@ export function DataEntryControls({
       </div>
     );
 }
+
+    
 
     
 
