@@ -106,19 +106,15 @@ export default function Home() {
     const uniqueSheetKeys = new Set<string>();
     const sheetsFromLogs: ActiveSheet[] = [];
 
-    // Combine active (unsaved) sheets with saved sheets from logs
     const allSheets = [...activeSheets];
 
     Object.values(savedSheetLog).flat().forEach(log => {
         const key = `${log.draw}-${log.date}`;
         if (!uniqueSheetKeys.has(key)) {
             uniqueSheetKeys.add(key);
-            // The date from the log is a string 'yyyy-MM-dd'.
-            // To avoid timezone issues, parse it as UTC.
             const dateParts = log.date.split('-').map(Number);
             const logDate = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
             
-            // Check if this sheet is already in our active sheets list
             const alreadyExists = allSheets.some(s => s.draw === log.draw && isSameDay(s.date, logDate));
             if (!alreadyExists) {
                 allSheets.push({
@@ -129,10 +125,18 @@ export default function Home() {
         }
     });
 
-    // Sort sheets by date, most recent first
-    allSheets.sort((a, b) => b.date.getTime() - a.date.getTime());
+    const drawOrder = ["DD", "ML", "FB", "GB", "GL", "DS"];
+    allSheets.sort((a, b) => {
+        const drawIndexA = drawOrder.indexOf(a.draw);
+        const drawIndexB = drawOrder.indexOf(b.draw);
+
+        if (drawIndexA !== drawIndexB) {
+            return drawIndexA - drawIndexB;
+        }
+
+        return b.date.getTime() - a.date.getTime();
+    });
     
-    // Deduplicate one last time to be safe
     const finalUniqueSheets: ActiveSheet[] = [];
     const finalKeys = new Set<string>();
     allSheets.forEach(sheet => {
