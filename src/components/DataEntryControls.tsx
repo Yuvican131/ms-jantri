@@ -27,6 +27,7 @@ interface DataEntryControlsProps {
     checkBalance: (total: number) => boolean;
     showClientSelectionToast: () => void;
     getClientDisplay: (client: Client) => string;
+    focusMultiText: () => void;
 }
 
 export function DataEntryControls({
@@ -42,6 +43,7 @@ export function DataEntryControls({
     checkBalance,
     showClientSelectionToast,
     getClientDisplay,
+    focusMultiText,
 }: DataEntryControlsProps) {
     const { toast } = useToast();
     const [multiText, setMultiText] = useState("");
@@ -58,7 +60,6 @@ export function DataEntryControls({
     const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
     const [generatedSheetContent, setGeneratedSheetContent] = useState("");
 
-    const multiTextRef = useRef<HTMLTextAreaElement>(null);
     const laddiNum1Ref = useRef<HTMLInputElement>(null);
     const laddiNum2Ref = useRef<HTMLInputElement>(null);
     const laddiAmountRef = useRef<HTMLInputElement>(null);
@@ -161,14 +162,13 @@ export function DataEntryControls({
                 let sanitizedLine;
                 if (currentLine.includes('=')) {
                     const parts = currentLine.split('=');
-                    let numbersPart = parts[0].replace(/[\s.]+/g, '');
-                    // If no commas, assume 2-digit chunking
+                    let numbersPart = parts[0].replace(/[\s.]+/g, ',');
                     if (!numbersPart.includes(',')) {
                         numbersPart = numbersPart.replace(/(\d{2})(?=\d)/g, '$1,');
                     }
                     sanitizedLine = `${numbersPart}=${parts[1]}`;
                 } else {
-                     let numbersPart = currentLine.replace(/[\s.]+/g, '');
+                     let numbersPart = currentLine.replace(/[\s.]+/g, ',');
                      if (!numbersPart.includes(',')) {
                         numbersPart = numbersPart.replace(/(\d{2})(?=\d)/g, '$1,');
                      }
@@ -213,7 +213,7 @@ export function DataEntryControls({
         if (Object.keys(updates).length > 0) {
             onDataUpdate(updates, multiText);
             setMultiText("");
-            multiTextRef.current?.focus();
+            focusMultiText();
         } else if (multiText.trim().length > 0 && !errorOccurred) {
             toast({
                 title: "No valid data found",
@@ -282,7 +282,7 @@ export function DataEntryControls({
             setRemoveJodda(false);
             setReverseLaddi(false);
             setRunningLaddi(false);
-            multiTextRef.current?.focus();
+            focusMultiText();
         } else {
             toast({ title: "No Laddi Updates", description: "No valid cell combinations found to update.", variant: "destructive" });
         }
@@ -338,7 +338,7 @@ export function DataEntryControls({
             setHarupA('');
             setHarupB('');
             setHarupAmount('');
-            multiTextRef.current?.focus();
+            focusMultiText();
         } else {
             toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
         }
@@ -388,9 +388,6 @@ export function DataEntryControls({
     };
 
     const handleGenerateSheet = () => {
-        // This function is defined inside GridSheet, so we'll need to pass the current data
-        // For now, this button will be disabled or show a toast.
-        // A better approach would be to lift this state up or pass data down.
         toast({ title: "Generate Sheet", description: "This feature is available in the master sheet view for now."})
     };
     
@@ -428,7 +425,7 @@ export function DataEntryControls({
             <div className="border rounded-lg p-2 flex flex-col gap-2">
                 <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
                 <Textarea
-                    ref={multiTextRef}
+                    ref={focusMultiText as React.Ref<HTMLTextAreaElement>}
                     placeholder="e.g. 12,21=100 or 123=45=10"
                     rows={4}
                     value={multiText}
@@ -546,4 +543,6 @@ export function DataEntryControls({
       </div>
     );
 }
+    
+
     

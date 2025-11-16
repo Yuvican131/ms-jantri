@@ -1,5 +1,6 @@
+
 "use client"
-import React, { useState, useImperativeHandle, forwardRef, useRef } from "react"
+import React, { useState, useImperativeHandle, forwardRef, useRef, useCallback } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { validateCellContent, ValidateCellContentOutput } from "@/ai/flows/validate-cell-content"
 import { Button } from "@/components/ui/button"
@@ -99,13 +100,13 @@ const MasterSheetViewer = ({
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
   const [currentLogs, setCurrentLogs] = useState<SavedSheetInfo[]>([]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const logsForDate = (allSavedLogs[draw] || []).filter(log => isSameDay(new Date(log.date), date));
     setCurrentLogs(logsForDate);
     setSelectedLogIndices(logsForDate.map((_, index) => index));
   }, [draw, date, allSavedLogs]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const logsToProcess = (currentLogs || []);
     const newMasterData: CellData = {};
     
@@ -246,36 +247,40 @@ const MasterSheetViewer = ({
     <div className="flex h-full flex-col gap-4 bg-background p-1 md:p-4 items-start overflow-y-auto">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 w-full">
         <div className="flex flex-col min-w-0">
-            <div className="grid gap-0.5 w-full" style={{gridTemplateColumns: `repeat(${GRID_COLS + 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${GRID_ROWS + 1}, minmax(0, 1fr))`}}>
+            <div className="grid-sheet-layout h-full w-full">
                 {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                     <React.Fragment key={`master-row-${rowIndex}`}>
                         {Array.from({ length: GRID_COLS }, (_, colIndex) => {
                             const key = String(rowIndex * GRID_COLS + colIndex).padStart(2, '0');
                             return (
-                                <div key={`master-cell-${key}`} className="relative flex items-center border rounded-sm" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                                    <div className="absolute top-1 left-1.5 text-xs select-none pointer-events-none z-10 font-bold" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
+                                <div key={`master-cell-${key}`} className="relative flex items-center border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+                                    <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number font-bold" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
                                     <Input
                                         type="text"
                                         readOnly
-                                        style={{ fontSize: 'clamp(0.8rem, 1.6vh, 1.1rem)'}}
-                                        className="p-0 h-full w-full text-center transition-colors duration-300 border-0 focus:ring-0 bg-transparent font-bold"
+                                        className="p-0 h-full w-full text-center bg-transparent border-0 focus:ring-0 font-bold grid-cell-input transition-colors duration-300"
                                         value={masterSheetData[key] || ''}
                                         aria-label={`Cell ${key}`}
+                                        style={{ color: 'var(--grid-cell-amount-color)' }}
                                     />
                                 </div>
                             );
                         })}
-                        <div className="flex items-center justify-center font-medium border rounded-sm bg-transparent" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                            <Input readOnly value={masterSheetRowTotals[rowIndex] || ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)', color: 'var(--grid-cell-total-color)' }}/>
+                        <div className="flex items-center justify-center font-medium border rounded-sm bg-transparent grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+                            <span className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent grid-cell-total flex items-center justify-center" style={{ color: 'var(--grid-cell-total-color)' }}>
+                                {masterSheetRowTotals[rowIndex] ? formatNumber(masterSheetRowTotals[rowIndex]) : ''}
+                            </span>
                         </div>
                     </React.Fragment>
                 ))}
                 {Array.from({ length: GRID_COLS }, (_, colIndex) => (
-                    <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border rounded-sm bg-transparent" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                        <Input readOnly value={masterSheetColumnTotals[colIndex] || ''} className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent" style={{ fontSize: 'clamp(0.7rem, 1.4vh, 0.9rem)', color: 'var(--grid-cell-total-color)' }}/>
+                    <div key={`master-col-total-${colIndex}`} className="flex items-center justify-center font-medium p-0 h-full border rounded-sm bg-transparent grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+                         <span className="font-medium text-center h-full w-full p-1 border-0 focus:ring-0 bg-transparent grid-cell-total flex items-center justify-center" style={{ color: 'var(--grid-cell-total-color)' }}>
+                            {masterSheetColumnTotals[colIndex] ? formatNumber(masterSheetColumnTotals[colIndex]) : ''}
+                        </span>
                     </div>
                 ))}
-                <div className="flex items-center justify-center font-bold text-lg border rounded-sm" style={{ borderColor: 'var(--grid-cell-border-color)', color: 'var(--grid-cell-total-color)' }}>
+                <div className="flex items-center justify-center font-bold text-lg border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)', color: 'var(--grid-cell-total-color)' }}>
                     {formatNumber(masterSheetGrandTotal)}
                 </div>
             </div>
@@ -383,6 +388,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [isMasterSheetDialogOpen, setIsMasterSheetDialogOpen] = useState(false);
   const [logToDelete, setLogToDelete] = useState<{ id: string, name: string } | null>(null);
   const isMobile = useIsMobile();
+  const multiTextRef = useRef<HTMLTextAreaElement>(null);
 
 
   const [validations, setValidations] = useState<CellValidation>({})
@@ -390,6 +396,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [previousSheetState, setPreviousSheetState] = useState<{ data: CellData, rowTotals: { [key: number]: string } } | null>(null);
 
   const currentData = selectedClientId ? clientSheetData[selectedClientId]?.data || {} : {};
+
+  const focusMultiText = useCallback(() => {
+    multiTextRef.current?.focus();
+  }, []);
 
   const showClientSelectionToast = () => {
     toast({
@@ -414,8 +424,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       setSelectedClientId(null);
     } else {
       setSelectedClientId(clientId);
-      // Always start with a blank sheet for new entries.
       updateClientData(clientId, {});
+      focusMultiText();
     }
   };
 
@@ -611,6 +621,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     
     updateClientData(selectedClientId, {});
     setPreviousSheetState(null);
+    focusMultiText();
   };
   
   const handleDeleteLogEntry = () => {
@@ -642,6 +653,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         checkBalance={checkBalance}
         showClientSelectionToast={showClientSelectionToast}
         getClientDisplay={getClientDisplay}
+        focusMultiText={focusMultiText}
     />
   );
   
@@ -758,3 +770,5 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+    
