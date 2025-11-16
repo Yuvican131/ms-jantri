@@ -654,6 +654,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         showClientSelectionToast={showClientSelectionToast}
         getClientDisplay={getClientDisplay}
         focusMultiText={focusMultiText}
+        openMasterSheet={() => setIsMasterSheetDialogOpen(true)}
     />
   );
   
@@ -770,5 +771,3 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-    

@@ -28,6 +28,7 @@ interface DataEntryControlsProps {
     showClientSelectionToast: () => void;
     getClientDisplay: (client: Client) => string;
     focusMultiText: () => void;
+    openMasterSheet: () => void;
 }
 
 export function DataEntryControls({
@@ -44,6 +45,7 @@ export function DataEntryControls({
     showClientSelectionToast,
     getClientDisplay,
     focusMultiText,
+    openMasterSheet,
 }: DataEntryControlsProps) {
     const { toast } = useToast();
     const [multiText, setMultiText] = useState("");
@@ -60,6 +62,7 @@ export function DataEntryControls({
     const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
     const [generatedSheetContent, setGeneratedSheetContent] = useState("");
 
+    const multiTextRef = useRef<HTMLTextAreaElement>(null);
     const laddiNum1Ref = useRef<HTMLInputElement>(null);
     const laddiNum2Ref = useRef<HTMLInputElement>(null);
     const laddiAmountRef = useRef<HTMLInputElement>(null);
@@ -425,7 +428,7 @@ export function DataEntryControls({
             <div className="border rounded-lg p-2 flex flex-col gap-2">
                 <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
                 <Textarea
-                    ref={focusMultiText as React.Ref<HTMLTextAreaElement>}
+                    ref={multiTextRef}
                     placeholder="e.g. 12,21=100 or 123=45=10"
                     rows={4}
                     value={multiText}
@@ -535,7 +538,7 @@ export function DataEntryControls({
           </div>
         </ScrollArea>
         <div className="border rounded-lg p-2 mt-2">
-            <Button onClick={() => { /* setIsMasterSheetDialogOpen(true) */ }} variant="outline" className="w-full">
+            <Button onClick={openMasterSheet} variant="outline" className="w-full">
                 <FileSpreadsheet className="mr-2 h-4 w-4" />
                 View Master Sheet
             </Button>
@@ -543,8 +546,3 @@ export function DataEntryControls({
       </div>
     );
 }
-    
-
-    
-
-    
