@@ -158,22 +158,27 @@ export function DataEntryControls({
             }
 
             if (!processed) {
-                // Sanitize line: replace spaces/dots with commas ONLY in the numbers part
                 let sanitizedLine;
                 if (currentLine.includes('=')) {
                     const parts = currentLine.split('=');
-                    const numbersPart = parts[0].replace(/[\s.]+/g, ',');
+                    let numbersPart = parts[0].replace(/[\s.]+/g, '');
+                    // If no commas, assume 2-digit chunking
+                    if (!numbersPart.includes(',')) {
+                        numbersPart = numbersPart.replace(/(\d{2})(?=\d)/g, '$1,');
+                    }
                     sanitizedLine = `${numbersPart}=${parts[1]}`;
                 } else {
-                    sanitizedLine = currentLine.replace(/[\s.]+/g, ',');
+                     let numbersPart = currentLine.replace(/[\s.]+/g, '');
+                     if (!numbersPart.includes(',')) {
+                        numbersPart = numbersPart.replace(/(\d{2})(?=\d)/g, '$1,');
+                     }
+                    sanitizedLine = numbersPart;
                 }
 
-                // Remove any leading/trailing commas that might result
-                sanitizedLine = sanitizedLine.replace(/^,|,$/g, '');
 
                 const linePatterns = [
-                    /((\d{2,},?)+)=?\(?(\d+)\)?/g, // Main pattern for num,num,num=amount or (amount)
-                    /((\d+,)*\d+)\*(\d+)/g, // num,num,num*amount
+                    /((\d{2,},?)+)=?\(?(\d+)\)?/g,
+                    /((\d+,)*\d+)\*(\d+)/g,
                 ];
 
 
@@ -183,7 +188,6 @@ export function DataEntryControls({
                         lineHandled = true;
                         const cellsStr = match[1];
                         const amount = parseInt(match[match.length - 1], 10);
-                        // Filter out empty strings from trailing commas and ensure they are 2 digits
                         const cells = cellsStr.split(',').filter(c => c && c.length >= 2);
 
                         if (isNaN(amount) || cells.length === 0) continue;
@@ -195,7 +199,6 @@ export function DataEntryControls({
                         }
                         totalEntryAmount += entryTotal;
                         cells.forEach(cell => {
-                            // Ensure the cell is padded to 2 digits if it's not already
                             const formattedCell = cell.padStart(2, '0');
                             updates[formattedCell] = (updates[formattedCell] || 0) + amount;
                         });
@@ -543,11 +546,4 @@ export function DataEntryControls({
       </div>
     );
 }
-
-    
-
-    
-
-    
-
     
