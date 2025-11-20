@@ -72,6 +72,12 @@ export function DataEntryControls({
     
     const isDataEntryDisabled = !selectedClientId;
 
+    useEffect(() => {
+        if(focusMultiText) {
+            focusMultiText();
+        }
+    }, [focusMultiText]);
+
     const calculateCombinations = (num1: string, num2: string, removeJoddaFlag: boolean, reverseFlag: boolean, runningFlag: boolean): number => {
         if (runningFlag) {
             const start = parseInt(num1, 10);
@@ -165,7 +171,7 @@ export function DataEntryControls({
                 let sanitizedLine;
                 if (currentLine.includes('=')) {
                     const parts = currentLine.split('=');
-                    let numbersPart = parts[0].replace(/[\s.]+/g, ',');
+                    let numbersPart = parts[0].trim().replace(/[\s.]+/g, ',');
                     if (!numbersPart.includes(',')) {
                         numbersPart = numbersPart.replace(/(\d{2})(?=\d)/g, '$1,');
                     }
