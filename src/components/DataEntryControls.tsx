@@ -116,27 +116,27 @@ export function DataEntryControls({
             showClientSelectionToast();
             return;
         }
-
+    
         const updates: { [key: string]: number } = {};
         let totalEntryAmount = 0;
         let errorOccurred = false;
         const lines = multiText.trim().split('\n');
-
+    
         for (const line of lines) {
             if (errorOccurred) break;
             let processed = false;
             let currentLine = line.trim();
-
+    
             const laddiMatch = currentLine.match(/^(\d+)=(\d+)=(\d+)$/);
             if (laddiMatch) {
                 const [, digitsStr, countStr, amountStr] = laddiMatch;
                 const uniqueDigits = [...new Set(digitsStr.split(''))];
                 const requestedCount = parseInt(countStr, 10);
                 const amount = parseInt(amountStr, 10);
-
+    
                 const withJoddaCount = uniqueDigits.length * uniqueDigits.length;
                 const withoutJoddaCount = uniqueDigits.length * (uniqueDigits.length - 1);
-
+    
                 if (requestedCount !== withJoddaCount && requestedCount !== withoutJoddaCount) {
                     toast({
                         title: "Wrong Laddi Combination",
@@ -146,7 +146,7 @@ export function DataEntryControls({
                     errorOccurred = true;
                     continue;
                 }
-
+    
                 const combinations = new Set<string>();
                 for (const d1 of uniqueDigits) {
                     for (const d2 of uniqueDigits) {
@@ -154,7 +154,7 @@ export function DataEntryControls({
                         combinations.add(d1 + d2);
                     }
                 }
-
+    
                 const laddiTotal = combinations.size * amount;
                 if (!checkBalance(laddiTotal)) {
                     errorOccurred = true;
@@ -166,31 +166,29 @@ export function DataEntryControls({
                 });
                 processed = true;
             }
-
+    
             if (!processed) {
                 let sanitizedLine;
                 if (currentLine.includes('=')) {
                     const parts = currentLine.split('=');
-                    let numbersPart = parts[0].trim();
+                    let numbersPart = parts[0].trim().replace(/[\s.]+/g, ',');
                     if (!numbersPart.includes(',')) {
                         numbersPart = numbersPart.replace(/(\d{2})(?=\d)/g, '$1,');
                     }
                     sanitizedLine = `${numbersPart}=${parts[1]}`;
                 } else {
-                     let numbersPart = currentLine;
+                     let numbersPart = currentLine.replace(/[\s.]+/g, ',');
                      if (!numbersPart.includes(',')) {
                         numbersPart = numbersPart.replace(/(\d{2})(?=\d)/g, '$1,');
                      }
                     sanitizedLine = numbersPart;
                 }
-
-
+    
                 const linePatterns = [
                     /((\d{2,},?)+)=?\(?(\d+)\)?/g,
                     /((\d+,)*\d+)\*(\d+)/g,
                 ];
-
-
+    
                 let lineHandled = false;
                 for (const pattern of linePatterns) {
                     for (const match of sanitizedLine.matchAll(pattern)) {
@@ -198,9 +196,9 @@ export function DataEntryControls({
                         const cellsStr = match[1];
                         const amount = parseInt(match[match.length - 1], 10);
                         const cells = cellsStr.split(',').filter(c => c && c.length >= 2);
-
+    
                         if (isNaN(amount) || cells.length === 0) continue;
-
+    
                         const entryTotal = cells.length * amount;
                         if (!checkBalance(entryTotal)) {
                             errorOccurred = true;
@@ -216,9 +214,9 @@ export function DataEntryControls({
                 }
             }
         }
-
+    
         if (errorOccurred) return;
-
+    
         if (Object.keys(updates).length > 0) {
             onDataUpdate(updates, multiText);
             setMultiText("");
@@ -393,12 +391,12 @@ export function DataEntryControls({
             showClientSelectionToast();
             return;
         }
-
+    
         const value = e.target.value;
         const parts = value.split('=');
         let numbersPart = parts[0];
         const amountPart = parts.length > 1 ? `=${parts.slice(1).join('=')}` : '';
-
+    
         // Clean the numbers part by removing non-digits, then chunk into pairs with commas.
         const cleanNumbers = numbersPart.replace(/[^0-9]/g, '');
         const formattedNumbers = cleanNumbers.replace(/(\d{2})(?=\d)/g, '$1,');
@@ -407,6 +405,7 @@ export function DataEntryControls({
         const newMultiText = formattedNumbers + amountPart;
         setMultiText(newMultiText);
     };
+    
 
     const handleGenerateSheet = () => {
         toast({ title: "Generate Sheet", description: "This feature is available in the master sheet view for now."})
@@ -475,7 +474,11 @@ export function DataEntryControls({
                       <Input
                         ref={laddiNum1Ref}
                         id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "Start" : "Num 1"}
-                        value={laddiNum1} onChange={(e) => setLaddiNum1(e.target.value.replace(/[^0-9]/g, ''))} 
+                        value={laddiNum1} onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9]/g, '');
+                            setLaddiNum1(val);
+                            setLaddiNum2(val);
+                        }}
                         onKeyDown={(e) => handleKeyDown(e, 'laddiNum1')} 
                         disabled={isDataEntryDisabled}
                         onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
