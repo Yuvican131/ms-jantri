@@ -171,13 +171,13 @@ export function DataEntryControls({
                 let sanitizedLine;
                 if (currentLine.includes('=')) {
                     const parts = currentLine.split('=');
-                    let numbersPart = parts[0].trim().replace(/[\s.]+/g, ',');
+                    let numbersPart = parts[0].trim();
                     if (!numbersPart.includes(',')) {
                         numbersPart = numbersPart.replace(/(\d{2})(?=\d)/g, '$1,');
                     }
                     sanitizedLine = `${numbersPart}=${parts[1]}`;
                 } else {
-                     let numbersPart = currentLine.replace(/[\s.]+/g, ',');
+                     let numbersPart = currentLine;
                      if (!numbersPart.includes(',')) {
                         numbersPart = numbersPart.replace(/(\d{2})(?=\d)/g, '$1,');
                      }
@@ -393,7 +393,19 @@ export function DataEntryControls({
             showClientSelectionToast();
             return;
         }
-        setMultiText(e.target.value);
+
+        const value = e.target.value;
+        const parts = value.split('=');
+        let numbersPart = parts[0];
+        const amountPart = parts.length > 1 ? `=${parts.slice(1).join('=')}` : '';
+
+        // Clean the numbers part by removing non-digits, then chunk into pairs with commas.
+        const cleanNumbers = numbersPart.replace(/[^0-9]/g, '');
+        const formattedNumbers = cleanNumbers.replace(/(\d{2})(?=\d)/g, '$1,');
+        
+        // Reconstruct the string and set it.
+        const newMultiText = formattedNumbers + amountPart;
+        setMultiText(newMultiText);
     };
 
     const handleGenerateSheet = () => {
