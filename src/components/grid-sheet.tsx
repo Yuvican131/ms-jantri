@@ -1,4 +1,3 @@
-
 "use client"
 import React, { useState, useImperativeHandle, forwardRef, useRef, useCallback } from "react"
 import { useToast } from "@/hooks/use-toast"
@@ -380,6 +379,61 @@ const MasterSheetViewer = ({
   );
 }
 
+type ControlsProps = {
+    clients: Client[];
+    selectedClientId: string | null;
+    onClientChange: (clientId: string) => void;
+    onSave: () => void;
+    onRevert: () => void;
+    isRevertDisabled: boolean;
+    onDataUpdate: (updates: { [key: string]: number | string }, lastEntryString: string) => void;
+    onClear: () => void;
+    setLastEntry: (entry: string) => void;
+    checkBalance: (total: number) => boolean;
+    showClientSelectionToast: () => void;
+    getClientDisplay: (client: Client) => string;
+    focusMultiText: () => void;
+    openMasterSheet: () => void;
+};
+
+
+const Controls: React.FC<ControlsProps> = ({
+    clients,
+    selectedClientId,
+    onClientChange,
+    onSave,
+    onRevert,
+    isRevertDisabled,
+    onDataUpdate,
+    onClear,
+    setLastEntry,
+    checkBalance,
+    showClientSelectionToast,
+    getClientDisplay,
+    focusMultiText,
+    openMasterSheet,
+}) => {
+    return (
+        <DataEntryControls
+            clients={clients}
+            selectedClientId={selectedClientId}
+            onClientChange={onClientChange}
+            onSave={onSave}
+            onRevert={onRevert}
+            isRevertDisabled={isRevertDisabled}
+            onDataUpdate={onDataUpdate}
+            onClear={onClear}
+            setLastEntry={setLastEntry}
+            checkBalance={checkBalance}
+            showClientSelectionToast={showClientSelectionToast}
+            getClientDisplay={getClientDisplay}
+            focusMultiText={focusMultiText}
+            openMasterSheet={openMasterSheet}
+        />
+    );
+};
+
+
 const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const { toast } = useToast()
   const { deleteSheetLogEntry } = useSheetLog();
@@ -639,25 +693,6 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     return `${client.name} - ${formatNumber(totalAmount)}`;
   };
   
-  const Controls = () => (
-    <DataEntryControls
-        clients={props.clients}
-        selectedClientId={selectedClientId}
-        onClientChange={handleSelectedClientChange}
-        onSave={handleSaveSheet}
-        onRevert={handleRevertLastEntry}
-        isRevertDisabled={!previousSheetState || selectedClientId === null}
-        onDataUpdate={handleDataUpdate}
-        onClear={handleClearSheet}
-        setLastEntry={props.setLastEntry}
-        checkBalance={checkBalance}
-        showClientSelectionToast={showClientSelectionToast}
-        getClientDisplay={getClientDisplay}
-        focusMultiText={focusMultiText}
-        openMasterSheet={() => setIsMasterSheetDialogOpen(true)}
-    />
-  );
-  
   return (
     <>
       <Card className="h-full flex flex-col overflow-hidden">
@@ -682,7 +717,22 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                 </div>
               </TabsContent>
               <TabsContent value="entry" className="flex-grow min-h-0 mt-2">
-                <Controls />
+                 <Controls
+                    clients={props.clients}
+                    selectedClientId={selectedClientId}
+                    onClientChange={handleSelectedClientChange}
+                    onSave={handleSaveSheet}
+                    onRevert={handleRevertLastEntry}
+                    isRevertDisabled={!previousSheetState || selectedClientId === null}
+                    onDataUpdate={handleDataUpdate}
+                    onClear={handleClearSheet}
+                    setLastEntry={props.setLastEntry}
+                    checkBalance={checkBalance}
+                    showClientSelectionToast={showClientSelectionToast}
+                    getClientDisplay={getClientDisplay}
+                    focusMultiText={focusMultiText}
+                    openMasterSheet={() => setIsMasterSheetDialogOpen(true)}
+                 />
               </TabsContent>
             </Tabs>
           ) : (
@@ -698,7 +748,22 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                     showClientSelectionToast={showClientSelectionToast}
                   />
               </div>
-              <Controls />
+               <Controls
+                  clients={props.clients}
+                  selectedClientId={selectedClientId}
+                  onClientChange={handleSelectedClientChange}
+                  onSave={handleSaveSheet}
+                  onRevert={handleRevertLastEntry}
+                  isRevertDisabled={!previousSheetState || selectedClientId === null}
+                  onDataUpdate={handleDataUpdate}
+                  onClear={handleClearSheet}
+                  setLastEntry={props.setLastEntry}
+                  checkBalance={checkBalance}
+                  showClientSelectionToast={showClientSelectionToast}
+                  getClientDisplay={getClientDisplay}
+                  focusMultiText={focusMultiText}
+                  openMasterSheet={() => setIsMasterSheetDialogOpen(true)}
+               />
             </div>
           )}
         </CardContent>
