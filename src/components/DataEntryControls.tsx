@@ -282,39 +282,17 @@ export function DataEntryControls({
             }
     
             if (!processed) {
-                let sanitizedLine = currentLine.replace(/"/g, ',');
-                 if (!sanitizedLine.includes('(') && !sanitizedLine.includes('*')) {
-                   if (sanitizedLine.includes('=')) {
-                       const parts = sanitizedLine.split('=');
-                       let numbersPart = parts[0].trim();
-                       if (!numbersPart.includes(',')) {
-                         numbersPart = numbersPart.replace(/(\d{2})(?=\d)/g, '$1,');
-                       }
-                       sanitizedLine = `${numbersPart.replace(/\s+/g, ',')}=${parts[1]}`;
-                   } else {
-                       let numbersPart = sanitizedLine.trim();
-                       if (!numbersPart.includes(',')) {
-                         numbersPart = numbersPart.replace(/(\d{2})(?=\d)/g, '$1,');
-                       }
-                       sanitizedLine = numbersPart;
-                   }
-                 }
-    
-                const linePatterns = [
-                    /((\d{2,},?)+)=?\((\d+)\)/g, // 12,21=100 or 12,21(100)
-                    /((\d+,)*\d+)\*(\d+)/g, // 12,21*100
-                    /((?:\d{2,},?)+)\((\d+)\)/g // 12,21(100) without equals
-                ];
-    
+                 // More robust regex to handle various delimiters and formats
+                const robustPattern = /((?:\d{2,}[,"]?\s*)+)\s*\((\d+)\)/g;
                 let lineHandled = false;
-                // This regex is designed to be more robust
-                const robustPattern = /((?:\d{2,}[,"]?)+)\s*\((\d+)\)/g;
 
-                for (const match of sanitizedLine.matchAll(robustPattern)) {
+                for (const match of currentLine.matchAll(robustPattern)) {
                     lineHandled = true;
-                    const cellsStr = match[1].replace(/"/g, ',');
+                    const cellsStr = match[1];
                     const amount = parseInt(match[2], 10);
-                    const cells = cellsStr.split(',').filter(c => c && c.trim().length >= 2);
+                    
+                    // Split by any non-digit character
+                    const cells = cellsStr.split(/[^0-9]+/).filter(c => c && c.trim().length >= 2);
     
                     if (isNaN(amount) || cells.length === 0) continue;
 
@@ -330,31 +308,6 @@ export function DataEntryControls({
                     });
                 }
                  if (lineHandled || errorOccurred) continue;
-
-
-                // Fallback for simpler patterns if the robust one fails
-                for (const pattern of linePatterns) {
-                    for (const match of sanitizedLine.matchAll(pattern)) {
-                        lineHandled = true;
-                        const cellsStr = match[1];
-                        const amount = parseInt(match[match.length - 1], 10);
-                        const cells = cellsStr.split(',').filter(c => c && c.length >= 2);
-    
-                        if (isNaN(amount) || cells.length === 0) continue;
-    
-                        const entryTotal = cells.length * amount;
-                        if (!checkBalance(entryTotal)) {
-                            errorOccurred = true;
-                            break;
-                        }
-                        totalEntryAmount += entryTotal;
-                        cells.forEach(cell => {
-                            const formattedCell = cell.padStart(2, '0');
-                            updates[formattedCell] = (updates[formattedCell] || 0) + amount;
-                        });
-                    }
-                    if (lineHandled || errorOccurred) break;
-                }
             }
         }
     
@@ -692,5 +645,7 @@ export function DataEntryControls({
 
     
 
+
+    
 
     
