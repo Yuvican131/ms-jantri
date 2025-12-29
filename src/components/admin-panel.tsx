@@ -43,13 +43,13 @@ const BrokerDrawSummaryCard = ({
     passingTotal: number;
 }) => {
     return (
-        <Card className="flex flex-col bg-muted/30 p-1.5">
+        <Card className="flex flex-col bg-muted/30 p-1.5 h-full">
             <div className="flex-grow">
                 <div className="flex items-center justify-between mb-0.5">
                     <h4 className="font-semibold text-xs text-foreground">{title}</h4>
                     <HandCoins className="h-3 w-3 text-muted-foreground" />
                 </div>
-                <p className="text-base font-bold text-right text-foreground">{formatNumber(rawTotal)}</p>
+                <p className="text-xl font-bold text-right text-foreground">{formatNumber(rawTotal)}</p>
             </div>
             <div className="bg-muted/50 border-t flex items-center justify-between mt-1 pt-1">
                 <span className="text-xs font-semibold text-muted-foreground flex items-center gap-0.5"><TrendingDown className="h-2.5 w-2.5" /> Pass</span>
@@ -113,7 +113,7 @@ const RunningTotalSummaryCard = ({
     const runningTotalColor = runningTotal >= 0 ? 'text-green-500' : 'text-red-500';
 
     return (
-        <Card className="p-2 bg-muted/50 border-border w-full">
+        <Card className="p-2 bg-muted/50 border-border w-64">
             <div className="flex items-center justify-between px-1">
                 <p className="text-xs text-foreground font-bold flex items-center gap-1"><Scale className="h-3 w-3"/>Running Net</p>
                 <p className={`text-lg font-extrabold ${runningTotalColor}`}>{formatNumber(runningTotal)}</p>
@@ -430,9 +430,11 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         return (dailyRawTotal - brokerCommission) - finalGrandPassingTotal;
     };
     
-    const previousDayNet = useMemo(() => calculateDailyNet(subDays(summaryDate, 1)), [savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair, summaryDate]);
-    const todayNet = useMemo(() => calculateDailyNet(summaryDate), [savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair, summaryDate]);
-    const runningTotal = previousDayNet + todayNet;
+    const runningTotal = useMemo(() => {
+        const todayNet = calculateDailyNet(summaryDate);
+        const previousDayNet = calculateDailyNet(subDays(summaryDate, 1));
+        return todayNet + previousDayNet;
+    }, [savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair, summaryDate]);
 
 
     const { 
@@ -493,6 +495,9 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             <CardTitle>Admin Panel</CardTitle>
             <CardDescription>High-level overview of your brokerage operations.</CardDescription>
         </div>
+        <RunningTotalSummaryCard 
+            runningTotal={runningTotal}
+        />
       </CardHeader>
       <CardContent className="flex-1 space-y-6 overflow-y-auto">
         <div>
@@ -533,19 +538,14 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                         passingTotal={brokerPassingDrawTotals[drawName] || 0}
                     />
                 ))}
-                <div className="flex flex-col gap-3">
-                    <RunningTotalSummaryCard 
-                        runningTotal={runningTotal}
-                    />
-                    <GrandTotalSummaryCard
-                        title="Final Summary"
-                        finalValue={finalNetTotalForBroker}
-                        grandRawTotal={grandRawTotal}
-                        grandPassingTotal={grandPassingTotal}
-                        brokerCommission={brokerCommission}
-                        upperPairRate={parseFloat(appliedUpperPair) || defaultUpperPair}
-                    />
-                </div>
+                <GrandTotalSummaryCard
+                    title="Final Summary"
+                    finalValue={finalNetTotalForBroker}
+                    grandRawTotal={grandRawTotal}
+                    grandPassingTotal={grandPassingTotal}
+                    brokerCommission={brokerCommission}
+                    upperPairRate={parseFloat(appliedUpperPair) || defaultUpperPair}
+                />
             </div>
         </div>
 
