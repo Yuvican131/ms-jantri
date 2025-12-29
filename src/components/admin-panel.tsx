@@ -119,24 +119,24 @@ const RunningTotalSummaryCard = ({
     const currentDayColor = currentDayProfit >= 0 ? 'text-green-400' : 'text-red-500';
 
     return (
-        <Card className="flex flex-col justify-center p-3 bg-amber-500/10 border-amber-500/50">
-            <div className="flex items-center justify-between mb-2">
-                <h4 className="font-semibold text-sm text-amber-600">Running Total</h4>
-                <Forward className="h-4 w-4 text-amber-600" />
+        <Card className="flex flex-col justify-center p-4 bg-amber-500/10 border-amber-500/50">
+            <div className="flex items-center justify-between mb-3">
+                <h4 className="font-semibold text-base text-amber-600">Running Total</h4>
+                <Forward className="h-5 w-5 text-amber-600" />
             </div>
-            <div className="space-y-2 text-right">
-                <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground">Previous Day</span>
-                    <span className={`font-semibold ${prevDayColor}`}>{formatNumber(previousDayProfit)}</span>
+            <div className="space-y-3">
+                <div className="flex justify-between items-baseline">
+                    <span className="text-sm text-muted-foreground">Previous Day</span>
+                    <span className={`font-semibold text-lg ${prevDayColor}`}>{formatNumber(previousDayProfit)}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground">Today's Net</span>
-                    <span className={`font-semibold ${currentDayColor}`}>{formatNumber(currentDayProfit)}</span>
+                <div className="flex justify-between items-baseline">
+                    <span className="text-sm text-muted-foreground">Today's Net</span>
+                    <span className={`font-semibold text-lg ${currentDayColor}`}>{formatNumber(currentDayProfit)}</span>
                 </div>
-                <Separator className="my-1 bg-border/50" />
+                <Separator className="my-2 bg-amber-500/20" />
                 <div className="flex justify-between items-center">
-                    <span className="font-bold text-base">Running Net</span>
-                    <p className={`text-2xl font-bold ${runningTotalColor}`}>{formatNumber(runningTotal)}</p>
+                    <span className="font-bold text-lg">Running Net</span>
+                    <p className={`text-3xl font-bold ${runningTotalColor}`}>{formatNumber(runningTotal)}</p>
                 </div>
             </div>
         </Card>
