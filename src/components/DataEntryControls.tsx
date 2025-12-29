@@ -116,111 +116,42 @@ export function DataEntryControls({
             showClientSelectionToast();
             return;
         }
-    
+
         const updates: { [key: string]: number } = {};
+        const lines = multiText.split('\n');
         let errorOccurred = false;
-        let textToProcess = multiText;
 
-        // Universal Parser for formats like: 45...68,_,,77''(100)
-        const robustPattern = /((?:.|\n)*?)\((\d+)\)/g;
-        let lastIndex = 0;
-        
-        const matches = [...textToProcess.matchAll(robustPattern)];
+        lines.forEach(line => {
+            if (errorOccurred || line.trim() === "") return;
 
-        if (matches.length > 0) {
-            for (const match of matches) {
-                const cellsStr = match[1];
-                const amount = parseInt(match[2], 10);
-                
-                // Extract all number-like sequences of at least 2 digits
-                const cells = cellsStr.match(/\d{2,}/g) || [];
-                
-                if (isNaN(amount) || cells.length === 0) continue;
+            const parts = line.split('=');
+            if (parts.length !== 2) return;
 
-                const entryTotal = cells.length * amount;
-                if (!checkBalance(entryTotal)) {
-                    errorOccurred = true;
-                    break; 
-                }
-                
-                cells.forEach(cell => {
-                    const formattedCell = cell.trim().padStart(2, '0');
-                    updates[formattedCell] = (updates[formattedCell] || 0) + amount;
-                });
-            }
+            const cellsStr = parts[0].replace(/[^0-9]/g, '');
+            const amount = parseFloat(parts[1]);
 
-            if (errorOccurred) return;
-        
-            if (Object.keys(updates).length > 0) {
-                onDataUpdate(updates, multiText);
-                setMultiText(""); // Clear on successful application
-                focusMultiText();
-            } else {
-                 toast({
-                    title: "No valid data found",
-                    description: "Could not parse the input. Please check the format.",
-                    variant: "destructive"
-                });
-            }
-            return; // Stop further processing if this format was matched
-        }
-        
-        // Fallback to older HARUP format if the universal parser didn't find matches
-        const harupShortcutRegex = /((\d)\2{2})(?:_(\d)\3{2})?\s*\((\d+)\)/g;
-        let harupMatch;
-        let processedByHarupFormat = false;
+            if (isNaN(amount) || cellsStr.length % 2 !== 0) return;
 
-        while ((harupMatch = harupShortcutRegex.exec(textToProcess)) !== null) {
-            processedByHarupFormat = true;
-            const [, harupAStr, harupADigit, harupBDigit, amountStr] = harupMatch;
-            const amount = parseInt(amountStr, 10);
-
-            if (isNaN(amount)) continue;
-            
-            const harupADigits = harupADigit ? [harupADigit] : [];
-            const harupBDigits = harupBDigit ? [harupBDigit] : [];
-
-            const perDigitAmount = amount / 10;
-            
-            const totalDigits = harupADigits.length + harupBDigits.length;
-            const entryTotal = totalDigits * amount;
+            const cells = cellsStr.match(/.{1,2}/g) || [];
+            const entryTotal = cells.length * amount;
 
             if (!checkBalance(entryTotal)) {
                 errorOccurred = true;
-                break;
+                return;
             }
-            
-            harupADigits.forEach(digitA => {
-                for (let i = 0; i < 10; i++) {
-                    const key = `${digitA}${i}`.padStart(2, '0');
-                    updates[key] = (updates[key] || 0) + perDigitAmount;
-                }
+
+            cells.forEach(cell => {
+                const formattedCell = cell.padStart(2, '0');
+                updates[formattedCell] = (updates[formattedCell] || 0) + amount;
             });
-    
-            harupBDigits.forEach(digitB => {
-                for (let i = 0; i < 10; i++) {
-                    const key = `${i}${digitB}`.padStart(2, '0');
-                    updates[key] = (updates[key] || 0) + perDigitAmount;
-                }
-            });
-            textToProcess = textToProcess.replace(harupMatch[0], '').trim();
-        }
-        
+        });
+
         if (errorOccurred) return;
         
-        if (processedByHarupFormat && Object.keys(updates).length > 0) {
+        if (Object.keys(updates).length > 0) {
             onDataUpdate(updates, multiText);
-            setMultiText("");
+            setMultiText(""); // Clear on successful application
             focusMultiText();
-            return;
-        }
-
-        if (multiText.trim().length > 0 && matches.length === 0 && !processedByHarupFormat) {
-             toast({
-                title: "Unrecognized format",
-                description: "The entered text format was not recognized.",
-                variant: "destructive"
-            });
         }
     };
     
@@ -539,3 +470,5 @@ export function DataEntryControls({
       </div>
     );
 }
+
+    
