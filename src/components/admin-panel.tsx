@@ -44,16 +44,16 @@ const BrokerDrawSummaryCard = ({
 }) => {
     return (
         <Card className="flex flex-col bg-muted/30">
-            <div className="p-1 flex-grow">
+            <div className="p-1.5 flex-grow">
                 <div className="flex items-center justify-between mb-0.5">
-                    <h4 className="font-semibold text-[11px] text-foreground">{title}</h4>
-                    <HandCoins className="h-2.5 w-2.5 text-muted-foreground" />
+                    <h4 className="font-semibold text-xs text-foreground">{title}</h4>
+                    <HandCoins className="h-3 w-3 text-muted-foreground" />
                 </div>
-                <p className="text-sm font-bold text-right text-foreground">{formatNumber(rawTotal)}</p>
+                <p className="text-base font-bold text-right text-foreground">{formatNumber(rawTotal)}</p>
             </div>
-            <div className="p-0.5 bg-muted/50 border-t flex items-center justify-between">
-                <span className="text-[9px] font-semibold text-muted-foreground flex items-center gap-0.5"><TrendingDown className="h-2 w-2" /> Pass</span>
-                <span className={`text-[10px] font-bold ${passingTotal > 0 ? 'text-red-500' : 'text-foreground'}`}>{formatNumber(passingTotal)}</span>
+            <div className="p-1 bg-muted/50 border-t flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted-foreground flex items-center gap-0.5"><TrendingDown className="h-2.5 w-2.5" /> Pass</span>
+                <span className={`text-xs font-bold ${passingTotal > 0 ? 'text-red-500' : 'text-foreground'}`}>{formatNumber(passingTotal)}</span>
             </div>
         </Card>
     );
@@ -514,7 +514,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
       </CardHeader>
       <CardContent className="flex-1 space-y-6 overflow-y-auto">
         <div>
-            <div className="flex items-center gap-4 mb-2">
+            <div className="flex items-center gap-4 mb-4">
                 <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
                     <Landmark className="h-5 w-5" /> All Draws Summary
                 </h3>
