@@ -120,7 +120,7 @@ export function DataEntryControls({
         const updates: { [key: string]: number } = {};
         let totalEntryAmount = 0;
         let errorOccurred = false;
-        const textToProcess = multiText;
+        let textToProcess = multiText;
 
         // HARUP format: 666(100) or 666_222(100)
         const harupShortcutRegex = /((\d)\2{2})(?:_(\d)\3{2})?\s*\((\d+)\)/g;
@@ -161,16 +161,15 @@ export function DataEntryControls({
                     updates[key] = (updates[key] || 0) + perDigitAmount;
                 }
             });
+            textToProcess = textToProcess.replace(harupMatch[0], '').trim();
         }
         
         if (errorOccurred) return;
         
-        if (processedByHarupFormat) {
-            if (Object.keys(updates).length > 0) {
-                onDataUpdate(updates, multiText);
-                setMultiText("");
-                focusMultiText();
-            }
+        if (processedByHarupFormat && Object.keys(updates).length > 0) {
+            onDataUpdate(updates, multiText);
+            setMultiText("");
+            focusMultiText();
             return;
         }
 
@@ -179,7 +178,7 @@ export function DataEntryControls({
         let match;
         let processedByNewFormat = false;
         
-        const remainingText = multiText.replace(compactFormatRegex, (fullMatch, numbersPart, amountPart) => {
+        textToProcess = textToProcess.replace(compactFormatRegex, (fullMatch, numbersPart, amountPart) => {
             processedByNewFormat = true;
             const amount = parseInt(amountPart.replace(/[()]/g, ''), 10);
             if (isNaN(amount)) return fullMatch; 
@@ -224,17 +223,18 @@ export function DataEntryControls({
         
         if (errorOccurred) return;
         
-        if (processedByNewFormat) {
-             if (Object.keys(updates).length > 0) {
-                onDataUpdate(updates, multiText);
-                setMultiText("");
-                focusMultiText();
-            }
-            return; 
+        if (processedByNewFormat && Object.keys(updates).length > 0) {
+             onDataUpdate(updates, multiText);
+             setMultiText("");
+             focusMultiText();
+             return; 
         }
 
         // Fallback to old parsing logic if the new format is not detected.
-        const lines = multiText.trim().split('\n');
+        // Pre-process to handle newlines before amounts
+        let remainingText = textToProcess.replace(/\n\s*\((\d+)\)/g, '($1)');
+        
+        const lines = remainingText.trim().split('\n');
     
         for (const line of lines) {
             if (errorOccurred) break;
@@ -283,29 +283,56 @@ export function DataEntryControls({
     
             if (!processed) {
                 let sanitizedLine = currentLine.replace(/"/g, ',');
-                if (!sanitizedLine.includes('(') && !sanitizedLine.includes('*')) {
-                  if (sanitizedLine.includes('=')) {
-                      const parts = sanitizedLine.split('=');
-                      let numbersPart = parts[0].trim();
-                      if (!numbersPart.includes(' ')) {
-                        numbersPart = numbersPart.replace(/(\d{2})(?=\d)/g, '$1,');
-                      }
-                      sanitizedLine = `${numbersPart.replace(/\s+/g, ',')}=${parts[1]}`;
-                  } else {
-                      let numbersPart = sanitizedLine.trim();
-                      if (!numbersPart.includes(' ')) {
-                        numbersPart = numbersPart.replace(/(\d{2})(?=\d)/g, '$1,');
-                      }
-                      sanitizedLine = numbersPart.replace(/\s+/g, ',');
-                  }
-                }
+                 if (!sanitizedLine.includes('(') && !sanitizedLine.includes('*')) {
+                   if (sanitizedLine.includes('=')) {
+                       const parts = sanitizedLine.split('=');
+                       let numbersPart = parts[0].trim();
+                       if (!numbersPart.includes(',')) {
+                         numbersPart = numbersPart.replace(/(\d{2})(?=\d)/g, '$1,');
+                       }
+                       sanitizedLine = `${numbersPart.replace(/\s+/g, ',')}=${parts[1]}`;
+                   } else {
+                       let numbersPart = sanitizedLine.trim();
+                       if (!numbersPart.includes(',')) {
+                         numbersPart = numbersPart.replace(/(\d{2})(?=\d)/g, '$1,');
+                       }
+                       sanitizedLine = numbersPart;
+                   }
+                 }
     
                 const linePatterns = [
-                    /((\d{2,},?)+)=?\(?(\d+)\)?/g, // 12,21=100 or 12,21(100)
+                    /((\d{2,},?)+)=?\((\d+)\)/g, // 12,21=100 or 12,21(100)
                     /((\d+,)*\d+)\*(\d+)/g, // 12,21*100
+                    /((?:\d{2,},?)+)\((\d+)\)/g // 12,21(100) without equals
                 ];
     
                 let lineHandled = false;
+                // This regex is designed to be more robust
+                const robustPattern = /((?:\d{2,}[,"]?)+)\s*\((\d+)\)/g;
+
+                for (const match of sanitizedLine.matchAll(robustPattern)) {
+                    lineHandled = true;
+                    const cellsStr = match[1].replace(/"/g, ',');
+                    const amount = parseInt(match[2], 10);
+                    const cells = cellsStr.split(',').filter(c => c && c.trim().length >= 2);
+    
+                    if (isNaN(amount) || cells.length === 0) continue;
+
+                    const entryTotal = cells.length * amount;
+                    if (!checkBalance(entryTotal)) {
+                        errorOccurred = true;
+                        break;
+                    }
+                    totalEntryAmount += entryTotal;
+                    cells.forEach(cell => {
+                        const formattedCell = cell.trim().padStart(2, '0');
+                        updates[formattedCell] = (updates[formattedCell] || 0) + amount;
+                    });
+                }
+                 if (lineHandled || errorOccurred) continue;
+
+
+                // Fallback for simpler patterns if the robust one fails
                 for (const pattern of linePatterns) {
                     for (const match of sanitizedLine.matchAll(pattern)) {
                         lineHandled = true;
@@ -661,6 +688,9 @@ export function DataEntryControls({
       </div>
     );
 }
+
+
+    
 
 
     
