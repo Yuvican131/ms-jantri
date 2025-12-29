@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatNumber } from "@/lib/utils";
-import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy, Wallet, Calendar as CalendarIcon, Percent, Forward } from 'lucide-react';
+import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy, Wallet, Calendar as CalendarIcon, Percent, Forward, TrendingUpIcon, TrendingDownIcon, Minus, Scale } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import type { Account } from "./accounts-manager";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -105,6 +105,44 @@ const GrandTotalSummaryCard = ({
     )
 }
 
+const RunningTotalSummaryCard = ({
+    previousDayNet,
+    todayNet,
+    runningTotal
+}: {
+    previousDayNet: number;
+    todayNet: number;
+    runningTotal: number;
+}) => {
+    const previousDayColor = previousDayNet >= 0 ? 'text-green-500' : 'text-red-500';
+    const todayColor = todayNet >= 0 ? 'text-green-500' : 'text-red-500';
+    const runningTotalColor = runningTotal >= 0 ? 'text-green-500' : 'text-red-500';
+    const RunningIcon = runningTotal >= 0 ? TrendingUpIcon : TrendingDownIcon;
+
+    return (
+        <Card className="p-3 bg-muted/50 border-border col-span-full">
+            <div className="grid grid-cols-3 items-center text-center">
+                <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground font-semibold">Previous Day</p>
+                    <p className={`text-lg font-bold ${previousDayColor}`}>{formatNumber(previousDayNet)}</p>
+                </div>
+                
+                <div className="flex justify-center items-center font-bold text-2xl text-muted-foreground">+</div>
+
+                <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground font-semibold">Today's Net</p>
+                    <p className={`text-lg font-bold ${todayColor}`}>{formatNumber(todayNet)}</p>
+                </div>
+            </div>
+            <Separator className="my-2 bg-border/30" />
+            <div className="flex flex-col items-center justify-center space-y-1">
+                <p className="text-sm text-foreground font-bold flex items-center gap-2"><Scale className="h-4 w-4"/>Running Net</p>
+                <p className={`text-3xl font-extrabold ${runningTotalColor}`}>{formatNumber(runningTotal)}</p>
+            </div>
+        </Card>
+    );
+};
+
 
 const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperComm, upperPair, setUpperPair, onApply, appliedUpperComm, appliedUpperPair, selectedDate, setSelectedDate }: {
     userId?: string;
@@ -201,7 +239,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                     upperPayable,
                     brokerProfit: clientPayable - upperPayable,
                 };
-            });
+            }).filter(row => row.clientPayable !== 0 || row.upperPayable !== 0);
         } else { // viewMode === 'year'
             const yearStart = startOfYear(selectedDate);
             const yearEnd = endOfYear(selectedDate);
@@ -218,7 +256,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                     upperPayable,
                     brokerProfit: clientPayable - upperPayable,
                 };
-            });
+            }).filter(row => row.clientPayable !== 0 || row.upperPayable !== 0);
         }
     
     }, [selectedDate, appliedUpperComm, appliedUpperPair, clients, savedSheetLog, declaredNumbers, selectedClientId, viewMode]);
@@ -237,14 +275,6 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
     }, [reportData]);
 
     const hasData = useMemo(() => reportData.some(row => row.clientPayable !== 0 || row.upperPayable !== 0), [reportData]);
-
-    if (!hasData) {
-        return (
-            <div className="text-center text-muted-foreground py-10">
-                No data available for the selected period.
-            </div>
-        );
-    }
 
     return (
         <div className="space-y-6">
@@ -294,57 +324,65 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                 </div>
             </div>
             
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">
-                        {viewMode === 'month' ? 'Monthly' : 'Yearly'} Summary
-                    </CardTitle>
-                    <Wallet className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {totalProfit >= 0 ? `+₹${formatNumber(totalProfit)}` : `-₹${formatNumber(Math.abs(totalProfit))}`}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                        Total profit for {format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy")}
-                    </p>
-                </CardContent>
-            </Card>
+            {hasData ? (
+                <>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle className="text-sm font-medium">
+                                {viewMode === 'month' ? 'Monthly' : 'Yearly'} Summary
+                            </CardTitle>
+                            <Wallet className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                {totalProfit >= 0 ? `+₹${formatNumber(totalProfit)}` : `-₹${formatNumber(Math.abs(totalProfit))}`}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Total profit for {format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy")}
+                            </p>
+                        </CardContent>
+                    </Card>
 
-            <div className="overflow-x-auto">
-                <Table>
-                    <TableHeader>
-                    <TableRow>
-                        <TableHead>{viewMode === 'month' ? 'Date' : 'Month'}</TableHead>
-                        <TableHead className="text-right">Client Payable</TableHead>
-                        <TableHead className="text-right">Upper Payable</TableHead>
-                        <TableHead className="text-right">Broker Profit/Loss</TableHead>
-                    </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                    {reportData.map((row, index) => (
-                        <TableRow key={index} className={row.brokerProfit === 0 && row.clientPayable === 0 ? "text-muted-foreground" : ""}>
-                        <TableCell className="font-medium">{row.label}</TableCell>
-                        <TableCell className="text-right">₹{formatNumber(row.clientPayable)}</TableCell>
-                        <TableCell className="text-right">₹{formatNumber(row.upperPayable)}</TableCell>
-                        <TableCell className={`text-right font-bold ${row.brokerProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {row.brokerProfit >= 0 ? `+₹${formatNumber(row.brokerProfit)}` : `-₹${formatNumber(Math.abs(row.brokerProfit))}`}
-                        </TableCell>
-                        </TableRow>
-                    ))}
-                    </TableBody>
-                    <TableFooter>
-                    <TableRow className="bg-muted/50 hover:bg-muted">
-                        <TableCell colSpan={1} className="font-bold text-lg text-right">Total</TableCell>
-                        <TableCell className="text-right font-bold text-lg">₹{formatNumber(grandTotalForPeriod.clientPayable)}</TableCell>
-                        <TableCell className="text-right font-bold text-lg">₹{formatNumber(grandTotalForPeriod.upperPayable)}</TableCell>
-                        <TableCell className={`text-right font-bold text-lg ${grandTotalForPeriod.brokerProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {grandTotalForPeriod.brokerProfit >= 0 ? `+₹${formatNumber(grandTotalForPeriod.brokerProfit)}` : `-₹${formatNumber(Math.abs(grandTotalForPeriod.brokerProfit))}`}
-                        </TableCell>
-                    </TableRow>
-                    </TableFooter>
-                </Table>
-            </div>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                            <TableRow>
+                                <TableHead>{viewMode === 'month' ? 'Date' : 'Month'}</TableHead>
+                                <TableHead className="text-right">Client Payable</TableHead>
+                                <TableHead className="text-right">Upper Payable</TableHead>
+                                <TableHead className="text-right">Broker Profit/Loss</TableHead>
+                            </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                            {reportData.map((row, index) => (
+                                <TableRow key={index} className={row.brokerProfit === 0 && row.clientPayable === 0 ? "text-muted-foreground" : ""}>
+                                <TableCell className="font-medium">{row.label}</TableCell>
+                                <TableCell className="text-right">₹{formatNumber(row.clientPayable)}</TableCell>
+                                <TableCell className="text-right">₹{formatNumber(row.upperPayable)}</TableCell>
+                                <TableCell className={`text-right font-bold ${row.brokerProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    {row.brokerProfit >= 0 ? `+₹${formatNumber(row.brokerProfit)}` : `-₹${formatNumber(Math.abs(row.brokerProfit))}`}
+                                </TableCell>
+                                </TableRow>
+                            ))}
+                            </TableBody>
+                            <TableFooter>
+                            <TableRow className="bg-muted/50 hover:bg-muted">
+                                <TableCell colSpan={1} className="font-bold text-lg text-right">Total</TableCell>
+                                <TableCell className="text-right font-bold text-lg">₹{formatNumber(grandTotalForPeriod.clientPayable)}</TableCell>
+                                <TableCell className="text-right font-bold text-lg">₹{formatNumber(grandTotalForPeriod.upperPayable)}</TableCell>
+                                <TableCell className={`text-right font-bold text-lg ${grandTotalForPeriod.brokerProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    {grandTotalForPeriod.brokerProfit >= 0 ? `+₹${formatNumber(grandTotalForPeriod.brokerProfit)}` : `-₹${formatNumber(Math.abs(grandTotalForPeriod.brokerProfit))}`}
+                                </TableCell>
+                            </TableRow>
+                            </TableFooter>
+                        </Table>
+                    </div>
+                </>
+            ) : (
+                <div className="text-center text-muted-foreground py-10">
+                    No data available for the selected period.
+                </div>
+            )}
         </div>
     );
 };
@@ -384,6 +422,38 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         localStorage.setItem('upperBrokerComm', upperComm);
         localStorage.setItem('upperBrokerPair', upperPair);
     };
+
+    const calculateDailyNet = (date: Date) => {
+        const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
+        const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
+        
+        let dailyRawTotal = 0;
+        let dailyPassingTotal = 0;
+
+        for (const drawName of draws) {
+            const logsForDrawOnDate = (savedSheetLog[drawName] || []).filter(log => isSameDay(new Date(log.date), date));
+
+            for (const log of logsForDrawOnDate) {
+                dailyRawTotal += log.gameTotal;
+                const dateStr = format(new Date(log.date), 'yyyy-MM-dd');
+                const declarationId = `${log.draw}-${dateStr}`;
+                const declaredNum = declaredNumbers[declarationId]?.number;
+
+                if (declaredNum && log.data[declaredNum]) {
+                    const passingAmount = parseFloat(log.data[declaredNum]) || 0;
+                    dailyPassingTotal += passingAmount;
+                }
+            }
+        }
+        
+        const brokerCommission = dailyRawTotal * upperCommPercent;
+        const finalGrandPassingTotal = dailyPassingTotal * upperPairRate;
+        return (dailyRawTotal - brokerCommission) - finalGrandPassingTotal;
+    };
+    
+    const previousDayNet = useMemo(() => calculateDailyNet(subDays(summaryDate, 1)), [savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair, summaryDate]);
+    const todayNet = useMemo(() => calculateDailyNet(summaryDate), [savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair, summaryDate]);
+    const runningTotal = previousDayNet + todayNet;
 
 
     const { 
@@ -473,8 +543,14 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 </Popover>
             </div>
             
-            <div className="my-4 flex justify-center">
-                <div className="h-12 w-64 bg-background border rounded-md"></div>
+             <div className="my-4 flex justify-center">
+                <div className="w-full max-w-md">
+                    <RunningTotalSummaryCard 
+                        previousDayNet={previousDayNet}
+                        todayNet={todayNet}
+                        runningTotal={runningTotal}
+                    />
+                </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
@@ -530,3 +606,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     
 
 
+
+
+    
