@@ -105,44 +105,6 @@ const GrandTotalSummaryCard = ({
     )
 }
 
-const RunningTotalSummaryCard = ({
-    previousDayProfit,
-    currentDayProfit,
-    runningTotal
-}: {
-    previousDayProfit: number;
-    currentDayProfit: number;
-    runningTotal: number;
-}) => {
-    const runningTotalColor = runningTotal >= 0 ? 'text-green-400' : 'text-red-500';
-    const prevDayColor = previousDayProfit >= 0 ? 'text-green-400' : 'text-red-500';
-    const currentDayColor = currentDayProfit >= 0 ? 'text-green-400' : 'text-red-500';
-
-    return (
-        <Card className="flex flex-col justify-center p-4 bg-amber-500/10 border-amber-500/50">
-            <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold text-base text-amber-600">Running Total</h4>
-                <Forward className="h-5 w-5 text-amber-600" />
-            </div>
-            <div className="space-y-3">
-                <div className="flex justify-between items-baseline">
-                    <span className="text-sm text-muted-foreground">Previous Day</span>
-                    <span className={`font-semibold text-lg ${prevDayColor}`}>{formatNumber(previousDayProfit)}</span>
-                </div>
-                <div className="flex justify-between items-baseline">
-                    <span className="text-sm text-muted-foreground">Today's Net</span>
-                    <span className={`font-semibold text-lg ${currentDayColor}`}>{formatNumber(currentDayProfit)}</span>
-                </div>
-                <Separator className="my-2 bg-amber-500/20" />
-                <div className="flex justify-between items-center">
-                    <span className="font-bold text-lg">Running Net</span>
-                    <p className={`text-3xl font-bold ${runningTotalColor}`}>{formatNumber(runningTotal)}</p>
-                </div>
-            </div>
-        </Card>
-    );
-};
-
 
 const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperComm, upperPair, setUpperPair, onApply, appliedUpperComm, appliedUpperPair, selectedDate, setSelectedDate }: {
     userId?: string;
@@ -204,7 +166,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
             const relevantLogs = allLogs.filter(log => {
                  const logDate = new Date(log.date);
                  const clientMatches = selectedClientId === 'all' || log.clientId === selectedClientId;
-                 return clientMatches && isSameDay(logDate, selectedDate);
+                 return clientMatches && logDate >= periodStart && logDate <= periodEnd;
             });
 
             relevantLogs.forEach(log => {
@@ -423,31 +385,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         localStorage.setItem('upperBrokerPair', upperPair);
     };
 
-    const calculateDailyNetProfit = useMemo(() => (date: Date) => {
-        const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
-        const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
-        let grandRawTotal = 0;
-        let grandPassingTotal = 0;
-
-        for (const drawName of draws) {
-            const logsForDrawOnDate = (savedSheetLog[drawName] || []).filter(log => isSameDay(new Date(log.date), date));
-            for (const log of logsForDrawOnDate) {
-                grandRawTotal += log.gameTotal;
-                const dateStr = format(new Date(log.date), 'yyyy-MM-dd');
-                const declarationId = `${log.draw}-${dateStr}`;
-                const declaredNum = declaredNumbers[declarationId]?.number;
-
-                if (declaredNum && log.data[declaredNum]) {
-                    grandPassingTotal += parseFloat(log.data[declaredNum]) || 0;
-                }
-            }
-        }
-
-        const brokerCommission = grandRawTotal * upperCommPercent;
-        const finalGrandPassingTotal = grandPassingTotal * upperPairRate;
-        return (grandRawTotal - brokerCommission) - finalGrandPassingTotal;
-    }, [savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair]);
-
 
     const { 
         brokerRawDrawTotals, 
@@ -499,13 +436,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         };
     }, [savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair, summaryDate]);
 
-    const previousDayProfit = useMemo(() => {
-        const previousDate = subDays(summaryDate, 1);
-        return calculateDailyNetProfit(previousDate);
-    }, [summaryDate, calculateDailyNetProfit]);
-    
-    const runningTotal = previousDayProfit + finalNetTotalForBroker;
-
 
   return (
     <Card className="h-full flex flex-col">
@@ -542,16 +472,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                     </PopoverContent>
                 </Popover>
             </div>
-            <div className="mb-6 flex justify-center">
-                <div className="w-full md:w-1/3">
-                    <RunningTotalSummaryCard
-                        previousDayProfit={previousDayProfit}
-                        currentDayProfit={finalNetTotalForBroker}
-                        runningTotal={runningTotal}
-                    />
-                </div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
                 {draws.map(drawName => (
                     <BrokerDrawSummaryCard 
                         key={drawName}
@@ -560,8 +482,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                         passingTotal={brokerPassingDrawTotals[drawName] || 0}
                     />
                 ))}
-            </div>
-            <div className="mt-3">
                  <GrandTotalSummaryCard
                   title="Final Summary"
                   finalValue={finalNetTotalForBroker}
@@ -604,3 +524,4 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     
 
     
+
