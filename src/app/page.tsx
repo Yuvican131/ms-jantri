@@ -127,14 +127,14 @@ export default function Home() {
 
     const drawOrder = ["DD", "ML", "FB", "GB", "GL", "DS"];
     allSheets.sort((a, b) => {
-        const drawIndexA = drawOrder.indexOf(a.draw);
-        const drawIndexB = drawOrder.indexOf(b.draw);
-
-        if (drawIndexA !== drawIndexB) {
-            return drawIndexA - drawIndexB;
+        const dateComparison = b.date.getTime() - a.date.getTime();
+        if (dateComparison !== 0) {
+            return dateComparison;
         }
 
-        return b.date.getTime() - a.date.getTime();
+        const drawIndexA = drawOrder.indexOf(a.draw);
+        const drawIndexB = drawOrder.indexOf(b.draw);
+        return drawIndexA - drawIndexB;
     });
     
     const finalUniqueSheets: ActiveSheet[] = [];
