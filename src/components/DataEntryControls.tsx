@@ -120,12 +120,63 @@ export function DataEntryControls({
         const updates: { [key: string]: number } = {};
         let totalEntryAmount = 0;
         let errorOccurred = false;
+        const textToProcess = multiText;
+
+        // New HARUP format: 666(100) or 111_222(100)
+        const harupShortcutRegex = /((\d)\2\2)(_(\d)\4\4)?\s*\((\d+)\)/g;
+        let harupMatch;
+        let processedByHarupFormat = false;
+
+        while ((harupMatch = harupShortcutRegex.exec(textToProcess)) !== null) {
+            processedByHarupFormat = true;
+            const [, harupAStr, harupADigit, , harupBStr, harupBDigit, amountStr] = harupMatch;
+            const amount = parseInt(amountStr, 10);
+
+            if (isNaN(amount)) continue;
+            
+            const harupADigits = harupADigit ? [harupADigit] : [];
+            const harupBDigits = harupBDigit ? [harupBDigit] : [];
+
+            const perDigitAmountA = harupADigits.length > 0 ? amount / 10 : 0;
+            const perDigitAmountB = harupBDigits.length > 0 ? amount / 10 : 0;
+
+            const entryTotal = (harupADigits.length * amount) + (harupBDigits.length * amount);
+            if (!checkBalance(entryTotal)) {
+                errorOccurred = true;
+                break;
+            }
+            totalEntryAmount += entryTotal;
+
+            harupADigits.forEach(digitA => {
+                for (let i = 0; i < 10; i++) {
+                    const key = parseInt(`${digitA}${i}`).toString().padStart(2, '0');
+                    updates[key] = (updates[key] || 0) + perDigitAmountA;
+                }
+            });
+    
+            harupBDigits.forEach(digitB => {
+                for (let i = 0; i < 10; i++) {
+                    const key = parseInt(`${i}${digitB}`).toString().padStart(2, '0');
+                    updates[key] = (updates[key] || 0) + perDigitAmountB;
+                }
+            });
+        }
         
+        if (errorOccurred) return;
+        
+        if (processedByHarupFormat) {
+            if (Object.keys(updates).length > 0) {
+                onDataUpdate(updates, multiText);
+                setMultiText("");
+                focusMultiText();
+            }
+            return;
+        }
+
+        // Compact format: 202_232(10)
         const compactFormatRegex = /(\d+(_\d+)*)\s*\((\d+)\)/g;
         let match;
         let processedByNewFormat = false;
-
-        const textToProcess = multiText;
 
         while ((match = compactFormatRegex.exec(textToProcess)) !== null) {
             processedByNewFormat = true;
@@ -138,15 +189,15 @@ export function DataEntryControls({
             const cells = new Set<string>();
 
             numbers.forEach(numStr => {
-                if (numStr.length === 3) {
+                 if (numStr.length === 3) {
                     const firstDigit = numStr[0];
-                    const thirdDigit = numStr[2];
-                    if (firstDigit === thirdDigit) { // e.g. 202, 353
-                        const firstTwo = numStr.substring(0, 2); // "20"
-                        const reversedFirstTwo = `${firstTwo[1]}${firstTwo[0]}`; // "02"
+                    const lastDigit = numStr[2];
+                     if (firstDigit === lastDigit) { // e.g. 202, 353 -> 20, 02
+                        const firstTwo = numStr.substring(0, 2); 
+                        const reversedFirstTwo = `${firstTwo[1]}${firstTwo[0]}`;
                         cells.add(firstTwo);
                         cells.add(reversedFirstTwo);
-                    } else { // e.g. 242 -> 24, 42
+                    } else { // e.g. 247 -> 24, 47
                         const n1 = numStr.substring(0,2);
                         const n2 = numStr.substring(1,3);
                         cells.add(n1);
@@ -176,12 +227,6 @@ export function DataEntryControls({
                 onDataUpdate(updates, multiText);
                 setMultiText("");
                 focusMultiText();
-            } else {
-                 toast({
-                    title: "No valid data found",
-                    description: "Could not parse the input. Please check the format.",
-                    variant: "destructive"
-                });
             }
             return; 
         }
@@ -235,25 +280,27 @@ export function DataEntryControls({
             }
     
             if (!processed) {
-                let sanitizedLine;
-                if (currentLine.includes('=')) {
-                    const parts = currentLine.split('=');
-                    let numbersPart = parts[0].trim().replace(/[\s.]+/g, ',');
-                    if (!numbersPart.includes(',')) {
+                let sanitizedLine = currentLine;
+                if (!currentLine.includes('(') && !currentLine.includes('*')) {
+                  if (currentLine.includes('=')) {
+                      const parts = currentLine.split('=');
+                      let numbersPart = parts[0].trim();
+                      if (!numbersPart.includes(' ') && !numbersPart.includes(',')) {
                         numbersPart = numbersPart.replace(/(\d{2})(?=\d)/g, '$1,');
-                    }
-                    sanitizedLine = `${numbersPart}=${parts[1]}`;
-                } else {
-                     let numbersPart = currentLine.replace(/[\s.]+/g, ',');
-                     if (!numbersPart.includes(',')) {
+                      }
+                      sanitizedLine = `${numbersPart.replace(/\s+/g, ',')}=${parts[1]}`;
+                  } else {
+                      let numbersPart = currentLine.trim();
+                      if (!numbersPart.includes(' ') && !numbersPart.includes(',')) {
                         numbersPart = numbersPart.replace(/(\d{2})(?=\d)/g, '$1,');
-                     }
-                    sanitizedLine = numbersPart;
+                      }
+                      sanitizedLine = numbersPart.replace(/\s+/g, ',');
+                  }
                 }
     
                 const linePatterns = [
-                    /((\d{2,},?)+)=?\(?(\d+)\)?/g,
-                    /((\d+,)*\d+)\*(\d+)/g,
+                    /((\d{2,},?)+)=?\(?(\d+)\)?/g, // 12,21=100 or 12,21(100)
+                    /((\d+,)*\d+)\*(\d+)/g, // 12,21*100
                 ];
     
                 let lineHandled = false;
@@ -612,3 +659,6 @@ export function DataEntryControls({
       </div>
     );
 }
+
+
+    
