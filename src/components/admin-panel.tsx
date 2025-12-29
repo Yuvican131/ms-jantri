@@ -334,6 +334,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     const [appliedUpperComm, setAppliedUpperComm] = useState(defaultUpperComm.toString());
     const [appliedUpperPair, setAppliedUpperPair] = useState(defaultUpperPair.toString());
     const { declaredNumbers } = useDeclaredNumbers(userId);
+    const [summaryDate, setSummaryDate] = useState<Date>(new Date());
 
     useEffect(() => {
         const savedComm = localStorage.getItem('upperBrokerComm');
@@ -372,7 +373,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         for (const drawName of draws) {
             rawTotalsByDraw[drawName] = 0;
             passingTotalsByDraw[drawName] = 0;
-            const logsForDraw = savedSheetLog[drawName] || [];
+            const logsForDraw = (savedSheetLog[drawName] || []).filter(log => isSameDay(new Date(log.date), summaryDate));
+
 
             for (const log of logsForDraw) {
                 rawTotalsByDraw[drawName] += log.gameTotal;
@@ -402,7 +404,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             brokerCommission,
             finalNetTotalForBroker: brokerProfit
         };
-    }, [savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair]);
+    }, [savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair, summaryDate]);
 
 
   return (
@@ -413,9 +415,33 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
       </CardHeader>
       <CardContent className="flex-1 space-y-8 overflow-y-auto">
         <div>
-            <h3 className="text-lg font-semibold mb-3 text-primary flex items-center gap-2">
-                <Landmark className="h-5 w-5" /> All Draws Summary
-            </h3>
+            <div className="flex items-center gap-4 mb-3">
+                <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
+                    <Landmark className="h-5 w-5" /> All Draws Summary
+                </h3>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                        variant={"outline"}
+                        className={cn(
+                            "w-[280px] justify-start text-left font-normal",
+                            !summaryDate && "text-muted-foreground"
+                        )}
+                        >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {summaryDate ? format(summaryDate, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                        <Calendar
+                        mode="single"
+                        selected={summaryDate}
+                        onSelect={(date) => date && setSummaryDate(date)}
+                        initialFocus
+                        />
+                    </PopoverContent>
+                </Popover>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
                 {draws.map(drawName => (
                     <BrokerDrawSummaryCard 
@@ -458,4 +484,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
   );
 }
     
+    
+
     
