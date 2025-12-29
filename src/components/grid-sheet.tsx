@@ -243,7 +243,7 @@ const MasterSheetViewer = ({
   
  return (
     <>
-    <div className="flex h-full flex-col gap-4 bg-background p-1 md:p-4 items-stretch overflow-y-auto">
+    <div className="flex h-full flex-col gap-4 bg-background p-1 md:p-4 items-stretch overflow-y-auto pb-4">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 w-full flex-grow">
         <div className="flex flex-col min-w-0">
             <div className="grid-sheet-layout h-full w-full">
@@ -716,7 +716,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       </Card>
       
       <Dialog open={isMasterSheetDialogOpen} onOpenChange={setIsMasterSheetDialogOpen}>
-        <DialogContent className="h-full w-full max-w-none p-0 border-0">
+        <DialogContent className="w-full h-full p-0 border-0 sm:max-w-none">
           <DialogHeader className="flex-row items-center p-4 border-b">
             <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="mr-2">
                 <ArrowLeft className="h-4 w-4" />
