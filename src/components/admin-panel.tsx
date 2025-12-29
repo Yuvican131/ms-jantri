@@ -204,7 +204,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
             const relevantLogs = allLogs.filter(log => {
                  const logDate = new Date(log.date);
                  const clientMatches = selectedClientId === 'all' || log.clientId === selectedClientId;
-                 return clientMatches && logDate >= periodStart && logDate <= periodEnd;
+                 return clientMatches && isSameDay(logDate, selectedDate);
             });
 
             relevantLogs.forEach(log => {
@@ -515,35 +515,35 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
       </CardHeader>
       <CardContent className="flex-1 space-y-8 overflow-y-auto">
         <div>
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 mb-3 items-start">
-                <div className="flex items-center gap-4">
-                    <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
-                        <Landmark className="h-5 w-5" /> All Draws Summary
-                    </h3>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                            variant={"outline"}
-                            className={cn(
-                                "w-[280px] justify-start text-left font-normal",
-                                !summaryDate && "text-muted-foreground"
-                            )}
-                            >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {summaryDate ? format(summaryDate, "PPP") : <span>Pick a date</span>}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                            <Calendar
-                            mode="single"
-                            selected={summaryDate}
-                            onSelect={(date) => date && setSummaryDate(date)}
-                            initialFocus
-                            />
-                        </PopoverContent>
-                    </Popover>
-                </div>
-                <div className="w-full md:w-[320px]">
+            <div className="flex items-center gap-4 mb-6">
+                <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
+                    <Landmark className="h-5 w-5" /> All Draws Summary
+                </h3>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                        variant={"outline"}
+                        className={cn(
+                            "w-[280px] justify-start text-left font-normal",
+                            !summaryDate && "text-muted-foreground"
+                        )}
+                        >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {summaryDate ? format(summaryDate, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                        <Calendar
+                        mode="single"
+                        selected={summaryDate}
+                        onSelect={(date) => date && setSummaryDate(date)}
+                        initialFocus
+                        />
+                    </PopoverContent>
+                </Popover>
+            </div>
+            <div className="mb-6 flex justify-center">
+                <div className="w-full md:w-1/3">
                     <RunningTotalSummaryCard
                         previousDayProfit={previousDayProfit}
                         currentDayProfit={finalNetTotalForBroker}
