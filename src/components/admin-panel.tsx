@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatNumber } from "@/lib/utils";
-import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy, Wallet, Calendar as CalendarIcon, Percent } from 'lucide-react';
+import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy, Wallet, Calendar as CalendarIcon, Percent, Forward } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import type { Account } from "./accounts-manager";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getYear, getMonth, startOfYear, endOfYear, eachMonthOfInterval, startOfDay, endOfDay } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getYear, getMonth, startOfYear, endOfYear, eachMonthOfInterval, startOfDay, endOfDay, subDays } from "date-fns";
 import type { Client } from '@/hooks/useClients';
 import type { SavedSheetInfo } from '@/hooks/useSheetLog';
 import { useDeclaredNumbers, type DeclaredNumber } from '@/hooks/useDeclaredNumbers';
@@ -77,7 +77,7 @@ const GrandTotalSummaryCard = ({
     const valueColor = finalValue >= 0 ? 'text-green-400' : 'text-red-500';
     const finalPassingTotal = grandPassingTotal * upperPairRate;
     return (
-        <Card className="flex flex-col justify-center p-3 bg-primary/10 border-primary/50 col-span-2 md:col-span-1 lg:col-span-2 xl:col-span-1">
+        <Card className="flex flex-col justify-center p-3 bg-primary/10 border-primary/50 col-span-2 md:col-span-2 lg:col-span-2 xl:col-span-2">
              <div className="flex items-center justify-between mb-2">
                 <h4 className="font-semibold text-sm text-primary">{title}</h4>
                 <Landmark className="h-4 w-4 text-primary" />
@@ -104,6 +104,45 @@ const GrandTotalSummaryCard = ({
         </Card>
     )
 }
+
+const RunningTotalSummaryCard = ({
+    previousDayProfit,
+    currentDayProfit,
+    runningTotal
+}: {
+    previousDayProfit: number;
+    currentDayProfit: number;
+    runningTotal: number;
+}) => {
+    const runningTotalColor = runningTotal >= 0 ? 'text-green-400' : 'text-red-500';
+    const prevDayColor = previousDayProfit >= 0 ? 'text-green-400' : 'text-red-500';
+    const currentDayColor = currentDayProfit >= 0 ? 'text-green-400' : 'text-red-500';
+
+    return (
+        <Card className="flex flex-col justify-center p-3 bg-amber-500/10 border-amber-500/50 col-span-2 md:col-span-2 lg:col-span-2 xl:col-span-2">
+            <div className="flex items-center justify-between mb-2">
+                <h4 className="font-semibold text-sm text-amber-600">Running Total</h4>
+                <Forward className="h-4 w-4 text-amber-600" />
+            </div>
+            <div className="space-y-2 text-right">
+                <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Previous Day</span>
+                    <span className={`font-semibold ${prevDayColor}`}>{formatNumber(previousDayProfit)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Today's Net</span>
+                    <span className={`font-semibold ${currentDayColor}`}>{formatNumber(currentDayProfit)}</span>
+                </div>
+                <Separator className="my-1 bg-border/50" />
+                <div className="flex justify-between items-center">
+                    <span className="font-bold text-base">Running Net</span>
+                    <p className={`text-2xl font-bold ${runningTotalColor}`}>{formatNumber(runningTotal)}</p>
+                </div>
+            </div>
+        </Card>
+    );
+};
+
 
 const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperComm, upperPair, setUpperPair, onApply, appliedUpperComm, appliedUpperPair, selectedDate, setSelectedDate }: {
     userId?: string;
@@ -384,6 +423,32 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         localStorage.setItem('upperBrokerPair', upperPair);
     };
 
+    const calculateDailyNetProfit = useMemo(() => (date: Date) => {
+        const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
+        const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
+        let grandRawTotal = 0;
+        let grandPassingTotal = 0;
+
+        for (const drawName of draws) {
+            const logsForDrawOnDate = (savedSheetLog[drawName] || []).filter(log => isSameDay(new Date(log.date), date));
+            for (const log of logsForDrawOnDate) {
+                grandRawTotal += log.gameTotal;
+                const dateStr = format(new Date(log.date), 'yyyy-MM-dd');
+                const declarationId = `${log.draw}-${dateStr}`;
+                const declaredNum = declaredNumbers[declarationId]?.number;
+
+                if (declaredNum && log.data[declaredNum]) {
+                    grandPassingTotal += parseFloat(log.data[declaredNum]) || 0;
+                }
+            }
+        }
+
+        const brokerCommission = grandRawTotal * upperCommPercent;
+        const finalGrandPassingTotal = grandPassingTotal * upperPairRate;
+        return (grandRawTotal - brokerCommission) - finalGrandPassingTotal;
+    }, [savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair]);
+
+
     const { 
         brokerRawDrawTotals, 
         brokerPassingDrawTotals, 
@@ -434,6 +499,13 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         };
     }, [savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair, summaryDate]);
 
+    const previousDayProfit = useMemo(() => {
+        const previousDate = subDays(summaryDate, 1);
+        return calculateDailyNetProfit(previousDate);
+    }, [summaryDate, calculateDailyNetProfit]);
+    
+    const runningTotal = previousDayProfit + finalNetTotalForBroker;
+
 
   return (
     <Card className="h-full flex flex-col">
@@ -470,7 +542,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                     </PopoverContent>
                 </Popover>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
                 {draws.map(drawName => (
                     <BrokerDrawSummaryCard 
                         key={drawName}
@@ -487,6 +559,11 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                   brokerCommission={brokerCommission}
                   upperPairRate={parseFloat(appliedUpperPair) || defaultUpperPair}
                 />
+                 <RunningTotalSummaryCard
+                    previousDayProfit={previousDayProfit}
+                    currentDayProfit={finalNetTotalForBroker}
+                    runningTotal={runningTotal}
+                 />
             </div>
         </div>
         <Separator />
@@ -519,3 +596,4 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     
 
     
+
