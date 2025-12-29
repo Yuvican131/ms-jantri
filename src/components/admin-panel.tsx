@@ -472,6 +472,10 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                     </PopoverContent>
                 </Popover>
             </div>
+            
+            <div className="my-4 flex justify-center">
+                <div className="h-12 w-64 bg-background border rounded-md"></div>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
                 {draws.map(drawName => (
@@ -524,4 +528,5 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     
 
     
+
 
