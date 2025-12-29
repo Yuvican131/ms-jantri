@@ -716,7 +716,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       </Card>
       
       <Dialog open={isMasterSheetDialogOpen} onOpenChange={setIsMasterSheetDialogOpen}>
-        <DialogContent className="max-w-full w-full h-full max-h-screen sm:max-w-full p-0">
+        <DialogContent className="max-w-none w-full h-full p-0">
           <DialogHeader className="flex-row items-center p-4 border-b">
             <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="mr-2">
                 <ArrowLeft className="h-4 w-4" />
