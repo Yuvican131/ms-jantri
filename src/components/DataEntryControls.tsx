@@ -125,7 +125,7 @@ export function DataEntryControls({
         let match;
         let processedByNewFormat = false;
 
-        const textToProcess = multiText.replace(/\s/g, "");
+        const textToProcess = multiText;
 
         while ((match = compactFormatRegex.exec(textToProcess)) !== null) {
             processedByNewFormat = true;
@@ -612,5 +612,3 @@ export function DataEntryControls({
       </div>
     );
 }
-
-    
