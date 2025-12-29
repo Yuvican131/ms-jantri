@@ -512,7 +512,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         <CardTitle>Admin Panel</CardTitle>
         <CardDescription>High-level overview of your brokerage operations.</CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 space-y-8 overflow-y-auto">
+      <CardContent className="flex-1 space-y-6 overflow-y-auto">
         <div>
             <div className="flex items-center gap-4 mb-4">
                 <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
@@ -542,7 +542,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 </Popover>
             </div>
             
-             <div className="flex justify-center mb-4">
+             <div className="flex justify-center mb-2">
                 <div className="w-full max-w-sm">
                     <RunningTotalSummaryCard 
                         previousDayNet={previousDayNet}
@@ -615,4 +615,5 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     
 
     
+
 
