@@ -121,12 +121,11 @@ export function DataEntryControls({
         let totalEntryAmount = 0;
         let errorOccurred = false;
         
-        // New parsing logic for the compact format
-        const compactFormatRegex = /(\d+(_\d+)*)\((\d+)\)/g;
+        const compactFormatRegex = /(\d+(_\d+)*)\s*\((\d+)\)/g;
         let match;
         let processedByNewFormat = false;
 
-        const textToProcess = multiText.replace(/\s+/g, ""); // Remove all whitespace
+        const textToProcess = multiText.replace(/\s/g, "");
 
         while ((match = compactFormatRegex.exec(textToProcess)) !== null) {
             processedByNewFormat = true;
@@ -140,24 +139,18 @@ export function DataEntryControls({
 
             numbers.forEach(numStr => {
                 if (numStr.length === 3) {
-                    const firstTwo = numStr.substring(0, 2);
-                    const lastTwo = numStr.substring(1, 3);
-                    if (firstTwo === `${lastTwo[1]}${lastTwo[0]}`) {
+                    const firstDigit = numStr[0];
+                    const thirdDigit = numStr[2];
+                    if (firstDigit === thirdDigit) { // e.g. 202, 353
+                        const firstTwo = numStr.substring(0, 2); // "20"
+                        const reversedFirstTwo = `${firstTwo[1]}${firstTwo[0]}`; // "02"
                         cells.add(firstTwo);
-                        cells.add(lastTwo);
-                    } else { // It's a 2-digit number like "242" -> 24, 42
+                        cells.add(reversedFirstTwo);
+                    } else { // e.g. 242 -> 24, 42
                         const n1 = numStr.substring(0,2);
-                        const n2 = `${numStr[1]}${numStr[2]}`;
-                        if (parseInt(numStr, 10) % 10 === parseInt(numStr, 10)/100) {
-                             cells.add(n1);
-                             cells.add(n2);
-                        } else {
-                            const d1 = numStr[0];
-                            const d2 = numStr[1];
-                            const d3 = numStr[2];
-                            cells.add(`${d1}${d2}`);
-                            cells.add(`${d2}${d3}`);
-                        }
+                        const n2 = numStr.substring(1,3);
+                        cells.add(n1);
+                        cells.add(n2);
                     }
                 } else if (numStr.length === 2) {
                     cells.add(numStr);
@@ -178,7 +171,6 @@ export function DataEntryControls({
         
         if (errorOccurred) return;
         
-        // If the new format was detected and processed, apply the updates.
         if (processedByNewFormat) {
              if (Object.keys(updates).length > 0) {
                 onDataUpdate(updates, multiText);
@@ -449,39 +441,15 @@ export function DataEntryControls({
                     handleHarupApply();
                     break;
                 case 'multiText':
-                    if (multiText.trim().length > 0) {
-                        if (multiText.includes('=')) {
-                            handleMultiTextApply();
-                        } else {
-                            setMultiText(prev => prev.trim() + '=');
-                        }
+                    if (e.shiftKey) {
+                        return;
                     }
+                    handleMultiTextApply();
                     break;
             }
         }
     };
-
-    const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        if (isDataEntryDisabled) {
-            showClientSelectionToast();
-            return;
-        }
     
-        const value = e.target.value;
-        const parts = value.split('=');
-        let numbersPart = parts[0];
-        const amountPart = parts.length > 1 ? `=${parts.slice(1).join('=')}` : '';
-    
-        // Clean the numbers part by removing non-digits, then chunk into pairs with commas.
-        const cleanNumbers = numbersPart.replace(/[^0-9]/g, '');
-        const formattedNumbers = cleanNumbers.replace(/(\d{2})(?=\d)/g, '$1,');
-        
-        // Reconstruct the string and set it.
-        const newMultiText = formattedNumbers + amountPart;
-        setMultiText(newMultiText);
-    };
-    
-
     const handleGenerateSheet = () => {
         toast({ title: "Generate Sheet", description: "This feature is available in the master sheet view for now."})
     };
@@ -552,7 +520,9 @@ export function DataEntryControls({
                         value={laddiNum1} onChange={(e) => {
                             const val = e.target.value.replace(/[^0-9]/g, '');
                             setLaddiNum1(val);
-                            setLaddiNum2(val);
+                            if(!runningLaddi) {
+                              setLaddiNum2(val);
+                            }
                         }}
                         onKeyDown={(e) => handleKeyDown(e, 'laddiNum1')} 
                         disabled={isDataEntryDisabled}
