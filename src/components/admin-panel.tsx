@@ -49,7 +49,7 @@ const BrokerDrawSummaryCard = ({
                     <h4 className="font-semibold text-sm text-foreground">{title}</h4>
                     <HandCoins className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <p className="text-xl font-bold text-right text-foreground">{formatNumber(rawTotal)}</p>
+                <p className="text-lg font-bold text-right text-foreground">{formatNumber(rawTotal)}</p>
             </div>
             <div className="p-1.5 bg-muted/50 border-t flex items-center justify-between">
                 <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1"><TrendingDown className="h-3 w-3" /> Passing</span>
@@ -542,7 +542,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 </Popover>
             </div>
             
-             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
+             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
                 {draws.map(drawName => (
                     <BrokerDrawSummaryCard 
                         key={drawName}
@@ -551,7 +551,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                         passingTotal={brokerPassingDrawTotals[drawName] || 0}
                     />
                 ))}
-                 <div className="col-span-2 flex flex-col gap-3">
+                 <div className="flex flex-col gap-3">
                     <RunningTotalSummaryCard 
                         previousDayNet={previousDayNet}
                         todayNet={todayNet}
@@ -606,5 +606,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
 
 
+
+    
 
     
