@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, X, Save, RotateCcw, Undo2, Eye, FileSpreadsheet, ArrowLeft, Grid, Edit, ShieldCheck } from "lucide-react"
+import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, X, Save, RotateCcw, Undo2, Eye, FileSpreadsheet, ArrowLeft, Grid, Edit } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -79,15 +79,6 @@ export type GridSheetProps = {
   draws: string[];
 }
 
-type ForwardingData = {
-  number: string;
-  totalAmount: number;
-  amountToKeep: number;
-  amountToForward: number;
-  forwardedBet: number;
-  profitLoss: number;
-};
-
 const MasterSheetViewer = ({
   allSavedLogs,
   draw,
@@ -108,12 +99,6 @@ const MasterSheetViewer = ({
   const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
   const [currentLogs, setCurrentLogs] = useState<SavedSheetInfo[]>([]);
-
-  const [upperBrokerComm, setUpperBrokerComm] = useState("20");
-  const [forwardingAmount, setForwardingAmount] = useState("");
-  const [isForwardingSheetOpen, setIsForwardingSheetOpen] = useState(false);
-  const [forwardingSheetData, setForwardingSheetData] = useState<ForwardingData[]>([]);
-  const [forwardingTotals, setForwardingTotals] = useState({ totalKept: 0, totalForwarded: 0, totalProfitLoss: 0, totalForwardedBet: 0 });
 
   React.useEffect(() => {
     const logsForDate = (allSavedLogs[draw] || []).filter(log => isSameDay(new Date(log.date), date));
@@ -253,71 +238,6 @@ const MasterSheetViewer = ({
     });
   };
 
-  const handleApplyForwarding = () => {
-    const commPercent = parseFloat(upperBrokerComm) / 100;
-    const forwardAmount = parseFloat(forwardingAmount);
-
-    if (isNaN(commPercent) || commPercent < 0) {
-      toast({ title: "Invalid Commission", description: "Please enter a valid commission percentage.", variant: "destructive" });
-      return;
-    }
-    if (isNaN(forwardAmount) || forwardAmount < 0) {
-      toast({ title: "Invalid Amount", description: "Please enter a valid forwarding amount.", variant: "destructive" });
-      return;
-    }
-
-    let totalKept = 0;
-    let totalForwarded = 0;
-    let totalForwardedBet = 0;
-
-    const newForwardingData = Object.entries(masterSheetData)
-      .map(([number, amountStr]) => {
-        const totalAmount = parseFloat(amountStr) || 0;
-        if (totalAmount === 0) return null;
-
-        let amountToKeep = 0;
-        let amountToForward = 0;
-
-        if (totalAmount > forwardAmount) {
-          amountToKeep = forwardAmount;
-          amountToForward = totalAmount - forwardAmount;
-        } else {
-          amountToKeep = totalAmount;
-          amountToForward = 0;
-        }
-        
-        const forwardedBet = amountToForward - (amountToForward * commPercent);
-        
-        totalKept += amountToKeep;
-        totalForwarded += amountToForward;
-        totalForwardedBet += forwardedBet;
-
-        return {
-          number,
-          totalAmount,
-          amountToKeep,
-          amountToForward,
-          forwardedBet,
-          profitLoss: amountToKeep, // Simplified for now
-        };
-      })
-      .filter(Boolean) as ForwardingData[];
-
-      // Sort by number
-      newForwardingData.sort((a,b) => parseInt(a.number) - parseInt(b.number));
-
-      setForwardingTotals({
-        totalKept,
-        totalForwarded,
-        totalForwardedBet,
-        totalProfitLoss: totalKept // This will need a more complex calculation later
-      });
-      
-    setForwardingSheetData(newForwardingData);
-    setIsForwardingSheetOpen(true);
-  };
-
-
   const masterSheetRowTotals = Array.from({ length: GRID_ROWS }, (_, rowIndex) => calculateRowTotal(rowIndex, masterSheetData));
   const masterSheetColumnTotals = Array.from({ length: GRID_COLS }, (_, colIndex) => calculateColumnTotal(colIndex, masterSheetData));
   
@@ -389,23 +309,6 @@ const MasterSheetViewer = ({
               </Button>
           </div>
 
-           <div className="border rounded-lg p-3 flex flex-col gap-3 bg-card">
-              <h3 className="font-semibold text-sm text-card-foreground flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" /> Broker Forwarding</h3>
-              <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                      <Label htmlFor="upper-broker-comm" className="text-sm text-card-foreground w-32">Upper Broker Comm %</Label>
-                      <Input id="upper-broker-comm" placeholder="e.g. 20" className="text-sm h-8 text-center flex-grow" value={upperBrokerComm} onChange={(e) => setUpperBrokerComm(e.target.value)} />
-                  </div>
-                  <div className="flex items-center gap-2">
-                      <Label htmlFor="forwarding-amount" className="text-sm text-card-foreground w-32">Forwarding Amount</Label>
-                      <Input id="forwarding-amount" placeholder="e.g. 100" className="text-sm h-8 text-center flex-grow" value={forwardingAmount} onChange={(e) => setForwardingAmount(e.target.value)} />
-                  </div>
-              </div>
-               <Button onClick={handleApplyForwarding} size="sm">
-                Apply & View Forwarding
-              </Button>
-          </div>
-
           <Card className="flex flex-col flex-grow bg-card min-h-0">
               <CardHeader className="p-3">
                   <CardTitle className="text-sm">Client Entries for {format(date, 'PPP')}</CardTitle>
@@ -471,51 +374,6 @@ const MasterSheetViewer = ({
               Copy to Clipboard
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={isForwardingSheetOpen} onOpenChange={setIsForwardingSheetOpen}>
-        <DialogContent className="max-w-4xl">
-            <DialogHeader>
-                <DialogTitle>Broker Forwarding Sheet</DialogTitle>
-                <DialogDescription>
-                    This sheet shows your position after forwarding amounts over ₹{forwardingAmount} to your upper broker.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="max-h-[60vh] overflow-y-auto my-4">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Num</TableHead>
-                            <TableHead className="text-right">Total</TableHead>
-                            <TableHead className="text-right">Keep</TableHead>
-                            <TableHead className="text-right">Fwd</TableHead>
-                            <TableHead className="text-right">Fwd Bet</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {forwardingSheetData.map(row => (
-                            <TableRow key={row.number}>
-                                <TableCell className="font-bold text-primary">{row.number}</TableCell>
-                                <TableCell className="text-right">{formatNumber(row.totalAmount)}</TableCell>
-                                <TableCell className="text-right text-green-500">{formatNumber(row.amountToKeep)}</TableCell>
-                                <TableCell className="text-right text-red-500">{formatNumber(row.amountToForward)}</TableCell>
-                                <TableCell className="text-right">{formatNumber(row.forwardedBet)}</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                     <TableFooter>
-                        <TableRow>
-                            <TableCell colSpan={2} className="font-bold text-right">Totals</TableCell>
-                            <TableCell className="font-bold text-right text-green-500">{formatNumber(forwardingTotals.totalKept)}</TableCell>
-                            <TableCell className="font-bold text-right text-red-500">{formatNumber(forwardingTotals.totalForwarded)}</TableCell>
-                            <TableCell className="font-bold text-right">{formatNumber(forwardingTotals.totalForwardedBet)}</TableCell>
-                        </TableRow>
-                    </TableFooter>
-                </Table>
-            </div>
-            <DialogFooter>
-                <Button variant="secondary" onClick={() => setIsForwardingSheetOpen(false)}>Close</Button>
-            </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
