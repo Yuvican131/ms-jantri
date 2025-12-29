@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
@@ -106,22 +105,24 @@ export default function Home() {
     const uniqueSheetKeys = new Set<string>();
     const sheetsFromLogs: ActiveSheet[] = [];
 
-    const allSheets = [...activeSheets];
-
+    // Add sheets from saved logs first
     Object.values(savedSheetLog).flat().forEach(log => {
-        const key = `${log.draw}-${log.date}`;
+      const key = `${log.draw}-${log.date}`;
+      if (!uniqueSheetKeys.has(key)) {
+        uniqueSheetKeys.add(key);
+        const dateParts = log.date.split('-').map(Number);
+        const logDate = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
+        sheetsFromLogs.push({ draw: log.draw, date: logDate });
+      }
+    });
+
+    // Combine with manually added sheets, ensuring no duplicates
+    const allSheets = [...sheetsFromLogs];
+    activeSheets.forEach(manualSheet => {
+        const key = `${manualSheet.draw}-${format(manualSheet.date, 'yyyy-MM-dd')}`;
         if (!uniqueSheetKeys.has(key)) {
             uniqueSheetKeys.add(key);
-            const dateParts = log.date.split('-').map(Number);
-            const logDate = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
-            
-            const alreadyExists = allSheets.some(s => s.draw === log.draw && isSameDay(s.date, logDate));
-            if (!alreadyExists) {
-                allSheets.push({
-                    draw: log.draw,
-                    date: logDate,
-                });
-            }
+            allSheets.push(manualSheet);
         }
     });
 
@@ -131,23 +132,10 @@ export default function Home() {
         if (dateComparison !== 0) {
             return dateComparison;
         }
-
-        const drawIndexA = drawOrder.indexOf(a.draw);
-        const drawIndexB = drawOrder.indexOf(b.draw);
-        return drawIndexA - drawIndexB;
-    });
-    
-    const finalUniqueSheets: ActiveSheet[] = [];
-    const finalKeys = new Set<string>();
-    allSheets.forEach(sheet => {
-        const key = `${sheet.draw}-${format(sheet.date, 'yyyy-MM-dd')}`;
-        if (!finalKeys.has(key)) {
-            finalKeys.add(key);
-            finalUniqueSheets.push(sheet);
-        }
+        return drawOrder.indexOf(a.draw) - drawOrder.indexOf(b.draw);
     });
 
-    setActiveSheets(finalUniqueSheets);
+    setActiveSheets(allSheets);
   }, [savedSheetLog]);
 
 
@@ -236,10 +224,20 @@ export default function Home() {
   };
   
   const handleAddSheet = () => {
-    if(formSelectedDraw) {
-        const newSheet: ActiveSheet = { draw: formSelectedDraw, date: formSelectedDate };
-        if (!activeSheets.some(s => s.draw === newSheet.draw && isSameDay(s.date, newSheet.date))) {
-            setActiveSheets(prev => [...prev, newSheet]);
+    if(formSelectedDraw && formSelectedDate) {
+        // Create date in UTC to match how log dates are handled
+        const utcDate = new Date(Date.UTC(formSelectedDate.getFullYear(), formSelectedDate.getMonth(), formSelectedDate.getDate()));
+        const newSheet: ActiveSheet = { draw: formSelectedDraw, date: utcDate };
+
+        const sheetExists = activeSheets.some(s => s.draw === newSheet.draw && isSameDay(s.date, newSheet.date));
+
+        if (!sheetExists) {
+            setActiveSheets(prev => [newSheet, ...prev].sort((a, b) => {
+                 const dateComparison = b.date.getTime() - a.date.getTime();
+                if (dateComparison !== 0) return dateComparison;
+                const drawOrder = ["DD", "ML", "FB", "GB", "GL", "DS"];
+                return drawOrder.indexOf(a.draw) - drawOrder.indexOf(b.draw);
+            }));
         }
     }
   };
@@ -581,3 +579,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
