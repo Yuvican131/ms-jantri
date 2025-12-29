@@ -122,14 +122,14 @@ export function DataEntryControls({
         let errorOccurred = false;
         const textToProcess = multiText;
 
-        // New HARUP format: 666(100) or 111_222(100)
-        const harupShortcutRegex = /((\d)\2\2)(_(\d)\4\4)?\s*\((\d+)\)/g;
+        // HARUP format: 666(100) or 666_222(100)
+        const harupShortcutRegex = /((\d)\2{2})(?:_(\d)\3{2})?\s*\((\d+)\)/g;
         let harupMatch;
         let processedByHarupFormat = false;
 
         while ((harupMatch = harupShortcutRegex.exec(textToProcess)) !== null) {
             processedByHarupFormat = true;
-            const [, harupAStr, harupADigit, , harupBStr, harupBDigit, amountStr] = harupMatch;
+            const [, harupAStr, harupADigit, harupBDigit, amountStr] = harupMatch;
             const amount = parseInt(amountStr, 10);
 
             if (isNaN(amount)) continue;
@@ -137,27 +137,28 @@ export function DataEntryControls({
             const harupADigits = harupADigit ? [harupADigit] : [];
             const harupBDigits = harupBDigit ? [harupBDigit] : [];
 
-            const perDigitAmountA = harupADigits.length > 0 ? amount / 10 : 0;
-            const perDigitAmountB = harupBDigits.length > 0 ? amount / 10 : 0;
+            const perDigitAmount = amount / 10;
+            
+            const totalDigits = harupADigits.length + harupBDigits.length;
+            const entryTotal = totalDigits * amount;
 
-            const entryTotal = (harupADigits.length * amount) + (harupBDigits.length * amount);
             if (!checkBalance(entryTotal)) {
                 errorOccurred = true;
                 break;
             }
             totalEntryAmount += entryTotal;
-
+            
             harupADigits.forEach(digitA => {
                 for (let i = 0; i < 10; i++) {
-                    const key = parseInt(`${digitA}${i}`).toString().padStart(2, '0');
-                    updates[key] = (updates[key] || 0) + perDigitAmountA;
+                    const key = `${digitA}${i}`.padStart(2, '0');
+                    updates[key] = (updates[key] || 0) + perDigitAmount;
                 }
             });
     
             harupBDigits.forEach(digitB => {
                 for (let i = 0; i < 10; i++) {
-                    const key = parseInt(`${i}${digitB}`).toString().padStart(2, '0');
-                    updates[key] = (updates[key] || 0) + perDigitAmountB;
+                    const key = `${i}${digitB}`.padStart(2, '0');
+                    updates[key] = (updates[key] || 0) + perDigitAmount;
                 }
             });
         }
@@ -191,13 +192,14 @@ export function DataEntryControls({
             numbers.forEach(numStr => {
                  if (numStr.length === 3) {
                     const firstDigit = numStr[0];
+                    const secondDigit = numStr[1];
                     const lastDigit = numStr[2];
                      if (firstDigit === lastDigit) { // e.g. 202, 353 -> 20, 02
                         const firstTwo = numStr.substring(0, 2); 
                         const reversedFirstTwo = `${firstTwo[1]}${firstTwo[0]}`;
                         cells.add(firstTwo);
                         cells.add(reversedFirstTwo);
-                    } else { // e.g. 247 -> 24, 47
+                    } else { // e.g. 247 -> 24, 47 | 242 -> 24, 42
                         const n1 = numStr.substring(0,2);
                         const n2 = numStr.substring(1,3);
                         cells.add(n1);
@@ -659,6 +661,3 @@ export function DataEntryControls({
       </div>
     );
 }
-
-
-    
