@@ -24,6 +24,7 @@ import { useIsMobile } from "@/hooks/use-mobile"
 import { DataEntryControls } from "./DataEntryControls"
 import { GridView } from "./GridView"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
+import { Separator } from "./ui/separator"
 
 
 type CellData = { [key: string]: string }
@@ -99,6 +100,10 @@ const MasterSheetViewer = ({
   const [isGeneratedSheetDialogOpen, setIsGeneratedSheetDialogOpen] = useState(false);
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
   const [currentLogs, setCurrentLogs] = useState<SavedSheetInfo[]>([]);
+  const [initialMasterData, setInitialMasterData] = useState<CellData>({});
+  const [upperBrokerComm, setUpperBrokerComm] = useState("20");
+  const [upperBrokerPayout, setUpperBrokerPayout] = useState("80");
+
 
   React.useEffect(() => {
     const logsForDate = (allSavedLogs[draw] || []).filter(log => isSameDay(new Date(log.date), date));
@@ -120,8 +125,9 @@ const MasterSheetViewer = ({
       }
     });
     setMasterSheetData(newMasterData);
+    setInitialMasterData(newMasterData);
   }, [selectedLogIndices, currentLogs]);
-
+  
   const calculateRowTotal = (rowIndex: number, data: CellData) => {
     let total = 0;
     for (let colIndex = 0; colIndex < GRID_COLS; colIndex++) {
@@ -188,6 +194,45 @@ const MasterSheetViewer = ({
     toast({ title: "Less Applied", description: `Subtracted ${lessPercent}% from all cells in the master sheet.` });
     setLessValue("");
   };
+  
+  const handleSmartCutting = () => {
+    const commissionPercent = parseFloat(upperBrokerComm) / 100;
+    const payoutRate = parseFloat(upperBrokerPayout);
+
+    if (isNaN(commissionPercent) || isNaN(payoutRate) || payoutRate === 0) {
+      toast({
+        title: "Invalid Settings",
+        description: "Please enter valid commission and payout rates.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const totalIncomingAmount = calculateGrandTotal(initialMasterData);
+    if (totalIncomingAmount === 0) {
+        toast({ title: "No Data", description: "Cannot apply smart cutting on an empty sheet." });
+        return;
+    }
+    
+    const maxSafeRetain = (totalIncomingAmount * commissionPercent) / payoutRate;
+    
+    const newMasterData = { ...initialMasterData };
+    let cellsCut = 0;
+    Object.keys(newMasterData).forEach(key => {
+      const incomingAmount = parseFloat(newMasterData[key]);
+      if (incomingAmount > maxSafeRetain) {
+        newMasterData[key] = String(maxSafeRetain);
+        cellsCut++;
+      }
+    });
+
+    setMasterSheetData(newMasterData);
+    toast({
+      title: "Smart Cutting Applied",
+      description: `Maximum Safe Retain limit was ₹${formatNumber(maxSafeRetain)}. ${cellsCut} cells were cut.`,
+    });
+  };
+
 
   const handleLogSelectionChange = (index: number) => {
     setSelectedLogIndices(prev =>
@@ -243,7 +288,7 @@ const MasterSheetViewer = ({
   
  return (
     <>
-    <div className="flex h-full flex-col gap-4 bg-background p-1 md:p-4 items-stretch overflow-y-auto pb-4">
+    <div className="flex h-full flex-col gap-4 bg-background p-1 md:p-4 pb-4">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 w-full flex-grow items-stretch">
         <div className="flex flex-col min-w-0">
             <div className="grid-sheet-layout h-full w-full">
@@ -286,7 +331,7 @@ const MasterSheetViewer = ({
         </div>
         <div className="flex flex-col gap-4 w-full lg:w-[320px] xl:w-[360px] flex-shrink-0">
           <div className="border rounded-lg p-3 flex flex-col gap-3 bg-card">
-              <h3 className="font-semibold text-sm text-card-foreground">Master Controls</h3>
+              <h3 className="font-semibold text-sm text-card-foreground">Manual Controls</h3>
               <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                       <Label htmlFor="master-cutting" className="text-sm text-card-foreground w-16">Cutting</Label>
@@ -304,9 +349,21 @@ const MasterSheetViewer = ({
                       <Button size="sm" className="h-8">Apply</Button>
                   </div>
               </div>
-               <Button onClick={handleGenerateSheet} variant="outline" size="sm">
-                Generate Sheet
-              </Button>
+          </div>
+          
+          <div className="border rounded-lg p-3 flex flex-col gap-3 bg-card">
+              <h3 className="font-semibold text-sm text-card-foreground">Smart Cutting (Risk Management)</h3>
+               <div className="flex flex-col gap-3">
+                    <div className="space-y-1">
+                        <Label htmlFor="upper-broker-comm" className="text-xs">Upper Broker Comm (%)</Label>
+                        <Input id="upper-broker-comm" placeholder="e.g. 20" className="text-sm h-8 text-center" value={upperBrokerComm} onChange={(e) => setUpperBrokerComm(e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor="upper-broker-payout" className="text-xs">Upper Broker Payout Rate</Label>
+                        <Input id="upper-broker-payout" placeholder="e.g. 80" className="text-sm h-8 text-center" value={upperBrokerPayout} onChange={(e) => setUpperBrokerPayout(e.target.value)} />
+                    </div>
+                    <Button onClick={handleSmartCutting} size="sm">Apply Smart Cutting</Button>
+               </div>
           </div>
 
           <Card className="flex flex-col flex-grow bg-card min-h-0">
@@ -347,6 +404,10 @@ const MasterSheetViewer = ({
                   </ScrollArea>
               </CardContent>
           </Card>
+          
+          <Button onClick={handleGenerateSheet} variant="outline">
+            <Download className="mr-2 h-4 w-4"/> Generate & Download Report
+          </Button>
         </div>
       </div>
     </div>
@@ -735,7 +796,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       </Dialog>
       
       <Dialog open={!!logToDelete} onOpenChange={() => setLogToDelete(null)}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Log Entry?</DialogTitle>
             <DialogDescription>
