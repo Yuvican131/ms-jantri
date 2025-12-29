@@ -23,11 +23,11 @@ interface DataEntryControlsProps {
     isRevertDisabled: boolean;
     onDataUpdate: (updates: { [key: string]: number | string }, lastEntryString: string) => void;
     onClear: () => void;
-    setLastEntry: (entry: string) => void;
+    setLastEntry: (entry: string) => setLastEntry;
     checkBalance: (total: number) => boolean;
     showClientSelectionToast: () => void;
     getClientDisplay: (client: Client) => string;
-    focusMultiText: () => focusMultiText;
+    focusMultiText: () => void;
     openMasterSheet: () => void;
 }
 
@@ -118,19 +118,59 @@ export function DataEntryControls({
         }
     
         const updates: { [key: string]: number } = {};
-        let totalEntryAmount = 0;
         let errorOccurred = false;
         let textToProcess = multiText;
 
-        // Pre-process to handle newlines before amounts
-        let remainingText = textToProcess.replace(/\s*\n\s*\((\d+)\)/g, '($1)');
+        // Universal Parser for formats like: 45...68,_,,77''(100)
+        const robustPattern = /((?:.|\n)*?)\((\d+)\)/g;
+        let lastIndex = 0;
+        
+        const matches = [...textToProcess.matchAll(robustPattern)];
 
-        // HARUP format: 666(100) or 666_222(100)
+        if (matches.length > 0) {
+            for (const match of matches) {
+                const cellsStr = match[1];
+                const amount = parseInt(match[2], 10);
+                
+                // Extract all number-like sequences of at least 2 digits
+                const cells = cellsStr.match(/\d{2,}/g) || [];
+                
+                if (isNaN(amount) || cells.length === 0) continue;
+
+                const entryTotal = cells.length * amount;
+                if (!checkBalance(entryTotal)) {
+                    errorOccurred = true;
+                    break; 
+                }
+                
+                cells.forEach(cell => {
+                    const formattedCell = cell.trim().padStart(2, '0');
+                    updates[formattedCell] = (updates[formattedCell] || 0) + amount;
+                });
+            }
+
+            if (errorOccurred) return;
+        
+            if (Object.keys(updates).length > 0) {
+                onDataUpdate(updates, multiText);
+                setMultiText(""); // Clear on successful application
+                focusMultiText();
+            } else {
+                 toast({
+                    title: "No valid data found",
+                    description: "Could not parse the input. Please check the format.",
+                    variant: "destructive"
+                });
+            }
+            return; // Stop further processing if this format was matched
+        }
+        
+        // Fallback to older HARUP format if the universal parser didn't find matches
         const harupShortcutRegex = /((\d)\2{2})(?:_(\d)\3{2})?\s*\((\d+)\)/g;
         let harupMatch;
         let processedByHarupFormat = false;
 
-        while ((harupMatch = harupShortcutRegex.exec(remainingText)) !== null) {
+        while ((harupMatch = harupShortcutRegex.exec(textToProcess)) !== null) {
             processedByHarupFormat = true;
             const [, harupAStr, harupADigit, harupBDigit, amountStr] = harupMatch;
             const amount = parseInt(amountStr, 10);
@@ -149,7 +189,6 @@ export function DataEntryControls({
                 errorOccurred = true;
                 break;
             }
-            totalEntryAmount += entryTotal;
             
             harupADigits.forEach(digitA => {
                 for (let i = 0; i < 10; i++) {
@@ -164,7 +203,7 @@ export function DataEntryControls({
                     updates[key] = (updates[key] || 0) + perDigitAmount;
                 }
             });
-            remainingText = remainingText.replace(harupMatch[0], '').trim();
+            textToProcess = textToProcess.replace(harupMatch[0], '').trim();
         }
         
         if (errorOccurred) return;
@@ -176,101 +215,10 @@ export function DataEntryControls({
             return;
         }
 
-        // Compact format: 202_232(10)
-        const compactFormatRegex = /(\d[_\d]*)(\(\d+\))/g;
-        let match;
-        let processedByNewFormat = false;
-        
-        let compactText = remainingText.replace(compactFormatRegex, (fullMatch, numbersPart, amountPart) => {
-            processedByNewFormat = true;
-            const amount = parseInt(amountPart.replace(/[()]/g, ''), 10);
-            if (isNaN(amount)) return fullMatch; 
-            
-            const numbers = numbersPart.replace(/_$/, '').split('_');
-            const cells = new Set<string>();
-
-            numbers.forEach(numStr => {
-                 if (numStr.length === 3) {
-                    const firstDigit = numStr[0];
-                    const secondDigit = numStr[1];
-                    const lastDigit = numStr[2];
-                     if (firstDigit === lastDigit) { // e.g. 202, 353 -> 20, 02
-                        const firstTwo = numStr.substring(0, 2); 
-                        const reversedFirstTwo = `${firstTwo[1]}${firstTwo[0]}`;
-                        cells.add(firstTwo);
-                        cells.add(reversedFirstTwo);
-                    } else { // e.g. 247 -> 24, 47 | 242 -> 24, 42
-                        const n1 = numStr.substring(0,2);
-                        const n2 = numStr.substring(1,3);
-                        cells.add(n1);
-                        cells.add(n2);
-                    }
-                } else if (numStr.length >= 2) {
-                    cells.add(numStr.substring(0, 2));
-                }
-            });
-
-            const entryTotal = cells.size * amount;
-            if (!checkBalance(entryTotal)) {
-                errorOccurred = true;
-                return fullMatch; // Stop processing this match
-            }
-            totalEntryAmount += entryTotal;
-            cells.forEach(cell => {
-                const formattedCell = cell.padStart(2, '0');
-                updates[formattedCell] = (updates[formattedCell] || 0) + amount;
-            });
-
-            return ''; // Remove the processed part from the string
-        });
-        
-        remainingText = compactText;
-
-        if (errorOccurred) return;
-        
-        if (processedByNewFormat && Object.keys(updates).length > 0) {
-             onDataUpdate(updates, multiText);
-             setMultiText("");
-             focusMultiText();
-             return; 
-        }
-
-        // More robust regex to handle various delimiters and formats
-        const robustPattern = /((?:\d{2,}[,"]?\s*)+)\s*\((\d+)\)/g;
-        let lineHandled = false;
-
-        for (const match of remainingText.matchAll(robustPattern)) {
-            lineHandled = true;
-            const cellsStr = match[1];
-            const amount = parseInt(match[2], 10);
-            
-            // Split by any non-digit character
-            const cells = cellsStr.split(/[^0-9]+/).filter(c => c && c.trim().length >= 2);
-
-            if (isNaN(amount) || cells.length === 0) continue;
-
-            const entryTotal = cells.length * amount;
-            if (!checkBalance(entryTotal)) {
-                errorOccurred = true;
-                break;
-            }
-            totalEntryAmount += entryTotal;
-            cells.forEach(cell => {
-                const formattedCell = cell.trim().padStart(2, '0');
-                updates[formattedCell] = (updates[formattedCell] || 0) + amount;
-            });
-        }
-        
-        if (errorOccurred) return;
-    
-        if (Object.keys(updates).length > 0) {
-            onDataUpdate(updates, multiText);
-            setMultiText("");
-            focusMultiText();
-        } else if (multiText.trim().length > 0 && !errorOccurred) {
-            toast({
-                title: "No valid data found",
-                description: "Could not parse the input. Please check the format.",
+        if (multiText.trim().length > 0 && matches.length === 0 && !processedByHarupFormat) {
+             toast({
+                title: "Unrecognized format",
+                description: "The entered text format was not recognized.",
                 variant: "destructive"
             });
         }
@@ -591,13 +539,3 @@ export function DataEntryControls({
       </div>
     );
 }
-
-
-    
-
-
-    
-
-    
-
-    
