@@ -27,7 +27,7 @@ interface DataEntryControlsProps {
     checkBalance: (total: number) => boolean;
     showClientSelectionToast: () => void;
     getClientDisplay: (client: Client) => string;
-    focusMultiText: () => void;
+    focusMultiText: () => focusMultiText;
     openMasterSheet: () => void;
 }
 
@@ -175,18 +175,16 @@ export function DataEntryControls({
         }
 
         // Compact format: 202_232(10)
-        const compactFormatRegex = /(\d+(_\d+)*)\s*\((\d+)\)/g;
+        const compactFormatRegex = /(\d[_\d]*)(\(\d+\))/g;
         let match;
         let processedByNewFormat = false;
-
-        while ((match = compactFormatRegex.exec(textToProcess)) !== null) {
+        
+        const remainingText = multiText.replace(compactFormatRegex, (fullMatch, numbersPart, amountPart) => {
             processedByNewFormat = true;
-            const numbersPart = match[1];
-            const amount = parseInt(match[3], 10);
+            const amount = parseInt(amountPart.replace(/[()]/g, ''), 10);
+            if (isNaN(amount)) return fullMatch; // Should not happen with this regex, but good practice.
             
-            if (isNaN(amount)) continue;
-
-            const numbers = numbersPart.split('_');
+            const numbers = numbersPart.replace(/_$/, '').split('_');
             const cells = new Set<string>();
 
             numbers.forEach(numStr => {
@@ -213,14 +211,16 @@ export function DataEntryControls({
             const entryTotal = cells.size * amount;
             if (!checkBalance(entryTotal)) {
                 errorOccurred = true;
-                break;
+                return fullMatch; // Stop processing this match
             }
             totalEntryAmount += entryTotal;
             cells.forEach(cell => {
                 const formattedCell = cell.padStart(2, '0');
                 updates[formattedCell] = (updates[formattedCell] || 0) + amount;
             });
-        }
+
+            return ''; // Remove the processed part from the string
+        });
         
         if (errorOccurred) return;
         
@@ -661,3 +661,6 @@ export function DataEntryControls({
       </div>
     );
 }
+
+
+    
