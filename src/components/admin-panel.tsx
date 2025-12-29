@@ -43,15 +43,15 @@ const BrokerDrawSummaryCard = ({
     passingTotal: number;
 }) => {
     return (
-        <Card className="flex flex-col bg-muted/30">
-            <div className="p-1.5 flex-grow">
+        <Card className="flex flex-col bg-muted/30 p-1.5">
+            <div className="flex-grow">
                 <div className="flex items-center justify-between mb-0.5">
                     <h4 className="font-semibold text-xs text-foreground">{title}</h4>
                     <HandCoins className="h-3 w-3 text-muted-foreground" />
                 </div>
                 <p className="text-base font-bold text-right text-foreground">{formatNumber(rawTotal)}</p>
             </div>
-            <div className="p-1 bg-muted/50 border-t flex items-center justify-between">
+            <div className="bg-muted/50 border-t flex items-center justify-between mt-1 pt-1">
                 <span className="text-xs font-semibold text-muted-foreground flex items-center gap-0.5"><TrendingDown className="h-2.5 w-2.5" /> Pass</span>
                 <span className={`text-xs font-bold ${passingTotal > 0 ? 'text-red-500' : 'text-foreground'}`}>{formatNumber(passingTotal)}</span>
             </div>
@@ -119,7 +119,7 @@ const RunningTotalSummaryCard = ({
     const runningTotalColor = runningTotal >= 0 ? 'text-green-500' : 'text-red-500';
 
     return (
-        <Card className="p-2 bg-muted/50 border-border">
+        <Card className="p-2 bg-muted/50 border-border w-full max-w-[280px]">
             <div className="flex items-center justify-between text-center">
                 <div className="flex-1 space-y-0.5">
                     <p className="text-[10px] text-muted-foreground font-semibold">PREVIOUS</p>
@@ -508,9 +508,16 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader>
-        <CardTitle>Admin Panel</CardTitle>
-        <CardDescription>High-level overview of your brokerage operations.</CardDescription>
+      <CardHeader className="flex flex-row justify-between items-start">
+        <div>
+            <CardTitle>Admin Panel</CardTitle>
+            <CardDescription>High-level overview of your brokerage operations.</CardDescription>
+        </div>
+        <RunningTotalSummaryCard 
+            previousDayNet={previousDayNet}
+            todayNet={todayNet}
+            runningTotal={runningTotal}
+        />
       </CardHeader>
       <CardContent className="flex-1 space-y-6 overflow-y-auto">
         <div>
@@ -540,16 +547,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                         />
                     </PopoverContent>
                 </Popover>
-            </div>
-            
-            <div className="flex justify-center mb-4">
-                <div className="w-full max-w-sm">
-                    <RunningTotalSummaryCard 
-                        previousDayNet={previousDayNet}
-                        todayNet={todayNet}
-                        runningTotal={runningTotal}
-                    />
-                </div>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
