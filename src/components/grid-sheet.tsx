@@ -101,8 +101,6 @@ const MasterSheetViewer = ({
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
   const [currentLogs, setCurrentLogs] = useState<SavedSheetInfo[]>([]);
   const [initialMasterData, setInitialMasterData] = useState<CellData>({});
-  const [upperBrokerComm, setUpperBrokerComm] = useState("20");
-  const [upperBrokerPayout, setUpperBrokerPayout] = useState("80");
 
 
   React.useEffect(() => {
@@ -194,45 +192,6 @@ const MasterSheetViewer = ({
     toast({ title: "Less Applied", description: `Subtracted ${lessPercent}% from all cells in the master sheet.` });
     setLessValue("");
   };
-  
-  const handleSmartCutting = () => {
-    const commissionPercent = parseFloat(upperBrokerComm) / 100;
-    const payoutRate = parseFloat(upperBrokerPayout);
-
-    if (isNaN(commissionPercent) || isNaN(payoutRate) || payoutRate === 0) {
-      toast({
-        title: "Invalid Settings",
-        description: "Please enter valid commission and payout rates.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const totalIncomingAmount = calculateGrandTotal(initialMasterData);
-    if (totalIncomingAmount === 0) {
-        toast({ title: "No Data", description: "Cannot apply smart cutting on an empty sheet." });
-        return;
-    }
-    
-    const maxSafeRetain = (totalIncomingAmount * commissionPercent) / payoutRate;
-    
-    const newMasterData = { ...initialMasterData };
-    let cellsCut = 0;
-    Object.keys(newMasterData).forEach(key => {
-      const incomingAmount = parseFloat(newMasterData[key]);
-      if (incomingAmount > maxSafeRetain) {
-        newMasterData[key] = String(maxSafeRetain);
-        cellsCut++;
-      }
-    });
-
-    setMasterSheetData(newMasterData);
-    toast({
-      title: "Smart Cutting Applied",
-      description: `Maximum Safe Retain limit was ₹${formatNumber(maxSafeRetain)}. ${cellsCut} cells were cut.`,
-    });
-  };
-
 
   const handleLogSelectionChange = (index: number) => {
     setSelectedLogIndices(prev =>
@@ -351,20 +310,6 @@ const MasterSheetViewer = ({
               </div>
           </div>
           
-          <div className="border rounded-lg p-3 flex flex-col gap-3 bg-card">
-              <h3 className="font-semibold text-sm text-card-foreground">Smart Cutting (Risk Management)</h3>
-               <div className="flex flex-col gap-3">
-                    <div className="space-y-1">
-                        <Label htmlFor="upper-broker-comm" className="text-xs">Upper Broker Comm (%)</Label>
-                        <Input id="upper-broker-comm" placeholder="e.g. 20" className="text-sm h-8 text-center" value={upperBrokerComm} onChange={(e) => setUpperBrokerComm(e.target.value)} />
-                    </div>
-                    <div className="space-y-1">
-                        <Label htmlFor="upper-broker-payout" className="text-xs">Upper Broker Payout Rate</Label>
-                        <Input id="upper-broker-payout" placeholder="e.g. 80" className="text-sm h-8 text-center" value={upperBrokerPayout} onChange={(e) => setUpperBrokerPayout(e.target.value)} />
-                    </div>
-                    <Button onClick={handleSmartCutting} size="sm">Apply Smart Cutting</Button>
-               </div>
-          </div>
 
           <Card className="flex flex-col flex-grow bg-card min-h-0">
               <CardHeader className="p-3">
