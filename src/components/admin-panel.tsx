@@ -514,7 +514,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
       </CardHeader>
       <CardContent className="flex-1 space-y-8 overflow-y-auto">
         <div>
-            <div className="flex items-center gap-4 mb-6">
+            <div className="flex items-center gap-4 mb-4">
                 <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
                     <Landmark className="h-5 w-5" /> All Draws Summary
                 </h3>
@@ -542,6 +542,16 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 </Popover>
             </div>
             
+             <div className="flex justify-center mb-4">
+                <div className="w-full max-w-sm">
+                    <RunningTotalSummaryCard 
+                        previousDayNet={previousDayNet}
+                        todayNet={todayNet}
+                        runningTotal={runningTotal}
+                    />
+                </div>
+            </div>
+            
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3">
                 {draws.map(drawName => (
                     <BrokerDrawSummaryCard 
@@ -551,21 +561,14 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                         passingTotal={brokerPassingDrawTotals[drawName] || 0}
                     />
                 ))}
-                 <div className="flex flex-col gap-3">
-                    <RunningTotalSummaryCard 
-                        previousDayNet={previousDayNet}
-                        todayNet={todayNet}
-                        runningTotal={runningTotal}
-                    />
-                    <GrandTotalSummaryCard
-                        title="Final Summary"
-                        finalValue={finalNetTotalForBroker}
-                        grandRawTotal={grandRawTotal}
-                        grandPassingTotal={grandPassingTotal}
-                        brokerCommission={brokerCommission}
-                        upperPairRate={parseFloat(appliedUpperPair) || defaultUpperPair}
-                    />
-                </div>
+                <GrandTotalSummaryCard
+                    title="Final Summary"
+                    finalValue={finalNetTotalForBroker}
+                    grandRawTotal={grandRawTotal}
+                    grandPassingTotal={grandPassingTotal}
+                    brokerCommission={brokerCommission}
+                    upperPairRate={parseFloat(appliedUpperPair) || defaultUpperPair}
+                />
             </div>
         </div>
         <Separator />
@@ -612,3 +615,4 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     
 
     
+
