@@ -44,16 +44,16 @@ const BrokerDrawSummaryCard = ({
 }) => {
     return (
         <Card className="flex flex-col bg-muted/30">
-            <div className="p-3 flex-grow">
-                <div className="flex items-center justify-between mb-1">
-                    <h4 className="font-semibold text-sm text-foreground">{title}</h4>
-                    <HandCoins className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 flex-grow">
+                <div className="flex items-center justify-between mb-0.5">
+                    <h4 className="font-semibold text-xs text-foreground">{title}</h4>
+                    <HandCoins className="h-3 w-3 text-muted-foreground" />
                 </div>
-                <p className="text-xl font-bold text-right text-foreground">{formatNumber(rawTotal)}</p>
+                <p className="text-lg font-bold text-right text-foreground">{formatNumber(rawTotal)}</p>
             </div>
-            <div className="p-2 bg-muted/50 border-t flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1"><TrendingDown className="h-3 w-3" /> Passing</span>
-                <span className={`text-sm font-bold ${passingTotal > 0 ? 'text-red-500' : 'text-foreground'}`}>{formatNumber(passingTotal)}</span>
+            <div className="p-1.5 bg-muted/50 border-t flex items-center justify-between">
+                <span className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1"><TrendingDown className="h-2.5 w-2.5" /> Passing</span>
+                <span className={`text-xs font-bold ${passingTotal > 0 ? 'text-red-500' : 'text-foreground'}`}>{formatNumber(passingTotal)}</span>
             </div>
         </Card>
     );
@@ -603,4 +603,5 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
 
     
+
 
