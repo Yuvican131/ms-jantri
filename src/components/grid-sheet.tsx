@@ -379,61 +379,6 @@ const MasterSheetViewer = ({
   );
 }
 
-type ControlsProps = {
-    clients: Client[];
-    selectedClientId: string | null;
-    onClientChange: (clientId: string) => void;
-    onSave: () => void;
-    onRevert: () => void;
-    isRevertDisabled: boolean;
-    onDataUpdate: (updates: { [key: string]: number | string }, lastEntryString: string) => void;
-    onClear: () => void;
-    setLastEntry: (entry: string) => void;
-    checkBalance: (total: number) => boolean;
-    showClientSelectionToast: () => void;
-    getClientDisplay: (client: Client) => string;
-    focusMultiText: () => void;
-    openMasterSheet: () => void;
-};
-
-
-const Controls: React.FC<ControlsProps> = ({
-    clients,
-    selectedClientId,
-    onClientChange,
-    onSave,
-    onRevert,
-    isRevertDisabled,
-    onDataUpdate,
-    onClear,
-    setLastEntry,
-    checkBalance,
-    showClientSelectionToast,
-    getClientDisplay,
-    focusMultiText,
-    openMasterSheet,
-}) => {
-    return (
-        <DataEntryControls
-            clients={clients}
-            selectedClientId={selectedClientId}
-            onClientChange={onClientChange}
-            onSave={onSave}
-            onRevert={onRevert}
-            isRevertDisabled={isRevertDisabled}
-            onDataUpdate={onDataUpdate}
-            onClear={onClear}
-            setLastEntry={setLastEntry}
-            checkBalance={checkBalance}
-            showClientSelectionToast={showClientSelectionToast}
-            getClientDisplay={getClientDisplay}
-            focusMultiText={focusMultiText}
-            openMasterSheet={openMasterSheet}
-        />
-    );
-};
-
-
 const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const { toast } = useToast()
   const { deleteSheetLogEntry } = useSheetLog();
@@ -442,7 +387,6 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [isMasterSheetDialogOpen, setIsMasterSheetDialogOpen] = useState(false);
   const [logToDelete, setLogToDelete] = useState<{ id: string, name: string } | null>(null);
   const isMobile = useIsMobile();
-  const multiTextRef = useRef<HTMLTextAreaElement>(null);
 
 
   const [validations, setValidations] = useState<CellValidation>({})
@@ -451,6 +395,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
   const currentData = selectedClientId ? clientSheetData[selectedClientId]?.data || {} : {};
 
+  const multiTextRef = useRef<HTMLTextAreaElement>(null);
   const focusMultiText = useCallback(() => {
     multiTextRef.current?.focus();
   }, []);
@@ -717,7 +662,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                 </div>
               </TabsContent>
               <TabsContent value="entry" className="flex-grow min-h-0 mt-2">
-                 <Controls
+                 <DataEntryControls
                     clients={props.clients}
                     selectedClientId={selectedClientId}
                     onClientChange={handleSelectedClientChange}
@@ -748,7 +693,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                     showClientSelectionToast={showClientSelectionToast}
                   />
               </div>
-               <Controls
+               <DataEntryControls
+                  ref={multiTextRef}
                   clients={props.clients}
                   selectedClientId={selectedClientId}
                   onClientChange={handleSelectedClientChange}
@@ -770,7 +716,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       </Card>
       
       <Dialog open={isMasterSheetDialogOpen} onOpenChange={setIsMasterSheetDialogOpen}>
-        <DialogContent className="max-w-full w-full h-full max-h-screen sm:max-w-7xl p-0">
+        <DialogContent className="max-w-full w-full h-full max-h-screen sm:max-w-full p-0">
           <DialogHeader className="flex-row items-center p-4 border-b">
             <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="mr-2">
                 <ArrowLeft className="h-4 w-4" />
