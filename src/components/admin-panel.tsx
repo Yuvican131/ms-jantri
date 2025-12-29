@@ -113,7 +113,7 @@ const RunningTotalSummaryCard = ({
     const runningTotalColor = runningTotal >= 0 ? 'text-green-500' : 'text-red-500';
 
     return (
-        <Card className="p-2 bg-muted/50 border-border w-full max-w-[280px]">
+        <Card className="p-2 bg-muted/50 border-border w-full">
             <div className="flex items-center justify-between px-1">
                 <p className="text-xs text-foreground font-bold flex items-center gap-1"><Scale className="h-3 w-3"/>Running Net</p>
                 <p className={`text-lg font-extrabold ${runningTotalColor}`}>{formatNumber(runningTotal)}</p>
@@ -493,9 +493,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             <CardTitle>Admin Panel</CardTitle>
             <CardDescription>High-level overview of your brokerage operations.</CardDescription>
         </div>
-        <RunningTotalSummaryCard 
-            runningTotal={runningTotal}
-        />
       </CardHeader>
       <CardContent className="flex-1 space-y-6 overflow-y-auto">
         <div>
@@ -536,14 +533,19 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                         passingTotal={brokerPassingDrawTotals[drawName] || 0}
                     />
                 ))}
-                <GrandTotalSummaryCard
-                    title="Final Summary"
-                    finalValue={finalNetTotalForBroker}
-                    grandRawTotal={grandRawTotal}
-                    grandPassingTotal={grandPassingTotal}
-                    brokerCommission={brokerCommission}
-                    upperPairRate={parseFloat(appliedUpperPair) || defaultUpperPair}
-                />
+                <div className="flex flex-col gap-3">
+                    <RunningTotalSummaryCard 
+                        runningTotal={runningTotal}
+                    />
+                    <GrandTotalSummaryCard
+                        title="Final Summary"
+                        finalValue={finalNetTotalForBroker}
+                        grandRawTotal={grandRawTotal}
+                        grandPassingTotal={grandPassingTotal}
+                        brokerCommission={brokerCommission}
+                        upperPairRate={parseFloat(appliedUpperPair) || defaultUpperPair}
+                    />
+                </div>
             </div>
         </div>
 
@@ -595,6 +597,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
 
 
+
+    
 
     
 
