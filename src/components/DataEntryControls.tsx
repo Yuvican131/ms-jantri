@@ -182,7 +182,7 @@ export function DataEntryControls({
         const remainingText = multiText.replace(compactFormatRegex, (fullMatch, numbersPart, amountPart) => {
             processedByNewFormat = true;
             const amount = parseInt(amountPart.replace(/[()]/g, ''), 10);
-            if (isNaN(amount)) return fullMatch; // Should not happen with this regex, but good practice.
+            if (isNaN(amount)) return fullMatch; 
             
             const numbers = numbersPart.replace(/_$/, '').split('_');
             const cells = new Set<string>();
@@ -282,18 +282,18 @@ export function DataEntryControls({
             }
     
             if (!processed) {
-                let sanitizedLine = currentLine;
-                if (!currentLine.includes('(') && !currentLine.includes('*')) {
-                  if (currentLine.includes('=')) {
-                      const parts = currentLine.split('=');
+                let sanitizedLine = currentLine.replace(/"/g, ',');
+                if (!sanitizedLine.includes('(') && !sanitizedLine.includes('*')) {
+                  if (sanitizedLine.includes('=')) {
+                      const parts = sanitizedLine.split('=');
                       let numbersPart = parts[0].trim();
-                      if (!numbersPart.includes(' ') && !numbersPart.includes(',')) {
+                      if (!numbersPart.includes(' ')) {
                         numbersPart = numbersPart.replace(/(\d{2})(?=\d)/g, '$1,');
                       }
                       sanitizedLine = `${numbersPart.replace(/\s+/g, ',')}=${parts[1]}`;
                   } else {
-                      let numbersPart = currentLine.trim();
-                      if (!numbersPart.includes(' ') && !numbersPart.includes(',')) {
+                      let numbersPart = sanitizedLine.trim();
+                      if (!numbersPart.includes(' ')) {
                         numbersPart = numbersPart.replace(/(\d{2})(?=\d)/g, '$1,');
                       }
                       sanitizedLine = numbersPart.replace(/\s+/g, ',');
