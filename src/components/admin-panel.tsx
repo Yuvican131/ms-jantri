@@ -43,17 +43,17 @@ const BrokerDrawSummaryCard = ({
     passingTotal: number;
 }) => {
     return (
-        <Card className="flex flex-col bg-muted/30 p-1.5 h-full">
+        <Card className="flex flex-col bg-muted/30 p-2 h-full">
             <div className="flex-grow">
-                <div className="flex items-center justify-between mb-0.5">
-                    <h4 className="font-semibold text-xs text-foreground">{title}</h4>
-                    <HandCoins className="h-3 w-3 text-muted-foreground" />
+                <div className="flex items-center justify-between mb-1">
+                    <h4 className="font-bold text-base text-foreground">{title}</h4>
+                    <HandCoins className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <p className="text-xl font-bold text-right text-foreground">{formatNumber(rawTotal)}</p>
+                <p className="text-2xl font-bold text-right text-foreground">{formatNumber(rawTotal)}</p>
             </div>
-            <div className="bg-muted/50 border-t flex items-center justify-between mt-1 pt-1">
-                <span className="text-xs font-semibold text-muted-foreground flex items-center gap-0.5"><TrendingDown className="h-2.5 w-2.5" /> Pass</span>
-                <span className={`text-xs font-bold ${passingTotal > 0 ? 'text-red-500' : 'text-foreground'}`}>{formatNumber(passingTotal)}</span>
+            <div className="bg-muted/50 border-t flex items-center justify-between mt-2 pt-1.5">
+                <span className="text-sm font-semibold text-muted-foreground flex items-center gap-1"><TrendingDown className="h-3 w-3" /> Pass</span>
+                <span className={`text-sm font-bold ${passingTotal > 0 ? 'text-red-500' : 'text-foreground'}`}>{formatNumber(passingTotal)}</span>
             </div>
         </Card>
     );
@@ -402,38 +402,37 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         localStorage.setItem('upperBrokerPair', upperPair);
     };
 
-    const calculateDailyNet = (date: Date) => {
+    const runningTotal = useMemo(() => {
         const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
         
-        let dailyRawTotal = 0;
-        let dailyPassingTotal = 0;
+        let totalNet = 0;
 
-        for (const drawName of draws) {
-            const logsForDrawOnDate = (savedSheetLog[drawName] || []).filter(log => isSameDay(new Date(log.date), date));
-
-            for (const log of logsForDrawOnDate) {
-                dailyRawTotal += log.gameTotal;
-                const dateStr = format(new Date(log.date), 'yyyy-MM-dd');
-                const declarationId = `${log.draw}-${dateStr}`;
-                const declaredNum = declaredNumbers[declarationId]?.number;
-
-                if (declaredNum && log.data[declaredNum]) {
-                    const passingAmount = parseFloat(log.data[declaredNum]) || 0;
-                    dailyPassingTotal += passingAmount;
+        const calculateDailyNet = (date: Date) => {
+            let dailyRawTotal = 0;
+            let dailyPassingTotal = 0;
+            for (const drawName of draws) {
+                const logsForDrawOnDate = (savedSheetLog[drawName] || []).filter(log => isSameDay(new Date(log.date), date));
+    
+                for (const log of logsForDrawOnDate) {
+                    dailyRawTotal += log.gameTotal;
+                    const dateStr = format(new Date(log.date), 'yyyy-MM-dd');
+                    const declarationId = `${log.draw}-${dateStr}`;
+                    const declaredNum = declaredNumbers[declarationId]?.number;
+    
+                    if (declaredNum && log.data[declaredNum]) {
+                        const passingAmount = parseFloat(log.data[declaredNum]) || 0;
+                        dailyPassingTotal += passingAmount;
+                    }
                 }
             }
+            const brokerCommission = dailyRawTotal * upperCommPercent;
+            const finalGrandPassingTotal = dailyPassingTotal * upperPairRate;
+            return (dailyRawTotal - brokerCommission) - finalGrandPassingTotal;
         }
-        
-        const brokerCommission = dailyRawTotal * upperCommPercent;
-        const finalGrandPassingTotal = dailyPassingTotal * upperPairRate;
-        return (dailyRawTotal - brokerCommission) - finalGrandPassingTotal;
-    };
-    
-    const runningTotal = useMemo(() => {
+
         const todayNet = calculateDailyNet(summaryDate);
-        const previousDayNet = calculateDailyNet(subDays(summaryDate, 1));
-        return todayNet + previousDayNet;
+        return todayNet;
     }, [savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair, summaryDate]);
 
 
@@ -501,7 +500,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
       </CardHeader>
       <CardContent className="flex-1 space-y-6 overflow-y-auto">
         <div>
-            <div className="flex items-center gap-4 mb-4">
+            <div className="flex items-center gap-4 mb-2">
                 <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
                     <Landmark className="h-5 w-5" /> All Draws Summary
                 </h3>
@@ -597,6 +596,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
 
 
+
+    
 
     
 
