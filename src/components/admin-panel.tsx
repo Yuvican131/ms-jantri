@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getYear, getMonth, startOfYear, endOfYear, eachMonthOfInterval } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getYear, getMonth, startOfYear, endOfYear, eachMonthOfInterval, startOfDay, endOfDay } from "date-fns";
 import type { Client } from '@/hooks/useClients';
 import type { SavedSheetInfo } from '@/hooks/useSheetLog';
 import { useDeclaredNumbers, type DeclaredNumber } from '@/hooks/useDeclaredNumbers';
@@ -127,29 +127,29 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
         const clientsToProcess = selectedClientId === 'all' ? clients : clients.filter(c => c.id === selectedClientId);
 
-        const calculateProfitForPeriod = (startDate: Date, endDate: Date): { clientPayable: number, upperPayable: number } => {
+        const calculateProfitForPeriod = (periodStart: Date, periodEnd: Date): { clientPayable: number, upperPayable: number } => {
             let totalClientPayable = 0;
             let totalUpperPayable = 0;
             let totalGameAmount = 0;
             let totalPassingAmount = 0;
+            const allLogs = Object.values(savedSheetLog).flat();
 
             clientsToProcess.forEach(client => {
                 let clientGameTotalForPeriod = 0;
                 let clientPassingAmountForPeriod = 0;
                 const clientCommPercent = (client.comm && !isNaN(parseFloat(client.comm))) ? parseFloat(client.comm) / 100 : 0;
                 const clientPairRate = parseFloat(client.pair) || defaultClientPair;
-
-                Object.values(savedSheetLog).flat().forEach(log => {
+                
+                const clientLogsForPeriod = allLogs.filter(log => {
                     const logDate = new Date(log.date);
-                    if (log.clientId === client.id && logDate >= startDate && logDate <= endDate) {
-                        clientGameTotalForPeriod += log.gameTotal;
-                        const dateStr = format(logDate, 'yyyy-MM-dd');
-                        const declarationId = `${log.draw}-${dateStr}`;
-                        const declaredNumber = declaredNumbers[declarationId]?.number;
+                    return log.clientId === client.id && logDate >= periodStart && logDate <= periodEnd;
+                });
 
-                        if (declaredNumber && log.data[declaredNumber]) {
-                            clientPassingAmountForPeriod += parseFloat(log.data[declaredNumber]) || 0;
-                        }
+                clientLogsForPeriod.forEach(log => {
+                    clientGameTotalForPeriod += log.gameTotal;
+                    const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
+                    if (declaredNumber && log.data[declaredNumber]) {
+                        clientPassingAmountForPeriod += parseFloat(log.data[declaredNumber]) || 0;
                     }
                 });
                 
@@ -161,18 +161,17 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                 }
             });
 
-            Object.values(savedSheetLog).flat().forEach(log => {
-                const logDate = new Date(log.date);
-                const clientMatches = selectedClientId === 'all' || log.clientId === selectedClientId;
-                if (clientMatches && logDate >= startDate && logDate <= endDate) {
-                    totalGameAmount += log.gameTotal;
-                    const dateStr = format(logDate, 'yyyy-MM-dd');
-                    const declarationId = `${log.draw}-${dateStr}`;
-                    const declaredNumber = declaredNumbers[declarationId]?.number;
+            const relevantLogs = allLogs.filter(log => {
+                 const logDate = new Date(log.date);
+                 const clientMatches = selectedClientId === 'all' || log.clientId === selectedClientId;
+                 return clientMatches && logDate >= periodStart && logDate <= periodEnd;
+            });
 
-                    if (declaredNumber && log.data[declaredNumber]) {
-                        totalPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
-                    }
+            relevantLogs.forEach(log => {
+                totalGameAmount += log.gameTotal;
+                const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
+                if (declaredNumber && log.data[declaredNumber]) {
+                    totalPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
                 }
             });
 
@@ -190,7 +189,9 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
             const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
         
             return daysInMonth.map(day => {
-                const { clientPayable, upperPayable } = calculateProfitForPeriod(day, day);
+                const dayStart = startOfDay(day);
+                const dayEnd = endOfDay(day);
+                const { clientPayable, upperPayable } = calculateProfitForPeriod(dayStart, dayEnd);
                 return {
                     date: day,
                     label: format(day, "EEE, dd MMM yyyy"),
@@ -497,7 +498,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         <Separator />
         <div>
             <h3 className="text-lg font-semibold mb-3 text-primary flex items-center gap-2">
-                <Wallet className="h-5 w-5" /> Broker Profit & Loss
+                <Wallet className="h-5 w-5" /> Broker Profit &amp; Loss
             </h3>
              <BrokerProfitLoss 
                 userId={userId}
@@ -517,6 +518,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
   );
 }
     
+    
+
     
 
     
