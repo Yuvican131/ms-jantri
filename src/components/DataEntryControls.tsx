@@ -122,12 +122,15 @@ export function DataEntryControls({
         let errorOccurred = false;
         let textToProcess = multiText;
 
+        // Pre-process to handle newlines before amounts
+        let remainingText = textToProcess.replace(/\s*\n\s*\((\d+)\)/g, '($1)');
+
         // HARUP format: 666(100) or 666_222(100)
         const harupShortcutRegex = /((\d)\2{2})(?:_(\d)\3{2})?\s*\((\d+)\)/g;
         let harupMatch;
         let processedByHarupFormat = false;
 
-        while ((harupMatch = harupShortcutRegex.exec(textToProcess)) !== null) {
+        while ((harupMatch = harupShortcutRegex.exec(remainingText)) !== null) {
             processedByHarupFormat = true;
             const [, harupAStr, harupADigit, harupBDigit, amountStr] = harupMatch;
             const amount = parseInt(amountStr, 10);
@@ -161,7 +164,7 @@ export function DataEntryControls({
                     updates[key] = (updates[key] || 0) + perDigitAmount;
                 }
             });
-            textToProcess = textToProcess.replace(harupMatch[0], '').trim();
+            remainingText = remainingText.replace(harupMatch[0], '').trim();
         }
         
         if (errorOccurred) return;
@@ -178,7 +181,7 @@ export function DataEntryControls({
         let match;
         let processedByNewFormat = false;
         
-        textToProcess = textToProcess.replace(compactFormatRegex, (fullMatch, numbersPart, amountPart) => {
+        let compactText = remainingText.replace(compactFormatRegex, (fullMatch, numbersPart, amountPart) => {
             processedByNewFormat = true;
             const amount = parseInt(amountPart.replace(/[()]/g, ''), 10);
             if (isNaN(amount)) return fullMatch; 
@@ -202,8 +205,8 @@ export function DataEntryControls({
                         cells.add(n1);
                         cells.add(n2);
                     }
-                } else if (numStr.length === 2) {
-                    cells.add(numStr);
+                } else if (numStr.length >= 2) {
+                    cells.add(numStr.substring(0, 2));
                 }
             });
 
@@ -221,6 +224,8 @@ export function DataEntryControls({
             return ''; // Remove the processed part from the string
         });
         
+        remainingText = compactText;
+
         if (errorOccurred) return;
         
         if (processedByNewFormat && Object.keys(updates).length > 0) {
@@ -230,87 +235,32 @@ export function DataEntryControls({
              return; 
         }
 
-        // Fallback to old parsing logic if the new format is not detected.
-        // Pre-process to handle newlines before amounts
-        let remainingText = textToProcess.replace(/\n\s*\((\d+)\)/g, '($1)');
-        
-        const lines = remainingText.trim().split('\n');
-    
-        for (const line of lines) {
-            if (errorOccurred) break;
-            let processed = false;
-            let currentLine = line.trim();
-    
-            const laddiMatch = currentLine.match(/^(\d+)=(\d+)=(\d+)$/);
-            if (laddiMatch) {
-                const [, digitsStr, countStr, amountStr] = laddiMatch;
-                const uniqueDigits = [...new Set(digitsStr.split(''))];
-                const requestedCount = parseInt(countStr, 10);
-                const amount = parseInt(amountStr, 10);
-    
-                const withJoddaCount = uniqueDigits.length * uniqueDigits.length;
-                const withoutJoddaCount = uniqueDigits.length * (uniqueDigits.length - 1);
-    
-                if (requestedCount !== withJoddaCount && requestedCount !== withoutJoddaCount) {
-                    toast({
-                        title: "Wrong Laddi Combination",
-                        description: `Input '${digitsStr}' requires ${withoutJoddaCount} or ${withJoddaCount} pairs, but ${requestedCount} were requested.`,
-                        variant: "destructive"
-                    });
-                    errorOccurred = true;
-                    continue;
-                }
-    
-                const combinations = new Set<string>();
-                for (const d1 of uniqueDigits) {
-                    for (const d2 of uniqueDigits) {
-                        if (requestedCount === withoutJoddaCount && d1 === d2) continue;
-                        combinations.add(d1 + d2);
-                    }
-                }
-    
-                const laddiTotal = combinations.size * amount;
-                if (!checkBalance(laddiTotal)) {
-                    errorOccurred = true;
-                    continue;
-                }
-                totalEntryAmount += laddiTotal;
-                combinations.forEach(cell => {
-                    updates[cell] = (updates[cell] || 0) + amount;
-                });
-                processed = true;
-            }
-    
-            if (!processed) {
-                 // More robust regex to handle various delimiters and formats
-                const robustPattern = /((?:\d{2,}[,"]?\s*)+)\s*\((\d+)\)/g;
-                let lineHandled = false;
+        // More robust regex to handle various delimiters and formats
+        const robustPattern = /((?:\d{2,}[,"]?\s*)+)\s*\((\d+)\)/g;
+        let lineHandled = false;
 
-                for (const match of currentLine.matchAll(robustPattern)) {
-                    lineHandled = true;
-                    const cellsStr = match[1];
-                    const amount = parseInt(match[2], 10);
-                    
-                    // Split by any non-digit character
-                    const cells = cellsStr.split(/[^0-9]+/).filter(c => c && c.trim().length >= 2);
-    
-                    if (isNaN(amount) || cells.length === 0) continue;
+        for (const match of remainingText.matchAll(robustPattern)) {
+            lineHandled = true;
+            const cellsStr = match[1];
+            const amount = parseInt(match[2], 10);
+            
+            // Split by any non-digit character
+            const cells = cellsStr.split(/[^0-9]+/).filter(c => c && c.trim().length >= 2);
 
-                    const entryTotal = cells.length * amount;
-                    if (!checkBalance(entryTotal)) {
-                        errorOccurred = true;
-                        break;
-                    }
-                    totalEntryAmount += entryTotal;
-                    cells.forEach(cell => {
-                        const formattedCell = cell.trim().padStart(2, '0');
-                        updates[formattedCell] = (updates[formattedCell] || 0) + amount;
-                    });
-                }
-                 if (lineHandled || errorOccurred) continue;
+            if (isNaN(amount) || cells.length === 0) continue;
+
+            const entryTotal = cells.length * amount;
+            if (!checkBalance(entryTotal)) {
+                errorOccurred = true;
+                break;
             }
+            totalEntryAmount += entryTotal;
+            cells.forEach(cell => {
+                const formattedCell = cell.trim().padStart(2, '0');
+                updates[formattedCell] = (updates[formattedCell] || 0) + amount;
+            });
         }
-    
+        
         if (errorOccurred) return;
     
         if (Object.keys(updates).length > 0) {
@@ -645,6 +595,8 @@ export function DataEntryControls({
 
     
 
+
+    
 
     
 
