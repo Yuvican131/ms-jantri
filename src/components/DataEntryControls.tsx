@@ -318,9 +318,13 @@ export function DataEntryControls({
                     break;
                 case 'multiText':
                     if (e.shiftKey) {
-                        return;
+                        return; // Allow new lines with Shift+Enter
                     }
-                    handleMultiTextApply();
+                    if (multiText.includes('=')) {
+                        handleMultiTextApply();
+                    } else if (multiText.trim() !== "") {
+                        setMultiText(prev => `${prev}=`);
+                    }
                     break;
             }
         }
@@ -365,7 +369,7 @@ export function DataEntryControls({
                 <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
                 <Textarea
                     ref={multiTextRef}
-                    placeholder="e.g. 12,21=100 or 123_456(10)"
+                    placeholder="e.g. 12,21=100"
                     rows={4}
                     value={multiText}
                     onChange={handleMultiTextChange}
