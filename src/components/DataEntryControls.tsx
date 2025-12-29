@@ -120,6 +120,81 @@ export function DataEntryControls({
         const updates: { [key: string]: number } = {};
         let totalEntryAmount = 0;
         let errorOccurred = false;
+        
+        // New parsing logic for the compact format
+        const compactFormatRegex = /(\d+(_\d+)*)\((\d+)\)/g;
+        let match;
+        let processedByNewFormat = false;
+
+        const textToProcess = multiText.replace(/\s+/g, ""); // Remove all whitespace
+
+        while ((match = compactFormatRegex.exec(textToProcess)) !== null) {
+            processedByNewFormat = true;
+            const numbersPart = match[1];
+            const amount = parseInt(match[3], 10);
+            
+            if (isNaN(amount)) continue;
+
+            const numbers = numbersPart.split('_');
+            const cells = new Set<string>();
+
+            numbers.forEach(numStr => {
+                if (numStr.length === 3) {
+                    const firstTwo = numStr.substring(0, 2);
+                    const lastTwo = numStr.substring(1, 3);
+                    if (firstTwo === `${lastTwo[1]}${lastTwo[0]}`) {
+                        cells.add(firstTwo);
+                        cells.add(lastTwo);
+                    } else { // It's a 2-digit number like "242" -> 24, 42
+                        const n1 = numStr.substring(0,2);
+                        const n2 = `${numStr[1]}${numStr[2]}`;
+                        if (parseInt(numStr, 10) % 10 === parseInt(numStr, 10)/100) {
+                             cells.add(n1);
+                             cells.add(n2);
+                        } else {
+                            const d1 = numStr[0];
+                            const d2 = numStr[1];
+                            const d3 = numStr[2];
+                            cells.add(`${d1}${d2}`);
+                            cells.add(`${d2}${d3}`);
+                        }
+                    }
+                } else if (numStr.length === 2) {
+                    cells.add(numStr);
+                }
+            });
+
+            const entryTotal = cells.size * amount;
+            if (!checkBalance(entryTotal)) {
+                errorOccurred = true;
+                break;
+            }
+            totalEntryAmount += entryTotal;
+            cells.forEach(cell => {
+                const formattedCell = cell.padStart(2, '0');
+                updates[formattedCell] = (updates[formattedCell] || 0) + amount;
+            });
+        }
+        
+        if (errorOccurred) return;
+        
+        // If the new format was detected and processed, apply the updates.
+        if (processedByNewFormat) {
+             if (Object.keys(updates).length > 0) {
+                onDataUpdate(updates, multiText);
+                setMultiText("");
+                focusMultiText();
+            } else {
+                 toast({
+                    title: "No valid data found",
+                    description: "Could not parse the input. Please check the format.",
+                    variant: "destructive"
+                });
+            }
+            return; 
+        }
+
+        // Fallback to old parsing logic if the new format is not detected.
         const lines = multiText.trim().split('\n');
     
         for (const line of lines) {
@@ -446,10 +521,10 @@ export function DataEntryControls({
                 <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
                 <Textarea
                     ref={multiTextRef}
-                    placeholder="e.g. 12,21=100 or 123=45=10"
+                    placeholder="e.g. 12,21=100 or 123_456(10)"
                     rows={4}
                     value={multiText}
-                    onChange={handleMultiTextChange}
+                    onChange={(e) => setMultiText(e.target.value)}
                     onKeyDown={(e) => handleKeyDown(e, 'multiText')}
                     className="w-full text-base"
                     disabled={isDataEntryDisabled}
@@ -567,3 +642,5 @@ export function DataEntryControls({
       </div>
     );
 }
+
+    
