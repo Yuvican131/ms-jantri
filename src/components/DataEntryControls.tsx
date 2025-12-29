@@ -110,6 +110,22 @@ export function DataEntryControls({
         const count = calculateCombinations(laddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi);
         setCombinationCount(count);
     }, [laddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi]);
+
+    const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        let value = e.target.value;
+        const [numbersPart, ...amountParts] = value.split('=');
+        const amountPart = amountParts.join('=');
+
+        // Only format if there is no '=' sign yet.
+        if (!value.includes('=')) {
+            // Remove non-numeric characters, then group by two and join with a comma
+            const digits = numbersPart.replace(/[^0-9]/g, '');
+            const formattedNumbers = digits.match(/.{1,2}/g)?.join(',') || '';
+            value = formattedNumbers;
+        }
+        
+        setMultiText(value);
+    };
     
     const handleMultiTextApply = () => {
         if (isDataEntryDisabled) {
@@ -127,12 +143,12 @@ export function DataEntryControls({
             const parts = line.split('=');
             if (parts.length !== 2) return;
 
-            const cellsStr = parts[0].replace(/[^0-9]/g, '');
+            const cellsStr = parts[0].replace(/[^0-9,]/g, '');
             const amount = parseFloat(parts[1]);
+            
+            if (isNaN(amount)) return;
 
-            if (isNaN(amount) || cellsStr.length % 2 !== 0) return;
-
-            const cells = cellsStr.match(/.{1,2}/g) || [];
+            const cells = cellsStr.split(',').filter(c => c.trim() !== '');
             const entryTotal = cells.length * amount;
 
             if (!checkBalance(entryTotal)) {
@@ -141,8 +157,10 @@ export function DataEntryControls({
             }
 
             cells.forEach(cell => {
-                const formattedCell = cell.padStart(2, '0');
-                updates[formattedCell] = (updates[formattedCell] || 0) + amount;
+                if (cell.length === 2) {
+                  const formattedCell = cell.padStart(2, '0');
+                  updates[formattedCell] = (updates[formattedCell] || 0) + amount;
+                }
             });
         });
 
@@ -350,7 +368,7 @@ export function DataEntryControls({
                     placeholder="e.g. 12,21=100 or 123_456(10)"
                     rows={4}
                     value={multiText}
-                    onChange={(e) => setMultiText(e.target.value)}
+                    onChange={handleMultiTextChange}
                     onKeyDown={(e) => handleKeyDown(e, 'multiText')}
                     className="w-full text-base"
                     disabled={isDataEntryDisabled}
