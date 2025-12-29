@@ -168,7 +168,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
 
   const handleClearClientData = (id: string, name: string) => {
     confirmAction(
-      `Clear Sheet Data for ${name}?`,
+      `Clear Sheet Data for ${name}?_`,
       "This action cannot be undone. This will permanently delete all sheet log history for this client.",
       () => onClearClientData(id, name)
     );
@@ -229,7 +229,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                 Add Client
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle>{editingClient ? "Edit Client" : "Add New Client"}</DialogTitle>
               </DialogHeader>
@@ -449,7 +449,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
       </Dialog>
       
       <Dialog open={!!transactionClient} onOpenChange={(open) => { if (!open) setTransactionClient(null) }}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
             <DialogHeader>
                 <DialogTitle>{transactionType === 'deposit' ? 'Record a Deposit for' : 'Record a Withdrawal for'} {transactionClient?.name}</DialogTitle>
             </DialogHeader>

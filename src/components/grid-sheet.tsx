@@ -350,7 +350,7 @@ const MasterSheetViewer = ({
       </div>
     </div>
      <Dialog open={isGeneratedSheetDialogOpen} onOpenChange={setIsGeneratedSheetDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Generated Master Sheet Content</DialogTitle>
           </DialogHeader>
@@ -716,7 +716,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
       </Card>
       
       <Dialog open={isMasterSheetDialogOpen} onOpenChange={setIsMasterSheetDialogOpen}>
-        <DialogContent className="max-w-none sm:max-w-none w-full h-full p-0 border-0">
+        <DialogContent className="h-full w-full max-w-none sm:max-w-none p-0 border-0">
           <DialogHeader className="flex-row items-center p-4 border-b">
             <Button variant="ghost" size="icon" onClick={() => setIsMasterSheetDialogOpen(false)} className="mr-2">
                 <ArrowLeft className="h-4 w-4" />
