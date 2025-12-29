@@ -105,7 +105,7 @@ const GrandTotalSummaryCard = ({
     )
 }
 
-const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperComm, upperPair, setUpperPair, onApply, appliedUpperComm, appliedUpperPair }: {
+const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperComm, upperPair, setUpperPair, onApply, appliedUpperComm, appliedUpperPair, selectedDate, setSelectedDate }: {
     userId?: string;
     clients: Client[];
     savedSheetLog: { [draw: string]: SavedSheetInfo[] };
@@ -116,9 +116,10 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
     onApply: () => void;
     appliedUpperComm: string;
     appliedUpperPair: string;
+    selectedDate: Date;
+    setSelectedDate: (date: Date) => void;
 }) => {
     const { declaredNumbers } = useDeclaredNumbers(userId);
-    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [selectedClientId, setSelectedClientId] = useState<string>('all');
     const [viewMode, setViewMode] = useState<'month' | 'year'>('month');
     
@@ -225,6 +226,25 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
       return reportData.reduce((acc, row) => acc + row.brokerProfit, 0);
     }, [reportData]);
 
+    const grandTotalForPeriod = useMemo(() => {
+        return reportData.reduce((acc, row) => {
+            acc.clientPayable += row.clientPayable;
+            acc.upperPayable += row.upperPayable;
+            acc.brokerProfit += row.brokerProfit;
+            return acc;
+        }, { clientPayable: 0, upperPayable: 0, brokerProfit: 0 });
+    }, [reportData]);
+
+    const hasData = useMemo(() => reportData.some(row => row.clientPayable !== 0 || row.upperPayable !== 0), [reportData]);
+
+    if (!hasData) {
+        return (
+            <div className="text-center text-muted-foreground py-10">
+                No data available for the selected period.
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
             <div className="p-4 border rounded-lg bg-muted/50">
@@ -250,7 +270,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                     <Button onClick={onApply}>Apply Settings</Button>
                 </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div className="space-y-2">
                     <Label>View By</Label>
                     <Select value={viewMode} onValueChange={(value) => setViewMode(value as 'month' | 'year')}>
@@ -262,34 +282,6 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                     </Select>
                 </div>
                 <div className="space-y-2">
-                    <Label>Select {viewMode === 'month' ? 'Month' : 'Year'}</Label>
-                    <Popover>
-                    <PopoverTrigger asChild>
-                        <Button
-                        variant={"outline"}
-                        className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !selectedDate && "text-muted-foreground"
-                        )}
-                        >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {selectedDate ? format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy") : <span>Pick a date</span>}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                        <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={(date) => date && setSelectedDate(date)}
-                        initialFocus
-                        captionLayout={viewMode === 'month' ? "dropdown-buttons" : undefined}
-                        fromYear={2020}
-                        toYear={new Date().getFullYear() + 1}
-                        />
-                    </PopoverContent>
-                    </Popover>
-                </div>
-                 <div className="space-y-2">
                     <Label>Filter by Client</Label>
                     <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -342,9 +334,11 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                     </TableBody>
                     <TableFooter>
                     <TableRow className="bg-muted/50 hover:bg-muted">
-                        <TableCell colSpan={3} className="font-bold text-lg text-right">Total Profit</TableCell>
-                        <TableCell className={`text-right font-bold text-lg ${totalProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {totalProfit >= 0 ? `+₹${formatNumber(totalProfit)}` : `-₹${formatNumber(Math.abs(totalProfit))}`}
+                        <TableCell colSpan={1} className="font-bold text-lg text-right">Total</TableCell>
+                        <TableCell className="text-right font-bold text-lg">₹{formatNumber(grandTotalForPeriod.clientPayable)}</TableCell>
+                        <TableCell className="text-right font-bold text-lg">₹{formatNumber(grandTotalForPeriod.upperPayable)}</TableCell>
+                        <TableCell className={`text-right font-bold text-lg ${grandTotalForPeriod.brokerProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {grandTotalForPeriod.brokerProfit >= 0 ? `+₹${formatNumber(grandTotalForPeriod.brokerProfit)}` : `-₹${formatNumber(Math.abs(grandTotalForPeriod.brokerProfit))}`}
                         </TableCell>
                     </TableRow>
                     </TableFooter>
@@ -511,6 +505,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 onApply={handleApplySettings}
                 appliedUpperComm={appliedUpperComm}
                 appliedUpperPair={appliedUpperPair}
+                selectedDate={summaryDate}
+                setSelectedDate={setSummaryDate}
              />
         </div>
       </CardContent>
