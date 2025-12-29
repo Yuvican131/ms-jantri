@@ -513,83 +513,92 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         <CardDescription>High-level overview of your brokerage operations.</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 space-y-6 overflow-y-auto">
-        <div>
-            <div className="flex items-center gap-4 mb-4">
-                <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
-                    <Landmark className="h-5 w-5" /> All Draws Summary
-                </h3>
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button
-                        variant={"outline"}
-                        className={cn(
-                            "w-[280px] justify-start text-left font-normal",
-                            !summaryDate && "text-muted-foreground"
-                        )}
-                        >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {summaryDate ? format(summaryDate, "PPP") : <span>Pick a date</span>}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                        <Calendar
-                        mode="single"
-                        selected={summaryDate}
-                        onSelect={(date) => date && setSummaryDate(date)}
-                        initialFocus
+        <div className="grid lg:grid-cols-2 gap-8">
+            <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                    <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
+                        <Landmark className="h-5 w-5" /> All Draws Summary
+                    </h3>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                            variant={"outline"}
+                            className={cn(
+                                "w-[280px] justify-start text-left font-normal",
+                                !summaryDate && "text-muted-foreground"
+                            )}
+                            >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {summaryDate ? format(summaryDate, "PPP") : <span>Pick a date</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                            <Calendar
+                            mode="single"
+                            selected={summaryDate}
+                            onSelect={(date) => date && setSummaryDate(date)}
+                            initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+                
+                <div className="flex justify-center mb-2">
+                    <div className="w-full max-w-sm">
+                        <RunningTotalSummaryCard 
+                            previousDayNet={previousDayNet}
+                            todayNet={todayNet}
+                            runningTotal={runningTotal}
                         />
-                    </PopoverContent>
-                </Popover>
-            </div>
-            
-             <div className="flex justify-center mb-2">
-                <div className="w-full max-w-sm">
-                    <RunningTotalSummaryCard 
-                        previousDayNet={previousDayNet}
-                        todayNet={todayNet}
-                        runningTotal={runningTotal}
-                    />
+                    </div>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {draws.map(drawName => (
+                        <BrokerDrawSummaryCard 
+                            key={drawName}
+                            title={drawName} 
+                            rawTotal={brokerRawDrawTotals[drawName] || 0} 
+                            passingTotal={brokerPassingDrawTotals[drawName] || 0}
+                        />
+                    ))}
+                    <div className="sm:col-span-2 lg:col-span-3 xl:col-span-1">
+                      <GrandTotalSummaryCard
+                          title="Final Summary"
+                          finalValue={finalNetTotalForBroker}
+                          grandRawTotal={grandRawTotal}
+                          grandPassingTotal={grandPassingTotal}
+                          brokerCommission={brokerCommission}
+                          upperPairRate={parseFloat(appliedUpperPair) || defaultUpperPair}
+                      />
+                    </div>
                 </div>
             </div>
-            
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3">
-                {draws.map(drawName => (
-                    <BrokerDrawSummaryCard 
-                        key={drawName}
-                        title={drawName} 
-                        rawTotal={brokerRawDrawTotals[drawName] || 0} 
-                        passingTotal={brokerPassingDrawTotals[drawName] || 0}
-                    />
-                ))}
-                <GrandTotalSummaryCard
-                    title="Final Summary"
-                    finalValue={finalNetTotalForBroker}
-                    grandRawTotal={grandRawTotal}
-                    grandPassingTotal={grandPassingTotal}
-                    brokerCommission={brokerCommission}
-                    upperPairRate={parseFloat(appliedUpperPair) || defaultUpperPair}
-                />
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold text-primary flex items-center gap-2">
+                    <Wallet className="h-5 w-5" /> Broker Profit &amp; Loss
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <BrokerProfitLoss 
+                      userId={userId}
+                      clients={clients} 
+                      savedSheetLog={savedSheetLog}
+                      upperComm={upperComm}
+                      setUpperComm={setUpperComm}
+                      upperPair={upperPair}
+                      setUpperPair={setUpperPair}
+                      onApply={handleApplySettings}
+                      appliedUpperComm={appliedUpperComm}
+                      appliedUpperPair={appliedUpperPair}
+                      selectedDate={summaryDate}
+                      setSelectedDate={setSummaryDate}
+                  />
+                </CardContent>
+              </Card>
             </div>
-        </div>
-        <Separator />
-        <div>
-            <h3 className="text-lg font-semibold mb-3 text-primary flex items-center gap-2">
-                <Wallet className="h-5 w-5" /> Broker Profit &amp; Loss
-            </h3>
-             <BrokerProfitLoss 
-                userId={userId}
-                clients={clients} 
-                savedSheetLog={savedSheetLog}
-                upperComm={upperComm}
-                setUpperComm={setUpperComm}
-                upperPair={upperPair}
-                setUpperPair={setUpperPair}
-                onApply={handleApplySettings}
-                appliedUpperComm={appliedUpperComm}
-                appliedUpperPair={appliedUpperPair}
-                selectedDate={summaryDate}
-                setSelectedDate={setSummaryDate}
-             />
         </div>
       </CardContent>
     </Card>
@@ -617,3 +626,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     
 
 
+
+
+    
