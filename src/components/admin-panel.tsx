@@ -106,34 +106,14 @@ const GrandTotalSummaryCard = ({
 }
 
 const RunningTotalSummaryCard = ({
-    previousDayNet,
-    todayNet,
     runningTotal
 }: {
-    previousDayNet: number;
-    todayNet: number;
     runningTotal: number;
 }) => {
-    const previousDayColor = previousDayNet >= 0 ? 'text-green-500' : 'text-red-500';
-    const todayColor = todayNet >= 0 ? 'text-green-500' : 'text-red-500';
     const runningTotalColor = runningTotal >= 0 ? 'text-green-500' : 'text-red-500';
 
     return (
         <Card className="p-2 bg-muted/50 border-border w-full max-w-[280px]">
-            <div className="flex items-center justify-between text-center">
-                <div className="flex-1 space-y-0.5">
-                    <p className="text-[10px] text-muted-foreground font-semibold">PREVIOUS</p>
-                    <p className={`text-sm font-bold ${previousDayColor}`}>{formatNumber(previousDayNet)}</p>
-                </div>
-                
-                <div className="font-bold text-lg text-muted-foreground mx-1">+</div>
-
-                <div className="flex-1 space-y-0.5">
-                    <p className="text-[10px] text-muted-foreground font-semibold">TODAY</p>
-                    <p className={`text-sm font-bold ${todayColor}`}>{formatNumber(todayNet)}</p>
-                </div>
-            </div>
-            <Separator className="my-1.5 bg-border/30" />
             <div className="flex items-center justify-between px-1">
                 <p className="text-xs text-foreground font-bold flex items-center gap-1"><Scale className="h-3 w-3"/>Running Net</p>
                 <p className={`text-lg font-extrabold ${runningTotalColor}`}>{formatNumber(runningTotal)}</p>
@@ -514,8 +494,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             <CardDescription>High-level overview of your brokerage operations.</CardDescription>
         </div>
         <RunningTotalSummaryCard 
-            previousDayNet={previousDayNet}
-            todayNet={todayNet}
             runningTotal={runningTotal}
         />
       </CardHeader>
@@ -617,6 +595,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
 
 
+
+    
 
     
 
