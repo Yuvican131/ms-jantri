@@ -133,12 +133,22 @@ const MasterSheetViewer = ({
             valueToAdd = numericValue - commission;
           }
 
-          newMasterData[key] = String((parseFloat(newMasterData[key]) || 0) + valueToAdd);
+          const existingValue = parseFloat(newMasterData[key]) || 0;
+          newMasterData[key] = String(existingValue + valueToAdd);
         });
       }
     });
+
+    if (showCommissionLess) {
+        Object.keys(newMasterData).forEach(key => {
+            newMasterData[key] = String(Math.round(parseFloat(newMasterData[key])));
+        });
+    }
+    
     setMasterSheetData(newMasterData);
-    setInitialMasterData(newMasterData);
+    if(!showCommissionLess) {
+        setInitialMasterData(newMasterData);
+    }
   }, [selectedLogIndices, currentLogs, clients, showCommissionLess]);
   
   const calculateRowTotal = (rowIndex: number, data: CellData) => {
@@ -817,4 +827,5 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
 
