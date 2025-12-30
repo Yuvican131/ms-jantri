@@ -113,15 +113,7 @@ export function DataEntryControls({
 
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const value = e.target.value;
-        const isTypingNumbers = /^[0-9,]*$/.test(value) && !value.includes('=') && !value.includes('(') && !value.includes(')');
-    
-        if (isTypingNumbers) {
-            const digitsOnly = value.replace(/,/g, '');
-            const formatted = digitsOnly.match(/.{1,2}/g)?.join(',') || '';
-            setMultiText(formatted);
-        } else {
-            setMultiText(value);
-        }
+        setMultiText(value);
     };
     
     const handleMultiTextApply = () => {
@@ -129,15 +121,16 @@ export function DataEntryControls({
             showClientSelectionToast();
             return;
         }
-
+    
         const updates: { [key: string]: number } = {};
         const text = multiText;
         let errorOccurred = false;
-
+    
         const processChunk = (numbersStr: string, amount: number) => {
-            const numbers = (numbersStr.match(/\d{2}/g) || []);
+            if (!amount || isNaN(amount)) return;
+            const numbers = numbersStr.match(/\d{2}/g) || [];
             if (numbers.length === 0) return;
-
+    
             const entryTotal = numbers.length * amount;
             if (!checkBalance(entryTotal)) {
                 errorOccurred = true;
@@ -147,43 +140,40 @@ export function DataEntryControls({
                 updates[num] = (updates[num] || 0) + amount;
             });
         };
+    
+        // Regex to find (amount) and then process what's before it
+        const bracketRegex = /([\s\S]*?)\((\d+)\)/g;
+        let lastIndex = 0;
+        let result;
+    
+        // Handle bracketed amounts like 11*22(100)33*44(200)
+        while ((result = bracketRegex.exec(text)) !== null) {
+            const numbersPart = result[1];
+            const amountPart = result[2];
+            processChunk(numbersPart, parseFloat(amountPart));
+            if(errorOccurred) break;
+            lastIndex = bracketRegex.lastIndex;
+        }
 
-        if (text.includes('(') && text.includes(')')) {
-             const parts = text.split(/(\(\d+\))/g).filter(p => p);
-             for (const part of parts) {
-                if (errorOccurred) break;
-                if (part.startsWith('(') && part.endsWith(')')) {
-                    const amount = parseInt(part.substring(1, part.length - 1), 10);
-                    const precedingPartIndex = parts.indexOf(part) - 1;
-                    if (precedingPartIndex >= 0 && amount) {
-                        const numbersStr = parts[precedingPartIndex];
-                        processChunk(numbersStr, amount);
-                    }
-                }
-            }
-
-        } else { // Handle comma/equals format, including complex pasted strings
-            const segments = text.split(/=|\s*into\s*/);
-            for (let i = 0; i < segments.length - 1; i++) {
-                if (errorOccurred) break;
-
-                const numbersStr = segments[i];
-                let amountStr = segments[i + 1];
-
-                // If the next segment also contains an equals, it's a new definition.
-                // We only care about the number part of it.
-                const nextEqualsIndex = amountStr.indexOf('=');
-                if (nextEqualsIndex > -1) {
-                    amountStr = amountStr.substring(0, nextEqualsIndex);
-                }
-                
-                // Clean up numbers and amount
-                const cleanNumbersStr = numbersStr.replace(/[^0-9,]/g, '');
-                const amount = parseFloat(amountStr);
-
-                if (!isNaN(amount) && cleanNumbersStr) {
-                    processChunk(cleanNumbersStr, amount);
-                }
+        if (errorOccurred) return;
+    
+        // Process any remaining text or if no brackets were found
+        const remainingText = text.substring(lastIndex);
+    
+        // Handle equals-style amounts like 11,22=100 33,44=200
+        const segments = remainingText.split(/=|\s*into\s*/i);
+        for (let i = 0; i < segments.length - 1; i++) {
+             if (errorOccurred) break;
+    
+            const numbersStr = segments[i];
+            const nextSegment = segments[i + 1] || "";
+            
+            // Find the amount, which is the number at the start of the next segment.
+            const amountMatch = nextSegment.match(/^\s*(\d+)/);
+            const amount = amountMatch ? parseFloat(amountMatch[1]) : NaN;
+    
+            if (!isNaN(amount)) {
+                processChunk(numbersStr, amount);
             }
         }
         
@@ -343,11 +333,7 @@ export function DataEntryControls({
                      if (e.shiftKey) { // Allow Shift+Enter for new lines
                         return;
                     }
-                    if (multiText.includes('=') || (multiText.includes('(') && multiText.includes(')'))) {
-                        handleMultiTextApply();
-                    } else if (multiText.trim() !== "" && /^[0-9,]+$/.test(multiText)) {
-                        setMultiText(multiText + '=');
-                    }
+                    handleMultiTextApply();
                     break;
             }
         }
@@ -392,7 +378,7 @@ export function DataEntryControls({
                 <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
                 <Textarea
                     ref={multiTextRef}
-                    placeholder="e.g. 12,21=100 or 1122(100)"
+                    placeholder="e.g. 12,21=100 or 11,22(100)"
                     rows={4}
                     value={multiText}
                     onChange={handleMultiTextChange}
@@ -513,6 +499,7 @@ export function DataEntryControls({
     );
 
     
+
 
 
 
