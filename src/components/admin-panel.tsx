@@ -508,18 +508,29 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     const runningTotal = useMemo(() => {
         const allLogs = Object.values(savedSheetLog).flat();
         if (allLogs.length === 0) {
-            const todaySettlement = settlements[format(summaryDate, 'yyyy-MM-dd')] || 0;
-            return todaySettlement;
+            // If no logs, check for settlements up to the current date
+            let cumulativeSettlement = 0;
+            Object.keys(settlements).forEach(dateKey => {
+                const settlementDate = startOfDay(parseISO(dateKey));
+                if (settlementDate <= startOfDay(summaryDate)) {
+                    cumulativeSettlement += settlements[dateKey];
+                }
+            });
+            return cumulativeSettlement;
         }
-    
-        const uniqueDates = [...new Set(
-            allLogs.map(log => startOfDay(parseISO(log.date)))
-        )].sort(compareAsc);
+
+        const allDatesWithActivity = [
+            ...new Set(allLogs.map(log => startOfDay(parseISO(log.date)))),
+            ...Object.keys(settlements).map(key => startOfDay(parseISO(key)))
+        ];
+        
+        const uniqueSortedDates = [...new Set(allDatesWithActivity.map(d => d.getTime()))]
+                                  .map(time => new Date(time))
+                                  .sort(compareAsc);
 
         let cumulativeNet = 0;
         
-        for (const date of uniqueDates) {
-            // Only process dates up to and including the selected summary date
+        for (const date of uniqueSortedDates) {
             if (date > startOfDay(summaryDate)) {
                 break;
             }
@@ -529,12 +540,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             const dailySettlement = settlements[dateKey] || 0;
             
             cumulativeNet += dailyNet + dailySettlement;
-        }
-
-        const selectedDateHasNoLogs = !uniqueDates.some(d => isSameDay(d, summaryDate));
-        if (selectedDateHasNoLogs) {
-             const selectedDaySettlement = settlements[format(summaryDate, 'yyyy-MM-dd')] || 0;
-             cumulativeNet += selectedDaySettlement;
         }
 
         return cumulativeNet;
@@ -695,5 +700,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
+
+    
 
     
