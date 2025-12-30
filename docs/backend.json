@@ -10,9 +10,14 @@
         "comm": { "type": "string" },
         "inOut": { "type": "string" },
         "patti": { "type": "string" },
-        "activeBalance": { "type": "number", "default": 0 }
+        "activeBalance": { "type": "number", "default": 0 },
+        "paymentType": {
+          "type": "string",
+          "enum": ["credit", "pre-paid"],
+          "default": "credit"
+        }
       },
-      "required": ["name", "pair", "comm", "inOut", "patti"]
+      "required": ["name", "pair", "comm", "inOut", "patti", "paymentType"]
     },
     "SheetLog": {
       "title": "SheetLog",

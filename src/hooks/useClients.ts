@@ -18,6 +18,7 @@ export type Client = {
   inOut: string;
   patti: string;
   activeBalance: number;
+  paymentType: 'credit' | 'pre-paid';
 };
 
 export const useClients = (userId?: string) => {

@@ -13,6 +13,7 @@ import type { Account } from "./accounts-manager"
 import { formatNumber } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import type { Client } from "@/hooks/useClients"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type ClientsManagerProps = {
   clients: Client[];
@@ -133,12 +134,13 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
     const patti = formData.get("patti") as string
     const activeBalanceStr = formData.get("activeBalance") as string;
     const activeBalance = parseFloat(activeBalanceStr) || 0;
+    const paymentType = formData.get("paymentType") as Client['paymentType'];
 
     if (editingClient) {
-      const updatedClient = { ...editingClient, name, pair, comm, inOut, patti, activeBalance };
+      const updatedClient = { ...editingClient, name, pair, comm, inOut, patti, activeBalance, paymentType };
       onUpdateClient(updatedClient);
     } else {
-      const newClient: Omit<Client, 'id'> = { name, pair, comm, inOut, patti, activeBalance }
+      const newClient: Omit<Client, 'id'> = { name, pair, comm, inOut, patti, activeBalance, paymentType }
       onAddClient(newClient);
     }
     setEditingClient(null)
@@ -268,17 +270,31 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="inOut">In/Out</Label>
-                    <Input id="inOut" name="inOut" defaultValue={editingClient?.inOut} placeholder="In/Out" required />
+                    <Label htmlFor="inOut">Phone Number (In/Out)</Label>
+                    <Input id="inOut" name="inOut" defaultValue={editingClient?.inOut} placeholder="Phone Number" required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="patti">Patti</Label>
                     <Input id="patti" name="patti" defaultValue={editingClient?.patti} placeholder="Patti" required />
                   </div>
                 </div>
-                <div>
-                  <Label htmlFor="activeBalance">Opening Balance</Label>
-                  <Input id="activeBalance" name="activeBalance" type="number" defaultValue={editingClient?.activeBalance} placeholder="e.g. 1000" />
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <Label htmlFor="activeBalance">Opening Balance</Label>
+                        <Input id="activeBalance" name="activeBalance" type="number" defaultValue={editingClient?.activeBalance} placeholder="e.g. 1000" />
+                    </div>
+                    <div>
+                        <Label htmlFor="paymentType">Payment Type</Label>
+                        <Select name="paymentType" defaultValue={editingClient?.paymentType || 'credit'}>
+                            <SelectTrigger id="paymentType">
+                                <SelectValue placeholder="Select Type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="credit">Credit</SelectItem>
+                                <SelectItem value="pre-paid">Pre-paid</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
                 <DialogFooter>
                   <DialogClose asChild>
