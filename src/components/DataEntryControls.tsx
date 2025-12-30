@@ -112,19 +112,7 @@ export function DataEntryControls({
     }, [laddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi]);
 
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        let value = e.target.value;
-        const [numbersPart, ...amountParts] = value.split('=');
-        const amountPart = amountParts.join('=');
-
-        // Only format if there is no '=' sign yet.
-        if (!value.includes('=')) {
-            // Remove non-numeric characters, then group by two and join with a comma
-            const digits = numbersPart.replace(/[^0-9]/g, '');
-            const formattedNumbers = digits.match(/.{1,2}/g)?.join(',') || '';
-            value = formattedNumbers;
-        }
-        
-        setMultiText(value);
+        setMultiText(e.target.value);
     };
     
     const handleMultiTextApply = () => {
@@ -323,7 +311,9 @@ export function DataEntryControls({
                     if (multiText.includes('=')) {
                         handleMultiTextApply();
                     } else if (multiText.trim() !== "") {
-                        setMultiText(prev => `${prev}=`);
+                        const digits = multiText.replace(/[^0-9]/g, '');
+                        const formattedNumbers = digits.match(/.{1,2}/g)?.join(',') || '';
+                        setMultiText(`${formattedNumbers}=`);
                     }
                     break;
             }
@@ -492,5 +482,3 @@ export function DataEntryControls({
       </div>
     );
 }
-
-    
