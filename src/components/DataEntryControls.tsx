@@ -113,9 +113,9 @@ export function DataEntryControls({
 
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const value = e.target.value;
-        // Only apply auto-comma formatting for keyboard typing of simple numbers.
-        // If the value contains characters other than digits and commas, it's likely a paste or complex entry.
-        if (/^[0-9,]*$/.test(value) && !value.includes('=')) {
+        const isTypingNumbers = /^[0-9,]*$/.test(value) && !value.includes('=') && !value.includes('(') && !value.includes(')');
+    
+        if (isTypingNumbers) {
             const digitsOnly = value.replace(/,/g, '');
             const formatted = digitsOnly.match(/.{1,2}/g)?.join(',') || '';
             setMultiText(formatted);
@@ -134,54 +134,57 @@ export function DataEntryControls({
         const text = multiText;
         let errorOccurred = false;
 
+        const processChunk = (numbersStr: string, amount: number) => {
+            const numbers = (numbersStr.match(/\d{2}/g) || []);
+            if (numbers.length === 0) return;
+
+            const entryTotal = numbers.length * amount;
+            if (!checkBalance(entryTotal)) {
+                errorOccurred = true;
+                return;
+            }
+            numbers.forEach(num => {
+                updates[num] = (updates[num] || 0) + amount;
+            });
+        };
+
         if (text.includes('(') && text.includes(')')) {
              const parts = text.split(/(\(\d+\))/g).filter(p => p);
-             let currentAmount = 0;
-
              for (const part of parts) {
+                if (errorOccurred) break;
                 if (part.startsWith('(') && part.endsWith(')')) {
-                    currentAmount = parseInt(part.substring(1, part.length - 1), 10);
-                } else if (currentAmount > 0) {
-                    const numbers = part.match(/\d{2}/g) || [];
-                    if (numbers.length > 0) {
-                        const entryTotal = numbers.length * currentAmount;
-                        if (!checkBalance(entryTotal)) {
-                            errorOccurred = true;
-                            break;
-                        }
-                        numbers.forEach(num => {
-                            updates[num] = (updates[num] || 0) + currentAmount;
-                        });
+                    const amount = parseInt(part.substring(1, part.length - 1), 10);
+                    const precedingPartIndex = parts.indexOf(part) - 1;
+                    if (precedingPartIndex >= 0 && amount) {
+                        const numbersStr = parts[precedingPartIndex];
+                        processChunk(numbersStr, amount);
                     }
                 }
-             }
+            }
 
-        } else { // Handle comma/equals format
-            const lines = multiText.split('\n');
-            lines.forEach(line => {
-                if (errorOccurred || line.trim() === "") return;
+        } else { // Handle comma/equals format, including complex pasted strings
+            const segments = text.split(/=|\s*into\s*/);
+            for (let i = 0; i < segments.length - 1; i++) {
+                if (errorOccurred) break;
 
-                const parts = line.split('=');
-                if (parts.length !== 2) return;
+                const numbersStr = segments[i];
+                let amountStr = segments[i + 1];
 
-                const cellsStr = parts[0].replace(/[^0-9,]/g, '');
-                const amount = parseFloat(parts[1]);
-                
-                if (isNaN(amount)) return;
-
-                const cells = cellsStr.split(',').filter(c => c.trim() !== '' && c.length === 2);
-                const entryTotal = cells.length * amount;
-
-                if (!checkBalance(entryTotal)) {
-                    errorOccurred = true;
-                    return;
+                // If the next segment also contains an equals, it's a new definition.
+                // We only care about the number part of it.
+                const nextEqualsIndex = amountStr.indexOf('=');
+                if (nextEqualsIndex > -1) {
+                    amountStr = amountStr.substring(0, nextEqualsIndex);
                 }
+                
+                // Clean up numbers and amount
+                const cleanNumbersStr = numbersStr.replace(/[^0-9,]/g, '');
+                const amount = parseFloat(amountStr);
 
-                cells.forEach(cell => {
-                  const formattedCell = cell.padStart(2, '0');
-                  updates[formattedCell] = (updates[formattedCell] || 0) + amount;
-                });
-            });
+                if (!isNaN(amount) && cleanNumbersStr) {
+                    processChunk(cleanNumbersStr, amount);
+                }
+            }
         }
         
         if (errorOccurred) return;
@@ -337,7 +340,7 @@ export function DataEntryControls({
                     handleHarupApply();
                     break;
                 case 'multiText':
-                    if (e.shiftKey) {
+                     if (e.shiftKey) { // Allow Shift+Enter for new lines
                         return;
                     }
                     if (multiText.includes('=') || (multiText.includes('(') && multiText.includes(')'))) {
@@ -510,5 +513,6 @@ export function DataEntryControls({
     );
 
     
+
 
 
