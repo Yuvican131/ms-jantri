@@ -167,7 +167,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
 
                 clientLogsForPeriod.forEach(log => {
                     clientGameTotalForPeriod += log.gameTotal;
-                    const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
+                    const declaredNumber = declaredNumbers[`{log.draw}-{log.date}`]?.number;
                     if (declaredNumber && log.data[declaredNumber]) {
                         clientPassingAmountForPeriod += parseFloat(log.data[declaredNumber]) || 0;
                     }
@@ -189,7 +189,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
 
             relevantLogs.forEach(log => {
                 totalGameAmount += log.gameTotal;
-                const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
+                const declaredNumber = declaredNumbers[`{log.draw}-{log.date}`]?.number;
                 if (declaredNumber && log.data[declaredNumber]) {
                     totalPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
                 }
@@ -315,7 +315,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                         </CardHeader>
                         <CardContent>
                             <div className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {totalProfit >= 0 ? `+₹${formatNumber(totalProfit)}` : `-₹${formatNumber(Math.abs(totalProfit))}`}
+                                {totalProfit >= 0 ? `+₹{formatNumber(totalProfit)}` : `-₹{formatNumber(Math.abs(totalProfit))}`}
                             </div>
                             <p className="text-xs text-muted-foreground">
                                 Total profit for {format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy")}
@@ -340,7 +340,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                                 <TableCell className="text-right">₹{formatNumber(row.clientPayable)}</TableCell>
                                 <TableCell className="text-right">₹{formatNumber(row.upperPayable)}</TableCell>
                                 <TableCell className={`text-right font-bold ${row.brokerProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                    {row.brokerProfit >= 0 ? `+₹${formatNumber(row.brokerProfit)}` : `-₹${formatNumber(Math.abs(row.brokerProfit))}`}
+                                    {row.brokerProfit >= 0 ? `+₹{formatNumber(row.brokerProfit)}` : `-₹{formatNumber(Math.abs(row.brokerProfit))}`}
                                 </TableCell>
                                 </TableRow>
                             ))}
@@ -351,7 +351,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                                 <TableCell className="text-right font-bold text-lg">₹{formatNumber(grandTotalForPeriod.clientPayable)}</TableCell>
                                 <TableCell className="text-right font-bold text-lg">₹{formatNumber(grandTotalForPeriod.upperPayable)}</TableCell>
                                 <TableCell className={`text-right font-bold text-lg ${grandTotalForPeriod.brokerProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                    {grandTotalForPeriod.brokerProfit >= 0 ? `+₹${formatNumber(grandTotalForPeriod.brokerProfit)}` : `-₹${formatNumber(Math.abs(grandTotalForPeriod.brokerProfit))}`}
+                                    {grandTotalForPeriod.brokerProfit >= 0 ? `+₹{formatNumber(grandTotalForPeriod.brokerProfit)}` : `-₹{formatNumber(Math.abs(grandTotalForPeriod.brokerProfit))}`}
                                 </TableCell>
                             </TableRow>
                             </TableFooter>
@@ -383,7 +383,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     const [appliedUpperPair, setAppliedUpperPair] = useState(defaultUpperPair.toString());
     const { declaredNumbers } = useDeclaredNumbers(userId);
     const [summaryDate, setSummaryDate] = useState<Date>(new Date());
-    const [previousDayTotal, setPreviousDayTotal] = useState(0);
 
     useEffect(() => {
         const savedComm = localStorage.getItem('upperBrokerComm');
@@ -406,93 +405,69 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         toast({ title: "Settings Applied", description: "Broker commission and pair rates have been updated." });
     };
 
-    const { reportData: dailyReportData } = useMemo(() => {
+    const calculateDailyProfit = useCallback((date: Date) => {
         const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
+        
+        let totalClientPayable = 0;
+        let totalUpperPayable = 0;
+        
+        const periodStart = startOfDay(date);
+        const periodEnd = endOfDay(date);
+        const allLogs = Object.values(savedSheetLog).flat();
 
-        const calculateDailyProfit = () => {
-            const yesterday = subDays(summaryDate, 1);
-            
-            const calculateProfitForPeriod = (periodStart: Date, periodEnd: Date): { clientPayable: number, upperPayable: number } => {
-                let totalClientPayable = 0;
-                let totalUpperPayable = 0;
-                let totalGameAmount = 0;
-                let totalPassingAmount = 0;
-                const allLogs = Object.values(savedSheetLog).flat();
+        const logsForPeriod = allLogs.filter(log => {
+            const logDate = new Date(log.date);
+            return logDate >= periodStart && logDate <= periodEnd;
+        });
 
-                clients.forEach(client => {
-                    let clientGameTotalForPeriod = 0;
-                    let clientPassingAmountForPeriod = 0;
-                    const clientCommPercent = (client.comm && !isNaN(parseFloat(client.comm))) ? parseFloat(client.comm) / 100 : 0;
-                    const clientPairRate = parseFloat(client.pair) || defaultClientPair;
+        // Calculate Client Payable
+        clients.forEach(client => {
+            let clientGameTotal = 0;
+            let clientPassingAmount = 0;
+            const clientCommPercent = (client.comm && !isNaN(parseFloat(client.comm))) ? parseFloat(client.comm) / 100 : 0;
+            const clientPairRate = parseFloat(client.pair) || defaultClientPair;
 
-                    const clientLogsForPeriod = allLogs.filter(log => {
-                        const logDate = new Date(log.date);
-                        return log.clientId === client.id && logDate >= periodStart && logDate <= periodEnd;
-                    });
+            logsForPeriod.filter(log => log.clientId === client.id).forEach(log => {
+                clientGameTotal += log.gameTotal;
+                const declaredNumber = declaredNumbers[`{log.draw}-{log.date}`]?.number;
+                if (declaredNumber && log.data[declaredNumber]) {
+                    clientPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
+                }
+            });
 
-                    clientLogsForPeriod.forEach(log => {
-                        clientGameTotalForPeriod += log.gameTotal;
-                        const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
-                        if (declaredNumber && log.data[declaredNumber]) {
-                            clientPassingAmountForPeriod += parseFloat(log.data[declaredNumber]) || 0;
-                        }
-                    });
+            if (clientGameTotal > 0) {
+                const clientCommission = clientGameTotal * clientCommPercent;
+                const clientNet = clientGameTotal - clientCommission;
+                const clientWinnings = clientPassingAmount * clientPairRate;
+                totalClientPayable += clientNet - clientWinnings;
+            }
+        });
 
-                    if (clientGameTotalForPeriod > 0) {
-                        const clientCommission = clientGameTotalForPeriod * clientCommPercent;
-                        const clientNet = clientGameTotalForPeriod - clientCommission;
-                        const clientWinnings = clientPassingAmountForPeriod * clientPairRate;
-                        totalClientPayable += clientNet - clientWinnings;
-                    }
-                });
+        // Calculate Upper Payable
+        let totalGameAmount = 0;
+        let totalPassingAmount = 0;
+        logsForPeriod.forEach(log => {
+            totalGameAmount += log.gameTotal;
+            const declaredNumber = declaredNumbers[`{log.draw}-{log.date}`]?.number;
+            if (declaredNumber && log.data[declaredNumber]) {
+                totalPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
+            }
+        });
+        
+        const upperCommission = totalGameAmount * upperCommPercent;
+        const upperNet = totalGameAmount - upperCommission;
+        const upperWinnings = totalPassingAmount * upperPairRate;
+        totalUpperPayable = upperNet - upperWinnings;
 
-                const relevantLogs = allLogs.filter(log => {
-                    const logDate = new Date(log.date);
-                    return logDate >= periodStart && logDate <= periodEnd;
-                });
+        return totalClientPayable - totalUpperPayable;
+    }, [appliedUpperComm, appliedUpperPair, clients, savedSheetLog, declaredNumbers]);
 
-                relevantLogs.forEach(log => {
-                    totalGameAmount += log.gameTotal;
-                    const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
-                    if (declaredNumber && log.data[declaredNumber]) {
-                        totalPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
-                    }
-                });
 
-                const upperCommission = totalGameAmount * upperCommPercent;
-                const upperNet = totalGameAmount - upperCommission;
-                const upperWinnings = totalPassingAmount * upperPairRate;
-                totalUpperPayable = upperNet - upperWinnings;
+    const todaysNet = useMemo(() => calculateDailyProfit(summaryDate), [calculateDailyProfit, summaryDate]);
+    const yesterdaysNet = useMemo(() => calculateDailyProfit(subDays(summaryDate, 1)), [calculateDailyProfit, summaryDate]);
 
-                return { clientPayable: totalClientPayable, upperPayable: totalUpperPayable };
-            };
-            
-            const yesterdayStart = startOfDay(yesterday);
-            const yesterdayEnd = endOfDay(yesterday);
-            const { clientPayable: yesterdayClientPayable, upperPayable: yesterdayUpperPayable } = calculateProfitForPeriod(yesterdayStart, yesterdayEnd);
-            const yesterdayBrokerProfit = yesterdayClientPayable - yesterdayUpperPayable;
-
-            const todayStart = startOfDay(summaryDate);
-            const todayEnd = endOfDay(summaryDate);
-            const { clientPayable: todayClientPayable, upperPayable: todayUpperPayable } = calculateProfitForPeriod(todayStart, todayEnd);
-            const todayBrokerProfit = todayClientPayable - todayUpperPayable;
-
-            setPreviousDayTotal(yesterdayBrokerProfit);
-
-            return {
-                reportData: [
-                    { date: yesterday, label: 'Yesterday', clientPayable: yesterdayClientPayable, upperPayable: yesterdayUpperPayable, brokerProfit: yesterdayBrokerProfit },
-                    { date: summaryDate, label: 'Today', clientPayable: todayClientPayable, upperPayable: todayUpperPayable, brokerProfit: todayBrokerProfit }
-                ]
-            };
-        };
-
-        return calculateDailyProfit();
-    }, [summaryDate, appliedUpperComm, appliedUpperPair, clients, savedSheetLog, declaredNumbers]);
-
-    const todaysNet = dailyReportData.find(d => d.label === 'Today')?.brokerProfit || 0;
-    const runningTotal = previousDayTotal + todaysNet;
+    const runningTotal = yesterdaysNet + todaysNet;
 
     const { 
         brokerRawDrawTotals, 
@@ -517,7 +492,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             for (const log of logsForDraw) {
                 rawTotalsByDraw[drawName] += log.gameTotal;
                 const dateStr = format(new Date(log.date), 'yyyy-MM-dd');
-                const declarationId = `${log.draw}-${dateStr}`;
+                const declarationId = `{log.draw}-{dateStr}`;
                 const declaredNum = declaredNumbers[declarationId]?.number;
 
                 if (declaredNum && log.data[declaredNum]) {
@@ -633,3 +608,5 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
+
+    
