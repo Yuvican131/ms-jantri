@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, X, Save, RotateCcw, Undo2, Eye, FileSpreadsheet, ArrowLeft, Grid, Edit } from "lucide-react"
+import { Download, Plus, AlertCircle, Loader2, Trash2, Copy, X, Save, RotateCcw, Undo2, Eye, FileSpreadsheet, ArrowLeft, Grid, Edit, TrendingUp, TrendingDown } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -114,6 +114,10 @@ const MasterSheetViewer = ({
     setSelectedLogIndices(logsForDate.map((_, index) => index));
   }, [draw, date, allSavedLogs]);
 
+  const calculateGrandTotal = (data: CellData) => {
+    return Object.values(data).reduce((sum, value) => sum + (parseFloat(value) || 0), 0);
+  };
+  
   React.useEffect(() => {
     const logsToProcess = (currentLogs || []);
     const newMasterData: CellData = {};
@@ -168,11 +172,9 @@ const MasterSheetViewer = ({
     return total;
   };
 
-  const calculateGrandTotal = (data: CellData) => {
-    return Object.values(data).reduce((sum, value) => sum + (parseFloat(value) || 0), 0);
-  };
-  
+  const initialGrandTotal = calculateGrandTotal(initialMasterData);
   const masterSheetGrandTotal = calculateGrandTotal(masterSheetData);
+  const netProfit = initialGrandTotal - masterSheetGrandTotal;
 
   const handleApplyCutting = () => {
     const cutValue = parseFloat(cuttingValue);
@@ -336,6 +338,27 @@ const MasterSheetViewer = ({
                       <Button size="sm" className="h-8">Apply</Button>
                   </div>
               </div>
+              <Separator />
+                <div className="p-2 bg-muted/50 rounded-lg">
+                    <h4 className="text-xs font-semibold text-center mb-2">Profit/Loss Summary</h4>
+                    <div className="space-y-1 text-xs">
+                        <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Original Total</span>
+                            <span className="font-mono font-semibold">₹{formatNumber(initialGrandTotal)}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Adjusted Total</span>
+                            <span className="font-mono font-semibold">₹{formatNumber(masterSheetGrandTotal)}</span>
+                        </div>
+                        <Separator className="my-1" />
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="font-bold">Net Profit/Loss</span>
+                            <span className={`font-mono font-bold ${netProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                              {netProfit >= 0 ? `+₹${formatNumber(netProfit)}` : `-₹${formatNumber(Math.abs(netProfit))}`}
+                            </span>
+                        </div>
+                    </div>
+                </div>
           </div>
           
 
