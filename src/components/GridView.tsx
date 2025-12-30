@@ -64,7 +64,7 @@ export function GridView({
 
                         return (
                             <div key={key} className="relative flex border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                                <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number font-bold" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
+                                <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
                                 <Input
                                     id={`cell-${key}`}
                                     type="text"
@@ -73,7 +73,7 @@ export function GridView({
                                     onBlur={() => handleCellBlur(key)}
                                     disabled={isDataEntryDisabled}
                                     onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
-                                    className={`p-0 h-full w-full text-center bg-transparent border-0 focus:ring-0 font-bold grid-cell-input transition-colors duration-300 ${isUpdated ? "bg-primary/20" : ""} ${isDataEntryDisabled ? 'cursor-not-allowed bg-muted/50' : ''}`}
+                                    className={`p-0 h-full w-full text-center bg-transparent border-0 focus:ring-0 grid-cell-input transition-colors duration-300 ${isUpdated ? "bg-primary/20" : ""} ${isDataEntryDisabled ? 'cursor-not-allowed bg-muted/50' : ''}`}
                                     style={{ color: 'var(--grid-cell-amount-color)' }}
                                     aria-label={`Cell ${key} value ${currentData[key] || 'empty'}`}
                                 />

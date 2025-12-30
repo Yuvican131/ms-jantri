@@ -43,8 +43,8 @@ body {
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 0 0% 98%;
     --grid-cell-border-color: 240 3.7% 20%;
-    --grid-cell-number-color: hsl(0 0% 98%);
-    --grid-cell-amount-color: hsl(210 90% 65%);
+    --grid-cell-number-color: hsl(210 90% 65%);
+    --grid-cell-amount-color: hsl(0 0% 98%);
     --grid-cell-total-color: hsl(120 70% 45%);
     --grid-cell-focus-ring-color: 35 90% 45%;
   }
@@ -82,8 +82,8 @@ body {
     --sidebar-border: 240 5.9% 90%;
     --sidebar-ring: 240 10% 3.9%;
     --grid-cell-border-color: 240 5.9% 90%;
-    --grid-cell-number-color: hsl(0 80% 50%);
-    --grid-cell-amount-color: hsl(215, 80%, 45%);
+    --grid-cell-number-color: hsl(210 90% 65%);
+    --grid-cell-amount-color: hsl(240 10% 3.9%);
     --grid-cell-total-color: hsl(150, 70%, 35%);
     --grid-cell-focus-ring-color: 150 59% 46%;
     --radius: 0.8rem;
