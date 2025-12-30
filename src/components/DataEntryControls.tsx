@@ -113,7 +113,8 @@ export function DataEntryControls({
 
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const value = e.target.value;
-        // Only auto-format if it's a simple string of digits being typed
+        // Only apply auto-comma formatting for keyboard typing of simple numbers.
+        // If the value contains characters other than digits and commas, it's likely a paste or complex entry.
         if (/^[0-9,]*$/.test(value) && !value.includes('=')) {
             const digitsOnly = value.replace(/,/g, '');
             const formatted = digitsOnly.match(/.{1,2}/g)?.join(',') || '';
@@ -509,3 +510,5 @@ export function DataEntryControls({
     );
 
     
+
+
