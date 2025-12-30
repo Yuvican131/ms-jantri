@@ -167,7 +167,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
 
                 clientLogsForPeriod.forEach(log => {
                     clientGameTotalForPeriod += log.gameTotal;
-                    const declaredNumber = declaredNumbers[`{log.draw}-{log.date}`]?.number;
+                    const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
                     if (declaredNumber && log.data[declaredNumber]) {
                         clientPassingAmountForPeriod += parseFloat(log.data[declaredNumber]) || 0;
                     }
@@ -315,7 +315,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                         </CardHeader>
                         <CardContent>
                             <div className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {totalProfit >= 0 ? `+₹{formatNumber(totalProfit)}` : `-₹{formatNumber(Math.abs(totalProfit))}`}
+                                {totalProfit >= 0 ? `+₹${formatNumber(totalProfit)}` : `-₹${formatNumber(Math.abs(totalProfit))}`}
                             </div>
                             <p className="text-xs text-muted-foreground">
                                 Total profit for {format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy")}
@@ -340,7 +340,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                                 <TableCell className="text-right">₹{formatNumber(row.clientPayable)}</TableCell>
                                 <TableCell className="text-right">₹{formatNumber(row.upperPayable)}</TableCell>
                                 <TableCell className={`text-right font-bold ${row.brokerProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                    {row.brokerProfit >= 0 ? `+₹{formatNumber(row.brokerProfit)}` : `-₹{formatNumber(Math.abs(row.brokerProfit))}`}
+                                    {row.brokerProfit >= 0 ? `+₹${formatNumber(row.brokerProfit)}` : `-₹${formatNumber(Math.abs(row.brokerProfit))}`}
                                 </TableCell>
                                 </TableRow>
                             ))}
@@ -351,7 +351,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                                 <TableCell className="text-right font-bold text-lg">₹{formatNumber(grandTotalForPeriod.clientPayable)}</TableCell>
                                 <TableCell className="text-right font-bold text-lg">₹{formatNumber(grandTotalForPeriod.upperPayable)}</TableCell>
                                 <TableCell className={`text-right font-bold text-lg ${grandTotalForPeriod.brokerProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                    {grandTotalForPeriod.brokerProfit >= 0 ? `+₹{formatNumber(grandTotalForPeriod.brokerProfit)}` : `-₹{formatNumber(Math.abs(grandTotalForPeriod.brokerProfit))}`}
+                                    {grandTotalForPeriod.brokerProfit >= 0 ? `+₹${formatNumber(grandTotalForPeriod.brokerProfit)}` : `-₹${formatNumber(Math.abs(grandTotalForPeriod.brokerProfit))}`}
                                 </TableCell>
                             </TableRow>
                             </TableFooter>
