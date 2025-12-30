@@ -113,13 +113,12 @@ export function DataEntryControls({
 
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const value = e.target.value;
-        const cleanValue = value.replace(/[^0-9]/g, "");
-
-        // Only auto-format if the input is purely numeric characters,
-        // suggesting the user is typing numbers and not pasting complex text.
-        if (value.match(/^[0-9]+$/) && value.length > 2 && value.length % 2 === 0) {
-            const formatted = cleanValue.match(/.{1,2}/g)?.join(",") || "";
-            setMultiText(formatted + (value.endsWith(",") ? "" : ""));
+        // Check if the value is a simple numeric string (allowing for commas)
+        // and doesn't contain other special characters for complex parsing.
+        if (/^[0-9,]*$/.test(value) && !value.includes('=') && !value.includes('(')) {
+            const cleanValue = value.replace(/[^0-9]/g, '');
+            const formatted = cleanValue.match(/.{1,2}/g)?.join(',') || '';
+            setMultiText(formatted);
         } else {
             setMultiText(value);
         }
@@ -131,76 +130,59 @@ export function DataEntryControls({
             return;
         }
     
-        const updates: { [key: string]: number } = {};
         let text = multiText;
         let errorOccurred = false;
-    
-        // Regex to find amounts in parentheses, e.g., (100) or (20)
-        const amountRegex = /\((\d+)\)/g;
-        let lastIndex = 0;
-        let result;
-    
-        while ((result = amountRegex.exec(text)) !== null) {
-            const amount = parseFloat(result[1]);
-            if (isNaN(amount)) continue;
-    
-            // Get the chunk of text before this amount
-            const chunk = text.substring(lastIndex, result.index);
-            
-            // Extract all 2-digit numbers from the chunk.
-            // This is robust and handles various separators and junk characters.
-            const numbers = chunk.match(/\d{2}/g) || [];
-    
-            if (numbers.length > 0) {
-                const entryTotal = numbers.length * amount;
-                if (!checkBalance(entryTotal)) {
-                    errorOccurred = true;
-                    break; 
-                }
-                numbers.forEach(num => {
-                    updates[num] = (updates[num] || 0) + amount;
-                });
+        const finalUpdates: { [key: string]: number } = {};
+
+        // Function to process a single chunk of text and apply a given amount
+        const applyAmountToNumbers = (numberChunk: string, amount: number) => {
+            const numbers = numberChunk.match(/\d{2}/g) || [];
+            if (numbers.length === 0) return;
+
+            const entryTotal = numbers.length * amount;
+            if (!checkBalance(entryTotal)) {
+                errorOccurred = true;
+                return;
             }
-    
-            lastIndex = amountRegex.lastIndex;
+            numbers.forEach(num => {
+                finalUpdates[num] = (finalUpdates[num] || 0) + amount;
+            });
+        };
+
+        // 1. Handle multi-line `numbers=amount` format
+        const lines = text.split('\n');
+        if (lines.length > 1 || text.includes('=')) {
+            lines.forEach(line => {
+                if (errorOccurred) return;
+                const parts = line.split('=');
+                if (parts.length === 2) {
+                    const numberChunk = parts[0];
+                    const amount = parseFloat(parts[1]);
+                    if (!isNaN(amount)) {
+                        applyAmountToNumbers(numberChunk, amount);
+                    }
+                }
+            });
         }
 
-        if (errorOccurred) return;
-    
-        // Process any remaining text that might use the equals (=) or "into" format
-        const remainingText = text.substring(lastIndex);
-        // Split by either '=' or the word 'into' (case-insensitive)
-        const segments = remainingText.split(/\s*=\s*|\s+into\s+/i);
-        
-        for (let i = 0; i < segments.length - 1; i++) {
+
+        // 2. Handle parenthesized amounts `(amount)` format
+        // This regex finds number groups followed by a parenthesized amount.
+        const mainRegex = /((?:(?:\d{2}[^\d()]*)+))\s*\((\d+)\)/g;
+        let match;
+        while ((match = mainRegex.exec(text)) !== null) {
             if (errorOccurred) break;
-    
-            const numbersStr = segments[i];
-            const nextSegment = segments[i + 1] || "";
-            
-            // The amount is the number at the beginning of the next segment.
-            const amountMatch = nextSegment.match(/^\s*(\d+)/);
-            const amount = amountMatch ? parseFloat(amountMatch[1]) : NaN;
-    
+            const numberChunk = match[1];
+            const amount = parseFloat(match[2]);
             if (!isNaN(amount)) {
-                const numbers = numbersStr.match(/\d{2}/g) || [];
-                if(numbers.length > 0){
-                    const entryTotal = numbers.length * amount;
-                    if (!checkBalance(entryTotal)) {
-                        errorOccurred = true;
-                        break;
-                    }
-                    numbers.forEach(num => {
-                        updates[num] = (updates[num] || 0) + amount;
-                    });
-                }
+                applyAmountToNumbers(numberChunk, amount);
             }
         }
         
         if (errorOccurred) return;
         
-        if (Object.keys(updates).length > 0) {
-            onDataUpdate(updates, multiText);
+        if (Object.keys(finalUpdates).length > 0) {
+            onDataUpdate(finalUpdates, multiText);
             setMultiText("");
             focusMultiText();
         }
@@ -523,6 +505,7 @@ export function DataEntryControls({
     );
 
     
+
 
 
 
