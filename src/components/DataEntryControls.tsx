@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogClose, DialogT
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import type { Client } from "@/hooks/useClients";
+import { formatNumber } from "@/lib/utils";
 
 interface DataEntryControlsProps {
     clients: Client[];
@@ -29,6 +30,8 @@ interface DataEntryControlsProps {
     getClientDisplay: (client: Client) => string;
     focusMultiText: () => void;
     openMasterSheet: () => void;
+    currentGridData: { [key: string]: string };
+    draw: string;
 }
 
 export function DataEntryControls({
@@ -46,6 +49,8 @@ export function DataEntryControls({
     getClientDisplay,
     focusMultiText,
     openMasterSheet,
+    currentGridData,
+    draw,
 }: DataEntryControlsProps) {
     const { toast } = useToast();
     const [multiText, setMultiText] = useState("");
@@ -113,9 +118,9 @@ export function DataEntryControls({
 
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const value = e.target.value;
-        // Check if the value is a simple numeric string (allowing for commas)
-        // and doesn't contain other special characters for complex parsing.
-        if (/^[0-9,]*$/.test(value) && !value.includes('=') && !value.includes('(')) {
+        const noSpecialChars = !value.includes('=') && !value.includes('(') && !value.includes(')');
+        
+        if (noSpecialChars && /^[0-9,]*$/.test(value.replace(/\s/g, ''))) {
             const cleanValue = value.replace(/[^0-9]/g, '');
             const formatted = cleanValue.match(/.{1,2}/g)?.join(',') || '';
             setMultiText(formatted);
@@ -129,55 +134,72 @@ export function DataEntryControls({
             showClientSelectionToast();
             return;
         }
-    
+
         let text = multiText;
+        if (!text.trim()) return;
+
         let errorOccurred = false;
         const finalUpdates: { [key: string]: number } = {};
 
-        // Function to process a single chunk of text and apply a given amount
-        const applyAmountToNumbers = (numberChunk: string, amount: number) => {
-            const numbers = numberChunk.match(/\d{2}/g) || [];
-            if (numbers.length === 0) return;
+        const processChunk = (numberChunk: string, amount: number) => {
+            if (isNaN(amount) || amount <= 0) return;
 
-            const entryTotal = numbers.length * amount;
+            const twoDigitNumbers = numberChunk.match(/\d{2}/g) || [];
+            
+            // For numbers like 202, 313, extract all possible 2-digit numbers
+            const otherNumbers = numberChunk.match(/\d{3,}/g) || [];
+            otherNumbers.forEach(numStr => {
+                for (let i = 0; i < numStr.length - 1; i++) {
+                    twoDigitNumbers.push(numStr.substring(i, i + 2));
+                }
+            });
+            
+            if (twoDigitNumbers.length === 0) return;
+
+            const entryTotal = twoDigitNumbers.length * amount;
             if (!checkBalance(entryTotal)) {
                 errorOccurred = true;
                 return;
             }
-            numbers.forEach(num => {
-                finalUpdates[num] = (finalUpdates[num] || 0) + amount;
+            twoDigitNumbers.forEach(num => {
+                const normalizedNum = num.padStart(2, '0');
+                finalUpdates[normalizedNum] = (finalUpdates[normalizedNum] || 0) + amount;
             });
         };
 
-        // 1. Handle multi-line `numbers=amount` format
         const lines = text.split('\n');
-        if (lines.length > 1 || text.includes('=')) {
-            lines.forEach(line => {
-                if (errorOccurred) return;
+        lines.forEach(line => {
+            if (errorOccurred) return;
+            
+            // Handle `numbers=amount` format
+            if (line.includes('=')) {
                 const parts = line.split('=');
-                if (parts.length === 2) {
+                if (parts.length >= 2) {
                     const numberChunk = parts[0];
                     const amount = parseFloat(parts[1]);
                     if (!isNaN(amount)) {
-                        applyAmountToNumbers(numberChunk, amount);
+                        processChunk(numberChunk, amount);
                     }
                 }
-            });
-        }
+            } 
+            // Handle `numbers(amount)` format
+            else if (line.includes('(') && line.includes(')')) {
+                 const segments = line.split('(');
+                 let numberBuffer = segments[0];
 
-
-        // 2. Handle parenthesized amounts `(amount)` format
-        // This regex finds number groups followed by a parenthesized amount.
-        const mainRegex = /((?:(?:\d{2}[^\d()]*)+))\s*\((\d+)\)/g;
-        let match;
-        while ((match = mainRegex.exec(text)) !== null) {
-            if (errorOccurred) break;
-            const numberChunk = match[1];
-            const amount = parseFloat(match[2]);
-            if (!isNaN(amount)) {
-                applyAmountToNumbers(numberChunk, amount);
+                 for (let i = 1; i < segments.length; i++) {
+                     const part = segments[i];
+                     const amountMatch = part.match(/(\d+)\)/);
+                     if (amountMatch) {
+                         const amount = parseFloat(amountMatch[1]);
+                         processChunk(numberBuffer, amount);
+                         numberBuffer = part.substring(amountMatch[0].length);
+                     } else {
+                         numberBuffer += '(' + part;
+                     }
+                 }
             }
-        }
+        });
         
         if (errorOccurred) return;
         
@@ -185,6 +207,8 @@ export function DataEntryControls({
             onDataUpdate(finalUpdates, multiText);
             setMultiText("");
             focusMultiText();
+        } else {
+             toast({ title: "No data processed", description: "Could not find valid number/amount pairs.", variant: "destructive" });
         }
     };
     
@@ -346,168 +370,231 @@ export function DataEntryControls({
     };
     
     const handleGenerateSheet = () => {
-        toast({ title: "Generate Sheet", description: "This feature is available in the master sheet view for now."})
+        if (isDataEntryDisabled) {
+            showClientSelectionToast();
+            return;
+        }
+
+        const valueToCells: { [value: string]: number[] } = {};
+
+        for (const key in currentGridData) {
+            const value = currentGridData[key];
+            if (value && value.trim() !== '' && !isNaN(Number(value)) && Number(value) !== 0) {
+                let cellNumber = parseInt(key);
+                if (!valueToCells[value]) {
+                    valueToCells[value] = [];
+                }
+                valueToCells[value].push(cellNumber);
+            }
+        }
+
+        const sheetBody = Object.entries(valueToCells)
+            .map(([value, cells]) => {
+                cells.sort((a, b) => a - b);
+                const formattedCells = cells.map(cell => String(cell).padStart(2, '0'));
+                return `${formattedCells.join(',')}=${value}`;
+            })
+            .join('\n');
+
+        const grandTotal = Object.values(currentGridData).reduce((sum, value) => sum + (parseFloat(value) || 0), 0);
+        const totalString = `Total = ${formatNumber(grandTotal)}`;
+
+        const fullContent = `${draw}\n${sheetBody}\n\n${totalString}`;
+
+        setGeneratedSheetContent(fullContent);
+        setIsGeneratedSheetDialogOpen(true);
+        toast({ title: "Client Sheet Generated", description: "The content has been generated based on the current grid." });
+    };
+
+    const handleCopyToClipboard = (content: string) => {
+        navigator.clipboard.writeText(content).then(() => {
+            toast({ title: "Copied to clipboard!" });
+        }, (err) => {
+            toast({ title: "Failed to copy", description: "Could not copy text to clipboard.", variant: "destructive" });
+            console.error('Failed to copy: ', err);
+        });
     };
     
     return (
-        <div className="flex flex-col gap-2 w-full min-h-0 lg:w-[320px] xl:w-[360px] flex-shrink-0">
-          <div className="border rounded-lg p-2 flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                  <Select value={selectedClientId || 'None'} onValueChange={onClientChange}>
-                      <SelectTrigger className="flex-grow h-8 text-xs">
-                          <SelectValue>
-                            {selectedClientId && clients.find(c => c.id === selectedClientId) ? getClientDisplay(clients.find(c => c.id === selectedClientId)!) : "Select Client"}
-                          </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                          <SelectItem value="None">None</SelectItem>
-                          {clients.map(client => (
-                              <SelectItem key={client.id} value={client.id}>
-                                {getClientDisplay(client)}
-                              </SelectItem>
-                          ))}
-                      </SelectContent>
-                  </Select>
-                  <Button onClick={onSave} disabled={!selectedClientId} size="sm" className="h-8 text-xs">
-                      <Save className="h-3 w-3 mr-1" />
-                      Save
-                  </Button>
-                  <Button onClick={onRevert} variant="outline" disabled={isRevertDisabled} size="sm" className="h-8 text-xs">
-                      <Undo2 className="h-3 w-3 mr-1" />
-                      Revert
-                  </Button>
+        <>
+            <div className="flex flex-col gap-2 w-full min-h-0 lg:w-[320px] xl:w-[360px] flex-shrink-0">
+              <div className="border rounded-lg p-2 flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                      <Select value={selectedClientId || 'None'} onValueChange={onClientChange}>
+                          <SelectTrigger className="flex-grow h-8 text-xs">
+                              <SelectValue>
+                                {selectedClientId && clients.find(c => c.id === selectedClientId) ? getClientDisplay(clients.find(c => c.id === selectedClientId)!) : "Select Client"}
+                              </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="None">None</SelectItem>
+                              {clients.map(client => (
+                                  <SelectItem key={client.id} value={client.id}>
+                                    {getClientDisplay(client)}
+                                  </SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
+                      <Button onClick={onSave} disabled={!selectedClientId} size="sm" className="h-8 text-xs">
+                          <Save className="h-3 w-3 mr-1" />
+                          Save
+                      </Button>
+                      <Button onClick={onRevert} variant="outline" disabled={isRevertDisabled} size="sm" className="h-8 text-xs">
+                          <Undo2 className="h-3 w-3 mr-1" />
+                          Revert
+                      </Button>
+                  </div>
               </div>
-          </div>
-          <ScrollArea className="flex-grow pr-2 -mr-2">
-          <div className="space-y-2 pr-2">
-            <div className="border rounded-lg p-2 flex flex-col gap-2">
-                <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
-                <Textarea
-                    ref={multiTextRef}
-                    placeholder="e.g. 12,21=100 or 11,22(100)"
-                    rows={4}
-                    value={multiText}
-                    onChange={handleMultiTextChange}
-                    onKeyDown={(e) => handleKeyDown(e, 'multiText')}
-                    className="w-full text-base"
-                    disabled={isDataEntryDisabled}
-                    onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
-                />
-                <div className="flex flex-wrap gap-2 mt-1 items-start">
-                    <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={isDataEntryDisabled} size="sm">Apply</Button>
-                    <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={isDataEntryDisabled} size="sm">
-                        Generate
-                    </Button>
-                    <Button onClick={onClear} variant="destructive" className="shrink-0 text-xs h-8" disabled={isDataEntryDisabled} size="sm">
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Clear
-                    </Button>
-                </div>
-            </div>
-            
-            <div className="border rounded-lg p-2 flex flex-col gap-2">
-              <h3 className="font-semibold mb-1 text-xs">Laddi</h3>
-              <div className="flex items-start gap-2 mb-1">
-                  <div className="flex-1 flex flex-col items-center gap-1">
-                      <Input
-                        ref={laddiNum1Ref}
-                        id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "Start" : "Num 1"}
-                        value={laddiNum1} onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9]/g, '');
-                            setLaddiNum1(val);
-                        }}
-                        onKeyDown={(e) => handleKeyDown(e, 'laddiNum1')} 
+              <ScrollArea className="flex-grow pr-2 -mr-2">
+              <div className="space-y-2 pr-2">
+                <div className="border rounded-lg p-2 flex flex-col gap-2">
+                    <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
+                    <Textarea
+                        ref={multiTextRef}
+                        placeholder="e.g. 12,21=100 or 11,22(100)"
+                        rows={4}
+                        value={multiText}
+                        onChange={handleMultiTextChange}
+                        onKeyDown={(e) => handleKeyDown(e, 'multiText')}
+                        className="w-full text-base"
                         disabled={isDataEntryDisabled}
                         onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
-                      />
-                  </div>
-                  <div className="flex flex-col items-center justify-center px-1 pt-1">
-                      <div className="text-xs font-bold text-primary">{combinationCount}</div>
-                      <span className="font-bold text-center text-sm">x</span>
-                  </div>
-                  <div className="flex-1 flex flex-col items-center gap-1">
-                      <Input
-                        ref={laddiNum2Ref}
-                        id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "End" : "Num 2"}
-                        value={laddiNum2} onChange={(e) => setLaddiNum2(e.target.value.replace(/[^0-9]/g, ''))} 
-                        onKeyDown={(e) => handleKeyDown(e, 'laddiNum2')} 
-                        disabled={isDataEntryDisabled}
-                        onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
-                      />
-                  </div>
-                  <div className="flex flex-col items-center justify-center px-1 pt-1">
-                      <span className="font-bold text-center text-sm">=</span>
-                  </div>
-                  <div className="flex-1 flex flex-col items-center gap-1">
-                    <Input
-                      ref={laddiAmountRef}
-                      id="laddiAmount" type="text" className="text-center font-bold h-8 text-sm"
-                      value={laddiAmount} onChange={(e) => setLaddiAmount(e.target.value.replace(/[^0-9]/g, ''))}
-                      placeholder="Amount" 
-                      onKeyDown={(e) => handleKeyDown(e, 'laddiAmount')} 
-                      disabled={isDataEntryDisabled}
-                      onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
                     />
-                  </div>
-              </div>
-              <div className="flex justify-between items-center gap-2 mt-1">
-                  <div className="flex items-center gap-x-3">
-                      <div className="flex items-center gap-1.5">
-                        <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={isDataEntryDisabled || runningLaddi} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
-                        <Label htmlFor="remove-jodda" className={`text-xs ${isDataEntryDisabled || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Jodda</Label>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Checkbox id="reverse-laddi" checked={reverseLaddi} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setReverseLaddi(Boolean(checked)) }} disabled={isDataEntryDisabled || runningLaddi} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
-                        <Label htmlFor="reverse-laddi" className={`text-xs ${isDataEntryDisabled || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Reverse</Label>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Checkbox id="running-laddi" checked={runningLaddi} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRunningLaddi(Boolean(checked)); setLaddiNum1(''); setLaddiNum2(''); }} disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
-                        <Label htmlFor="running-laddi" className={`text-xs ${isDataEntryDisabled ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Running</Label>
-                      </div>
-                  </div>
-                  <Button onClick={handleLaddiApply} disabled={isDataEntryDisabled} size="sm" className="h-8 text-xs">Apply</Button>
-              </div>
-            </div>
-          
-            <div className="border rounded-lg p-2 flex flex-col gap-2">
-              <h3 className="font-semibold mb-1 text-xs">HARUP</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                <div className="flex items-center gap-1">
-                    <Label htmlFor="harupA" className="w-6 text-center shrink-0 text-xs">A</Label>
-                    <Input ref={harupAInputRef} id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => setHarupA(e.target.value)} 
-                    onKeyDown={(e) => handleKeyDown(e, 'harupA')} 
-                    disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
+                    <div className="flex flex-wrap gap-2 mt-1 items-start">
+                        <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={isDataEntryDisabled} size="sm">Apply</Button>
+                        <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={isDataEntryDisabled} size="sm">
+                            Generate
+                        </Button>
+                        <Button onClick={onClear} variant="destructive" className="shrink-0 text-xs h-8" disabled={isDataEntryDisabled} size="sm">
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Clear
+                        </Button>
+                    </div>
                 </div>
-                <div className="flex items-center gap-1">
-                    <Label htmlFor="harupB" className="w-6 text-center shrink-0 text-xs">B</Label>
-                    <Input ref={harupBInputRef} id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => setHarupB(e.target.value)} 
-                    onKeyDown={(e) => handleKeyDown(e, 'harupB')} 
-                    disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
+                
+                <div className="border rounded-lg p-2 flex flex-col gap-2">
+                  <h3 className="font-semibold mb-1 text-xs">Laddi</h3>
+                  <div className="flex items-start gap-2 mb-1">
+                      <div className="flex-1 flex flex-col items-center gap-1">
+                          <Input
+                            ref={laddiNum1Ref}
+                            id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "Start" : "Num 1"}
+                            value={laddiNum1} onChange={(e) => {
+                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                setLaddiNum1(val);
+                            }}
+                            onKeyDown={(e) => handleKeyDown(e, 'laddiNum1')} 
+                            disabled={isDataEntryDisabled}
+                            onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
+                          />
+                      </div>
+                      <div className="flex flex-col items-center justify-center px-1 pt-1">
+                          <div className="text-xs font-bold text-primary">{combinationCount}</div>
+                          <span className="font-bold text-center text-sm">x</span>
+                      </div>
+                      <div className="flex-1 flex flex-col items-center gap-1">
+                          <Input
+                            ref={laddiNum2Ref}
+                            id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "End" : "Num 2"}
+                            value={laddiNum2} onChange={(e) => setLaddiNum2(e.target.value.replace(/[^0-9]/g, ''))} 
+                            onKeyDown={(e) => handleKeyDown(e, 'laddiNum2')} 
+                            disabled={isDataEntryDisabled}
+                            onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
+                          />
+                      </div>
+                      <div className="flex flex-col items-center justify-center px-1 pt-1">
+                          <span className="font-bold text-center text-sm">=</span>
+                      </div>
+                      <div className="flex-1 flex flex-col items-center gap-1">
+                        <Input
+                          ref={laddiAmountRef}
+                          id="laddiAmount" type="text" className="text-center font-bold h-8 text-sm"
+                          value={laddiAmount} onChange={(e) => setLaddiAmount(e.target.value.replace(/[^0-9]/g, ''))}
+                          placeholder="Amount" 
+                          onKeyDown={(e) => handleKeyDown(e, 'laddiAmount')} 
+                          disabled={isDataEntryDisabled}
+                          onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
+                        />
+                      </div>
+                  </div>
+                  <div className="flex justify-between items-center gap-2 mt-1">
+                      <div className="flex items-center gap-x-3">
+                          <div className="flex items-center gap-1.5">
+                            <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={isDataEntryDisabled || runningLaddi} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
+                            <Label htmlFor="remove-jodda" className={`text-xs ${isDataEntryDisabled || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Jodda</Label>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Checkbox id="reverse-laddi" checked={reverseLaddi} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setReverseLaddi(Boolean(checked)) }} disabled={isDataEntryDisabled || runningLaddi} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
+                            <Label htmlFor="reverse-laddi" className={`text-xs ${isDataEntryDisabled || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Reverse</Label>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Checkbox id="running-laddi" checked={runningLaddi} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRunningLaddi(Boolean(checked)); setLaddiNum1(''); setLaddiNum2(''); }} disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
+                            <Label htmlFor="running-laddi" className={`text-xs ${isDataEntryDisabled ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Running</Label>
+                          </div>
+                      </div>
+                      <Button onClick={handleLaddiApply} disabled={isDataEntryDisabled} size="sm" className="h-8 text-xs">Apply</Button>
+                  </div>
+                </div>
+              
+                <div className="border rounded-lg p-2 flex flex-col gap-2">
+                  <h3 className="font-semibold mb-1 text-xs">HARUP</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                    <div className="flex items-center gap-1">
+                        <Label htmlFor="harupA" className="w-6 text-center shrink-0 text-xs">A</Label>
+                        <Input ref={harupAInputRef} id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => setHarupA(e.target.value)} 
+                        onKeyDown={(e) => handleKeyDown(e, 'harupA')} 
+                        disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <Label htmlFor="harupB" className="w-6 text-center shrink-0 text-xs">B</Label>
+                        <Input ref={harupBInputRef} id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => setHarupB(e.target.value)} 
+                        onKeyDown={(e) => handleKeyDown(e, 'harupB')} 
+                        disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
+                    </div>
+                  </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Label htmlFor="harupAmount" className="w-6 text-center shrink-0 text-xs">=</Label>
+                      <Input ref={harupAmountInputRef} id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)} 
+                      onKeyDown={(e) => handleKeyDown(e, 'harupAmount')} 
+                      disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
+                      <Button onClick={handleHarupApply} disabled={isDataEntryDisabled} size="sm" className="h-8 text-xs">Apply</Button>
+                  </div>
                 </div>
               </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <Label htmlFor="harupAmount" className="w-6 text-center shrink-0 text-xs">=</Label>
-                  <Input ref={harupAmountInputRef} id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)} 
-                  onKeyDown={(e) => handleKeyDown(e, 'harupAmount')} 
-                  disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
-                  <Button onClick={handleHarupApply} disabled={isDataEntryDisabled} size="sm" className="h-8 text-xs">Apply</Button>
-              </div>
+            </ScrollArea>
+            <div className="border rounded-lg p-2 mt-2">
+                <Button onClick={openMasterSheet} variant="outline" className="w-full">
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    View Master Sheet
+                </Button>
             </div>
           </div>
-        </ScrollArea>
-        <div className="border rounded-lg p-2 mt-2">
-            <Button onClick={openMasterSheet} variant="outline" className="w-full">
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                View Master Sheet
-            </Button>
-        </div>
-      </div>
+            <Dialog open={isGeneratedSheetDialogOpen} onOpenChange={setIsGeneratedSheetDialogOpen}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Generated Client Sheet Content</DialogTitle>
+                </DialogHeader>
+                <div className="my-4">
+                  <Textarea
+                    readOnly
+                    value={generatedSheetContent}
+                    rows={Math.min(15, generatedSheetContent.split('\n').length)}
+                    className="bg-muted"
+                  />
+                </div>
+                <DialogFooter className="sm:justify-between">
+                  <DialogClose asChild>
+                    <Button type="button" variant="secondary">
+                      Close
+                    </Button>
+                  </DialogClose>
+                  <Button onClick={() => handleCopyToClipboard(generatedSheetContent)}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy to Clipboard
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+        </>
     );
-
-    
-
-
-
-
-
-
+}

@@ -1,3 +1,4 @@
+
 "use client"
 import React, { useState, useImperativeHandle, forwardRef, useRef, useCallback } from "react"
 import { useToast } from "@/hooks/use-toast"
@@ -684,6 +685,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                     getClientDisplay={getClientDisplay}
                     focusMultiText={focusMultiText}
                     openMasterSheet={() => setIsMasterSheetDialogOpen(true)}
+                    currentGridData={currentData}
+                    draw={props.draw}
                  />
               </TabsContent>
             </Tabs>
@@ -716,6 +719,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                   getClientDisplay={getClientDisplay}
                   focusMultiText={focusMultiText}
                   openMasterSheet={() => setIsMasterSheetDialogOpen(true)}
+                  currentGridData={currentData}
+                  draw={props.draw}
                />
             </div>
           )}
