@@ -142,12 +142,11 @@ export default function Home() {
   const updateAccountsFromLog = useCallback(() => {
     const dateForCalc = selectedDate || new Date();
     const allLogs = Object.values(savedSheetLog).flat();
-
+  
     const newAccounts = clients.map(client => {
       const clientCommissionPercent = parseFloat(client.comm) / 100;
       const passingMultiplier = parseFloat(client.pair) || 80;
-
-      // Group all logs by date for this client
+  
       const logsByDate: { [date: string]: SavedSheetInfo[] } = {};
       allLogs
         .filter(log => log.clientId === client.id)
@@ -158,21 +157,19 @@ export default function Home() {
           }
           logsByDate[dateStr].push(log);
         });
-
-      // Sort the dates to process chronologically
+  
       const sortedDates = Object.keys(logsByDate).sort((a, b) => compareAsc(new Date(a), new Date(b)));
       
       let runningBalance = client.activeBalance || 0;
       const selectedDayStart = startOfDay(dateForCalc);
-
-      // Iterate through all historical dates up to the day before the selected date
+  
       for (const dateStr of sortedDates) {
         const logDate = startOfDay(new Date(dateStr));
         
         if (logDate < selectedDayStart) {
           const logsForDay = logsByDate[dateStr];
           let dailyNetResult = 0;
-
+  
           for (const log of logsForDay) {
             const declaredNumberForLogDate = getDeclaredNumber(log.draw, logDate);
             const passingAmountInLog = declaredNumberForLogDate ? parseFloat(log.data[declaredNumberForLogDate] || "0") : 0;
@@ -186,13 +183,12 @@ export default function Home() {
           runningBalance += dailyNetResult;
         }
       }
-
+  
       const openingBalanceForSelectedDay = runningBalance;
       
-      // Now, calculate the impact of the selected day's logs
       const updatedDrawsForSelectedDay: { [key: string]: DrawData } = {};
       const logsForSelectedDay = logsByDate[format(dateForCalc, 'yyyy-MM-dd')] || [];
-
+  
       let netResultForSelectedDay = 0;
       
       draws.forEach(drawName => {
@@ -215,16 +211,16 @@ export default function Home() {
       });
       
       const closingBalance = openingBalanceForSelectedDay + netResultForSelectedDay;
-
+  
       return {
         id: client.id,
         clientName: client.name,
-        balance: closingBalance, // This is the final closing balance
-        openingBalance: openingBalanceForSelectedDay, // This is the balance at the start of the day
+        balance: closingBalance,
+        openingBalance: openingBalanceForSelectedDay,
         draws: updatedDrawsForSelectedDay,
       };
     });
-
+  
     setAccounts(newAccounts);
   }, [clients, savedSheetLog, getDeclaredNumber, selectedDate]);
 
