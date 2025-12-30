@@ -18,6 +18,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getYear
 import type { Client } from '@/hooks/useClients';
 import type { SavedSheetInfo } from '@/hooks/useSheetLog';
 import { useDeclaredNumbers, type DeclaredNumber } from '@/hooks/useDeclaredNumbers';
+import { useToast } from "@/hooks/use-toast";
 
 
 const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
@@ -113,7 +114,7 @@ const RunningTotalSummaryCard = ({
     const runningTotalColor = runningTotal >= 0 ? 'text-green-500' : 'text-red-500';
 
     return (
-        <Card className="p-2 bg-muted/50 border-border w-64">
+        <Card className="p-2 bg-muted/50 border-border">
             <div className="flex items-center justify-between px-1">
                 <p className="text-xs text-foreground font-bold flex items-center gap-1"><Scale className="h-3 w-3"/>Running Net</p>
                 <p className={`text-lg font-extrabold ${runningTotalColor}`}>{formatNumber(runningTotal)}</p>
@@ -375,6 +376,7 @@ type AdminPanelProps = {
 
 
 export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPanelProps) {
+    const { toast } = useToast();
     const [upperComm, setUpperComm] = useState(defaultUpperComm.toString());
     const [upperPair, setUpperPair] = useState(defaultUpperPair.toString());
     const [appliedUpperComm, setAppliedUpperComm] = useState(defaultUpperComm.toString());
@@ -382,9 +384,14 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     const { declaredNumbers } = useDeclaredNumbers(userId);
     const [summaryDate, setSummaryDate] = useState<Date>(new Date());
 
+    const [manualPreviousDayTotal, setManualPreviousDayTotal] = useState<number>(0);
+    const [previousDayTotalInput, setPreviousDayTotalInput] = useState<string>("0");
+
+
     useEffect(() => {
         const savedComm = localStorage.getItem('upperBrokerComm');
         const savedPair = localStorage.getItem('upperBrokerPair');
+        const savedPrevDayTotal = localStorage.getItem('manualPreviousDayTotal');
         if (savedComm) {
             setUpperComm(savedComm);
             setAppliedUpperComm(savedComm);
@@ -393,6 +400,13 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             setUpperPair(savedPair);
             setAppliedUpperPair(savedPair);
         }
+        if (savedPrevDayTotal) {
+            const total = parseFloat(savedPrevDayTotal);
+            if (!isNaN(total)) {
+                setManualPreviousDayTotal(total);
+                setPreviousDayTotalInput(String(total));
+            }
+        }
     }, []);
 
     const handleApplySettings = () => {
@@ -400,40 +414,47 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         setAppliedUpperPair(upperPair);
         localStorage.setItem('upperBrokerComm', upperComm);
         localStorage.setItem('upperBrokerPair', upperPair);
+        toast({ title: "Settings Applied", description: "Broker commission and pair rates have been updated." });
     };
 
-    const runningTotal = useMemo(() => {
+    const handleSetPreviousDayTotal = () => {
+        const total = parseFloat(previousDayTotalInput);
+        if (isNaN(total)) {
+            toast({ title: "Invalid Input", description: "Please enter a valid number.", variant: "destructive" });
+            return;
+        }
+        setManualPreviousDayTotal(total);
+        localStorage.setItem('manualPreviousDayTotal', String(total));
+        toast({ title: "Previous Day Total Set", description: `The opening balance for today is now ${formatNumber(total)}.` });
+    };
+
+    const todaysNet = useMemo(() => {
         const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
         
-        let totalNet = 0;
+        let dailyRawTotal = 0;
+        let dailyPassingTotal = 0;
+        for (const drawName of draws) {
+            const logsForDrawOnDate = (savedSheetLog[drawName] || []).filter(log => isSameDay(new Date(log.date), summaryDate));
 
-        const calculateDailyNet = (date: Date) => {
-            let dailyRawTotal = 0;
-            let dailyPassingTotal = 0;
-            for (const drawName of draws) {
-                const logsForDrawOnDate = (savedSheetLog[drawName] || []).filter(log => isSameDay(new Date(log.date), date));
-    
-                for (const log of logsForDrawOnDate) {
-                    dailyRawTotal += log.gameTotal;
-                    const dateStr = format(new Date(log.date), 'yyyy-MM-dd');
-                    const declarationId = `${log.draw}-${dateStr}`;
-                    const declaredNum = declaredNumbers[declarationId]?.number;
-    
-                    if (declaredNum && log.data[declaredNum]) {
-                        const passingAmount = parseFloat(log.data[declaredNum]) || 0;
-                        dailyPassingTotal += passingAmount;
-                    }
+            for (const log of logsForDrawOnDate) {
+                dailyRawTotal += log.gameTotal;
+                const dateStr = format(new Date(log.date), 'yyyy-MM-dd');
+                const declarationId = `${log.draw}-${dateStr}`;
+                const declaredNum = declaredNumbers[declarationId]?.number;
+
+                if (declaredNum && log.data[declaredNum]) {
+                    const passingAmount = parseFloat(log.data[declaredNum]) || 0;
+                    dailyPassingTotal += passingAmount;
                 }
             }
-            const brokerCommission = dailyRawTotal * upperCommPercent;
-            const finalGrandPassingTotal = dailyPassingTotal * upperPairRate;
-            return (dailyRawTotal - brokerCommission) - finalGrandPassingTotal;
         }
-
-        const todayNet = calculateDailyNet(summaryDate);
-        return todayNet;
+        const brokerCommission = dailyRawTotal * upperCommPercent;
+        const finalGrandPassingTotal = dailyPassingTotal * upperPairRate;
+        return (dailyRawTotal - brokerCommission) - finalGrandPassingTotal;
     }, [savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair, summaryDate]);
+
+    const runningTotal = manualPreviousDayTotal + todaysNet;
 
 
     const { 
@@ -494,15 +515,31 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             <CardTitle>Admin Panel</CardTitle>
             <CardDescription>High-level overview of your brokerage operations.</CardDescription>
         </div>
-        <RunningTotalSummaryCard 
-            runningTotal={runningTotal}
-        />
+        <div className="space-y-2 w-64">
+            <RunningTotalSummaryCard 
+                runningTotal={runningTotal}
+            />
+            <Card className="p-2 bg-muted/50 border-border">
+                <Label htmlFor="prev-day-total" className="text-xs font-semibold">Previous Day Total</Label>
+                <div className="flex items-center gap-2 mt-1">
+                    <Input
+                        id="prev-day-total"
+                        type="number"
+                        value={previousDayTotalInput}
+                        onChange={(e) => setPreviousDayTotalInput(e.target.value)}
+                        placeholder="Enter amount"
+                        className="h-8"
+                    />
+                    <Button size="sm" className="h-8" onClick={handleSetPreviousDayTotal}>Set</Button>
+                </div>
+            </Card>
+        </div>
       </CardHeader>
       <CardContent className="flex-1 space-y-6 overflow-y-auto">
         <div>
             <div className="flex items-center gap-4 mb-2">
                 <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
-                    <Landmark className="h-5 w-5" /> All Draws Summary
+                    <Landmark className="h-5 w-5" /> Daily Summary
                 </h3>
                 <Popover>
                     <PopoverTrigger asChild>
@@ -573,5 +610,3 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
-
-    
