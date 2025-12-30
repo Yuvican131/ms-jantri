@@ -26,6 +26,7 @@ import { DataEntryControls } from "./DataEntryControls"
 import { GridView } from "./GridView"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
 import { Separator } from "./ui/separator"
+import { Switch } from "@/components/ui/switch"
 
 
 type CellData = { [key: string]: string }
@@ -85,11 +86,13 @@ const MasterSheetViewer = ({
   allSavedLogs,
   draw,
   date,
+  clients,
   onDeleteLog,
 }: {
   allSavedLogs: { [draw: string]: SavedSheetInfo[] };
   draw: string;
   date: Date;
+  clients: Client[];
   onDeleteLog: (logId: string, clientName: string) => void;
 }) => {
   const { toast } = useToast();
@@ -102,6 +105,7 @@ const MasterSheetViewer = ({
   const [generatedSheetContent, setGeneratedSheetContent] = useState("");
   const [currentLogs, setCurrentLogs] = useState<SavedSheetInfo[]>([]);
   const [initialMasterData, setInitialMasterData] = useState<CellData>({});
+  const [showCommissionLess, setShowCommissionLess] = useState(false);
 
 
   React.useEffect(() => {
@@ -117,15 +121,25 @@ const MasterSheetViewer = ({
     selectedLogIndices.forEach(index => {
       const logEntry = logsToProcess[index];
       if (logEntry) {
+        const client = clients.find(c => c.id === logEntry.clientId);
+        const commissionRate = client ? (parseFloat(client.comm) / 100) : 0;
+
         Object.entries(logEntry.data).forEach(([key, value]) => {
           const numericValue = parseFloat(value) || 0;
-          newMasterData[key] = String((parseFloat(newMasterData[key]) || 0) + numericValue);
+          let valueToAdd = numericValue;
+
+          if (showCommissionLess) {
+            const commission = numericValue * commissionRate;
+            valueToAdd = numericValue - commission;
+          }
+
+          newMasterData[key] = String((parseFloat(newMasterData[key]) || 0) + valueToAdd);
         });
       }
     });
     setMasterSheetData(newMasterData);
     setInitialMasterData(newMasterData);
-  }, [selectedLogIndices, currentLogs]);
+  }, [selectedLogIndices, currentLogs, clients, showCommissionLess]);
   
   const calculateRowTotal = (rowIndex: number, data: CellData) => {
     let total = 0;
@@ -263,7 +277,7 @@ const MasterSheetViewer = ({
                                         type="text"
                                         readOnly
                                         className="p-0 h-full w-full text-center bg-transparent border-0 focus:ring-0 font-bold grid-cell-input transition-colors duration-300"
-                                        value={masterSheetData[key] || ''}
+                                        value={masterSheetData[key] ? formatNumber(masterSheetData[key]) : ''}
                                         aria-label={`Cell ${key}`}
                                         style={{ color: 'var(--grid-cell-amount-color)' }}
                                     />
@@ -292,6 +306,14 @@ const MasterSheetViewer = ({
         <div className="flex flex-col gap-4 w-full lg:w-[320px] xl:w-[360px] flex-shrink-0">
           <div className="border rounded-lg p-3 flex flex-col gap-3 bg-card">
               <h3 className="font-semibold text-sm text-card-foreground">Manual Controls</h3>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                    <Switch id="commission-less-switch" checked={showCommissionLess} onCheckedChange={setShowCommissionLess} />
+                    <Label htmlFor="commission-less-switch">Show Commission Less</Label>
+                </div>
+                <Button onClick={() => setMasterSheetData(initialMasterData)} size="sm" variant="outline"><RotateCcw className="h-3 w-3 mr-2" /> Reset</Button>
+              </div>
+              <Separator />
               <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                       <Label htmlFor="master-cutting" className="text-sm text-card-foreground w-16">Cutting</Label>
@@ -740,6 +762,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
              allSavedLogs={props.savedSheetLog}
              draw={props.draw}
              date={props.date}
+             clients={props.clients}
              onDeleteLog={(id, name) => setLogToDelete({ id, name })}
            />
         </DialogContent>
@@ -794,3 +817,4 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
