@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -112,9 +113,10 @@ export function DataEntryControls({
 
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const value = e.target.value;
-        // Only auto-format if it's a simple string of digits
-        if (/^[0-9]+$/.test(value)) {
-            const formatted = value.match(/.{1,2}/g)?.join(',') || '';
+        // Only auto-format if it's a simple string of digits being typed
+        if (/^[0-9,]*$/.test(value) && !value.includes('=')) {
+            const digitsOnly = value.replace(/,/g, '');
+            const formatted = digitsOnly.match(/.{1,2}/g)?.join(',') || '';
             setMultiText(formatted);
         } else {
             setMultiText(value);
