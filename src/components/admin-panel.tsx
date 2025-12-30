@@ -315,7 +315,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                         </CardHeader>
                         <CardContent>
                             <div className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {totalProfit >= 0 ? `+₹${formatNumber(totalProfit)}` : `-₹${formatNumber(Math.abs(totalProfit))}`}
+                                {totalProfit >= 0 ? `+${formatNumber(totalProfit)}` : `-${formatNumber(Math.abs(totalProfit))}`}
                             </div>
                             <p className="text-xs text-muted-foreground">
                                 Total profit for {format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy")}
@@ -386,18 +386,27 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
     const [jamaAmount, setJamaAmount] = useState('');
     const [lenaAmount, setLenaAmount] = useState('');
-    const [settledAmount, setSettledAmount] = useState(0);
+    
+    // Stores all settlements keyed by date string 'yyyy-MM-dd'
+    const [settlements, setSettlements] = useState<{[key: string]: number}>({});
 
-    const settlementStorageKey = `settlement-${format(summaryDate, 'yyyy-MM-dd')}`;
-
+    // Load settlements from local storage on initial render
     useEffect(() => {
-        const savedSettlement = localStorage.getItem(settlementStorageKey);
-        if (savedSettlement) {
-            setSettledAmount(parseFloat(savedSettlement));
-        } else {
-            setSettledAmount(0); // Reset for new day
+        try {
+            const savedSettlements = localStorage.getItem('brokerSettlements');
+            if (savedSettlements) {
+                setSettlements(JSON.parse(savedSettlements));
+            }
+        } catch (error) {
+            console.error("Failed to parse settlements from localStorage", error);
         }
-    }, [summaryDate, settlementStorageKey]);
+    }, []);
+
+    // Persist settlements to local storage whenever they change
+    useEffect(() => {
+        localStorage.setItem('brokerSettlements', JSON.stringify(settlements));
+    }, [settlements]);
+
 
     useEffect(() => {
         const savedComm = localStorage.getItem('upperBrokerComm');
@@ -430,12 +439,14 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         }
 
         const settlementChange = lena - jama;
-        const newSettledAmount = settledAmount + settlementChange;
+        const dateKey = format(summaryDate, 'yyyy-MM-dd');
         
-        setSettledAmount(newSettledAmount);
-        localStorage.setItem(settlementStorageKey, String(newSettledAmount));
+        setSettlements(prev => ({
+            ...prev,
+            [dateKey]: (prev[dateKey] || 0) + settlementChange
+        }));
         
-        toast({ title: "Settlement Recorded", description: `Today's settlement has been updated.` });
+        toast({ title: "Settlement Recorded", description: `Settlement for ${format(summaryDate, 'PPP')} has been updated.` });
         setJamaAmount('');
         setLenaAmount('');
     };
@@ -499,22 +510,39 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     }, [appliedUpperComm, appliedUpperPair, clients, savedSheetLog, declaredNumbers]);
 
 
-    const todaysNet = useMemo(() => calculateDailyProfit(summaryDate), [calculateDailyProfit, summaryDate]);
-
-    const historicalNet = useMemo(() => {
+    const runningTotal = useMemo(() => {
         const allLogs = Object.values(savedSheetLog).flat();
-        const uniquePastDates = [...new Set(
-            allLogs
-                .map(log => startOfDay(parseISO(log.date)))
-                .filter(date => date < startOfDay(summaryDate))
-        )];
+        if (allLogs.length === 0) return 0;
+    
+        const uniqueDates = [...new Set(
+            allLogs.map(log => startOfDay(parseISO(log.date)))
+        )].sort(compareAsc);
 
-        return uniquePastDates.reduce((total, date) => {
-            return total + calculateDailyProfit(date);
-        }, 0);
-    }, [savedSheetLog, summaryDate, calculateDailyProfit]);
+        let cumulativeProfit = 0;
+        
+        for (const date of uniqueDates) {
+            if (date > startOfDay(summaryDate)) {
+                break; // Stop if we've passed the selected date
+            }
+            
+            const dailyProfit = calculateDailyProfit(date);
+            const dateKey = format(date, 'yyyy-MM-dd');
+            const dailySettlement = settlements[dateKey] || 0;
+            
+            cumulativeProfit += dailyProfit + dailySettlement;
+        }
 
-    const runningTotal = historicalNet + todaysNet + settledAmount;
+        // If selected date has no logs, we still need to add its settlement
+        const selectedDateKey = format(summaryDate, 'yyyy-MM-dd');
+        if (!uniqueDates.some(d => isSameDay(d, summaryDate))) {
+             const selectedDaySettlement = settlements[selectedDateKey] || 0;
+             cumulativeProfit += selectedDaySettlement;
+        }
+
+        return cumulativeProfit;
+
+    }, [savedSheetLog, summaryDate, calculateDailyProfit, settlements]);
+
 
     const { 
         brokerRawDrawTotals, 
