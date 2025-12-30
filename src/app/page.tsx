@@ -141,7 +141,6 @@ export default function Home() {
 
   const updateAccountsFromLog = useCallback(() => {
     const dateForCalc = selectedDate || new Date();
-
     const allLogs = Object.values(savedSheetLog).flat();
 
     const newAccounts = clients.map(client => {
@@ -153,11 +152,13 @@ export default function Home() {
         const allLogsForClient = allLogs
             .filter(log => log.clientId === client.id)
             .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        
+        const selectedDayStart = new Date(dateForCalc);
+        selectedDayStart.setHours(0,0,0,0);
 
+        // First, calculate the true running balance up to the start of the selected day
         allLogsForClient.forEach(log => {
             const logDate = new Date(log.date);
-            const selectedDayStart = new Date(dateForCalc);
-            selectedDayStart.setHours(0,0,0,0);
             
             if (logDate < selectedDayStart) {
                 const declaredNumberForLogDate = getDeclaredNumber(log.draw, logDate);
@@ -172,8 +173,11 @@ export default function Home() {
                 runningBalance += netResultForLog;
             }
         });
-
+        
+        const openingBalanceForSelectedDay = runningBalance;
         const updatedDrawsForSelectedDay: { [key: string]: DrawData } = {};
+
+        // Now, calculate the impact of the selected day's logs on the balance
         draws.forEach(drawName => {
             const drawLogs = savedSheetLog[drawName] || [];
             const clientLogForSelectedDay = drawLogs.find(log =>
@@ -182,7 +186,6 @@ export default function Home() {
             );
 
             const totalAmount = clientLogForSelectedDay?.gameTotal || 0;
-            
             const declaredNumberForSelectedDay = getDeclaredNumber(drawName, dateForCalc);
             const passingAmount = declaredNumberForSelectedDay && clientLogForSelectedDay
                 ? parseFloat(clientLogForSelectedDay.data[declaredNumberForSelectedDay] || "0")
@@ -203,7 +206,8 @@ export default function Home() {
         return {
             id: client.id,
             clientName: client.name,
-            balance: runningBalance,
+            balance: runningBalance, // This is the final closing balance
+            openingBalance: openingBalanceForSelectedDay, // This is the balance at the start of the day
             draws: updatedDrawsForSelectedDay,
         };
     });

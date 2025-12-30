@@ -573,36 +573,5 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
-    
-    
-
-    
-
-    
-
-
-
-
-    
-
-
-
-
-    
-
-    
-
-    
-
-
-
-
-    
-
-    
-
-    
-
-    
 
     

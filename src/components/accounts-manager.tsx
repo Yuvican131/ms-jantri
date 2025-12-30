@@ -25,6 +25,7 @@ export type Account = {
   id: string
   clientName: string
   balance: number
+  openingBalance: number
   draws?: { [key: string]: DrawData }
 }
 
@@ -106,9 +107,8 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
                 const balanceValue = account.balance || 0;
                 const balanceColor = balanceValue >= 0 ? 'text-green-400' : 'text-red-500';
 
-                const activeBalance = client ? client.activeBalance || 0 : 0;
                 const totalPlayed = account.draws ? Object.values(account.draws).reduce((sum, d) => sum + (d?.totalAmount || 0), 0) : 0;
-                const remainingBalance = activeBalance - totalPlayed;
+                
                 const hasActiveDraws = account.draws && Object.values(account.draws).some(d => d.totalAmount > 0);
 
                 return (
@@ -121,17 +121,16 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
                     </AccordionTrigger>
                     <AccordionContent>
                       <div className="p-4 bg-card rounded-lg space-y-4">
-                        {client && activeBalance > 0 && (
-                           <div className="p-4 bg-muted/30 rounded-lg text-sm font-mono border">
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                              <span className="text-foreground/80">User Name</span><span className="text-right font-semibold text-primary">: {client?.name || 'N/A'}</span>
-                              <span className="text-foreground/80">Active Balance</span><span className="text-right font-semibold">: ₹{formatNumber(activeBalance)}</span>
-                              <span className="text-foreground/80">Total Played</span><span className="text-right font-semibold">: ₹{formatNumber(totalPlayed)}</span>
-                              <Separator className="my-1 col-span-2 bg-border/50" />
-                              <span className="text-foreground/80 font-bold">Remaining Balance</span><span className={`text-right font-bold ${remainingBalance < 0 ? 'text-red-500' : 'text-green-400'}`}>: ₹{formatNumber(remainingBalance)}</span>
-                            </div>
+                        
+                        <div className="p-4 bg-muted/30 rounded-lg text-sm font-mono border">
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                            <span className="text-foreground/80">User Name</span><span className="text-right font-semibold text-primary">: {client?.name || 'N/A'}</span>
+                            <span className="text-foreground/80">Opening Balance</span><span className="text-right font-semibold">: ₹{formatNumber(account.openingBalance)}</span>
+                            <span className="text-foreground/80">Total Played Today</span><span className="text-right font-semibold">: ₹{formatNumber(totalPlayed)}</span>
+                            <Separator className="my-1 col-span-2 bg-border/50" />
+                            <span className="text-foreground/80 font-bold">Closing Balance</span><span className={`text-right font-bold ${balanceValue < 0 ? 'text-red-500' : 'text-green-400'}`}>: ₹{formatNumber(balanceValue)}</span>
                           </div>
-                        )}
+                        </div>
                         
                         {hasActiveDraws ? (
                           <Tabs defaultValue={draws[0]} className="w-full">
@@ -157,7 +156,7 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
                           </Tabs>
                         ) : (
                           <div className="text-center text-muted-foreground italic py-8">
-                            No entries for this client.
+                            No entries for this client today.
                           </div>
                         )}
                       </div>
@@ -171,3 +170,5 @@ export default function AccountsManager({ accounts, clients, setAccounts }: Acco
     </Card>
   )
 }
+
+    
