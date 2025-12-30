@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getYear, getMonth, startOfYear, endOfYear, eachMonthOfInterval, startOfDay, endOfDay, subDays } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getYear, getMonth, startOfYear, endOfYear, eachMonthOfInterval, startOfDay, endOfDay, subDays, parseISO, compareAsc } from "date-fns";
 import type { Client } from '@/hooks/useClients';
 import type { SavedSheetInfo } from '@/hooks/useSheetLog';
 import { useDeclaredNumbers, type DeclaredNumber } from '@/hooks/useDeclaredNumbers';
@@ -500,9 +500,21 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
 
     const todaysNet = useMemo(() => calculateDailyProfit(summaryDate), [calculateDailyProfit, summaryDate]);
-    const yesterdaysNet = useMemo(() => calculateDailyProfit(subDays(summaryDate, 1)), [calculateDailyProfit, summaryDate]);
 
-    const runningTotal = yesterdaysNet + todaysNet + settledAmount;
+    const historicalNet = useMemo(() => {
+        const allLogs = Object.values(savedSheetLog).flat();
+        const uniquePastDates = [...new Set(
+            allLogs
+                .map(log => startOfDay(parseISO(log.date)))
+                .filter(date => date < startOfDay(summaryDate))
+        )];
+
+        return uniquePastDates.reduce((total, date) => {
+            return total + calculateDailyProfit(date);
+        }, 0);
+    }, [savedSheetLog, summaryDate, calculateDailyProfit]);
+
+    const runningTotal = historicalNet + todaysNet + settledAmount;
 
     const { 
         brokerRawDrawTotals, 
@@ -657,5 +669,3 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
-
-    
