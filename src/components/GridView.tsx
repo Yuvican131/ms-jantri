@@ -64,7 +64,7 @@ export function GridView({
 
                         return (
                             <div key={key} className="relative flex border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                                <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
+                                <div className="absolute top-0.5 left-1 text-xs sm:top-1 sm:left-1.5 sm:text-sm select-none pointer-events-none z-10" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
                                 <Input
                                     id={`cell-${key}`}
                                     type="text"
