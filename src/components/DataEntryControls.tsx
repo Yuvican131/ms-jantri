@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -122,36 +121,60 @@ export function DataEntryControls({
         }
 
         const updates: { [key: string]: number } = {};
-        const lines = multiText.split('\n');
+        const text = multiText.replace(/\s+/g, '');
         let errorOccurred = false;
 
-        lines.forEach(line => {
-            if (errorOccurred || line.trim() === "") return;
-
-            const parts = line.split('=');
-            if (parts.length !== 2) return;
-
-            const cellsStr = parts[0].replace(/[^0-9,]/g, '');
-            const amount = parseFloat(parts[1]);
+        // Logic for amounts in brackets, e.g. 11"22(100)33"44(50)
+        if (text.includes('(') && text.includes(')')) {
+            const parts = text.split(/\((\d+)\)/);
+            // parts will be [numbers, amount, numbers, amount, ...]
             
-            if (isNaN(amount)) return;
-
-            const cells = cellsStr.split(',').filter(c => c.trim() !== '');
-            const entryTotal = cells.length * amount;
-
-            if (!checkBalance(entryTotal)) {
-                errorOccurred = true;
-                return;
+            let currentAmount = 0;
+            for (let i = 0; i < parts.length; i++) {
+                if (i % 2 === 1) { // This is an amount part
+                    currentAmount = parseFloat(parts[i]);
+                } else { // This is a numbers part
+                    if (currentAmount > 0) {
+                        const numbers = parts[i].match(/\d{2}/g) || [];
+                        const entryTotal = numbers.length * currentAmount;
+                        if (!checkBalance(entryTotal)) {
+                            errorOccurred = true;
+                            break;
+                        }
+                        numbers.forEach(num => {
+                            updates[num] = (updates[num] || 0) + currentAmount;
+                        });
+                    }
+                }
             }
+        } else { // Logic for comma/equals format, e.g. 11,22=100
+            const lines = multiText.split('\n');
+            lines.forEach(line => {
+                if (errorOccurred || line.trim() === "") return;
 
-            cells.forEach(cell => {
-                if (cell.length === 2) {
+                const parts = line.split('=');
+                if (parts.length !== 2) return;
+
+                const cellsStr = parts[0].replace(/[^0-9,]/g, '');
+                const amount = parseFloat(parts[1]);
+                
+                if (isNaN(amount)) return;
+
+                const cells = cellsStr.split(',').filter(c => c.trim() !== '' && c.length === 2);
+                const entryTotal = cells.length * amount;
+
+                if (!checkBalance(entryTotal)) {
+                    errorOccurred = true;
+                    return;
+                }
+
+                cells.forEach(cell => {
                   const formattedCell = cell.padStart(2, '0');
                   updates[formattedCell] = (updates[formattedCell] || 0) + amount;
-                }
+                });
             });
-        });
-
+        }
+        
         if (errorOccurred) return;
         
         if (Object.keys(updates).length > 0) {
@@ -308,7 +331,7 @@ export function DataEntryControls({
                     if (e.shiftKey) {
                         return; // Allow new lines with Shift+Enter
                     }
-                    if (multiText.includes('=')) {
+                    if (multiText.includes('=') || (multiText.includes('(') && multiText.includes(')'))) {
                         handleMultiTextApply();
                     } else if (multiText.trim() !== "") {
                         const digits = multiText.replace(/[^0-9]/g, '');
@@ -359,7 +382,7 @@ export function DataEntryControls({
                 <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
                 <Textarea
                     ref={multiTextRef}
-                    placeholder="e.g. 12,21=100"
+                    placeholder="e.g. 12,21=100 or 1122(100)"
                     rows={4}
                     value={multiText}
                     onChange={handleMultiTextChange}
@@ -481,4 +504,3 @@ export function DataEntryControls({
         </div>
       </div>
     );
-}
