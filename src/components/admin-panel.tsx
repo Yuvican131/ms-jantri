@@ -1,6 +1,6 @@
 
 "use client"
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatNumber } from "@/lib/utils";
 import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy, Wallet, Calendar as CalendarIcon, Percent, Forward, TrendingUpIcon, TrendingDownIcon, Minus, Scale } from 'lucide-react';
@@ -189,7 +189,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
 
             relevantLogs.forEach(log => {
                 totalGameAmount += log.gameTotal;
-                const declaredNumber = declaredNumbers[`{log.draw}-{log.date}`]?.number;
+                const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
                 if (declaredNumber && log.data[declaredNumber]) {
                     totalPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
                 }
@@ -430,7 +430,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
             logsForPeriod.filter(log => log.clientId === client.id).forEach(log => {
                 clientGameTotal += log.gameTotal;
-                const declaredNumber = declaredNumbers[`{log.draw}-{log.date}`]?.number;
+                const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
                 if (declaredNumber && log.data[declaredNumber]) {
                     clientPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
                 }
@@ -449,7 +449,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         let totalPassingAmount = 0;
         logsForPeriod.forEach(log => {
             totalGameAmount += log.gameTotal;
-            const declaredNumber = declaredNumbers[`{log.draw}-{log.date}`]?.number;
+            const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
             if (declaredNumber && log.data[declaredNumber]) {
                 totalPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
             }
@@ -492,7 +492,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             for (const log of logsForDraw) {
                 rawTotalsByDraw[drawName] += log.gameTotal;
                 const dateStr = format(new Date(log.date), 'yyyy-MM-dd');
-                const declarationId = `{log.draw}-{dateStr}`;
+                const declarationId = `${log.draw}-${dateStr}`;
                 const declaredNum = declaredNumbers[declarationId]?.number;
 
                 if (declaredNum && log.data[declaredNum]) {
@@ -608,5 +608,3 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
-
-    
