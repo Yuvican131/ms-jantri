@@ -130,7 +130,8 @@ const MasterSheetViewer = ({
 
           if (showCommissionLess) {
             const commission = numericValue * commissionRate;
-            valueToAdd = numericValue - commission;
+            const netValue = numericValue - commission;
+            valueToAdd = Math.round(netValue / 5) * 5;
           }
 
           const existingValue = parseFloat(newMasterData[key]) || 0;
@@ -138,12 +139,6 @@ const MasterSheetViewer = ({
         });
       }
     });
-
-    if (showCommissionLess) {
-        Object.keys(newMasterData).forEach(key => {
-            newMasterData[key] = String(Math.round(parseFloat(newMasterData[key])));
-        });
-    }
     
     setMasterSheetData(newMasterData);
     if(!showCommissionLess) {
@@ -829,3 +824,6 @@ GridSheet.displayName = 'GridSheet';
 export default GridSheet;
 
 
+
+
+    
