@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { format, isSameDay } from "date-fns"
+import { format, isSameDay, startOfDay, subDays, compareAsc } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -144,76 +144,89 @@ export default function Home() {
     const allLogs = Object.values(savedSheetLog).flat();
 
     const newAccounts = clients.map(client => {
-        const clientCommissionPercent = parseFloat(client.comm) / 100;
-        const passingMultiplier = parseFloat(client.pair) || 80;
-        
-        let runningBalance = client.activeBalance || 0;
-        
-        const allLogsForClient = allLogs
-            .filter(log => log.clientId === client.id)
-            .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        
-        const selectedDayStart = new Date(dateForCalc);
-        selectedDayStart.setHours(0,0,0,0);
+      const clientCommissionPercent = parseFloat(client.comm) / 100;
+      const passingMultiplier = parseFloat(client.pair) || 80;
 
-        // First, calculate the true running balance up to the start of the selected day
-        allLogsForClient.forEach(log => {
-            const logDate = new Date(log.date);
-            
-            if (logDate < selectedDayStart) {
-                const declaredNumberForLogDate = getDeclaredNumber(log.draw, logDate);
-                const passingAmountInLog = declaredNumberForLogDate ? parseFloat(log.data[declaredNumberForLogDate] || "0") : 0;
-                
-                const gameTotal = log.gameTotal;
-                const commission = gameTotal * clientCommissionPercent;
-                const netFromGames = gameTotal - commission;
-                const winnings = passingAmountInLog * passingMultiplier;
-                const netResultForLog = netFromGames - winnings;
-
-                runningBalance += netResultForLog;
-            }
+      // Group all logs by date for this client
+      const logsByDate: { [date: string]: SavedSheetInfo[] } = {};
+      allLogs
+        .filter(log => log.clientId === client.id)
+        .forEach(log => {
+          const dateStr = log.date;
+          if (!logsByDate[dateStr]) {
+            logsByDate[dateStr] = [];
+          }
+          logsByDate[dateStr].push(log);
         });
+
+      // Sort the dates to process chronologically
+      const sortedDates = Object.keys(logsByDate).sort((a, b) => compareAsc(new Date(a), new Date(b)));
+      
+      let runningBalance = client.activeBalance || 0;
+      const selectedDayStart = startOfDay(dateForCalc);
+
+      // Iterate through all historical dates up to the day before the selected date
+      for (const dateStr of sortedDates) {
+        const logDate = startOfDay(new Date(dateStr));
         
-        const openingBalanceForSelectedDay = runningBalance;
-        const updatedDrawsForSelectedDay: { [key: string]: DrawData } = {};
+        if (logDate < selectedDayStart) {
+          const logsForDay = logsByDate[dateStr];
+          let dailyNetResult = 0;
 
-        // Now, calculate the impact of the selected day's logs on the balance
-        draws.forEach(drawName => {
-            const drawLogs = savedSheetLog[drawName] || [];
-            const clientLogForSelectedDay = drawLogs.find(log =>
-                log.clientId === client.id &&
-                isSameDay(new Date(log.date), dateForCalc)
-            );
-
-            const totalAmount = clientLogForSelectedDay?.gameTotal || 0;
-            const declaredNumberForSelectedDay = getDeclaredNumber(drawName, dateForCalc);
-            const passingAmount = declaredNumberForSelectedDay && clientLogForSelectedDay
-                ? parseFloat(clientLogForSelectedDay.data[declaredNumberForSelectedDay] || "0")
-                : 0;
+          for (const log of logsForDay) {
+            const declaredNumberForLogDate = getDeclaredNumber(log.draw, logDate);
+            const passingAmountInLog = declaredNumberForLogDate ? parseFloat(log.data[declaredNumberForLogDate] || "0") : 0;
             
+            const gameTotal = log.gameTotal;
+            const commission = gameTotal * clientCommissionPercent;
+            const netFromGames = gameTotal - commission;
+            const winnings = passingAmountInLog * passingMultiplier;
+            dailyNetResult += (netFromGames - winnings);
+          }
+          runningBalance += dailyNetResult;
+        }
+      }
+
+      const openingBalanceForSelectedDay = runningBalance;
+      
+      // Now, calculate the impact of the selected day's logs
+      const updatedDrawsForSelectedDay: { [key: string]: DrawData } = {};
+      const logsForSelectedDay = logsByDate[format(dateForCalc, 'yyyy-MM-dd')] || [];
+
+      let netResultForSelectedDay = 0;
+      
+      draws.forEach(drawName => {
+        const clientLogForSelectedDay = logsForSelectedDay.find(log => log.draw === drawName);
+        
+        const totalAmount = clientLogForSelectedDay?.gameTotal || 0;
+        const declaredNumberForSelectedDay = getDeclaredNumber(drawName, dateForCalc);
+        const passingAmount = declaredNumberForSelectedDay && clientLogForSelectedDay
+            ? parseFloat(clientLogForSelectedDay.data[declaredNumberForSelectedDay] || "0")
+            : 0;
+        
+        if (clientLogForSelectedDay) {
             const commissionOnDay = totalAmount * clientCommissionPercent;
             const netFromGamesOnDay = totalAmount - commissionOnDay;
             const winningsOnDay = passingAmount * passingMultiplier;
-            const netResultForDay = netFromGamesOnDay - winningsOnDay;
+            netResultForSelectedDay += (netFromGamesOnDay - winningsOnDay);
+        }
 
-            if (clientLogForSelectedDay) {
-                runningBalance += netResultForDay;
-            }
+        updatedDrawsForSelectedDay[drawName] = { totalAmount, passingAmount };
+      });
+      
+      const closingBalance = openingBalanceForSelectedDay + netResultForSelectedDay;
 
-            updatedDrawsForSelectedDay[drawName] = { totalAmount, passingAmount };
-        });
-
-        return {
-            id: client.id,
-            clientName: client.name,
-            balance: runningBalance, // This is the final closing balance
-            openingBalance: openingBalanceForSelectedDay, // This is the balance at the start of the day
-            draws: updatedDrawsForSelectedDay,
-        };
+      return {
+        id: client.id,
+        clientName: client.name,
+        balance: closingBalance, // This is the final closing balance
+        openingBalance: openingBalanceForSelectedDay, // This is the balance at the start of the day
+        draws: updatedDrawsForSelectedDay,
+      };
     });
 
     setAccounts(newAccounts);
-}, [clients, savedSheetLog, getDeclaredNumber, selectedDate]);
+  }, [clients, savedSheetLog, getDeclaredNumber, selectedDate]);
 
 
   useEffect(() => {
@@ -583,5 +596,7 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
