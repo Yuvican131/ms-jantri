@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -121,33 +122,30 @@ export function DataEntryControls({
         }
 
         const updates: { [key: string]: number } = {};
-        const text = multiText.replace(/\s+/g, '');
+        const text = multiText;
         let errorOccurred = false;
 
-        // Logic for amounts in brackets, e.g. 11"22(100)33"44(50)
         if (text.includes('(') && text.includes(')')) {
-            const parts = text.split(/\((\d+)\)/);
-            // parts will be [numbers, amount, numbers, amount, ...]
-            
+            const parts = text.split(/(\(\d+\))/);
             let currentAmount = 0;
+
             for (let i = 0; i < parts.length; i++) {
-                if (i % 2 === 1) { // This is an amount part
-                    currentAmount = parseFloat(parts[i]);
-                } else { // This is a numbers part
-                    if (currentAmount > 0) {
-                        const numbers = parts[i].match(/\d{2}/g) || [];
-                        const entryTotal = numbers.length * currentAmount;
-                        if (!checkBalance(entryTotal)) {
-                            errorOccurred = true;
-                            break;
-                        }
-                        numbers.forEach(num => {
-                            updates[num] = (updates[num] || 0) + currentAmount;
-                        });
+                const part = parts[i];
+                if (part.startsWith('(') && part.endsWith(')')) {
+                    currentAmount = parseInt(part.substring(1, part.length - 1), 10);
+                } else if (currentAmount > 0) {
+                    const numbers = part.match(/\d{2}/g) || [];
+                    const entryTotal = numbers.length * currentAmount;
+                    if (!checkBalance(entryTotal)) {
+                        errorOccurred = true;
+                        break;
                     }
+                    numbers.forEach(num => {
+                        updates[num] = (updates[num] || 0) + currentAmount;
+                    });
                 }
             }
-        } else { // Logic for comma/equals format, e.g. 11,22=100
+        } else {
             const lines = multiText.split('\n');
             lines.forEach(line => {
                 if (errorOccurred || line.trim() === "") return;
@@ -179,7 +177,7 @@ export function DataEntryControls({
         
         if (Object.keys(updates).length > 0) {
             onDataUpdate(updates, multiText);
-            setMultiText(""); // Clear on successful application
+            setMultiText("");
             focusMultiText();
         }
     };
@@ -329,14 +327,16 @@ export function DataEntryControls({
                     break;
                 case 'multiText':
                     if (e.shiftKey) {
-                        return; // Allow new lines with Shift+Enter
+                        return;
                     }
                     if (multiText.includes('=') || (multiText.includes('(') && multiText.includes(')'))) {
                         handleMultiTextApply();
                     } else if (multiText.trim() !== "") {
                         const digits = multiText.replace(/[^0-9]/g, '');
-                        const formattedNumbers = digits.match(/.{1,2}/g)?.join(',') || '';
-                        setMultiText(`${formattedNumbers}=`);
+                        if (digits.length > 0 && digits.length % 2 === 0) {
+                            const formattedNumbers = digits.match(/.{1,2}/g)?.join(',') || '';
+                            setMultiText(`${formattedNumbers}=`);
+                        }
                     }
                     break;
             }
@@ -413,9 +413,6 @@ export function DataEntryControls({
                         value={laddiNum1} onChange={(e) => {
                             const val = e.target.value.replace(/[^0-9]/g, '');
                             setLaddiNum1(val);
-                            if(!runningLaddi) {
-                              setLaddiNum2(val);
-                            }
                         }}
                         onKeyDown={(e) => handleKeyDown(e, 'laddiNum1')} 
                         disabled={isDataEntryDisabled}
@@ -504,3 +501,5 @@ export function DataEntryControls({
         </div>
       </div>
     );
+
+    
