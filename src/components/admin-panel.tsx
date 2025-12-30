@@ -189,7 +189,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
 
             relevantLogs.forEach(log => {
                 totalGameAmount += log.gameTotal;
-                const declaredNumber = declaredNumbers[`${log.draw}-${log_date}`]?.number;
+                const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
                 if (declaredNumber && log.data[declaredNumber]) {
                     totalPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
                 }
@@ -610,5 +610,3 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
-
-    
