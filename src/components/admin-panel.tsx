@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatNumber } from "@/lib/utils";
-import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy, Wallet, Calendar as CalendarIcon, Percent, Forward, TrendingUpIcon, TrendingDownIcon, Minus, Scale } from 'lucide-react';
+import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy, Wallet, Calendar as CalendarIcon, Percent, Forward, TrendingUpIcon, TrendingDownIcon, Minus, Scale, ArrowRight } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import type { Account } from "./accounts-manager";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -384,6 +384,21 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     const { declaredNumbers } = useDeclaredNumbers(userId);
     const [summaryDate, setSummaryDate] = useState<Date>(new Date());
 
+    const [jamaAmount, setJamaAmount] = useState('');
+    const [lenaAmount, setLenaAmount] = useState('');
+    const [settledAmount, setSettledAmount] = useState(0);
+
+    const settlementStorageKey = `settlement-${format(summaryDate, 'yyyy-MM-dd')}`;
+
+    useEffect(() => {
+        const savedSettlement = localStorage.getItem(settlementStorageKey);
+        if (savedSettlement) {
+            setSettledAmount(parseFloat(savedSettlement));
+        } else {
+            setSettledAmount(0); // Reset for new day
+        }
+    }, [summaryDate, settlementStorageKey]);
+
     useEffect(() => {
         const savedComm = localStorage.getItem('upperBrokerComm');
         const savedPair = localStorage.getItem('upperBrokerPair');
@@ -403,6 +418,26 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         localStorage.setItem('upperBrokerComm', upperComm);
         localStorage.setItem('upperBrokerPair', upperPair);
         toast({ title: "Settings Applied", description: "Broker commission and pair rates have been updated." });
+    };
+
+    const handleSettlement = () => {
+        const jama = parseFloat(jamaAmount) || 0;
+        const lena = parseFloat(lenaAmount) || 0;
+        
+        if (jama > 0 && lena > 0) {
+            toast({ title: "Invalid Entry", description: "Please enter a value in either Jama or Lena, not both.", variant: "destructive" });
+            return;
+        }
+
+        const settlementChange = lena - jama;
+        const newSettledAmount = settledAmount + settlementChange;
+        
+        setSettledAmount(newSettledAmount);
+        localStorage.setItem(settlementStorageKey, String(newSettledAmount));
+        
+        toast({ title: "Settlement Recorded", description: `Today's settlement has been updated.` });
+        setJamaAmount('');
+        setLenaAmount('');
     };
 
     const calculateDailyProfit = useCallback((date: Date) => {
@@ -467,7 +502,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     const todaysNet = useMemo(() => calculateDailyProfit(summaryDate), [calculateDailyProfit, summaryDate]);
     const yesterdaysNet = useMemo(() => calculateDailyProfit(subDays(summaryDate, 1)), [calculateDailyProfit, summaryDate]);
 
-    const runningTotal = yesterdaysNet + todaysNet;
+    const runningTotal = yesterdaysNet + todaysNet + settledAmount;
 
     const { 
         brokerRawDrawTotals, 
@@ -535,8 +570,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
       </CardHeader>
       <CardContent className="flex-1 space-y-6 overflow-y-auto">
         <div>
-            <div className="flex items-center gap-4 mb-2">
-                <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
+            <div className="flex items-center gap-4 mb-6 flex-wrap">
+                <h3 className="text-lg font-semibold text-primary flex items-center gap-2 flex-shrink-0">
                     <Landmark className="h-5 w-5" /> Daily Summary
                 </h3>
                 <Popover>
@@ -544,7 +579,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                         <Button
                         variant={"outline"}
                         className={cn(
-                            "w-[280px] justify-start text-left font-normal",
+                            "w-auto min-w-[240px] justify-start text-left font-normal",
                             !summaryDate && "text-muted-foreground"
                         )}
                         >
@@ -561,6 +596,20 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                         />
                     </PopoverContent>
                 </Popover>
+
+                <Card className="p-2 flex-grow">
+                    <div className="flex items-end gap-2">
+                        <div className='flex-grow'>
+                            <Label htmlFor='jama-amount' className='text-xs font-semibold text-red-500'>Jama (Pay Out)</Label>
+                            <Input id='jama-amount' placeholder='Amount' value={jamaAmount} onChange={e => {setJamaAmount(e.target.value); setLenaAmount('');}}/>
+                        </div>
+                        <div className='flex-grow'>
+                             <Label htmlFor='lena-amount' className='text-xs font-semibold text-green-500'>Lena (Receive)</Label>
+                            <Input id='lena-amount' placeholder='Amount' value={lenaAmount} onChange={e => {setLenaAmount(e.target.value); setJamaAmount('');}}/>
+                        </div>
+                        <Button onClick={handleSettlement} className="h-10">Settle</Button>
+                    </div>
+                </Card>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
@@ -608,3 +657,5 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
+
+    
