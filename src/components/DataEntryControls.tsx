@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -23,7 +22,7 @@ interface DataEntryControlsProps {
     isRevertDisabled: boolean;
     onDataUpdate: (updates: { [key: string]: number | string }, lastEntryString: string) => void;
     onClear: () => void;
-    setLastEntry: (entry: string) => setLastEntry;
+    setLastEntry: (entry: string) => void;
     checkBalance: (total: number) => boolean;
     showClientSelectionToast: () => void;
     getClientDisplay: (client: Client) => string;
@@ -112,7 +111,14 @@ export function DataEntryControls({
     }, [laddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi]);
 
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setMultiText(e.target.value);
+        const value = e.target.value;
+        // Only auto-format if it's a simple string of digits
+        if (/^[0-9]+$/.test(value)) {
+            const formatted = value.match(/.{1,2}/g)?.join(',') || '';
+            setMultiText(formatted);
+        } else {
+            setMultiText(value);
+        }
     };
     
     const handleMultiTextApply = () => {
@@ -126,26 +132,28 @@ export function DataEntryControls({
         let errorOccurred = false;
 
         if (text.includes('(') && text.includes(')')) {
-            const parts = text.split(/(\(\d+\))/);
-            let currentAmount = 0;
+             const parts = text.split(/(\(\d+\))/g).filter(p => p);
+             let currentAmount = 0;
 
-            for (let i = 0; i < parts.length; i++) {
-                const part = parts[i];
+             for (const part of parts) {
                 if (part.startsWith('(') && part.endsWith(')')) {
                     currentAmount = parseInt(part.substring(1, part.length - 1), 10);
                 } else if (currentAmount > 0) {
                     const numbers = part.match(/\d{2}/g) || [];
-                    const entryTotal = numbers.length * currentAmount;
-                    if (!checkBalance(entryTotal)) {
-                        errorOccurred = true;
-                        break;
+                    if (numbers.length > 0) {
+                        const entryTotal = numbers.length * currentAmount;
+                        if (!checkBalance(entryTotal)) {
+                            errorOccurred = true;
+                            break;
+                        }
+                        numbers.forEach(num => {
+                            updates[num] = (updates[num] || 0) + currentAmount;
+                        });
                     }
-                    numbers.forEach(num => {
-                        updates[num] = (updates[num] || 0) + currentAmount;
-                    });
                 }
-            }
-        } else {
+             }
+
+        } else { // Handle comma/equals format
             const lines = multiText.split('\n');
             lines.forEach(line => {
                 if (errorOccurred || line.trim() === "") return;
@@ -331,12 +339,8 @@ export function DataEntryControls({
                     }
                     if (multiText.includes('=') || (multiText.includes('(') && multiText.includes(')'))) {
                         handleMultiTextApply();
-                    } else if (multiText.trim() !== "") {
-                        const digits = multiText.replace(/[^0-9]/g, '');
-                        if (digits.length > 0 && digits.length % 2 === 0) {
-                            const formattedNumbers = digits.match(/.{1,2}/g)?.join(',') || '';
-                            setMultiText(`${formattedNumbers}=`);
-                        }
+                    } else if (multiText.trim() !== "" && /^[0-9,]+$/.test(multiText)) {
+                        setMultiText(multiText + '=');
                     }
                     break;
             }
