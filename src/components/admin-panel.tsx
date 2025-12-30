@@ -31,7 +31,7 @@ type ReportRow = {
   date: Date;
   clientPayable: number;
   upperPayable: number;
-  brokerProfit: number;
+  brokerNet: number;
 };
 
 const BrokerDrawSummaryCard = ({ 
@@ -124,7 +124,7 @@ const RunningTotalSummaryCard = ({
 };
 
 
-const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperComm, upperPair, setUpperPair, onApply, appliedUpperComm, appliedUpperPair, selectedDate, setSelectedDate }: {
+const BrokerReport = ({ userId, clients, savedSheetLog, upperComm, setUpperComm, upperPair, setUpperPair, onApply, appliedUpperComm, appliedUpperPair, selectedDate, setSelectedDate }: {
     userId?: string;
     clients: Client[];
     savedSheetLog: { [draw: string]: SavedSheetInfo[] };
@@ -147,7 +147,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
         const clientsToProcess = selectedClientId === 'all' ? clients : clients.filter(c => c.id === selectedClientId);
 
-        const calculateProfitForPeriod = (periodStart: Date, periodEnd: Date): { clientPayable: number, upperPayable: number } => {
+        const calculateNetForPeriod = (periodStart: Date, periodEnd: Date): { clientPayable: number, upperPayable: number } => {
             let totalClientPayable = 0;
             let totalUpperPayable = 0;
             let totalGameAmount = 0;
@@ -211,13 +211,13 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
             return daysInMonth.map(day => {
                 const dayStart = startOfDay(day);
                 const dayEnd = endOfDay(day);
-                const { clientPayable, upperPayable } = calculateProfitForPeriod(dayStart, dayEnd);
+                const { clientPayable, upperPayable } = calculateNetForPeriod(dayStart, dayEnd);
                 return {
                     date: day,
                     label: format(day, "EEE, dd MMM yyyy"),
                     clientPayable,
                     upperPayable,
-                    brokerProfit: clientPayable - upperPayable,
+                    brokerNet: clientPayable - upperPayable,
                 };
             }).filter(row => row.clientPayable !== 0 || row.upperPayable !== 0);
         } else { // viewMode === 'year'
@@ -228,30 +228,30 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
             return monthsInYear.map(month => {
                 const monthStart = startOfMonth(month);
                 const monthEnd = endOfMonth(month);
-                const { clientPayable, upperPayable } = calculateProfitForPeriod(monthStart, monthEnd);
+                const { clientPayable, upperPayable } = calculateNetForPeriod(monthStart, monthEnd);
                 return {
                     date: month,
                     label: format(month, "MMMM yyyy"),
                     clientPayable,
                     upperPayable,
-                    brokerProfit: clientPayable - upperPayable,
+                    brokerNet: clientPayable - upperPayable,
                 };
             }).filter(row => row.clientPayable !== 0 || row.upperPayable !== 0);
         }
     
     }, [selectedDate, appliedUpperComm, appliedUpperPair, clients, savedSheetLog, declaredNumbers, selectedClientId, viewMode]);
   
-    const totalProfit = useMemo(() => {
-      return reportData.reduce((acc, row) => acc + row.brokerProfit, 0);
+    const totalNet = useMemo(() => {
+      return reportData.reduce((acc, row) => acc + row.brokerNet, 0);
     }, [reportData]);
 
     const grandTotalForPeriod = useMemo(() => {
         return reportData.reduce((acc, row) => {
             acc.clientPayable += row.clientPayable;
             acc.upperPayable += row.upperPayable;
-            acc.brokerProfit += row.brokerProfit;
+            acc.brokerNet += row.brokerNet;
             return acc;
-        }, { clientPayable: 0, upperPayable: 0, brokerProfit: 0 });
+        }, { clientPayable: 0, upperPayable: 0, brokerNet: 0 });
     }, [reportData]);
 
     const hasData = useMemo(() => reportData.some(row => row.clientPayable !== 0 || row.upperPayable !== 0), [reportData]);
@@ -309,16 +309,16 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
                             <CardTitle className="text-sm font-medium">
-                                {viewMode === 'month' ? 'Monthly' : 'Yearly'} Summary
+                                {viewMode === 'month' ? 'Monthly' : 'Yearly'} Net
                             </CardTitle>
                             <Wallet className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {totalProfit >= 0 ? `+${formatNumber(totalProfit)}` : `-${formatNumber(Math.abs(totalProfit))}`}
+                            <div className={`text-2xl font-bold ${totalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                {totalNet >= 0 ? `+${formatNumber(totalNet)}` : `-${formatNumber(Math.abs(totalNet))}`}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                Total profit for {format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy")}
+                                Total net for {format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy")}
                             </p>
                         </CardContent>
                     </Card>
@@ -328,19 +328,19 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                             <TableHeader>
                             <TableRow>
                                 <TableHead>{viewMode === 'month' ? 'Date' : 'Month'}</TableHead>
-                                <TableHead className="text-right">Client Payable</TableHead>
-                                <TableHead className="text-right">Upper Payable</TableHead>
-                                <TableHead className="text-right">Broker Profit/Loss</TableHead>
+                                <TableHead className="text-right">Client Net</TableHead>
+                                <TableHead className="text-right">Upper Net</TableHead>
+                                <TableHead className="text-right">Broker Net</TableHead>
                             </TableRow>
                             </TableHeader>
                             <TableBody>
                             {reportData.map((row, index) => (
-                                <TableRow key={index} className={row.brokerProfit === 0 && row.clientPayable === 0 ? "text-muted-foreground" : ""}>
+                                <TableRow key={index} className={row.brokerNet === 0 && row.clientPayable === 0 ? "text-muted-foreground" : ""}>
                                 <TableCell className="font-medium">{row.label}</TableCell>
                                 <TableCell className="text-right">₹{formatNumber(row.clientPayable)}</TableCell>
                                 <TableCell className="text-right">₹{formatNumber(row.upperPayable)}</TableCell>
-                                <TableCell className={`text-right font-bold ${row.brokerProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                    {row.brokerProfit >= 0 ? `+₹${formatNumber(row.brokerProfit)}` : `-₹${formatNumber(Math.abs(row.brokerProfit))}`}
+                                <TableCell className={`text-right font-bold ${row.brokerNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    {row.brokerNet >= 0 ? `+₹${formatNumber(row.brokerNet)}` : `-₹${formatNumber(Math.abs(row.brokerNet))}`}
                                 </TableCell>
                                 </TableRow>
                             ))}
@@ -350,8 +350,8 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog, upperComm, setUpperC
                                 <TableCell colSpan={1} className="font-bold text-lg text-right">Total</TableCell>
                                 <TableCell className="text-right font-bold text-lg">₹{formatNumber(grandTotalForPeriod.clientPayable)}</TableCell>
                                 <TableCell className="text-right font-bold text-lg">₹{formatNumber(grandTotalForPeriod.upperPayable)}</TableCell>
-                                <TableCell className={`text-right font-bold text-lg ${grandTotalForPeriod.brokerProfit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                    {grandTotalForPeriod.brokerProfit >= 0 ? `+₹${formatNumber(grandTotalForPeriod.brokerProfit)}` : `-₹${formatNumber(Math.abs(grandTotalForPeriod.brokerProfit))}`}
+                                <TableCell className={`text-right font-bold text-lg ${grandTotalForPeriod.brokerNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    {grandTotalForPeriod.brokerNet >= 0 ? `+₹${formatNumber(grandTotalForPeriod.brokerNet)}` : `-₹${formatNumber(Math.abs(grandTotalForPeriod.brokerNet))}`}
                                 </TableCell>
                             </TableRow>
                             </TableFooter>
@@ -387,10 +387,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     const [jamaAmount, setJamaAmount] = useState('');
     const [lenaAmount, setLenaAmount] = useState('');
     
-    // Stores all settlements keyed by date string 'yyyy-MM-dd'
     const [settlements, setSettlements] = useState<{[key: string]: number}>({});
 
-    // Load settlements from local storage on initial render
     useEffect(() => {
         try {
             const savedSettlements = localStorage.getItem('brokerSettlements');
@@ -402,7 +400,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         }
     }, []);
 
-    // Persist settlements to local storage whenever they change
     useEffect(() => {
         localStorage.setItem('brokerSettlements', JSON.stringify(settlements));
     }, [settlements]);
@@ -451,7 +448,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         setLenaAmount('');
     };
 
-    const calculateDailyProfit = useCallback((date: Date) => {
+    const calculateDailyNet = useCallback((date: Date) => {
         const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
         
@@ -467,7 +464,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             return logDate >= periodStart && logDate <= periodEnd;
         });
 
-        // Calculate Client Payable
         clients.forEach(client => {
             let clientGameTotal = 0;
             let clientPassingAmount = 0;
@@ -490,7 +486,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             }
         });
 
-        // Calculate Upper Payable
         let totalGameAmount = 0;
         let totalPassingAmount = 0;
         logsForPeriod.forEach(log => {
@@ -512,36 +507,39 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
     const runningTotal = useMemo(() => {
         const allLogs = Object.values(savedSheetLog).flat();
-        if (allLogs.length === 0) return 0;
+        if (allLogs.length === 0) {
+            const todaySettlement = settlements[format(summaryDate, 'yyyy-MM-dd')] || 0;
+            return todaySettlement;
+        }
     
         const uniqueDates = [...new Set(
             allLogs.map(log => startOfDay(parseISO(log.date)))
         )].sort(compareAsc);
 
-        let cumulativeProfit = 0;
+        let cumulativeNet = 0;
         
         for (const date of uniqueDates) {
+            // Only process dates up to and including the selected summary date
             if (date > startOfDay(summaryDate)) {
-                break; // Stop if we've passed the selected date
+                break;
             }
             
-            const dailyProfit = calculateDailyProfit(date);
+            const dailyNet = calculateDailyNet(date);
             const dateKey = format(date, 'yyyy-MM-dd');
             const dailySettlement = settlements[dateKey] || 0;
             
-            cumulativeProfit += dailyProfit + dailySettlement;
+            cumulativeNet += dailyNet + dailySettlement;
         }
 
-        // If selected date has no logs, we still need to add its settlement
-        const selectedDateKey = format(summaryDate, 'yyyy-MM-dd');
-        if (!uniqueDates.some(d => isSameDay(d, summaryDate))) {
-             const selectedDaySettlement = settlements[selectedDateKey] || 0;
-             cumulativeProfit += selectedDaySettlement;
+        const selectedDateHasNoLogs = !uniqueDates.some(d => isSameDay(d, summaryDate));
+        if (selectedDateHasNoLogs) {
+             const selectedDaySettlement = settlements[format(summaryDate, 'yyyy-MM-dd')] || 0;
+             cumulativeNet += selectedDaySettlement;
         }
 
-        return cumulativeProfit;
+        return cumulativeNet;
 
-    }, [savedSheetLog, summaryDate, calculateDailyProfit, settlements]);
+    }, [savedSheetLog, summaryDate, calculateDailyNet, settlements]);
 
 
     const { 
@@ -582,7 +580,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
         const brokerCommission = grandRawTotal * upperCommPercent;
         const finalGrandPassingTotal = grandPassingTotal * upperPairRate;
-        const brokerProfit = (grandRawTotal - brokerCommission) - finalGrandPassingTotal;
+        const brokerNet = (grandRawTotal - brokerCommission) - finalGrandPassingTotal;
 
         return { 
             brokerRawDrawTotals: rawTotalsByDraw, 
@@ -590,7 +588,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             grandRawTotal,
             grandPassingTotal,
             brokerCommission,
-            finalNetTotalForBroker: brokerProfit
+            finalNetTotalForBroker: brokerNet
         };
     }, [savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair, summaryDate]);
 
@@ -676,9 +674,9 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         
         <div>
             <h3 className="text-lg font-semibold text-primary flex items-center gap-2 mb-4">
-                <Wallet className="h-5 w-5" /> Broker Profit &amp; Loss
+                <Wallet className="h-5 w-5" /> Broker Report
             </h3>
-            <BrokerProfitLoss 
+            <BrokerReport 
                 userId={userId}
                 clients={clients} 
                 savedSheetLog={savedSheetLog}
@@ -697,3 +695,5 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
+
+    
