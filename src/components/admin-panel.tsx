@@ -571,8 +571,9 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4 mb-8">
                 {draws.map(draw => {
                     const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
+                    if (totalRaw === 0) return null;
                     return (
-                        <Card key={draw} className={`p-4 ${totalRaw > 0 ? '' : 'hidden'}`}>
+                        <Card key={draw} className="p-4">
                             <CardHeader className="p-0 mb-2 flex flex-row items-center justify-between">
                                 <CardTitle className="text-base font-bold text-primary">{draw}</CardTitle>
                                 <Percent className="h-4 w-4 text-muted-foreground" />
