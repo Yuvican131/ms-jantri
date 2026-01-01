@@ -1,4 +1,3 @@
-
 "use client"
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -73,11 +72,11 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
         const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
         const clientsToProcess = selectedClientId === 'all' ? clients : clients.filter(c => c.id === selectedClientId);
+        const allLogs = Object.values(savedSheetLog).flat();
 
         const calculateNetForPeriod = (periodStart: Date, periodEnd: Date): { clientPayable: number, upperPayable: number } => {
             let totalClientPayable = 0;
             let totalUpperPayable = 0;
-            const allLogs = Object.values(savedSheetLog).flat();
 
             const logsForPeriod = allLogs.filter(log => {
                 const logDate = startOfDay(new Date(log.date));
@@ -85,31 +84,33 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
                 return clientMatches && logDate >= periodStart && logDate <= periodEnd;
             });
             
-            let allClientsGameTotal = 0;
-            let allClientsPassingAmount = 0;
-
+            // Client Payable Calculation
             clientsToProcess.forEach(client => {
-                let clientGameTotalForPeriod = 0;
-                let clientPassingAmountForPeriod = 0;
+                const clientLogs = logsForPeriod.filter(log => log.clientId === client.id);
+                if (clientLogs.length === 0) return;
+
+                let clientGameTotal = 0;
+                let clientPassingAmount = 0;
                 const clientCommPercent = (client.comm && !isNaN(parseFloat(client.comm))) ? parseFloat(client.comm) / 100 : 0;
                 const clientPairRate = parseFloat(client.pair) || defaultClientPair;
 
-                logsForPeriod.filter(log => log.clientId === client.id).forEach(log => {
-                    clientGameTotalForPeriod += log.gameTotal;
+                clientLogs.forEach(log => {
+                    clientGameTotal += log.gameTotal;
                     const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
                     if (declaredNumber && log.data[declaredNumber]) {
-                        clientPassingAmountForPeriod += parseFloat(log.data[declaredNumber]) || 0;
+                        clientPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
                     }
                 });
 
-                if (clientGameTotalForPeriod > 0) {
-                    const clientCommission = clientGameTotalForPeriod * clientCommPercent;
-                    const clientNet = clientGameTotalForPeriod - clientCommission;
-                    const clientWinnings = clientPassingAmountForPeriod * clientPairRate;
-                    totalClientPayable += clientNet - clientWinnings;
-                }
+                const clientCommission = clientGameTotal * clientCommPercent;
+                const clientNet = clientGameTotal - clientCommission;
+                const clientWinnings = clientPassingAmount * clientPairRate;
+                totalClientPayable += clientNet - clientWinnings;
             });
             
+            // Upper Payable Calculation
+            let allClientsGameTotal = 0;
+            let allClientsPassingAmount = 0;
             logsForPeriod.forEach(log => {
                 allClientsGameTotal += log.gameTotal;
                 const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
@@ -459,7 +460,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         const logsForDay = Object.values(savedSheetLog).flat().filter(log => log.date === dateStr);
         let totalRaw = 0;
         let totalPassingUpper = 0;
-        let totalBrokerComm = 0;
     
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
     
