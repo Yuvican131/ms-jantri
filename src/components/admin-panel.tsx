@@ -216,7 +216,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                  <div className="space-y-2">
                     <Label>View By</Label>
                     <Select value={viewMode} onValueChange={(value) => setViewMode(value as 'month' | 'year')}>
-                        <SelectTrigger><SelectValue /></SelectValue>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="month">Month</SelectItem>
                             <SelectItem value="year">Year</SelectItem>
@@ -468,19 +468,24 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         
         let totalRaw = 0;
         let totalPassingUpper = 0;
+        let brokerComm = 0;
     
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
-        const upperCommRate = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
         
         logsForDay.forEach(log => {
             totalRaw += log.gameTotal;
+            const client = clients.find(c => c.id === log.clientId);
+            if(client){
+              const clientCommPercent = (client.comm && !isNaN(parseFloat(client.comm))) ? parseFloat(client.comm) / 100 : 0;
+              brokerComm += log.gameTotal * clientCommPercent;
+            }
+
             const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
             if (declaredNumber && log.data[declaredNumber]) {
                 totalPassingUpper += parseFloat(log.data[declaredNumber]);
             }
         });
         
-        const brokerComm = totalRaw * upperCommRate;
         const totalPassingAmount = totalPassingUpper * upperPairRate;
         const finalNet = totalRaw - brokerComm - totalPassingAmount;
     
@@ -635,3 +640,5 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
+
+    
