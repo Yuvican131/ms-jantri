@@ -164,10 +164,6 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
     
     }, [selectedDate, appliedUpperComm, appliedUpperPair, clients, savedSheetLog, declaredNumbers, selectedClientId, viewMode]);
   
-    const totalNet = useMemo(() => {
-      return reportData.reduce((acc, row) => acc + row.brokerNet, 0);
-    }, [reportData]);
-
     const grandTotalForPeriod = useMemo(() => {
         return reportData.reduce((acc, row) => {
             acc.clientPayable += row.clientPayable;
@@ -255,13 +251,13 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
                             <CardTitle className="text-sm font-medium">
-                                Net Payable
+                                Monthly Summary
                             </CardTitle>
                             <Wallet className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className={`text-2xl font-bold ${totalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {totalNet >= 0 ? `+${formatNumber(totalNet)}` : `-${formatNumber(Math.abs(totalNet))}`}
+                            <div className={`text-2xl font-bold ${grandTotalForPeriod.brokerNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                {grandTotalForPeriod.brokerNet >= 0 ? `+${formatNumber(grandTotalForPeriod.brokerNet)}` : `-${formatNumber(Math.abs(grandTotalForPeriod.brokerNet))}`}
                             </div>
                             <p className="text-xs text-muted-foreground">
                                 Total net for {format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy")}
@@ -571,7 +567,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4 mb-8">
                 {draws.map(draw => {
                     const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
-                    if (totalRaw === 0) return null;
                     return (
                         <Card key={draw} className="p-4">
                             <CardHeader className="p-0 mb-2 flex flex-row items-center justify-between">
