@@ -1,3 +1,4 @@
+
 "use client"
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -32,7 +33,7 @@ type ReportRow = {
   brokerNet: number;
 };
 
-const BrokerReport = ({ userId, clients, savedSheetLog }: {
+const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
     userId?: string;
     clients: Client[];
     savedSheetLog: { [draw: string]: SavedSheetInfo[] };
@@ -71,17 +72,17 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
     const reportData: ReportRow[] = useMemo(() => {
         const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
-        const clientsToProcess = selectedClientId === 'all' ? clients : clients.filter(c => c.id === selectedClientId);
         const allLogs = Object.values(savedSheetLog).flat();
 
         const calculateNetForPeriod = (periodStart: Date, periodEnd: Date): { clientPayable: number, upperPayable: number } => {
             let totalClientPayable = 0;
             let totalUpperPayable = 0;
 
+            const clientsToProcess = selectedClientId === 'all' ? clients : clients.filter(c => c.id === selectedClientId);
+
             const logsForPeriod = allLogs.filter(log => {
                 const logDate = startOfDay(new Date(log.date));
-                const clientMatches = selectedClientId === 'all' || log.clientId === selectedClientId;
-                return clientMatches && logDate >= periodStart && logDate <= periodEnd;
+                return logDate >= periodStart && logDate <= periodEnd;
             });
             
             // Client Payable Calculation
@@ -108,20 +109,25 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
                 totalClientPayable += clientNet - clientWinnings;
             });
             
-            // Upper Payable Calculation
-            let allClientsGameTotal = 0;
-            let allClientsPassingAmount = 0;
-            logsForPeriod.forEach(log => {
-                allClientsGameTotal += log.gameTotal;
+            // Upper Payable Calculation is based on ALL clients' data for the period
+            let totalGameRawForUpper = 0;
+            let totalPassingAmountRawForUpper = 0;
+            
+            const logsForUpper = selectedClientId === 'all' 
+                ? logsForPeriod 
+                : logsForPeriod.filter(log => log.clientId === selectedClientId);
+            
+            logsForUpper.forEach(log => {
+                totalGameRawForUpper += log.gameTotal;
                 const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
                 if(declaredNumber && log.data[declaredNumber]) {
-                    allClientsPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
+                    totalPassingAmountRawForUpper += parseFloat(log.data[declaredNumber]) || 0;
                 }
             });
 
-            const upperCommission = allClientsGameTotal * upperCommPercent;
-            const upperNet = allClientsGameTotal - upperCommission;
-            const upperWinnings = allClientsPassingAmount * upperPairRate;
+            const upperCommission = totalGameRawForUpper * upperCommPercent;
+            const upperNet = totalGameRawForUpper - upperCommission;
+            const upperWinnings = totalPassingAmountRawForUpper * upperPairRate;
             totalUpperPayable = upperNet - upperWinnings;
             
             return { clientPayable: totalClientPayable, upperPayable: totalUpperPayable };
@@ -136,14 +142,15 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
                 const dayStart = startOfDay(day);
                 const dayEnd = endOfDay(day);
                 const { clientPayable, upperPayable } = calculateNetForPeriod(dayStart, dayEnd);
+                const brokerNet = clientPayable - upperPayable;
                 return {
                     date: day,
                     label: format(day, "EEE, dd MMM yyyy"),
                     clientPayable,
                     upperPayable,
-                    brokerNet: clientPayable - upperPayable,
+                    brokerNet,
                 };
-            });
+            }).filter(row => row.clientPayable !== 0 || row.upperPayable !== 0 || row.brokerNet !== 0);
         } else { // viewMode === 'year'
             const yearStart = startOfYear(selectedDate);
             const yearEnd = endOfYear(selectedDate);
@@ -153,14 +160,15 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
                 const monthStart = startOfMonth(month);
                 const monthEnd = endOfMonth(month);
                 const { clientPayable, upperPayable } = calculateNetForPeriod(monthStart, monthEnd);
+                 const brokerNet = clientPayable - upperPayable;
                 return {
                     date: month,
                     label: format(month, "MMMM yyyy"),
                     clientPayable,
                     upperPayable,
-                    brokerNet: clientPayable - upperPayable,
+                    brokerNet,
                 };
-            });
+            }).filter(row => row.clientPayable !== 0 || row.upperPayable !== 0 || row.brokerNet !== 0);
         }
     
     }, [selectedDate, appliedUpperComm, appliedUpperPair, clients, savedSheetLog, declaredNumbers, selectedClientId, viewMode]);
@@ -174,7 +182,7 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
         }, { clientPayable: 0, upperPayable: 0, brokerNet: 0 });
     }, [reportData]);
 
-    const hasData = useMemo(() => reportData.some(row => row.clientPayable !== 0 || row.upperPayable !== 0 || row.brokerNet !== 0), [reportData]);
+    const hasData = reportData.length > 0;
 
     return (
         <div className="space-y-6">
@@ -208,7 +216,7 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
                  <div className="space-y-2">
                     <Label>View By</Label>
                     <Select value={viewMode} onValueChange={(value) => setViewMode(value as 'month' | 'year')}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectTrigger><SelectValue /></SelectValue>
                         <SelectContent>
                             <SelectItem value="month">Month</SelectItem>
                             <SelectItem value="year">Year</SelectItem>
@@ -264,7 +272,7 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
                         </CardHeader>
                         <CardContent>
                             <div className={`text-2xl font-bold ${grandTotalForPeriod.brokerNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {grandTotalForPeriod.brokerNet >= 0 ? `+${formatNumber(grandTotalForPeriod.brokerNet)}` : `-${formatNumber(Math.abs(grandTotalForPeriod.brokerNet))}`}
+                                {grandTotalForPeriod.brokerNet >= 0 ? `+${formatNumber(grandTotalForPeriod.brokerNet)}` : `${formatNumber(grandTotalForPeriod.brokerNet)}`}
                             </div>
                             <p className="text-xs text-muted-foreground">
                                 Total profit for {format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy")}
@@ -277,14 +285,13 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
                             <TableHeader>
                             <TableRow>
                                 <TableHead>{viewMode === 'month' ? 'Date' : 'Month'}</TableHead>
-                                <TableHead className="text-right">Client Net</TableHead>
-                                <TableHead className="text-right">Upper Net</TableHead>
-                                <TableHead className="text-right">Broker Net</TableHead>
+                                <TableHead className="text-right">Client Payable</TableHead>
+                                <TableHead className="text-right">Upper Payable</TableHead>
+                                <TableHead className="text-right">Broker Profit/Loss</TableHead>
                             </TableRow>
                             </TableHeader>
                             <TableBody>
                             {reportData.map((row, index) => (
-                                (row.clientPayable !== 0 || row.upperPayable !== 0 || row.brokerNet !== 0) &&
                                 <TableRow key={index}>
                                 <TableCell>{row.label}</TableCell>
                                 <TableCell className="text-right">₹{formatNumber(row.clientPayable)}</TableCell>
@@ -458,22 +465,23 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     const finalSummaryForDay = useMemo(() => {
         const dateStr = format(summaryDate, 'yyyy-MM-dd');
         const logsForDay = Object.values(savedSheetLog).flat().filter(log => log.date === dateStr);
+        
         let totalRaw = 0;
         let totalPassingUpper = 0;
+        let brokerComm = 0;
     
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
-    
+        const upperCommRate = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
+        
         logsForDay.forEach(log => {
             totalRaw += log.gameTotal;
-    
             const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
             if (declaredNumber && log.data[declaredNumber]) {
                 totalPassingUpper += parseFloat(log.data[declaredNumber]);
             }
         });
-    
-        const upperCommRate = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
-        const brokerComm = totalRaw * upperCommRate;
+        
+        brokerComm = totalRaw * upperCommRate;
         const totalPassingAmount = totalPassingUpper * upperPairRate;
         const finalNet = totalRaw - brokerComm - totalPassingAmount;
     
@@ -618,7 +626,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         <Separator className="my-8" />
         
         <div>
-            <BrokerReport 
+            <BrokerProfitLoss 
                 userId={userId}
                 clients={clients} 
                 savedSheetLog={savedSheetLog}
