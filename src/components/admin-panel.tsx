@@ -68,7 +68,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
         localStorage.setItem('upperBrokerPair', upperPair);
         toast({ title: "Settings Applied", description: "Broker commission and pair rates have been updated." });
     };
-    
+
     const reportData: ReportRow[] = useMemo(() => {
         const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
@@ -468,7 +468,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         
         let totalRaw = 0;
         let totalPassingUpper = 0;
-        let brokerComm = 0;
     
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
         const upperCommRate = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
@@ -481,12 +480,12 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             }
         });
         
-        brokerComm = totalRaw * upperCommRate;
+        const brokerComm = totalRaw * upperCommRate;
         const totalPassingAmount = totalPassingUpper * upperPairRate;
         const finalNet = totalRaw - brokerComm - totalPassingAmount;
     
         return { totalRaw, brokerComm, totalPassing: totalPassingAmount, finalNet };
-    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperPair, appliedUpperComm]);
+    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperPair, appliedUpperComm, clients]);
 
 
     const runningTotal = useMemo(() => {
