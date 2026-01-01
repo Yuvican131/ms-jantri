@@ -279,7 +279,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                             {reportData.map((row, index) => (
                                 (row.clientPayable !== 0 || row.upperPayable !== 0 || row.brokerNet !== 0) &&
                                 <TableRow key={index}>
-                                <TableCell className="font-medium">{row.label}</TableCell>
+                                <TableCell>{row.label}</TableCell>
                                 <TableCell className="text-right">₹{formatNumber(row.clientPayable)}</TableCell>
                                 <TableCell className="text-right">₹{formatNumber(row.upperPayable)}</TableCell>
                                 <TableCell className={`text-right font-bold ${row.brokerNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
@@ -450,25 +450,28 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         let totalRaw = 0;
         let totalPassingUpper = 0;
         let brokerComm = 0;
-
+    
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
-
+    
         logsForDay.forEach(log => {
             const client = clients.find(c => c.id === log.clientId);
-            const clientCommPercent = client ? parseFloat(client.comm) / 100 : 0;
+            if (client) {
+                const clientCommPercent = (client.comm && !isNaN(parseFloat(client.comm))) ? parseFloat(client.comm) / 100 : 0;
+                brokerComm += log.gameTotal * clientCommPercent;
+            }
             
             totalRaw += log.gameTotal;
-            brokerComm += log.gameTotal * clientCommPercent;
-
+    
             const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
             if (declaredNumber && log.data[declaredNumber]) {
-                totalPassingUpper += parseFloat(log.data[declaredNumber]) * upperPairRate;
+                totalPassingUpper += parseFloat(log.data[declaredNumber]);
             }
         });
-
-        const finalNet = totalRaw - brokerComm - totalPassingUpper;
-
-        return { totalRaw, brokerComm, totalPassing: totalPassingUpper, finalNet };
+    
+        const totalPassingAmount = totalPassingUpper * upperPairRate;
+        const finalNet = totalRaw - brokerComm - totalPassingAmount;
+    
+        return { totalRaw, brokerComm, totalPassing: totalPassingAmount, finalNet };
     }, [summaryDate, savedSheetLog, declaredNumbers, clients, appliedUpperPair]);
 
 
@@ -617,7 +620,3 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
-
-    
-
-    
