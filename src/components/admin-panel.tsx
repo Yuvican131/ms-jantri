@@ -345,6 +345,11 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         } catch (error) {
             console.error("Failed to parse settlements from localStorage", error);
         }
+        
+        const savedComm = localStorage.getItem('upperBrokerComm');
+        const savedPair = localStorage.getItem('upperBrokerPair');
+        if (savedComm) setAppliedUpperComm(savedComm);
+        if (savedPair) setAppliedUpperPair(savedPair);
     }, []);
 
     useEffect(() => {
@@ -379,7 +384,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
         
         let totalClientPayable = 0;
-        let totalUpperPayable = 0;
         
         const periodStart = startOfDay(date);
         const allLogs = Object.values(savedSheetLog).flat();
@@ -424,7 +428,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         const upperCommission = totalGameAmount * upperCommPercent;
         const upperNet = totalGameAmount - upperCommission;
         const upperWinnings = totalPassingAmount * upperPairRate;
-        totalUpperPayable = upperNet - upperWinnings;
+        const totalUpperPayable = upperNet - upperWinnings;
 
         return totalClientPayable - totalUpperPayable;
     }, [appliedUpperComm, appliedUpperPair, clients, savedSheetLog, declaredNumbers]);
@@ -455,9 +459,9 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         const logsForDay = Object.values(savedSheetLog).flat().filter(log => log.date === dateStr);
         let totalRaw = 0;
         let totalPassingUpper = 0;
+        let totalBrokerComm = 0;
     
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
-        const upperCommRate = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
     
         logsForDay.forEach(log => {
             totalRaw += log.gameTotal;
@@ -468,6 +472,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             }
         });
     
+        const upperCommRate = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
         const brokerComm = totalRaw * upperCommRate;
         const totalPassingAmount = totalPassingUpper * upperPairRate;
         const finalNet = totalRaw - brokerComm - totalPassingAmount;
@@ -492,9 +497,11 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                                   .sort(compareAsc);
 
         let cumulativeNet = 0;
-        
+        const today = startOfDay(new Date());
+
         for (const date of uniqueSortedDates) {
-            if (date > startOfDay(summaryDate)) {
+            // Only sum up to and including today.
+            if (date > today) {
                 break;
             }
             
@@ -507,7 +514,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
         return cumulativeNet;
 
-    }, [savedSheetLog, summaryDate, calculateDailyNet, settlements]);
+    }, [savedSheetLog, calculateDailyNet, settlements]);
 
 
   return (
@@ -621,4 +628,3 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
-
