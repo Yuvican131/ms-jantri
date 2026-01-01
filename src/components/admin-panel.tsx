@@ -430,18 +430,32 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         return totalClientPayable - totalUpperPayable;
     }, [appliedUpperComm, appliedUpperPair, clients, savedSheetLog, declaredNumbers]);
 
+    const calculateDrawSummary = (draw: string, date: Date) => {
+        const allLogs = Object.values(savedSheetLog).flat();
+        const dateStr = format(date, 'yyyy-MM-dd');
+        
+        const logsForDrawAndDate = allLogs.filter(log => log.draw === draw && log.date === dateStr);
+        
+        let totalRaw = 0;
+        let totalPassing = 0;
+        
+        const declaredNumber = declaredNumbers[`${draw}-${dateStr}`]?.number;
+
+        logsForDrawAndDate.forEach(log => {
+            totalRaw += log.gameTotal;
+            if (declaredNumber && log.data[declaredNumber]) {
+                totalPassing += parseFloat(log.data[declaredNumber]);
+            }
+        });
+        
+        return { totalRaw, totalPassing };
+    };
+
 
     const runningTotal = useMemo(() => {
         const allLogs = Object.values(savedSheetLog).flat();
-        if (allLogs.length === 0) {
-            let cumulativeSettlement = 0;
-            Object.keys(settlements).forEach(dateKey => {
-                const settlementDate = startOfDay(parseISO(dateKey));
-                if (settlementDate <= startOfDay(summaryDate)) {
-                    cumulativeSettlement += settlements[dateKey];
-                }
-            });
-            return cumulativeSettlement;
+        if (allLogs.length === 0 && Object.keys(settlements).length === 0) {
+          return 0;
         }
 
         const allDatesWithActivity = [
@@ -524,6 +538,25 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 </Card>
             </div>
             
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+                {draws.map(draw => {
+                    const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
+                    if (totalRaw === 0) return null;
+                    return (
+                        <Card key={draw} className="p-4">
+                            <CardHeader className="p-0 mb-2">
+                                <CardTitle className="text-base font-bold text-primary">{draw}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0 text-sm space-y-1 font-mono">
+                                <div className="flex justify-between"><span>Raw Total:</span> <span>{formatNumber(totalRaw)}</span></div>
+                                <div className="flex justify-between"><span>Passing:</span> <span>{formatNumber(totalPassing)}</span></div>
+                            </CardContent>
+                        </Card>
+                    );
+                })}
+            </div>
+
+
             <Card className="p-2 bg-muted/50 border-border max-w-sm ml-auto">
                 <div className="flex items-center justify-between px-1">
                     <p className="text-xs text-foreground font-bold flex items-center gap-1"><Scale className="h-3 w-3"/>Running Net Total</p>
