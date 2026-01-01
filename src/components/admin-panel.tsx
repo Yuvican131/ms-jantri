@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatNumber } from "@/lib/utils";
-import { Wallet, Calendar as CalendarIcon, Percent, Scale, TrendingUpIcon, TrendingDownIcon, Landmark } from 'lucide-react';
+import { Wallet, Calendar as CalendarIcon, Percent, Scale, TrendingUpIcon, TrendingDownIcon, Landmark, Banknote, Trash2 } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -182,6 +182,7 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
     return (
         <div className="space-y-6">
             <div className="p-4 border rounded-lg bg-muted/50">
+                <h3 className="text-lg font-semibold text-primary flex items-center gap-2 mb-4">Broker Profit & Loss</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
                     <div className="space-y-2">
                         <Label htmlFor="upper-comm">Upper Broker Comm (%)</Label>
@@ -383,7 +384,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
         const logsForPeriod = allLogs.filter(log => {
             const logDate = startOfDay(new Date(log.date));
-            return logDate >= periodStart && logDate <= periodEnd;
+            return isSameDay(logDate, periodStart);
         });
 
         clients.forEach(client => {
@@ -447,6 +448,33 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         return { totalRaw, totalPassing };
     };
 
+    const finalSummaryForDay = useMemo(() => {
+        const dateStr = format(summaryDate, 'yyyy-MM-dd');
+        const logsForDay = Object.values(savedSheetLog).flat().filter(log => log.date === dateStr);
+        let totalRaw = 0;
+        let totalPassingUpper = 0;
+        let brokerComm = 0;
+
+        const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
+
+        logsForDay.forEach(log => {
+            const client = clients.find(c => c.id === log.clientId);
+            const clientCommPercent = client ? parseFloat(client.comm) / 100 : 0;
+            
+            totalRaw += log.gameTotal;
+            brokerComm += log.gameTotal * clientCommPercent;
+
+            const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
+            if (declaredNumber && log.data[declaredNumber]) {
+                totalPassingUpper += parseFloat(log.data[declaredNumber]) * upperPairRate;
+            }
+        });
+
+        const finalNet = totalRaw - brokerComm - totalPassingUpper;
+
+        return { totalRaw, brokerComm, totalPassing: totalPassingUpper, finalNet };
+    }, [summaryDate, savedSheetLog, declaredNumbers, clients, appliedUpperPair]);
+
 
     const runningTotal = useMemo(() => {
         const allLogs = Object.values(savedSheetLog).flat();
@@ -489,12 +517,18 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             <CardTitle>Admin Panel</CardTitle>
             <CardDescription>High-level overview of your brokerage operations.</CardDescription>
         </div>
+        <div className="flex items-center gap-4">
+            <Card className="p-2 flex items-center gap-2">
+                <Label className="text-sm font-semibold whitespace-nowrap">Running Net</Label>
+                <div className={`text-lg font-extrabold ${runningTotal >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatNumber(runningTotal)}</div>
+            </Card>
+        </div>
       </CardHeader>
       <CardContent className="flex-1 space-y-6 overflow-y-auto">
         <div>
             <div className="flex items-center gap-4 mb-6 flex-wrap">
                 <h3 className="text-lg font-semibold text-primary flex items-center gap-2 flex-shrink-0">
-                    <Landmark className="h-5 w-5" /> Daily Summary
+                    <Banknote className="h-5 w-5" /> All Draws Summary
                 </h3>
                 <Popover>
                     <PopoverTrigger asChild>
@@ -534,39 +568,50 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 </Card>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4 mb-8">
                 {draws.map(draw => {
                     const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
-                    if (totalRaw === 0) return null;
                     return (
-                        <Card key={draw} className="p-4">
-                            <CardHeader className="p-0 mb-2">
+                        <Card key={draw} className={`p-4 ${totalRaw > 0 ? '' : 'hidden'}`}>
+                            <CardHeader className="p-0 mb-2 flex flex-row items-center justify-between">
                                 <CardTitle className="text-base font-bold text-primary">{draw}</CardTitle>
+                                <Percent className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent className="p-0 text-sm space-y-1 font-mono">
-                                <div className="flex justify-between"><span>Raw Total:</span> <span>{formatNumber(totalRaw)}</span></div>
-                                <div className="flex justify-between"><span>Passing:</span> <span>{formatNumber(totalPassing)}</span></div>
+                                <div className="text-xl font-bold">{formatNumber(totalRaw)}</div>
+                                <div className="flex justify-between items-center text-xs text-muted-foreground">
+                                    <span>Pass</span>
+                                    <span className="font-semibold text-red-500">{formatNumber(totalPassing)}</span>
+                                </div>
                             </CardContent>
                         </Card>
                     );
                 })}
+
+                {finalSummaryForDay.totalRaw > 0 && (
+                 <Card className="p-4 bg-transparent border-2 border-green-500 col-span-2 md:col-span-1 lg:col-span-2 xl:col-auto">
+                    <CardHeader className="p-0 mb-2 flex flex-row items-center justify-between">
+                        <CardTitle className="text-base font-bold text-green-400">Final Summary</CardTitle>
+                        <Trash2 className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent className="p-0 text-sm space-y-1 font-mono">
+                        <div className="flex justify-between"><span>Total Raw:</span> <span className="font-semibold">{formatNumber(finalSummaryForDay.totalRaw)}</span></div>
+                        <div className="flex justify-between"><span>% Broker Comm:</span> <span className="font-semibold">{formatNumber(finalSummaryForDay.brokerComm)}</span></div>
+                        <div className="flex justify-between"><span>Total Passing:</span> <span className="font-semibold">{formatNumber(finalSummaryForDay.totalPassing)}</span></div>
+                         <Separator className="my-2" />
+                        <div className={`flex justify-between font-bold ${finalSummaryForDay.finalNet >= 0 ? 'text-green-400' : 'text-red-500'}`}>
+                           <span>Final Net:</span> <span>{formatNumber(finalSummaryForDay.finalNet)}</span>
+                        </div>
+                    </CardContent>
+                 </Card>
+                )}
             </div>
 
-
-            <Card className="p-2 bg-muted/50 border-border max-w-sm ml-auto">
-                <div className="flex items-center justify-between px-1">
-                    <p className="text-xs text-foreground font-bold flex items-center gap-1"><Scale className="h-3 w-3"/>Running Net Total</p>
-                    <p className={`text-lg font-extrabold ${runningTotal >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatNumber(runningTotal)}</p>
-                </div>
-            </Card>
         </div>
 
         <Separator className="my-8" />
         
         <div>
-            <h3 className="text-lg font-semibold text-primary flex items-center gap-2 mb-4">
-                <Wallet className="h-5 w-5" /> Broker Report
-            </h3>
             <BrokerReport 
                 userId={userId}
                 clients={clients} 
