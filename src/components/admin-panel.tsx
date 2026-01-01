@@ -142,7 +142,7 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
                     upperPayable,
                     brokerNet: clientPayable - upperPayable,
                 };
-            }).filter(row => row.clientPayable !== 0 || row.upperPayable !== 0);
+            });
         } else { // viewMode === 'year'
             const yearStart = startOfYear(selectedDate);
             const yearEnd = endOfYear(selectedDate);
@@ -159,7 +159,7 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
                     upperPayable,
                     brokerNet: clientPayable - upperPayable,
                 };
-            }).filter(row => row.clientPayable !== 0 || row.upperPayable !== 0);
+            });
         }
     
     }, [selectedDate, appliedUpperComm, appliedUpperPair, clients, savedSheetLog, declaredNumbers, selectedClientId, viewMode]);
@@ -178,7 +178,7 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
     return (
         <div className="space-y-6">
             <div className="p-4 border rounded-lg bg-muted/50">
-                <h3 className="text-lg font-semibold text-primary flex items-center gap-2 mb-4">Broker Profit & Loss</h3>
+                <h3 className="text-lg font-semibold text-primary flex items-center gap-2 mb-4">Broker Report</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
                     <div className="space-y-2">
                         <Label htmlFor="upper-comm">Upper Broker Comm (%)</Label>
@@ -251,7 +251,7 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
                             <CardTitle className="text-sm font-medium">
-                                Monthly Summary
+                                {viewMode === 'month' ? 'Monthly' : 'Yearly'} Summary
                             </CardTitle>
                             <Wallet className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
@@ -277,6 +277,7 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
                             </TableHeader>
                             <TableBody>
                             {reportData.map((row, index) => (
+                                (row.clientPayable !== 0 || row.upperPayable !== 0) &&
                                 <TableRow key={index} className={row.brokerNet === 0 && row.clientPayable === 0 ? "text-muted-foreground" : ""}>
                                 <TableCell className="font-medium">{row.label}</TableCell>
                                 <TableCell className="text-right">₹{formatNumber(row.clientPayable)}</TableCell>
@@ -568,12 +569,12 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 {draws.map(draw => {
                     const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
                     return (
-                        <Card key={draw} className="p-4">
+                        <Card key={draw} className="p-4 flex flex-col">
                             <CardHeader className="p-0 mb-2 flex flex-row items-center justify-between">
                                 <CardTitle className="text-base font-bold text-primary">{draw}</CardTitle>
                                 <Percent className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
-                            <CardContent className="p-0 text-sm space-y-1">
+                            <CardContent className="p-0 text-sm space-y-1 flex-grow flex flex-col justify-between">
                                 <div className="text-xl font-bold">{formatNumber(totalRaw)}</div>
                                 <div className="flex justify-between items-center text-xs text-muted-foreground">
                                     <span>Pass</span>
@@ -618,3 +619,5 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
+
+    
