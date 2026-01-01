@@ -33,7 +33,7 @@ type ReportRow = {
   brokerNet: number;
 };
 
-const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
+const BrokerReport = ({ userId, clients, savedSheetLog }: {
     userId?: string;
     clients: Client[];
     savedSheetLog: { [draw: string]: SavedSheetInfo[] };
@@ -177,8 +177,10 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
 
     return (
         <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
+                <Landmark className="h-5 w-5" /> Broker Profit &amp; Loss
+            </h3>
             <div className="p-4 border rounded-lg bg-muted/50">
-                <h3 className="text-lg font-semibold text-primary flex items-center gap-2 mb-4">Broker Profit &amp; Loss</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
                     <div className="space-y-2">
                         <Label htmlFor="upper-comm">Upper Broker Comm (%)</Label>
@@ -230,6 +232,10 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                                 selected={selectedDate}
                                 onSelect={(date) => date && setSelectedDate(date)}
                                 initialFocus
+                                defaultMonth={selectedDate}
+                                fromYear={2020}
+                                toYear={new Date().getFullYear() + 5}
+                                captionLayout="dropdown-buttons"
                             />
                         </PopoverContent>
                     </Popover>
@@ -589,7 +595,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
                 
                  <Card className="p-4 bg-transparent border-2 border-green-500 col-span-2 md:col-span-1 lg:col-span-2 xl:col-auto">
-                    <CardHeader className="p-0 mb-2 flex flex-row items-center justify-between">
+                    <CardHeader className="p-0 mb-2">
                         <CardTitle className="text-base font-bold text-green-400">Final Summary</CardTitle>
                     </CardHeader>
                     <CardContent className="p-0 text-sm space-y-1">
@@ -610,7 +616,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         <Separator className="my-8" />
         
         <div>
-            <BrokerProfitLoss 
+            <BrokerReport 
                 userId={userId}
                 clients={clients} 
                 savedSheetLog={savedSheetLog}
