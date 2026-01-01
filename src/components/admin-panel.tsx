@@ -3,9 +3,8 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatNumber } from "@/lib/utils";
-import { TrendingUp, TrendingDown, HandCoins, Landmark, CircleDollarSign, Trophy, Wallet, Calendar as CalendarIcon, Percent, Forward, TrendingUpIcon, TrendingDownIcon, Minus, Scale, ArrowRight } from 'lucide-react';
+import { Wallet, Calendar as CalendarIcon, Percent, Scale, TrendingUpIcon, TrendingDownIcon, Landmark } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
-import type { Account } from "./accounts-manager";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getYear, getMonth, startOfYear, endOfYear, eachMonthOfInterval, startOfDay, endOfDay, subDays, parseISO, compareAsc } from "date-fns";
 import type { Client } from '@/hooks/useClients';
 import type { SavedSheetInfo } from '@/hooks/useSheetLog';
-import { useDeclaredNumbers, type DeclaredNumber } from '@/hooks/useDeclaredNumbers';
+import { useDeclaredNumbers } from '@/hooks/useDeclaredNumbers';
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -34,97 +33,7 @@ type ReportRow = {
   brokerNet: number;
 };
 
-const BrokerDrawSummaryCard = ({ 
-    title, 
-    rawTotal, 
-    passingTotal,
-}: { 
-    title: string; 
-    rawTotal: number; 
-    passingTotal: number;
-}) => {
-    return (
-        <Card className="flex flex-col bg-muted/30 p-2 h-full">
-            <div className="flex-grow">
-                <div className="flex items-center justify-between mb-1">
-                    <h4 className="font-bold text-base text-foreground">{title}</h4>
-                    <HandCoins className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <p className="text-2xl font-bold text-right text-foreground">{formatNumber(rawTotal)}</p>
-            </div>
-            <div className="bg-muted/50 border-t flex items-center justify-between mt-2 pt-1.5">
-                <span className="text-sm font-semibold text-muted-foreground flex items-center gap-1"><TrendingDown className="h-3 w-3" /> Pass</span>
-                <span className={`text-sm font-bold ${passingTotal > 0 ? 'text-red-500' : 'text-foreground'}`}>{formatNumber(passingTotal)}</span>
-            </div>
-        </Card>
-    );
-};
-
-const GrandTotalSummaryCard = ({ 
-    title, 
-    finalValue,
-    grandRawTotal,
-    grandPassingTotal,
-    brokerCommission,
-    upperPairRate
-}: { 
-    title: string; 
-    finalValue: number;
-    grandRawTotal: number;
-    grandPassingTotal: number;
-    brokerCommission: number;
-    upperPairRate: number;
-}) => {
-    const valueColor = finalValue >= 0 ? 'text-green-400' : 'text-red-500';
-    const finalPassingTotal = grandPassingTotal * upperPairRate;
-    return (
-        <Card className="flex flex-col justify-center p-3 bg-primary/10 border-primary/50 h-full">
-             <div className="flex items-center justify-between mb-2">
-                <h4 className="font-semibold text-sm text-primary">{title}</h4>
-                <Landmark className="h-4 w-4 text-primary" />
-            </div>
-            <div className="space-y-1 text-right">
-                <div className="flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground flex items-center gap-1"><CircleDollarSign className="h-3 w-3"/> Total Raw</span>
-                    <span className="font-semibold">{formatNumber(grandRawTotal)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                     <span className="text-xs text-muted-foreground flex items-center gap-1"><Percent className="h-3 w-3"/> Broker Comm</span>
-                     <span className="font-semibold">{formatNumber(brokerCommission)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                     <span className="text-xs text-muted-foreground flex items-center gap-1"><Trophy className="h-3 w-3"/> Total Passing</span>
-                     <span className="font-semibold">{formatNumber(finalPassingTotal)}</span>
-                </div>
-                <Separator className="my-1 bg-border/50" />
-                <div className="flex justify-between items-center">
-                    <span className="font-bold">Final Net</span>
-                    <p className={`text-xl font-bold ${valueColor}`}>{formatNumber(finalValue)}</p>
-                </div>
-            </div>
-        </Card>
-    )
-}
-
-const RunningTotalSummaryCard = ({
-    runningTotal
-}: {
-    runningTotal: number;
-}) => {
-    const runningTotalColor = runningTotal >= 0 ? 'text-green-500' : 'text-red-500';
-
-    return (
-        <Card className="p-2 bg-muted/50 border-border">
-            <div className="flex items-center justify-between px-1">
-                <p className="text-xs text-foreground font-bold flex items-center gap-1"><Scale className="h-3 w-3"/>Running Net</p>
-                <p className={`text-lg font-extrabold ${runningTotalColor}`}>{formatNumber(runningTotal)}</p>
-            </div>
-        </Card>
-    );
-};
-
-
-const BrokerReport = ({ userId, clients, savedSheetLog, upperComm, setUpperComm, upperPair, setUpperPair, onApply, appliedUpperComm, appliedUpperPair, selectedDate, setSelectedDate }: {
+const BrokerReport = ({ userId, clients, savedSheetLog, upperComm, setUpperComm, upperPair, setUpperPair, onApply, appliedUpperComm, appliedUpperPair }: {
     userId?: string;
     clients: Client[];
     savedSheetLog: { [draw: string]: SavedSheetInfo[] };
@@ -135,12 +44,11 @@ const BrokerReport = ({ userId, clients, savedSheetLog, upperComm, setUpperComm,
     onApply: () => void;
     appliedUpperComm: string;
     appliedUpperPair: string;
-    selectedDate: Date;
-    setSelectedDate: (date: Date) => void;
 }) => {
     const { declaredNumbers } = useDeclaredNumbers(userId);
     const [selectedClientId, setSelectedClientId] = useState<string>('all');
     const [viewMode, setViewMode] = useState<'month' | 'year'>('month');
+    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     
     const reportData: ReportRow[] = useMemo(() => {
         const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
@@ -150,29 +58,31 @@ const BrokerReport = ({ userId, clients, savedSheetLog, upperComm, setUpperComm,
         const calculateNetForPeriod = (periodStart: Date, periodEnd: Date): { clientPayable: number, upperPayable: number } => {
             let totalClientPayable = 0;
             let totalUpperPayable = 0;
-            let totalGameAmount = 0;
-            let totalPassingAmount = 0;
             const allLogs = Object.values(savedSheetLog).flat();
+
+            const logsForPeriod = allLogs.filter(log => {
+                const logDate = startOfDay(new Date(log.date));
+                const clientMatches = selectedClientId === 'all' || log.clientId === selectedClientId;
+                return clientMatches && logDate >= periodStart && logDate <= periodEnd;
+            });
+            
+            let allClientsGameTotal = 0;
+            let allClientsPassingAmount = 0;
 
             clientsToProcess.forEach(client => {
                 let clientGameTotalForPeriod = 0;
                 let clientPassingAmountForPeriod = 0;
                 const clientCommPercent = (client.comm && !isNaN(parseFloat(client.comm))) ? parseFloat(client.comm) / 100 : 0;
                 const clientPairRate = parseFloat(client.pair) || defaultClientPair;
-                
-                const clientLogsForPeriod = allLogs.filter(log => {
-                    const logDate = new Date(log.date);
-                    return log.clientId === client.id && logDate >= periodStart && logDate <= periodEnd;
-                });
 
-                clientLogsForPeriod.forEach(log => {
+                logsForPeriod.filter(log => log.clientId === client.id).forEach(log => {
                     clientGameTotalForPeriod += log.gameTotal;
                     const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
                     if (declaredNumber && log.data[declaredNumber]) {
                         clientPassingAmountForPeriod += parseFloat(log.data[declaredNumber]) || 0;
                     }
                 });
-                
+
                 if (clientGameTotalForPeriod > 0) {
                     const clientCommission = clientGameTotalForPeriod * clientCommPercent;
                     const clientNet = clientGameTotalForPeriod - clientCommission;
@@ -180,24 +90,18 @@ const BrokerReport = ({ userId, clients, savedSheetLog, upperComm, setUpperComm,
                     totalClientPayable += clientNet - clientWinnings;
                 }
             });
-
-            const relevantLogs = allLogs.filter(log => {
-                 const logDate = new Date(log.date);
-                 const clientMatches = selectedClientId === 'all' || log.clientId === selectedClientId;
-                 return clientMatches && logDate >= periodStart && logDate <= periodEnd;
-            });
-
-            relevantLogs.forEach(log => {
-                totalGameAmount += log.gameTotal;
+            
+            logsForPeriod.forEach(log => {
+                allClientsGameTotal += log.gameTotal;
                 const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
-                if (declaredNumber && log.data[declaredNumber]) {
-                    totalPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
+                if(declaredNumber && log.data[declaredNumber]) {
+                    allClientsPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
                 }
             });
 
-            const upperCommission = totalGameAmount * upperCommPercent;
-            const upperNet = totalGameAmount - upperCommission;
-            const upperWinnings = totalPassingAmount * upperPairRate;
+            const upperCommission = allClientsGameTotal * upperCommPercent;
+            const upperNet = allClientsGameTotal - upperCommission;
+            const upperWinnings = allClientsPassingAmount * upperPairRate;
             totalUpperPayable = upperNet - upperWinnings;
             
             return { clientPayable: totalClientPayable, upperPayable: totalUpperPayable };
@@ -281,7 +185,7 @@ const BrokerReport = ({ userId, clients, savedSheetLog, upperComm, setUpperComm,
                     <Button onClick={onApply}>Apply Settings</Button>
                 </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                  <div className="space-y-2">
                     <Label>View By</Label>
                     <Select value={viewMode} onValueChange={(value) => setViewMode(value as 'month' | 'year')}>
@@ -291,6 +195,28 @@ const BrokerReport = ({ userId, clients, savedSheetLog, upperComm, setUpperComm,
                             <SelectItem value="year">Year</SelectItem>
                         </SelectContent>
                     </Select>
+                </div>
+                <div className="space-y-2">
+                   <Label>{viewMode === 'month' ? 'Select Month' : 'Select Year'}</Label>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant={"outline"}
+                                className={cn("w-full justify-start text-left font-normal", !selectedDate && "text-muted-foreground")}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {selectedDate ? format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy") : <span>Pick a date</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                            <Calendar
+                                mode="single"
+                                selected={selectedDate}
+                                onSelect={(date) => date && setSelectedDate(date)}
+                                initialFocus
+                            />
+                        </PopoverContent>
+                    </Popover>
                 </div>
                 <div className="space-y-2">
                     <Label>Filter by Client</Label>
@@ -309,7 +235,7 @@ const BrokerReport = ({ userId, clients, savedSheetLog, upperComm, setUpperComm,
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
                             <CardTitle className="text-sm font-medium">
-                                {viewMode === 'month' ? 'Monthly' : 'Yearly'} Net
+                                {viewMode === 'month' ? 'Monthly' : 'Yearly'} Net Payable
                             </CardTitle>
                             <Wallet className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
@@ -460,7 +386,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         const allLogs = Object.values(savedSheetLog).flat();
 
         const logsForPeriod = allLogs.filter(log => {
-            const logDate = new Date(log.date);
+            const logDate = startOfDay(new Date(log.date));
             return logDate >= periodStart && logDate <= periodEnd;
         });
 
@@ -508,7 +434,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     const runningTotal = useMemo(() => {
         const allLogs = Object.values(savedSheetLog).flat();
         if (allLogs.length === 0) {
-            // If no logs, check for settlements up to the current date
             let cumulativeSettlement = 0;
             Object.keys(settlements).forEach(dateKey => {
                 const settlementDate = startOfDay(parseISO(dateKey));
@@ -547,68 +472,12 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     }, [savedSheetLog, summaryDate, calculateDailyNet, settlements]);
 
 
-    const { 
-        brokerRawDrawTotals, 
-        brokerPassingDrawTotals, 
-        grandRawTotal, 
-        grandPassingTotal,
-        brokerCommission,
-        finalNetTotalForBroker
-    } = useMemo(() => {
-        const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
-        const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
-        
-        const rawTotalsByDraw: { [key: string]: number } = {};
-        const passingTotalsByDraw: { [key: string]: number } = {};
-
-        for (const drawName of draws) {
-            rawTotalsByDraw[drawName] = 0;
-            passingTotalsByDraw[drawName] = 0;
-            const logsForDraw = (savedSheetLog[drawName] || []).filter(log => isSameDay(new Date(log.date), summaryDate));
-
-
-            for (const log of logsForDraw) {
-                rawTotalsByDraw[drawName] += log.gameTotal;
-                const dateStr = format(new Date(log.date), 'yyyy-MM-dd');
-                const declarationId = `${log.draw}-${dateStr}`;
-                const declaredNum = declaredNumbers[declarationId]?.number;
-
-                if (declaredNum && log.data[declaredNum]) {
-                    const passingAmount = parseFloat(log.data[declaredNum]) || 0;
-                    passingTotalsByDraw[drawName] += passingAmount;
-                }
-            }
-        }
-        
-        const grandRawTotal = Object.values(rawTotalsByDraw).reduce((sum, total) => sum + total, 0);
-        const grandPassingTotal = Object.values(passingTotalsByDraw).reduce((sum, total) => sum + total, 0);
-
-        const brokerCommission = grandRawTotal * upperCommPercent;
-        const finalGrandPassingTotal = grandPassingTotal * upperPairRate;
-        const brokerNet = (grandRawTotal - brokerCommission) - finalGrandPassingTotal;
-
-        return { 
-            brokerRawDrawTotals: rawTotalsByDraw, 
-            brokerPassingDrawTotals: passingTotalsByDraw,
-            grandRawTotal,
-            grandPassingTotal,
-            brokerCommission,
-            finalNetTotalForBroker: brokerNet
-        };
-    }, [savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair, summaryDate]);
-
-
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="flex flex-row justify-between items-start">
         <div>
             <CardTitle>Admin Panel</CardTitle>
             <CardDescription>High-level overview of your brokerage operations.</CardDescription>
-        </div>
-        <div className="space-y-2 w-64">
-            <RunningTotalSummaryCard 
-                runningTotal={runningTotal}
-            />
         </div>
       </CardHeader>
       <CardContent className="flex-1 space-y-6 overflow-y-auto">
@@ -655,24 +524,12 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 </Card>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
-                {draws.map(drawName => (
-                    <BrokerDrawSummaryCard 
-                        key={drawName}
-                        title={drawName} 
-                        rawTotal={brokerRawDrawTotals[drawName] || 0} 
-                        passingTotal={brokerPassingDrawTotals[drawName] || 0}
-                    />
-                ))}
-                <GrandTotalSummaryCard
-                    title="Final Summary"
-                    finalValue={finalNetTotalForBroker}
-                    grandRawTotal={grandRawTotal}
-                    grandPassingTotal={grandPassingTotal}
-                    brokerCommission={brokerCommission}
-                    upperPairRate={parseFloat(appliedUpperPair) || defaultUpperPair}
-                />
-            </div>
+            <Card className="p-2 bg-muted/50 border-border max-w-sm ml-auto">
+                <div className="flex items-center justify-between px-1">
+                    <p className="text-xs text-foreground font-bold flex items-center gap-1"><Scale className="h-3 w-3"/>Running Net Total</p>
+                    <p className={`text-lg font-extrabold ${runningTotal >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatNumber(runningTotal)}</p>
+                </div>
+            </Card>
         </div>
 
         <Separator className="my-8" />
@@ -692,15 +549,9 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 onApply={handleApplySettings}
                 appliedUpperComm={appliedUpperComm}
                 appliedUpperPair={appliedUpperPair}
-                selectedDate={summaryDate}
-                setSelectedDate={setSummaryDate}
             />
         </div>
       </CardContent>
     </Card>
   );
 }
-
-    
-
-    
