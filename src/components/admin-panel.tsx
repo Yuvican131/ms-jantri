@@ -70,113 +70,113 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
     };
 
     const reportData: ReportRow[] = useMemo(() => {
-    const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
-    const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
-    const allLogs = Object.values(savedSheetLog).flat();
+        const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
+        const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
+        const allLogs = Object.values(savedSheetLog).flat();
 
-    const calculateNetForPeriod = (periodStart: Date, periodEnd: Date): { clientPayable: number, upperPayable: number, hasActivity: boolean } => {
-        let totalClientPayable = 0;
-        let totalUpperPayable = 0;
-        let hasActivity = false;
+        const calculateNetForPeriod = (periodStart: Date, periodEnd: Date) => {
+            let totalClientPayable = 0;
+            let totalUpperPayable = 0;
+            let hasActivity = false;
 
-        const clientsToProcess = selectedClientId === 'all' ? clients : clients.filter(c => c.id === selectedClientId);
+            const clientsToProcess = selectedClientId === 'all' ? clients : clients.filter(c => c.id === selectedClientId);
 
-        const logsForPeriod = allLogs.filter(log => {
-            const logDate = startOfDay(new Date(log.date));
-            return logDate >= periodStart && logDate <= periodEnd;
-        });
+            const logsForPeriod = allLogs.filter(log => {
+                const logDate = startOfDay(new Date(log.date));
+                return logDate >= periodStart && logDate <= periodEnd;
+            });
 
-        if (logsForPeriod.length > 0) hasActivity = true;
-        
-        // Client Payable Calculation
-        clientsToProcess.forEach(client => {
-            const clientLogs = logsForPeriod.filter(log => log.clientId === client.id);
-            if (clientLogs.length === 0) return;
+            if (logsForPeriod.length > 0) hasActivity = true;
+            
+            // Client Payable Calculation
+            clientsToProcess.forEach(client => {
+                const clientLogs = logsForPeriod.filter(log => log.clientId === client.id);
+                if (clientLogs.length === 0) return;
 
-            let clientGameTotal = 0;
-            let clientPassingAmount = 0;
-            const clientCommPercent = (client.comm && !isNaN(parseFloat(client.comm))) ? parseFloat(client.comm) / 100 : 0;
-            const clientPairRate = parseFloat(client.pair) || defaultClientPair;
+                let clientGameTotal = 0;
+                let clientPassingAmount = 0;
+                const clientCommPercent = (client.comm && !isNaN(parseFloat(client.comm))) ? parseFloat(client.comm) / 100 : 0;
+                const clientPairRate = parseFloat(client.pair) || defaultClientPair;
 
-            clientLogs.forEach(log => {
-                clientGameTotal += log.gameTotal;
+                clientLogs.forEach(log => {
+                    clientGameTotal += log.gameTotal;
+                    const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
+                    if (declaredNumber && log.data[declaredNumber]) {
+                        clientPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
+                    }
+                });
+
+                const clientCommission = clientGameTotal * clientCommPercent;
+                const clientNet = clientGameTotal - clientCommission;
+                const clientWinnings = clientPassingAmount * clientPairRate;
+                totalClientPayable += clientNet - clientWinnings;
+            });
+            
+            // Upper Payable Calculation is based on ALL clients' data for the period
+            let totalGameRawForUpper = 0;
+            let totalPassingAmountRawForUpper = 0;
+            
+            const logsForUpper = selectedClientId === 'all' 
+                ? logsForPeriod 
+                : logsForPeriod.filter(log => log.clientId === selectedClientId);
+            
+            logsForUpper.forEach(log => {
+                totalGameRawForUpper += log.gameTotal;
                 const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
-                if (declaredNumber && log.data[declaredNumber]) {
-                    clientPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
+                if(declaredNumber && log.data[declaredNumber]) {
+                    totalPassingAmountRawForUpper += parseFloat(log.data[declaredNumber]) || 0;
                 }
             });
 
-            const clientCommission = clientGameTotal * clientCommPercent;
-            const clientNet = clientGameTotal - clientCommission;
-            const clientWinnings = clientPassingAmount * clientPairRate;
-            totalClientPayable += clientNet - clientWinnings;
-        });
-        
-        // Upper Payable Calculation is based on ALL clients' data for the period
-        let totalGameRawForUpper = 0;
-        let totalPassingAmountRawForUpper = 0;
-        
-        const logsForUpper = selectedClientId === 'all' 
-            ? logsForPeriod 
-            : logsForPeriod.filter(log => log.clientId === selectedClientId);
-        
-        logsForUpper.forEach(log => {
-            totalGameRawForUpper += log.gameTotal;
-            const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
-            if(declaredNumber && log.data[declaredNumber]) {
-                totalPassingAmountRawForUpper += parseFloat(log.data[declaredNumber]) || 0;
-            }
-        });
+            const upperCommission = totalGameRawForUpper * upperCommPercent;
+            const upperNet = totalGameRawForUpper - upperCommission;
+            const upperWinnings = totalPassingAmountRawForUpper * upperPairRate;
+            totalUpperPayable = upperNet - upperWinnings;
+            
+            return { clientPayable: totalClientPayable, upperPayable: totalUpperPayable, hasActivity };
+        };
 
-        const upperCommission = totalGameRawForUpper * upperCommPercent;
-        const upperNet = totalGameRawForUpper - upperCommission;
-        const upperWinnings = totalPassingAmountRawForUpper * upperPairRate;
-        totalUpperPayable = upperNet - upperWinnings;
+        if (viewMode === 'month') {
+            const monthStart = startOfMonth(selectedDate);
+            const monthEnd = endOfMonth(selectedDate);
+            const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
         
-        return { clientPayable: totalClientPayable, upperPayable: totalUpperPayable, hasActivity };
-    };
+            return daysInMonth.map(day => {
+                const dayStart = startOfDay(day);
+                const dayEnd = endOfDay(day);
+                const { clientPayable, upperPayable, hasActivity } = calculateNetForPeriod(dayStart, dayEnd);
+                const brokerNet = clientPayable - upperPayable;
+                return {
+                    date: day,
+                    label: format(day, "EEE, dd MMM yyyy"),
+                    clientPayable,
+                    upperPayable,
+                    brokerNet,
+                    hasActivity
+                };
+            }).filter(row => row.hasActivity);
+        } else { // viewMode === 'year'
+            const yearStart = startOfYear(selectedDate);
+            const yearEnd = endOfYear(selectedDate);
+            const monthsInYear = eachMonthOfInterval({ start: yearStart, end: yearEnd });
 
-    if (viewMode === 'month') {
-        const monthStart = startOfMonth(selectedDate);
-        const monthEnd = endOfMonth(selectedDate);
-        const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
-    
-        return daysInMonth.map(day => {
-            const dayStart = startOfDay(day);
-            const dayEnd = endOfDay(day);
-            const { clientPayable, upperPayable, hasActivity } = calculateNetForPeriod(dayStart, dayEnd);
-            const brokerNet = clientPayable - upperPayable;
-            return {
-                date: day,
-                label: format(day, "EEE, dd MMM yyyy"),
-                clientPayable,
-                upperPayable,
-                brokerNet,
-                hasActivity
-            };
-        }).filter(row => row.hasActivity);
-    } else { // viewMode === 'year'
-        const yearStart = startOfYear(selectedDate);
-        const yearEnd = endOfYear(selectedDate);
-        const monthsInYear = eachMonthOfInterval({ start: yearStart, end: yearEnd });
+            return monthsInYear.map(month => {
+                const monthStart = startOfMonth(month);
+                const monthEnd = endOfMonth(month);
+                const { clientPayable, upperPayable, hasActivity } = calculateNetForPeriod(monthStart, monthEnd);
+                const brokerNet = clientPayable - upperPayable;
+                return {
+                    date: month,
+                    label: format(month, "MMMM yyyy"),
+                    clientPayable,
+                    upperPayable,
+                    brokerNet,
+                    hasActivity
+                };
+            }).filter(row => row.hasActivity);
+        }
 
-        return monthsInYear.map(month => {
-            const monthStart = startOfMonth(month);
-            const monthEnd = endOfMonth(month);
-            const { clientPayable, upperPayable, hasActivity } = calculateNetForPeriod(monthStart, monthEnd);
-             const brokerNet = clientPayable - upperPayable;
-            return {
-                date: month,
-                label: format(month, "MMMM yyyy"),
-                clientPayable,
-                upperPayable,
-                brokerNet,
-                hasActivity
-            };
-        }).filter(row => row.hasActivity);
-    }
-
-}, [selectedDate, appliedUpperComm, appliedUpperPair, clients, savedSheetLog, declaredNumbers, selectedClientId, viewMode]);
+    }, [selectedDate, appliedUpperComm, appliedUpperPair, clients, savedSheetLog, declaredNumbers, selectedClientId, viewMode]);
   
     const grandTotalForPeriod = useMemo(() => {
         return reportData.reduce((acc, row) => {
