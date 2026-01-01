@@ -455,17 +455,11 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         const logsForDay = Object.values(savedSheetLog).flat().filter(log => log.date === dateStr);
         let totalRaw = 0;
         let totalPassingUpper = 0;
-        let brokerComm = 0;
     
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
+        const upperCommRate = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
     
         logsForDay.forEach(log => {
-            const client = clients.find(c => c.id === log.clientId);
-            if (client) {
-                const clientCommPercent = (client.comm && !isNaN(parseFloat(client.comm))) ? parseFloat(client.comm) / 100 : 0;
-                brokerComm += log.gameTotal * clientCommPercent;
-            }
-            
             totalRaw += log.gameTotal;
     
             const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
@@ -474,11 +468,12 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             }
         });
     
+        const brokerComm = totalRaw * upperCommRate;
         const totalPassingAmount = totalPassingUpper * upperPairRate;
         const finalNet = totalRaw - brokerComm - totalPassingAmount;
     
         return { totalRaw, brokerComm, totalPassing: totalPassingAmount, finalNet };
-    }, [summaryDate, savedSheetLog, declaredNumbers, clients, appliedUpperPair]);
+    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperPair, appliedUpperComm]);
 
 
     const runningTotal = useMemo(() => {
@@ -626,3 +621,4 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
+
