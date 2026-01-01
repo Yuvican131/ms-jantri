@@ -376,7 +376,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         let totalUpperPayable = 0;
         
         const periodStart = startOfDay(date);
-        const periodEnd = endOfDay(date);
         const allLogs = Object.values(savedSheetLog).flat();
 
         const logsForPeriod = allLogs.filter(log => {
@@ -589,7 +588,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                  <Card className="p-4 bg-transparent border-2 border-green-500 col-span-2 md:col-span-1 lg:col-span-2 xl:col-auto">
                     <CardHeader className="p-0 mb-2 flex flex-row items-center justify-between">
                         <CardTitle className="text-base font-bold text-green-400">Final Summary</CardTitle>
-                        <Trash2 className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent className="p-0 text-sm space-y-1">
                         <div className="flex justify-between"><span>Total Raw:</span> <span className="font-semibold">{formatNumber(finalSummaryForDay.totalRaw)}</span></div>
@@ -619,5 +617,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
+
+    
 
     
