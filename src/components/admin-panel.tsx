@@ -33,22 +33,41 @@ type ReportRow = {
   brokerNet: number;
 };
 
-const BrokerReport = ({ userId, clients, savedSheetLog, upperComm, setUpperComm, upperPair, setUpperPair, onApply, appliedUpperComm, appliedUpperPair }: {
+const BrokerReport = ({ userId, clients, savedSheetLog }: {
     userId?: string;
     clients: Client[];
     savedSheetLog: { [draw: string]: SavedSheetInfo[] };
-    upperComm: string;
-    setUpperComm: (value: string) => void;
-    upperPair: string;
-    setUpperPair: (value: string) => void;
-    onApply: () => void;
-    appliedUpperComm: string;
-    appliedUpperPair: string;
 }) => {
     const { declaredNumbers } = useDeclaredNumbers(userId);
     const [selectedClientId, setSelectedClientId] = useState<string>('all');
     const [viewMode, setViewMode] = useState<'month' | 'year'>('month');
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const [upperComm, setUpperComm] = useState(defaultUpperComm.toString());
+    const [upperPair, setUpperPair] = useState(defaultUpperPair.toString());
+    const [appliedUpperComm, setAppliedUpperComm] = useState(defaultUpperComm.toString());
+    const [appliedUpperPair, setAppliedUpperPair] = useState(defaultUpperPair.toString());
+    const {toast} = useToast();
+
+    useEffect(() => {
+        const savedComm = localStorage.getItem('upperBrokerComm');
+        const savedPair = localStorage.getItem('upperBrokerPair');
+        if (savedComm) {
+            setUpperComm(savedComm);
+            setAppliedUpperComm(savedComm);
+        }
+        if (savedPair) {
+            setUpperPair(savedPair);
+            setAppliedUpperPair(savedPair);
+        }
+    }, []);
+
+    const handleApplySettings = () => {
+        setAppliedUpperComm(upperComm);
+        setAppliedUpperPair(upperPair);
+        localStorage.setItem('upperBrokerComm', upperComm);
+        localStorage.setItem('upperBrokerPair', upperPair);
+        toast({ title: "Settings Applied", description: "Broker commission and pair rates have been updated." });
+    };
     
     const reportData: ReportRow[] = useMemo(() => {
         const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
@@ -182,7 +201,7 @@ const BrokerReport = ({ userId, clients, savedSheetLog, upperComm, setUpperComm,
                         placeholder={String(defaultUpperPair)}
                         />
                     </div>
-                    <Button onClick={onApply}>Apply Settings</Button>
+                    <Button onClick={handleApplySettings}>Apply Settings</Button>
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -235,7 +254,7 @@ const BrokerReport = ({ userId, clients, savedSheetLog, upperComm, setUpperComm,
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
                             <CardTitle className="text-sm font-medium">
-                                {viewMode === 'month' ? 'Monthly' : 'Yearly'} Net Payable
+                                Net Payable
                             </CardTitle>
                             <Wallet className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
@@ -303,12 +322,10 @@ type AdminPanelProps = {
 
 export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPanelProps) {
     const { toast } = useToast();
-    const [upperComm, setUpperComm] = useState(defaultUpperComm.toString());
-    const [upperPair, setUpperPair] = useState(defaultUpperPair.toString());
-    const [appliedUpperComm, setAppliedUpperComm] = useState(defaultUpperComm.toString());
-    const [appliedUpperPair, setAppliedUpperPair] = useState(defaultUpperPair.toString());
     const { declaredNumbers } = useDeclaredNumbers(userId);
     const [summaryDate, setSummaryDate] = useState<Date>(new Date());
+    const [appliedUpperComm, setAppliedUpperComm] = useState(defaultUpperComm.toString());
+    const [appliedUpperPair, setAppliedUpperPair] = useState(defaultUpperPair.toString());
 
     const [jamaAmount, setJamaAmount] = useState('');
     const [lenaAmount, setLenaAmount] = useState('');
@@ -330,27 +347,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         localStorage.setItem('brokerSettlements', JSON.stringify(settlements));
     }, [settlements]);
 
-
-    useEffect(() => {
-        const savedComm = localStorage.getItem('upperBrokerComm');
-        const savedPair = localStorage.getItem('upperBrokerPair');
-        if (savedComm) {
-            setUpperComm(savedComm);
-            setAppliedUpperComm(savedComm);
-        }
-        if (savedPair) {
-            setUpperPair(savedPair);
-            setAppliedUpperPair(savedPair);
-        }
-    }, []);
-
-    const handleApplySettings = () => {
-        setAppliedUpperComm(upperComm);
-        setAppliedUpperPair(upperPair);
-        localStorage.setItem('upperBrokerComm', upperComm);
-        localStorage.setItem('upperBrokerPair', upperPair);
-        toast({ title: "Settings Applied", description: "Broker commission and pair rates have been updated." });
-    };
 
     const handleSettlement = () => {
         const jama = parseFloat(jamaAmount) || 0;
@@ -575,13 +571,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 userId={userId}
                 clients={clients} 
                 savedSheetLog={savedSheetLog}
-                upperComm={upperComm}
-                setUpperComm={setUpperComm}
-                upperPair={upperPair}
-                setUpperPair={setUpperPair}
-                onApply={handleApplySettings}
-                appliedUpperComm={appliedUpperComm}
-                appliedUpperPair={appliedUpperPair}
             />
         </div>
       </CardContent>
