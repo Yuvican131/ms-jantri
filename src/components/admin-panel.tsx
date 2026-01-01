@@ -33,7 +33,7 @@ type ReportRow = {
   brokerNet: number;
 };
 
-const BrokerReport = ({ userId, clients, savedSheetLog }: {
+const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
     userId?: string;
     clients: Client[];
     savedSheetLog: { [draw: string]: SavedSheetInfo[] };
@@ -173,12 +173,12 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
         }, { clientPayable: 0, upperPayable: 0, brokerNet: 0 });
     }, [reportData]);
 
-    const hasData = useMemo(() => reportData.some(row => row.clientPayable !== 0 || row.upperPayable !== 0), [reportData]);
+    const hasData = useMemo(() => reportData.some(row => row.clientPayable !== 0 || row.upperPayable !== 0 || row.brokerNet !== 0), [reportData]);
 
     return (
         <div className="space-y-6">
             <div className="p-4 border rounded-lg bg-muted/50">
-                <h3 className="text-lg font-semibold text-primary flex items-center gap-2 mb-4">Broker Report</h3>
+                <h3 className="text-lg font-semibold text-primary flex items-center gap-2 mb-4">Broker Profit &amp; Loss</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
                     <div className="space-y-2">
                         <Label htmlFor="upper-comm">Upper Broker Comm (%)</Label>
@@ -251,7 +251,7 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
                             <CardTitle className="text-sm font-medium">
-                                {viewMode === 'month' ? 'Monthly' : 'Yearly'} Summary
+                                {viewMode === 'month' ? 'Monthly Summary' : 'Yearly Summary'}
                             </CardTitle>
                             <Wallet className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
@@ -260,7 +260,7 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
                                 {grandTotalForPeriod.brokerNet >= 0 ? `+${formatNumber(grandTotalForPeriod.brokerNet)}` : `-${formatNumber(Math.abs(grandTotalForPeriod.brokerNet))}`}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                Total net for {format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy")}
+                                Total profit for {format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy")}
                             </p>
                         </CardContent>
                     </Card>
@@ -277,8 +277,8 @@ const BrokerReport = ({ userId, clients, savedSheetLog }: {
                             </TableHeader>
                             <TableBody>
                             {reportData.map((row, index) => (
-                                (row.clientPayable !== 0 || row.upperPayable !== 0) &&
-                                <TableRow key={index} className={row.brokerNet === 0 && row.clientPayable === 0 ? "text-muted-foreground" : ""}>
+                                (row.clientPayable !== 0 || row.upperPayable !== 0 || row.brokerNet !== 0) &&
+                                <TableRow key={index}>
                                 <TableCell className="font-medium">{row.label}</TableCell>
                                 <TableCell className="text-right">₹{formatNumber(row.clientPayable)}</TableCell>
                                 <TableCell className="text-right">₹{formatNumber(row.upperPayable)}</TableCell>
@@ -607,7 +607,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         <Separator className="my-8" />
         
         <div>
-            <BrokerReport 
+            <BrokerProfitLoss 
                 userId={userId}
                 clients={clients} 
                 savedSheetLog={savedSheetLog}
