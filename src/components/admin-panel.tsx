@@ -573,7 +573,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                                 <CardTitle className="text-base font-bold text-primary">{draw}</CardTitle>
                                 <Percent className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
-                            <CardContent className="p-0 text-sm space-y-1 font-mono">
+                            <CardContent className="p-0 text-sm space-y-1">
                                 <div className="text-xl font-bold">{formatNumber(totalRaw)}</div>
                                 <div className="flex justify-between items-center text-xs text-muted-foreground">
                                     <span>Pass</span>
@@ -584,13 +584,13 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                     );
                 })}
 
-                {finalSummaryForDay.totalRaw > 0 && (
+                
                  <Card className="p-4 bg-transparent border-2 border-green-500 col-span-2 md:col-span-1 lg:col-span-2 xl:col-auto">
                     <CardHeader className="p-0 mb-2 flex flex-row items-center justify-between">
                         <CardTitle className="text-base font-bold text-green-400">Final Summary</CardTitle>
                         <Trash2 className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
-                    <CardContent className="p-0 text-sm space-y-1 font-mono">
+                    <CardContent className="p-0 text-sm space-y-1">
                         <div className="flex justify-between"><span>Total Raw:</span> <span className="font-semibold">{formatNumber(finalSummaryForDay.totalRaw)}</span></div>
                         <div className="flex justify-between"><span>% Broker Comm:</span> <span className="font-semibold">{formatNumber(finalSummaryForDay.brokerComm)}</span></div>
                         <div className="flex justify-between"><span>Total Passing:</span> <span className="font-semibold">{formatNumber(finalSummaryForDay.totalPassing)}</span></div>
@@ -600,7 +600,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                         </div>
                     </CardContent>
                  </Card>
-                )}
+                
             </div>
 
         </div>
