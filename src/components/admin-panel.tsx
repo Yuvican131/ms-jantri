@@ -135,7 +135,9 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
         const upperWinnings = totalPassingAmountRawForUpper * upperPairRate;
         totalUpperPayable = upperNet - upperWinnings;
         
-        return { clientPayable: totalClientPayable, upperPayable: totalUpperPayable, hasActivity };
+        const brokerNet = totalClientPayable - totalUpperPayable;
+        
+        return { clientPayable: totalClientPayable, upperPayable: totalUpperPayable, brokerNet, hasActivity };
 
     }, [savedSheetLog, clients, selectedClientId, declaredNumbers, appliedUpperComm, appliedUpperPair]);
 
@@ -149,8 +151,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
             return daysInMonth.map(day => {
                 const dayStart = startOfDay(day);
                 const dayEnd = endOfDay(day);
-                const { clientPayable, upperPayable, hasActivity } = calculateNetForPeriod(dayStart, dayEnd);
-                const brokerNet = clientPayable - upperPayable;
+                const { clientPayable, upperPayable, brokerNet, hasActivity } = calculateNetForPeriod(dayStart, dayEnd);
                 return {
                     date: day,
                     label: format(day, "EEE, dd MMM yyyy"),
@@ -168,8 +169,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
             return monthsInYear.map(month => {
                 const monthStart = startOfMonth(month);
                 const monthEnd = endOfMonth(month);
-                const { clientPayable, upperPayable, hasActivity } = calculateNetForPeriod(monthStart, monthEnd);
-                const brokerNet = clientPayable - upperPayable;
+                const { clientPayable, upperPayable, brokerNet, hasActivity } = calculateNetForPeriod(monthStart, monthEnd);
                 return {
                     date: month,
                     label: format(month, "MMMM yyyy"),
@@ -353,8 +353,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     const [lenaAmount, setLenaAmount] = useState('');
     
     const [settlements, setSettlements] = useState<{[key: string]: number}>({});
-    const [openingBalance, setOpeningBalance] = useState<number>(0);
-    const [openingBalanceInput, setOpeningBalanceInput] = useState<string>('0');
 
 
     useEffect(() => {
@@ -362,12 +360,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             const savedSettlements = localStorage.getItem('brokerSettlements');
             if (savedSettlements) {
                 setSettlements(JSON.parse(savedSettlements));
-            }
-            const savedOpeningBalance = localStorage.getItem('brokerOpeningBalance');
-            if (savedOpeningBalance) {
-                const balance = parseFloat(savedOpeningBalance);
-                setOpeningBalance(balance);
-                setOpeningBalanceInput(balance.toString());
             }
         } catch (error) {
             console.error("Failed to parse data from localStorage", error);
@@ -383,94 +375,90 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         localStorage.setItem('brokerSettlements', JSON.stringify(settlements));
     }, [settlements]);
 
-    const handleSaveOpeningBalance = () => {
-        const balance = parseFloat(openingBalanceInput);
-        if (isNaN(balance)) {
-            toast({ title: "Invalid Amount", description: "Please enter a valid number for opening balance.", variant: "destructive" });
-            return;
-        }
-        setOpeningBalance(balance);
-        localStorage.setItem('brokerOpeningBalance', balance.toString());
-        toast({ title: "Opening Balance Saved", description: `Your opening balance of ₹${formatNumber(balance)} has been saved.` });
-    };
     
-    const calculateDailyNet = useCallback((date: Date, allLogs: SavedSheetInfo[]) => {
+    const calculateDailyNet = useCallback((date: Date, allLogs: SavedSheetInfo[], clientsForCalc: Client[]) => {
         const dateStr = format(date, 'yyyy-MM-dd');
         const logsForDay = allLogs.filter(log => log.date === dateStr);
-        if (logsForDay.length === 0) return 0;
-        
-        let totalGameRaw = 0;
-        let totalPassingUpper = 0;
-    
+        if (logsForDay.length === 0) return { clientPayable: 0, upperPayable: 0, brokerNet: 0};
+
+        let totalClientPayable = 0;
+        let totalUpperPayable = 0;
+
+        // Client Payable
+        clientsForCalc.forEach(client => {
+            const clientLogs = logsForDay.filter(l => l.clientId === client.id);
+            if(clientLogs.length === 0) return;
+            
+            let clientGameTotal = 0;
+            let clientPassingAmount = 0;
+            const clientCommPercent = (client.comm && !isNaN(parseFloat(client.comm))) ? parseFloat(client.comm) / 100 : 0;
+            const clientPairRate = parseFloat(client.pair) || defaultClientPair;
+
+            clientLogs.forEach(log => {
+                clientGameTotal += log.gameTotal;
+                const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
+                if(declaredNumber && log.data[declaredNumber]) {
+                    clientPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
+                }
+            });
+            const clientCommission = clientGameTotal * clientCommPercent;
+            const clientNet = clientGameTotal - clientCommission;
+            const clientWinnings = clientPassingAmount * clientPairRate;
+            totalClientPayable += clientNet - clientWinnings;
+        });
+
+        // Upper Payable
+        let totalGameRawForUpper = 0;
+        let totalPassingAmountRawForUpper = 0;
         const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
-        
+
         logsForDay.forEach(log => {
-            totalGameRaw += log.gameTotal;
+            totalGameRawForUpper += log.gameTotal;
             const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
-            if (declaredNumber && log.data[declaredNumber]) {
-                totalPassingUpper += parseFloat(log.data[declaredNumber]);
+            if(declaredNumber && log.data[declaredNumber]) {
+                totalPassingAmountRawForUpper += parseFloat(log.data[declaredNumber]) || 0;
             }
         });
-        
-        const brokerComm = totalGameRaw * upperCommPercent;
-        const totalPassing = totalPassingUpper * upperPairRate;
-        const finalNet = (totalGameRaw - brokerComm) - totalPassing;
+        const upperCommission = totalGameRawForUpper * upperCommPercent;
+        const upperNet = totalGameRawForUpper - upperCommission;
+        const upperWinnings = totalPassingAmountRawForUpper * upperPairRate;
+        totalUpperPayable = upperNet - upperWinnings;
 
-        return finalNet;
+        const brokerNet = totalClientPayable - totalUpperPayable;
+
+        return { clientPayable: totalClientPayable, upperPayable: totalUpperPayable, brokerNet };
 
     }, [declaredNumbers, appliedUpperComm, appliedUpperPair]);
     
     const runningTotal = useMemo(() => {
         const allLogs = Object.values(savedSheetLog).flat();
-        let cumulativeTotal = openingBalance; // Start with the opening balance
-
-        if (allLogs.length === 0 && Object.keys(settlements).length === 0) {
-            return cumulativeTotal;
-        }
-
-        const allDatesStr = new Set([
-            ...allLogs.map(log => log.date), 
+        let cumulativeTotal = 0; 
+    
+        const allDatesWithActivity = new Set([
+            ...allLogs.map(log => log.date),
             ...Object.keys(settlements)
         ]);
-
-        if (allDatesStr.size === 0) return cumulativeTotal;
-
-        const sortedDates = Array.from(allDatesStr).sort((a,b) => compareAsc(parseISO(a), parseISO(b)));
-        
-        const firstDayStr = sortedDates[0];
-        if (!firstDayStr) return cumulativeTotal;
-
-        const firstDay = startOfDay(parseISO(firstDayStr));
-        const today = endOfDay(new Date());
-        
-        // This loop is now correct as it only iterates through days with activity.
-        for (const dateStr of sortedDates) {
-            const day = startOfDay(parseISO(dateStr));
-            const dailyNet = calculateDailyNet(day, allLogs);
-            const settlementForDay = settlements[format(day, 'yyyy-MM-dd')] || 0;
-            cumulativeTotal += dailyNet + settlementForDay;
+    
+        if (allDatesWithActivity.size === 0) {
+            return 0;
         }
-        
-        // Let's refine the calculation to iterate day by day from the first record
-        // This can be computationally expensive if the date range is huge. Let's stick to calculating based on sorted transaction dates.
-        let dayByDayTotal = openingBalance;
-        if(sortedDates.length > 0) {
-            const startDate = parseISO(sortedDates[0]);
-            const endDate = new Date();
-            const intervalDays = eachDayOfInterval({start: startDate, end: endDate});
-
-            for (const day of intervalDays) {
-                 const dailyNet = calculateDailyNet(day, allLogs);
-                 const settlementForDay = settlements[format(day, 'yyyy-MM-dd')] || 0;
-                 dayByDayTotal += dailyNet + settlementForDay;
-            }
+    
+        const sortedDates = Array.from(allDatesWithActivity).sort((a, b) => compareAsc(parseISO(a), parseISO(b)));
+    
+        const startDate = parseISO(sortedDates[0]);
+        const endDate = new Date(); // Today
+        const intervalDays = eachDayOfInterval({ start: startDate, end: endDate });
+    
+        for (const day of intervalDays) {
+            const dateStr = format(day, 'yyyy-MM-dd');
+            const { brokerNet } = calculateDailyNet(day, allLogs, clients);
+            const settlementForDay = settlements[dateStr] || 0;
+            cumulativeTotal += brokerNet + settlementForDay;
         }
-
-
-        return dayByDayTotal;
-
-    }, [savedSheetLog, settlements, calculateDailyNet, openingBalance]);
+    
+        return cumulativeTotal;
+    }, [savedSheetLog, settlements, clients, calculateDailyNet]);
 
 
     const handleSettlement = () => {
@@ -518,30 +506,23 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
     const finalSummaryForDay = useMemo(() => {
         const allLogs = Object.values(savedSheetLog).flat();
-        
         const dateStr = format(summaryDate, 'yyyy-MM-dd');
         const logsForDay = allLogs.filter(log => log.date === dateStr);
-        
-        let totalGameRaw = 0;
-        let totalPassingUpper = 0;
-        
-        logsForDay.forEach(log => {
-            totalGameRaw += log.gameTotal;
-            
-            const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
-            if (declaredNumber && log.data[declaredNumber]) {
-                totalPassingUpper += parseFloat(log.data[declaredNumber]);
-            }
-        });
-        
-        const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
-        const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
-        const brokerComm = totalGameRaw * upperCommPercent;
-        const totalPassing = totalPassingUpper * upperPairRate;
-        const finalNet = (totalGameRaw - brokerComm) - totalPassing;
 
-        return { totalRaw: totalGameRaw, brokerComm, totalPassing, finalNet };
-    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair]);
+        const { clientPayable, upperPayable, brokerNet } = calculateDailyNet(summaryDate, allLogs, clients);
+        
+        let totalGameRawForUpper = 0;
+        logsForDay.forEach(log => {
+            totalGameRawForUpper += log.gameTotal;
+        });
+
+        const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
+        const brokerComm = totalGameRawForUpper * upperCommPercent;
+        const totalPassing = (totalGameRawForUpper - brokerComm) - upperPayable;
+
+
+        return { totalRaw: totalGameRawForUpper, brokerComm, totalPassing, finalNet: brokerNet };
+    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair, clients, calculateDailyNet]);
 
   return (
     <Card className="h-full flex flex-col">
@@ -601,11 +582,11 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 </Card>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8 min-h-0">
+             <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8 min-h-0">
                 {draws.map(draw => {
                     const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
                     return (
-                        <Card key={draw} className="p-3 flex flex-col">
+                       <Card key={draw} className="p-3 flex flex-col">
                             <div className="flex justify-between items-start text-muted-foreground">
                                 <CardTitle className="text-base font-bold">{draw}</CardTitle>
                                 <HandCoins className="h-5 w-5" />
@@ -615,7 +596,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                             </div>
                             <div className="flex justify-between items-center text-sm text-muted-foreground p-2 bg-muted/50 rounded-md mt-auto">
                                 <div className='flex items-center gap-1.5'>
-                                    <TrendingDown className="h-4 w-4" />
+                                    <TrendingDown className="h-4 w-4 text-red-500" />
                                     <span>Pass</span>
                                 </div>
                                 <span className={`font-semibold ${totalPassing > 0 ? 'text-red-500' : ''}`}>{formatNumber(totalPassing)}</span>
@@ -624,12 +605,12 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                     );
                 })}
 
-                 <div className="p-4 bg-card border-2 border-primary flex flex-col justify-between col-span-1 md:col-span-3 lg:col-span-1">
+                 <div className="p-4 bg-card border-2 border-primary flex flex-col col-span-1 md:col-span-3 lg:col-span-1 min-h-0">
                     <div className="flex justify-between items-center mb-4">
                         <CardTitle className="text-base font-bold text-primary">Final Summary</CardTitle>
                         <Landmark className="h-5 w-5 text-primary/70" />
                     </div>
-                    <div className="space-y-2 text-sm flex-grow">
+                    <div className="space-y-2 text-sm flex-grow flex flex-col justify-center">
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground flex items-center gap-1.5"><Banknote className="h-4 w-4"/>Total Raw:</span>
                             <span className="font-semibold font-mono text-base">{formatNumber(finalSummaryForDay.totalRaw)}</span>
@@ -643,7 +624,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                             <span className="font-semibold font-mono text-base">{formatNumber(finalSummaryForDay.totalPassing)}</span>
                         </div>
                     </div>
-                    <Separator className="my-3 bg-primary/20" />
+                     <Separator className="my-3 bg-primary/20" />
                     <div className={`flex justify-between items-center font-bold text-lg ${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                        <span>Final Net:</span> 
                        <span className="font-mono">{formatNumber(finalSummaryForDay.finalNet)}</span>
@@ -656,34 +637,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         <Separator className="my-8" />
         
         <div>
-            <Card className='mb-6'>
-                <CardHeader>
-                    <CardTitle className="text-lg font-semibold text-primary flex items-center gap-2">
-                        <Landmark className="h-5 w-5" /> Upper Broker Opening Balance
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex items-end gap-4">
-                        <div className='flex-grow'>
-                            <Label htmlFor='opening-balance'>Opening Balance Amount</Label>
-                            <Input
-                                id='opening-balance'
-                                placeholder='e.g., 10000'
-                                value={openingBalanceInput}
-                                onChange={e => setOpeningBalanceInput(e.target.value)}
-                            />
-                        </div>
-                        <Button onClick={handleSaveOpeningBalance}>
-                            <Save className="h-4 w-4 mr-2" />
-                            Save Opening Balance
-                        </Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                        Set this once to establish your starting balance with the upper broker. All "Running Net" calculations will begin from this amount.
-                    </p>
-                </CardContent>
-            </Card>
-
             <BrokerProfitLoss 
                 userId={userId}
                 clients={clients} 
