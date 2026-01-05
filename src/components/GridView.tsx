@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from "react";
@@ -29,14 +30,15 @@ export function GridView({
     validations,
     handleCellChange,
     handleCellBlur,
-    isDataEntryDisabled,
+isDataEntryDisabled,
     showClientSelectionToast,
 }: GridViewProps) {
 
     const rowTotals = Array.from({ length: GRID_ROWS }, (_, rowIndex) => {
         let total = 0;
         for (let colIndex = 0; colIndex < GRID_COLS; colIndex++) {
-            const key = (rowIndex * GRID_COLS + colIndex).toString().padStart(2, '0');
+            const cellNumber = rowIndex * GRID_COLS + colIndex + 1;
+            const key = cellNumber === 100 ? '00' : cellNumber.toString().padStart(2, '0');
             total += parseFloat(currentData[key]) || 0;
         }
         return total;
@@ -45,7 +47,8 @@ export function GridView({
     const columnTotals = Array.from({ length: GRID_COLS }, (_, colIndex) => {
         let total = 0;
         for (let rowIndex = 0; rowIndex < GRID_ROWS; rowIndex++) {
-            const key = (rowIndex * GRID_COLS + colIndex).toString().padStart(2, '0');
+            const cellNumber = rowIndex * GRID_COLS + colIndex + 1;
+            const key = cellNumber === 100 ? '00' : cellNumber.toString().padStart(2, '0');
             total += parseFloat(currentData[key]) || 0;
         }
         return total;
@@ -58,24 +61,26 @@ export function GridView({
             {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                 <React.Fragment key={`row-${rowIndex}`}>
                     {Array.from({ length: GRID_COLS }, (_, colIndex) => {
-                        const key = String(rowIndex * GRID_COLS + colIndex).toString().padStart(2, '0');
-                        const isUpdated = updatedCells.includes(key);
-                        const validation = validations[key];
+                        const cellNumber = rowIndex * GRID_COLS + colIndex + 1;
+                        const displayKey = cellNumber.toString().padStart(2, '0');
+                        const dataKey = cellNumber === 100 ? '00' : displayKey;
+                        const isUpdated = updatedCells.includes(dataKey);
+                        const validation = validations[dataKey];
 
                         return (
-                            <div key={key} className="relative flex border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                                <div className="absolute top-0.5 left-1 text-xs sm:top-1 sm:left-1.5 sm:text-sm select-none pointer-events-none z-10" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
+                            <div key={dataKey} className="relative flex border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+                                <div className="absolute top-0.5 left-1 text-xs sm:top-1 sm:left-1.5 sm:text-sm select-none pointer-events-none z-10" style={{ color: 'var(--grid-cell-number-color)' }}>{displayKey}</div>
                                 <Input
-                                    id={`cell-${key}`}
+                                    id={`cell-${dataKey}`}
                                     type="text"
-                                    value={currentData[key] || ''}
-                                    onChange={(e) => handleCellChange(key, e.target.value)}
-                                    onBlur={() => handleCellBlur(key)}
+                                    value={currentData[dataKey] || ''}
+                                    onChange={(e) => handleCellChange(dataKey, e.target.value)}
+                                    onBlur={() => handleCellBlur(dataKey)}
                                     disabled={isDataEntryDisabled}
                                     onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
                                     className={`p-0 h-full w-full text-center bg-transparent border-0 focus:ring-0 grid-cell-input transition-colors duration-300 ${isUpdated ? "bg-primary/20" : ""} ${isDataEntryDisabled ? 'cursor-not-allowed bg-muted/50' : ''}`}
                                     style={{ color: 'var(--grid-cell-amount-color)' }}
-                                    aria-label={`Cell ${key} value ${currentData[key] || 'empty'}`}
+                                    aria-label={`Cell ${displayKey} value ${currentData[dataKey] || 'empty'}`}
                                 />
                                 {validation && !validation.isValid && !validation.isLoading && (
                                     <Popover>

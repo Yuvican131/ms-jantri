@@ -153,12 +153,12 @@ const MasterSheetViewer = ({
   const calculateRowTotal = (rowIndex: number, data: CellData) => {
     let total = 0;
     for (let colIndex = 0; colIndex < GRID_COLS; colIndex++) {
-      const cellNumber = rowIndex * GRID_COLS + colIndex;
-      const key = cellNumber.toString().padStart(2, '0');
-      const value = data[key];
-      if (value && !isNaN(Number(value))) {
-        total += Number(value);
-      }
+        const cellNumber = rowIndex * GRID_COLS + colIndex + 1;
+        const key = cellNumber === 100 ? '00' : cellNumber.toString().padStart(2, '0');
+        const value = data[key];
+        if (value && !isNaN(Number(value))) {
+            total += Number(value);
+        }
     }
     return total;
   };
@@ -166,7 +166,8 @@ const MasterSheetViewer = ({
   const calculateColumnTotal = (colIndex: number, data: CellData) => {
     let total = 0;
     for (let rowIndex = 0; rowIndex < GRID_ROWS; rowIndex++) {
-      const key = (rowIndex * GRID_COLS + colIndex).toString().padStart(2, '0');
+      const cellNumber = rowIndex * GRID_COLS + colIndex + 1;
+      const key = cellNumber === 100 ? '00' : cellNumber.toString().padStart(2, '0');
       total += parseFloat(data[key]) || 0;
     }
     return total;
@@ -224,26 +225,26 @@ const MasterSheetViewer = ({
   };
   
   const handleGenerateSheet = () => {
-    const valueToCells: { [value: string]: number[] } = {};
+    const valueToCells: { [value: string]: string[] } = {};
 
-    for (const key in masterSheetData) {
-      const value = masterSheetData[key];
-      if (value && value.trim() !== '' && !isNaN(Number(value)) && Number(value) !== 0) {
-        let cellNumber = parseInt(key);
-        if (!valueToCells[value]) {
-          valueToCells[value] = [];
+    for (let i = 1; i <= 100; i++) {
+        const displayKey = i.toString().padStart(2, '0');
+        const dataKey = i === 100 ? '00' : displayKey;
+        const value = masterSheetData[dataKey];
+        if (value && value.trim() !== '' && !isNaN(Number(value)) && Number(value) !== 0) {
+            if (!valueToCells[value]) {
+                valueToCells[value] = [];
+            }
+            valueToCells[value].push(displayKey);
         }
-        valueToCells[value].push(cellNumber);
-      }
     }
 
     const sheetBody = Object.entries(valueToCells)
-      .map(([value, cells]) => {
-        cells.sort((a, b) => a - b);
-        const formattedCells = cells.map(cell => String(cell).padStart(2, '0'));
-        return `${formattedCells.join(',')}=${value}`;
-      })
-      .join('\n');
+        .map(([value, cells]) => {
+            cells.sort((a, b) => parseInt(a) - parseInt(b));
+            return `${cells.join(',')}=${value}`;
+        })
+        .join('\n');
     
     const grandTotal = calculateGrandTotal(masterSheetData);
     const totalString = `Total = ${formatNumber(grandTotal)}`;
@@ -276,16 +277,18 @@ const MasterSheetViewer = ({
                 {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
                     <React.Fragment key={`master-row-${rowIndex}`}>
                         {Array.from({ length: GRID_COLS }, (_, colIndex) => {
-                            const key = String(rowIndex * GRID_COLS + colIndex).padStart(2, '0');
+                            const cellNumber = rowIndex * GRID_COLS + colIndex + 1;
+                            const displayKey = cellNumber.toString().padStart(2, '0');
+                            const dataKey = cellNumber === 100 ? '00' : displayKey;
                             return (
-                                <div key={`master-cell-${key}`} className="relative flex items-center border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                                    <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number font-bold" style={{ color: 'var(--grid-cell-number-color)' }}>{key}</div>
+                                <div key={`master-cell-${dataKey}`} className="relative flex items-center border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+                                    <div className="absolute top-0.5 left-1 text-[0.6rem] sm:top-1 sm:left-1.5 sm:text-xs select-none pointer-events-none z-10 grid-cell-number font-bold" style={{ color: 'var(--grid-cell-number-color)' }}>{displayKey}</div>
                                     <Input
                                         type="text"
                                         readOnly
                                         className="p-0 h-full w-full text-center bg-transparent border-0 focus:ring-0 font-bold grid-cell-input transition-colors duration-300"
-                                        value={masterSheetData[key] ? formatNumber(masterSheetData[key]) : ''}
-                                        aria-label={`Cell ${key}`}
+                                        value={masterSheetData[dataKey] ? formatNumber(masterSheetData[dataKey]) : ''}
+                                        aria-label={`Cell ${displayKey}`}
                                         style={{ color: 'var(--grid-cell-amount-color)' }}
                                     />
                                 </div>
@@ -845,8 +848,3 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
-
-
-
-
-    

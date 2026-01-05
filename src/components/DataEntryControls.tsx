@@ -162,8 +162,9 @@ export function DataEntryControls({
                 return;
             }
             twoDigitNumbers.forEach(num => {
-                const normalizedNum = num.padStart(2, '0');
-                finalUpdates[normalizedNum] = (finalUpdates[normalizedNum] || 0) + amount;
+                const numAsInt = parseInt(num, 10);
+                const dataKey = numAsInt === 100 ? '00' : num.padStart(2, '0');
+                finalUpdates[dataKey] = (finalUpdates[dataKey] || 0) + amount;
             });
         };
 
@@ -233,12 +234,13 @@ export function DataEntryControls({
         if (runningLaddi) {
             const start = parseInt(laddiNum1, 10);
             const end = parseInt(laddiNum2, 10);
-            if (isNaN(start) || isNaN(end) || start < 0 || end > 99 || start > end) {
-                toast({ title: "Running Error", description: "Invalid range. Please enter two-digit numbers (00-99) with start <= end.", variant: "destructive" });
+            if (isNaN(start) || isNaN(end) || start < 1 || end > 100 || start > end) {
+                toast({ title: "Running Error", description: "Invalid range. Please enter numbers between 1 and 100 with start <= end.", variant: "destructive" });
                 return;
             }
             for (let i = start; i <= end; i++) {
-                combinations.add(i.toString().padStart(2, '0'));
+                const numStr = i.toString().padStart(2, '0');
+                combinations.add(numStr);
             }
         } else {
             const digits1 = laddiNum1.split('');
@@ -259,7 +261,9 @@ export function DataEntryControls({
         
         const updates: { [key: string]: number } = {};
         combinations.forEach(cellNumStr => {
-            updates[cellNumStr] = (updates[cellNumStr] || 0) + amountValue;
+            const numAsInt = parseInt(cellNumStr, 10);
+            const dataKey = numAsInt === 100 ? '00' : cellNumStr.padStart(2, '0');
+            updates[dataKey] = (updates[dataKey] || 0) + amountValue;
         });
 
         if (Object.keys(updates).length > 0) {
@@ -306,14 +310,18 @@ export function DataEntryControls({
 
         harupADigits.forEach(digitA => {
             for (let i = 0; i < 10; i++) {
-                const key = parseInt(`${digitA}${i}`).toString().padStart(2, '0');
+                const cellNumber = parseInt(`${digitA}${i}`, 10);
+                if (cellNumber === 0) continue; // Skip 00 for 'A' harup
+                const key = cellNumber === 100 ? '00' : cellNumber.toString().padStart(2, '0');
                 updates[key] = (updates[key] || 0) + perDigitAmountA;
             }
         });
 
         harupBDigits.forEach(digitB => {
             for (let i = 0; i < 10; i++) {
-                const key = parseInt(`${i}${digitB}`).toString().padStart(2, '0');
+                const cellNumber = parseInt(`${i}${digitB}`, 10);
+                if (cellNumber === 0) continue; // Skip 00 for 'B' harup
+                const key = cellNumber === 100 ? '00' : cellNumber.toString().padStart(2, '0');
                 updates[key] = (updates[key] || 0) + perDigitAmountB;
             }
         });
@@ -375,24 +383,24 @@ export function DataEntryControls({
             return;
         }
 
-        const valueToCells: { [value: string]: number[] } = {};
+        const valueToCells: { [value: string]: string[] } = {};
 
-        for (const key in currentGridData) {
-            const value = currentGridData[key];
+        for (let i = 1; i <= 100; i++) {
+            const displayKey = i.toString().padStart(2, '0');
+            const dataKey = i === 100 ? '00' : displayKey;
+            const value = currentGridData[dataKey];
             if (value && value.trim() !== '' && !isNaN(Number(value)) && Number(value) !== 0) {
-                let cellNumber = parseInt(key);
                 if (!valueToCells[value]) {
                     valueToCells[value] = [];
                 }
-                valueToCells[value].push(cellNumber);
+                valueToCells[value].push(displayKey);
             }
         }
-
+        
         const sheetBody = Object.entries(valueToCells)
             .map(([value, cells]) => {
-                cells.sort((a, b) => a - b);
-                const formattedCells = cells.map(cell => String(cell).padStart(2, '0'));
-                return `${formattedCells.join(',')}=${value}`;
+                cells.sort((a, b) => parseInt(a) - parseInt(b));
+                return `${cells.join(',')}=${value}`;
             })
             .join('\n');
 
