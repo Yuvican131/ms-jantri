@@ -466,7 +466,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         const lena = parseFloat(lenaAmount) || 0;
         
         if (jama > 0 && lena > 0) {
-            toast({ title: "Invalid Entry", description: "Please enter a value in either field, not both.", variant: "destructive" });
+            toast({ title: "Invalid Entry", description: "Please enter a value in either Jama or Lena, not both.", variant: "destructive" });
             return;
         }
 
@@ -570,12 +570,12 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 <Card className="p-2 flex-grow">
                     <div className="flex items-end gap-2">
                         <div className='flex-grow'>
-                            <Label htmlFor='jama-amount' className='text-xs font-semibold text-red-500'>Subtract from Balance (Jama)</Label>
-                            <Input id='jama-amount' placeholder='e.g., Amount you owe' value={jamaAmount} onChange={e => {setJamaAmount(e.target.value); setLenaAmount('');}}/>
+                            <Label htmlFor='jama-amount' className='text-xs font-semibold'>Jama (Pay Out)</Label>
+                            <Input id='jama-amount' placeholder='Amount' value={jamaAmount} onChange={e => {setJamaAmount(e.target.value); setLenaAmount('');}}/>
                         </div>
                         <div className='flex-grow'>
-                             <Label htmlFor='lena-amount' className='text-xs font-semibold text-green-500'>Add to Balance (Lena)</Label>
-                            <Input id='lena-amount' placeholder='e.g., Your opening balance' value={lenaAmount} onChange={e => {setLenaAmount(e.target.value); setJamaAmount('');}}/>
+                             <Label htmlFor='lena-amount' className='text-xs font-semibold'>Lena (Receive)</Label>
+                            <Input id='lena-amount' placeholder='Amount' value={lenaAmount} onChange={e => {setLenaAmount(e.target.value); setJamaAmount('');}}/>
                         </div>
                         <Button onClick={handleSettlement} className="h-10">Settle</Button>
                     </div>
@@ -647,5 +647,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
+
+    
 
     
