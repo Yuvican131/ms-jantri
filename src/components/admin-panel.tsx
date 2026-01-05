@@ -70,73 +70,76 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
         toast({ title: "Settings Applied", description: "Broker commission and pair rates have been updated." });
     };
 
-    const reportData: ReportRow[] = useMemo(() => {
-        const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
-        const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
+    const calculateNetForPeriod = useCallback((periodStart: Date, periodEnd: Date) => {
+        let totalClientPayable = 0;
+        let totalUpperPayable = 0;
+        let hasActivity = false;
+        
         const allLogs = Object.values(savedSheetLog).flat();
+        const logsForPeriod = allLogs.filter(log => {
+            const logDate = startOfDay(new Date(log.date));
+            return logDate >= periodStart && logDate <= periodEnd;
+        });
 
-        const calculateNetForPeriod = (periodStart: Date, periodEnd: Date) => {
-            let totalClientPayable = 0;
-            let totalUpperPayable = 0;
-            let hasActivity = false;
+        if (logsForPeriod.length > 0) hasActivity = true;
 
-            const clientsToProcess = selectedClientId === 'all' ? clients : clients.filter(c => c.id === selectedClientId);
-            
-            const logsForPeriod = allLogs.filter(log => {
-                const logDate = startOfDay(new Date(log.date));
-                return logDate >= periodStart && logDate <= periodEnd;
-            });
-            
-            if (logsForPeriod.length > 0) hasActivity = true;
-            
-            // Client Payable Calculation
-            clientsToProcess.forEach(client => {
-                const clientLogs = logsForPeriod.filter(log => log.clientId === client.id);
-                if (clientLogs.length === 0) return;
+        const clientsToProcess = selectedClientId === 'all' 
+            ? clients 
+            : clients.filter(c => c.id === selectedClientId);
 
-                let clientGameTotal = 0;
-                let clientPassingAmount = 0;
-                const clientCommPercent = (client.comm && !isNaN(parseFloat(client.comm))) ? parseFloat(client.comm) / 100 : 0;
-                const clientPairRate = parseFloat(client.pair) || defaultClientPair;
+        // Client Payable Calculation
+        clientsToProcess.forEach(client => {
+            const clientLogs = logsForPeriod.filter(log => log.clientId === client.id);
+            if (clientLogs.length === 0) return;
 
-                clientLogs.forEach(log => {
-                    clientGameTotal += log.gameTotal;
-                    const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
-                    if (declaredNumber && log.data[declaredNumber]) {
-                        clientPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
-                    }
-                });
+            let clientGameTotal = 0;
+            let clientPassingAmount = 0;
+            const clientCommPercent = (client.comm && !isNaN(parseFloat(client.comm))) ? parseFloat(client.comm) / 100 : 0;
+            const clientPairRate = parseFloat(client.pair) || defaultClientPair;
 
-                const clientCommission = clientGameTotal * clientCommPercent;
-                const clientNet = clientGameTotal - clientCommission;
-                const clientWinnings = clientPassingAmount * clientPairRate;
-                totalClientPayable += clientNet - clientWinnings;
-            });
-            
-            // Upper Payable Calculation is based on ALL clients' data for the period
-            let totalGameRawForUpper = 0;
-            let totalPassingAmountRawForUpper = 0;
-            
-            const logsForUpper = selectedClientId === 'all' 
-                ? logsForPeriod 
-                : logsForPeriod.filter(log => log.clientId === selectedClientId);
-            
-            logsForUpper.forEach(log => {
-                totalGameRawForUpper += log.gameTotal;
+            clientLogs.forEach(log => {
+                clientGameTotal += log.gameTotal;
                 const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
-                if(declaredNumber && log.data[declaredNumber]) {
-                    totalPassingAmountRawForUpper += parseFloat(log.data[declaredNumber]) || 0;
+                if (declaredNumber && log.data[declaredNumber]) {
+                    clientPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
                 }
             });
 
-            const upperCommission = totalGameRawForUpper * upperCommPercent;
-            const upperNet = totalGameRawForUpper - upperCommission;
-            const upperWinnings = totalPassingAmountRawForUpper * upperPairRate;
-            totalUpperPayable = upperNet - upperWinnings;
-            
-            return { clientPayable: totalClientPayable, upperPayable: totalUpperPayable, hasActivity };
-        };
+            const clientCommission = clientGameTotal * clientCommPercent;
+            const clientNet = clientGameTotal - clientCommission;
+            const clientWinnings = clientPassingAmount * clientPairRate;
+            totalClientPayable += clientNet - clientWinnings;
+        });
 
+        // Upper Payable Calculation is based on ALL applicable clients' data for the period
+        let totalGameRawForUpper = 0;
+        let totalPassingAmountRawForUpper = 0;
+        const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
+        const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
+
+        const logsForUpper = selectedClientId === 'all' 
+            ? logsForPeriod 
+            : logsForPeriod.filter(log => log.clientId === selectedClientId);
+
+        logsForUpper.forEach(log => {
+            totalGameRawForUpper += log.gameTotal;
+            const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
+            if(declaredNumber && log.data[declaredNumber]) {
+                totalPassingAmountRawForUpper += parseFloat(log.data[declaredNumber]) || 0;
+            }
+        });
+
+        const upperCommission = totalGameRawForUpper * upperCommPercent;
+        const upperNet = totalGameRawForUpper - upperCommission;
+        const upperWinnings = totalPassingAmountRawForUpper * upperPairRate;
+        totalUpperPayable = upperNet - upperWinnings;
+        
+        return { clientPayable: totalClientPayable, upperPayable: totalUpperPayable, hasActivity };
+
+    }, [savedSheetLog, clients, selectedClientId, declaredNumbers, appliedUpperComm, appliedUpperPair]);
+
+
+    const reportData: ReportRow[] = useMemo(() => {
         if (viewMode === 'month') {
             const monthStart = startOfMonth(selectedDate);
             const monthEnd = endOfMonth(selectedDate);
@@ -146,7 +149,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                 const dayStart = startOfDay(day);
                 const dayEnd = endOfDay(day);
                 const { clientPayable, upperPayable, hasActivity } = calculateNetForPeriod(dayStart, dayEnd);
-                const brokerNet = clientPayable - upperPayable;
+                const brokerNet = upperPayable - clientPayable;
                 return {
                     date: day,
                     label: format(day, "EEE, dd MMM yyyy"),
@@ -165,7 +168,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                 const monthStart = startOfMonth(month);
                 const monthEnd = endOfMonth(month);
                 const { clientPayable, upperPayable, hasActivity } = calculateNetForPeriod(monthStart, monthEnd);
-                const brokerNet = clientPayable - upperPayable;
+                const brokerNet = upperPayable - clientPayable;
                 return {
                     date: month,
                     label: format(month, "MMMM yyyy"),
@@ -177,7 +180,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
             }).filter(row => row.hasActivity);
         }
 
-    }, [selectedDate, appliedUpperComm, appliedUpperPair, clients, savedSheetLog, declaredNumbers, selectedClientId, viewMode]);
+    }, [selectedDate, viewMode, calculateNetForPeriod]);
   
     const grandTotalForPeriod = useMemo(() => {
         return reportData.reduce((acc, row) => {
@@ -193,7 +196,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
     return (
         <div className="space-y-6">
             <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
-                <Landmark className="h-5 w-5" /> Broker Profit &amp; Loss
+                <Wallet className="h-5 w-5" /> Broker Profit &amp; Loss
             </h3>
             <div className="p-4 border rounded-lg bg-muted/50">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
@@ -412,10 +415,15 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
         const sortedDates = Array.from(allDatesStr).sort((a,b) => compareAsc(parseISO(a), parseISO(b)));
         
-        const firstDay = startOfDay(parseISO(sortedDates[0]));
+        const firstDayStr = sortedDates[0];
+        if (!firstDayStr) return 0;
+
+        const firstDay = startOfDay(parseISO(firstDayStr));
         const today = endOfDay(new Date());
 
         let cumulativeTotal = 0;
+
+        if (isBefore(today, firstDay)) return 0;
         
         const daysToIterate = eachDayOfInterval({start: firstDay, end: today});
 
@@ -561,26 +569,26 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 {draws.map(draw => {
                     const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
                     return (
-                        <Card key={draw} className="p-3 flex flex-col justify-between aspect-square">
-                            <div className="flex justify-between items-start">
+                        <Card key={draw} className="p-3 flex flex-col justify-between">
+                            <div className="flex justify-between items-start text-muted-foreground">
                                 <CardTitle className="text-base font-bold text-primary">{draw}</CardTitle>
-                                <HandCoins className="h-4 w-4 text-muted-foreground" />
+                                <HandCoins className="h-4 w-4" />
                             </div>
-                            <div className="text-right text-3xl font-bold">
+                            <div className="text-center text-3xl font-bold my-4">
                                 {formatNumber(totalRaw)}
                             </div>
-                            <div className="flex justify-between items-center text-xs text-muted-foreground p-1 bg-muted/50 rounded-sm">
+                            <div className="flex justify-between items-center text-xs text-muted-foreground p-1 bg-muted/50 rounded-sm mt-auto">
                                 <div className='flex items-center gap-1'>
                                     <TrendingDownIcon className="h-3 w-3" />
                                     <span>Pass</span>
                                 </div>
-                                <span className={`font-semibold ${totalPassing > 0 ? 'text-red-500' : 'text-muted-foreground'}`}>{formatNumber(totalPassing)}</span>
+                                <span className={`font-semibold ${totalPassing > 0 ? 'text-red-500' : ''}`}>{formatNumber(totalPassing)}</span>
                             </div>
                         </Card>
                     );
                 })}
 
-                <Card className="p-4 bg-muted/50 border-2 border-green-500 flex flex-col justify-between aspect-square">
+                <Card className="p-4 bg-muted/50 border-2 border-green-500 flex flex-col justify-between">
                     <div className="flex justify-between items-start mb-4">
                         <CardTitle className="text-base font-bold text-green-400">Final Summary</CardTitle>
                         <Landmark className="h-5 w-5 text-green-400/70" />
@@ -622,3 +630,5 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
+
+    
