@@ -566,17 +566,17 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 </Card>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8 min-h-0">
                 {draws.map(draw => {
                     const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
                     return (
-                        <Card key={draw} className="p-3 flex flex-col">
+                        <Card key={draw} className="p-3 flex flex-col h-40">
                             <div className="flex justify-between items-start text-muted-foreground">
                                 <CardTitle className="text-base font-bold">{draw}</CardTitle>
                                 <HandCoins className="h-5 w-5" />
                             </div>
-                            <div className="flex-grow flex items-center justify-center text-center text-2xl md:text-xl lg:text-2xl font-bold my-2">
-                                {formatNumber(totalRaw)}
+                            <div className="flex-grow flex items-center justify-center text-center text-2xl md:text-xl lg:text-2xl font-bold my-2 min-h-0">
+                                <span className="truncate">{formatNumber(totalRaw)}</span>
                             </div>
                             <div className="flex justify-between items-center text-sm text-muted-foreground p-2 bg-muted/50 rounded-md mt-auto">
                                 <div className='flex items-center gap-1.5'>
@@ -589,7 +589,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                     );
                 })}
 
-                <Card className="p-4 bg-card border-2 border-primary flex flex-col justify-between col-span-1 md:col-span-3 lg:col-span-1">
+                <Card className="p-4 bg-card border-2 border-primary flex flex-col justify-between col-span-1 md:col-span-3 lg:col-span-1 h-40">
                     <div className="flex justify-between items-center mb-4">
                         <CardTitle className="text-base font-bold text-primary">Final Summary</CardTitle>
                         <Landmark className="h-5 w-5 text-primary/70" />
