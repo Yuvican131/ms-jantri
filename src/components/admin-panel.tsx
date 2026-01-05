@@ -476,29 +476,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         const dateStr = format(summaryDate, 'yyyy-MM-dd');
         const logsForDay = Object.values(savedSheetLog).flat().filter(log => log.date === dateStr);
         
-        let totalClientPayable = 0;
-        clients.forEach(client => {
-            let clientGameTotal = 0;
-            let clientPassingAmount = 0;
-            const clientCommPercent = (client.comm && !isNaN(parseFloat(client.comm))) ? parseFloat(client.comm) / 100 : 0;
-            const clientPairRate = parseFloat(client.pair) || defaultClientPair;
-
-            logsForDay.filter(log => log.clientId === client.id).forEach(log => {
-                clientGameTotal += log.gameTotal;
-                const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
-                if (declaredNumber && log.data[declaredNumber]) {
-                    clientPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
-                }
-            });
-
-            if (clientGameTotal > 0) {
-                const clientCommission = clientGameTotal * clientCommPercent;
-                const clientNet = clientGameTotal - clientCommission;
-                const clientWinnings = clientPassingAmount * clientPairRate;
-                totalClientPayable += clientNet - clientWinnings;
-            }
-        });
-        
         let totalGameRaw = 0;
         let totalPassingUpper = 0;
     
@@ -514,14 +491,13 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             }
         });
         
-        const upperCommission = totalGameRaw * upperCommPercent;
-        const upperWinnings = totalPassingUpper * upperPairRate;
-        const totalUpperPayable = totalGameRaw - upperCommission - upperWinnings;
+        const brokerComm = totalGameRaw * upperCommPercent;
+        const totalPassing = totalPassingUpper * upperPairRate;
 
-        const finalNet = totalClientPayable - totalUpperPayable;
+        const finalNet = (totalGameRaw - brokerComm) - totalPassing;
 
-        return { totalRaw: totalGameRaw, brokerComm: upperCommission, totalPassing: upperWinnings, finalNet };
-    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair, clients]);
+        return { totalRaw: totalGameRaw, brokerComm, totalPassing, finalNet };
+    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair]);
 
 
     const runningTotal = useMemo(() => {
@@ -640,5 +616,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
+
+    
 
     
