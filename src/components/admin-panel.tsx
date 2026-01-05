@@ -4,7 +4,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatNumber } from "@/lib/utils";
-import { Wallet, Calendar as CalendarIcon, Percent, Scale, TrendingUp, TrendingDown, Landmark, Banknote, Trash2, HandCoins, Minus, Plus } from 'lucide-react';
+import { Wallet, Calendar as CalendarIcon, Percent, Scale, TrendingUp, TrendingDown, Landmark, Banknote, Trash2, HandCoins, Minus, Plus, Save } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -353,6 +353,9 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     const [lenaAmount, setLenaAmount] = useState('');
     
     const [settlements, setSettlements] = useState<{[key: string]: number}>({});
+    const [openingBalance, setOpeningBalance] = useState<number>(0);
+    const [openingBalanceInput, setOpeningBalanceInput] = useState<string>('0');
+
 
     useEffect(() => {
         try {
@@ -360,8 +363,14 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             if (savedSettlements) {
                 setSettlements(JSON.parse(savedSettlements));
             }
+            const savedOpeningBalance = localStorage.getItem('brokerOpeningBalance');
+            if (savedOpeningBalance) {
+                const balance = parseFloat(savedOpeningBalance);
+                setOpeningBalance(balance);
+                setOpeningBalanceInput(balance.toString());
+            }
         } catch (error) {
-            console.error("Failed to parse settlements from localStorage", error);
+            console.error("Failed to parse data from localStorage", error);
         }
         
         const savedComm = localStorage.getItem('upperBrokerComm');
@@ -373,6 +382,17 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     useEffect(() => {
         localStorage.setItem('brokerSettlements', JSON.stringify(settlements));
     }, [settlements]);
+
+    const handleSaveOpeningBalance = () => {
+        const balance = parseFloat(openingBalanceInput);
+        if (isNaN(balance)) {
+            toast({ title: "Invalid Amount", description: "Please enter a valid number for opening balance.", variant: "destructive" });
+            return;
+        }
+        setOpeningBalance(balance);
+        localStorage.setItem('brokerOpeningBalance', balance.toString());
+        toast({ title: "Opening Balance Saved", description: `Your opening balance of ₹${formatNumber(balance)} has been saved.` });
+    };
     
     const calculateDailyNet = useCallback((date: Date, allLogs: SavedSheetInfo[]) => {
         const dateStr = format(date, 'yyyy-MM-dd');
@@ -403,8 +423,10 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     
     const runningTotal = useMemo(() => {
         const allLogs = Object.values(savedSheetLog).flat();
+        let cumulativeTotal = openingBalance; // Start with the opening balance
+
         if (allLogs.length === 0 && Object.keys(settlements).length === 0) {
-            return 0;
+            return cumulativeTotal;
         }
 
         const allDatesStr = new Set([
@@ -412,30 +434,43 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             ...Object.keys(settlements)
         ]);
 
-        if (allDatesStr.size === 0) return 0;
+        if (allDatesStr.size === 0) return cumulativeTotal;
 
         const sortedDates = Array.from(allDatesStr).sort((a,b) => compareAsc(parseISO(a), parseISO(b)));
         
         const firstDayStr = sortedDates[0];
-        if (!firstDayStr) return 0;
+        if (!firstDayStr) return cumulativeTotal;
 
         const firstDay = startOfDay(parseISO(firstDayStr));
         const today = endOfDay(new Date());
-
-        let cumulativeTotal = 0;
-
-        if (isBefore(today, firstDay)) return 0;
         
-        const daysToIterate = eachDayOfInterval({start: firstDay, end: today});
-
-        for (const day of daysToIterate) {
+        // This loop is now correct as it only iterates through days with activity.
+        for (const dateStr of sortedDates) {
+            const day = startOfDay(parseISO(dateStr));
             const dailyNet = calculateDailyNet(day, allLogs);
             const settlementForDay = settlements[format(day, 'yyyy-MM-dd')] || 0;
             cumulativeTotal += dailyNet + settlementForDay;
         }
+        
+        // Let's refine the calculation to iterate day by day from the first record
+        // This can be computationally expensive if the date range is huge. Let's stick to calculating based on sorted transaction dates.
+        let dayByDayTotal = openingBalance;
+        if(sortedDates.length > 0) {
+            const startDate = parseISO(sortedDates[0]);
+            const endDate = new Date();
+            const intervalDays = eachDayOfInterval({start: startDate, end: endDate});
 
-        return cumulativeTotal;
-    }, [savedSheetLog, settlements, calculateDailyNet]);
+            for (const day of intervalDays) {
+                 const dailyNet = calculateDailyNet(day, allLogs);
+                 const settlementForDay = settlements[format(day, 'yyyy-MM-dd')] || 0;
+                 dayByDayTotal += dailyNet + settlementForDay;
+            }
+        }
+
+
+        return dayByDayTotal;
+
+    }, [savedSheetLog, settlements, calculateDailyNet, openingBalance]);
 
 
     const handleSettlement = () => {
@@ -589,7 +624,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                     );
                 })}
 
-                <Card className="p-4 bg-card border-2 border-primary flex flex-col justify-between col-span-1 md:col-span-3 lg:col-span-1">
+                 <div className="p-4 bg-card border-2 border-primary flex flex-col justify-between col-span-1 md:col-span-3 lg:col-span-1">
                     <div className="flex justify-between items-center mb-4">
                         <CardTitle className="text-base font-bold text-primary">Final Summary</CardTitle>
                         <Landmark className="h-5 w-5 text-primary/70" />
@@ -613,7 +648,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                        <span>Final Net:</span> 
                        <span className="font-mono">{formatNumber(finalSummaryForDay.finalNet)}</span>
                     </div>
-                </Card>
+                </div>
             </div>
 
         </div>
@@ -621,6 +656,34 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         <Separator className="my-8" />
         
         <div>
+            <Card className='mb-6'>
+                <CardHeader>
+                    <CardTitle className="text-lg font-semibold text-primary flex items-center gap-2">
+                        <Landmark className="h-5 w-5" /> Upper Broker Opening Balance
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-end gap-4">
+                        <div className='flex-grow'>
+                            <Label htmlFor='opening-balance'>Opening Balance Amount</Label>
+                            <Input
+                                id='opening-balance'
+                                placeholder='e.g., 10000'
+                                value={openingBalanceInput}
+                                onChange={e => setOpeningBalanceInput(e.target.value)}
+                            />
+                        </div>
+                        <Button onClick={handleSaveOpeningBalance}>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save Opening Balance
+                        </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                        Set this once to establish your starting balance with the upper broker. All "Running Net" calculations will begin from this amount.
+                    </p>
+                </CardContent>
+            </Card>
+
             <BrokerProfitLoss 
                 userId={userId}
                 clients={clients} 
@@ -631,3 +694,5 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
+
+    
