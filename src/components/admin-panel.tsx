@@ -570,7 +570,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 {draws.map(draw => {
                     const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
                     return (
-                        <Card key={draw} className="p-3 flex flex-col h-40">
+                        <Card key={draw} className="p-3 flex flex-col">
                             <div className="flex justify-between items-start text-muted-foreground">
                                 <CardTitle className="text-base font-bold">{draw}</CardTitle>
                                 <HandCoins className="h-5 w-5" />
@@ -589,7 +589,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                     );
                 })}
 
-                <Card className="p-4 bg-card border-2 border-primary flex flex-col justify-between col-span-1 md:col-span-3 lg:col-span-1 h-40">
+                <Card className="p-4 bg-card border-2 border-primary flex flex-col justify-between col-span-1 md:col-span-3 lg:col-span-1">
                     <div className="flex justify-between items-center mb-4">
                         <CardTitle className="text-base font-bold text-primary">Final Summary</CardTitle>
                         <Landmark className="h-5 w-5 text-primary/70" />
@@ -597,15 +597,15 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                     <div className="space-y-2 text-sm flex-grow">
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground flex items-center gap-1.5"><Banknote className="h-4 w-4"/>Total Raw:</span>
-                            <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.totalRaw)}</span>
+                            <span className="font-semibold font-mono text-base">{formatNumber(finalSummaryForDay.totalRaw)}</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground flex items-center gap-1.5"><Percent className="h-4 w-4"/>Broker Comm:</span> 
-                            <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.brokerComm)}</span>
+                            <span className="font-semibold font-mono text-base">{formatNumber(finalSummaryForDay.brokerComm)}</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground flex items-center gap-1.5"><TrendingDown className="h-4 w-4 text-red-500"/>Total Passing:</span> 
-                            <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.totalPassing)}</span>
+                            <span className="font-semibold font-mono text-base">{formatNumber(finalSummaryForDay.totalPassing)}</span>
                         </div>
                     </div>
                     <Separator className="my-3 bg-primary/20" />
