@@ -580,8 +580,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                     );
                 })}
 
-                
-                 <Card className="p-4 bg-muted/50 border-2 border-green-500 col-span-full md:col-span-3 lg:col-span-7 xl:col-span-2 flex flex-col justify-between">
+                <Card className="p-4 bg-muted/50 border-2 border-green-500 flex flex-col justify-between aspect-square">
                     <div className="flex justify-between items-start mb-4">
                         <CardTitle className="text-base font-bold text-green-400">Final Summary</CardTitle>
                         <Landmark className="h-5 w-5 text-green-400/70" />
@@ -605,8 +604,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                        <span>Final Net:</span> 
                        <span className="font-mono">{formatNumber(finalSummaryForDay.finalNet)}</span>
                     </div>
-                 </Card>
-                
+                </Card>
             </div>
 
         </div>
@@ -624,7 +622,3 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
-
-    
-
-    
