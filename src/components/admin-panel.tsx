@@ -525,37 +525,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
 
     const runningTotal = useMemo(() => {
-        const allActivityDates = new Set<string>();
-        Object.values(savedSheetLog).flat().forEach(log => allActivityDates.add(log.date));
-        Object.keys(settlements).forEach(dateStr => allActivityDates.add(dateStr));
-
-        if (allActivityDates.size === 0) {
-            return 0;
-        }
-        
-        const uniqueSortedDates = Array.from(allActivityDates)
-                                  .map(dateStr => startOfDay(parseISO(dateStr)))
-                                  .sort(compareAsc);
-
-        let cumulativeNet = 0;
-        const firstDay = uniqueSortedDates[0];
-        const today = startOfDay(new Date());
-        
-        if (!firstDay) return 0;
-
-        const dateRange = eachDayOfInterval({start: firstDay, end: today});
-
-        for (const date of dateRange) {
-            const dailyNet = calculateDailyNet(date);
-            const dateKey = format(date, 'yyyy-MM-dd');
-            const dailySettlement = settlements[dateKey] || 0;
-            
-            cumulativeNet += dailyNet + dailySettlement;
-        }
-
-        return cumulativeNet;
-
-    }, [savedSheetLog, settlements, calculateDailyNet]);
+        return 0;
+    }, []);
 
 
   return (
@@ -669,3 +640,5 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
+
+    
