@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatNumber } from "@/lib/utils";
-import { Wallet, Calendar as CalendarIcon, Percent, Scale, TrendingUpIcon, TrendingDownIcon, Landmark, Banknote, Trash2 } from 'lucide-react';
+import { Wallet, Calendar as CalendarIcon, Percent, Scale, TrendingUpIcon, TrendingDownIcon, Landmark, Banknote, Trash2, HandCoins } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -557,40 +557,54 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 </Card>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
                 {draws.map(draw => {
                     const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
                     return (
-                        <Card key={draw} className="p-4 flex flex-col">
-                            <CardHeader className="p-0 mb-2 flex flex-row items-center justify-between">
+                        <Card key={draw} className="p-3 flex flex-col justify-between aspect-square">
+                            <div className="flex justify-between items-start">
                                 <CardTitle className="text-base font-bold text-primary">{draw}</CardTitle>
-                                <Percent className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent className="p-0 text-sm space-y-1 flex-grow flex flex-col justify-between">
-                                <div className="text-xl font-bold">{formatNumber(totalRaw)}</div>
-                                <div className="flex justify-between items-center text-xs text-muted-foreground">
+                                <HandCoins className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <div className="text-right text-3xl font-bold">
+                                {formatNumber(totalRaw)}
+                            </div>
+                            <div className="flex justify-between items-center text-xs text-muted-foreground p-1 bg-muted/50 rounded-sm">
+                                <div className='flex items-center gap-1'>
+                                    <TrendingDownIcon className="h-3 w-3" />
                                     <span>Pass</span>
-                                    <span className="font-semibold text-red-500">{formatNumber(totalPassing)}</span>
                                 </div>
-                            </CardContent>
+                                <span className={`font-semibold ${totalPassing > 0 ? 'text-red-500' : 'text-muted-foreground'}`}>{formatNumber(totalPassing)}</span>
+                            </div>
                         </Card>
                     );
                 })}
 
                 
-                 <Card className="p-4 bg-transparent border-2 border-green-500 col-span-2 md:col-span-1 lg:col-span-2 xl:auto">
-                    <CardHeader className="p-0 mb-2">
+                 <Card className="p-4 bg-muted/50 border-2 border-green-500 col-span-full md:col-span-3 lg:col-span-7 xl:col-span-2 flex flex-col justify-between">
+                    <div className="flex justify-between items-start mb-4">
                         <CardTitle className="text-base font-bold text-green-400">Final Summary</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0 text-sm space-y-1">
-                        <div className="flex justify-between"><span>Total Raw:</span> <span className="font-semibold">{formatNumber(finalSummaryForDay.totalRaw)}</span></div>
-                        <div className="flex justify-between"><span>% Broker Comm:</span> <span className="font-semibold">{formatNumber(finalSummaryForDay.brokerComm)}</span></div>
-                        <div className="flex justify-between"><span>Total Passing:</span> <span className="font-semibold">{formatNumber(finalSummaryForDay.totalPassing)}</span></div>
-                         <Separator className="my-2" />
-                        <div className={`flex justify-between font-bold ${finalSummaryForDay.finalNet >= 0 ? 'text-green-400' : 'text-red-500'}`}>
-                           <span>Final Net:</span> <span>{formatNumber(finalSummaryForDay.finalNet)}</span>
+                        <Landmark className="h-5 w-5 text-green-400/70" />
+                    </div>
+                    <div className="space-y-2 text-sm flex-grow">
+                        <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground flex items-center gap-1.5"><Banknote className="h-4 w-4"/>Total Raw:</span>
+                            <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.totalRaw)}</span>
                         </div>
-                    </CardContent>
+                        <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground flex items-center gap-1.5"><Percent className="h-4 w-4"/>Broker Comm:</span> 
+                            <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.brokerComm)}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground flex items-center gap-1.5"><TrendingDownIcon className="h-4 w-4"/>Total Passing:</span> 
+                            <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.totalPassing)}</span>
+                        </div>
+                    </div>
+                    <Separator className="my-3 bg-green-500/20" />
+                    <div className={`flex justify-between items-center font-bold text-lg ${finalSummaryForDay.finalNet >= 0 ? 'text-green-400' : 'text-red-500'}`}>
+                       <span>Final Net:</span> 
+                       <span className="font-mono">{formatNumber(finalSummaryForDay.finalNet)}</span>
+                    </div>
                  </Card>
                 
             </div>
