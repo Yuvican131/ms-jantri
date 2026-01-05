@@ -475,28 +475,24 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         let totalPassingUpper = 0;
         let totalBrokerComm = 0;
     
+        const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
         
         logsForDay.forEach(log => {
             totalRaw += log.gameTotal;
             
-            const client = clients.find(c => c.id === log.clientId);
-            if (client) {
-                 const clientCommPercent = (client.comm && !isNaN(parseFloat(client.comm))) ? parseFloat(client.comm) / 100 : 0;
-                 totalBrokerComm += log.gameTotal * clientCommPercent;
-            }
-
             const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
             if (declaredNumber && log.data[declaredNumber]) {
                 totalPassingUpper += parseFloat(log.data[declaredNumber]);
             }
         });
         
+        totalBrokerComm = totalRaw * upperCommPercent;
         const totalPassingAmount = totalPassingUpper * upperPairRate;
         const finalNet = totalRaw - totalBrokerComm - totalPassingAmount;
     
         return { totalRaw, brokerComm: totalBrokerComm, totalPassing: totalPassingAmount, finalNet };
-    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperPair, clients]);
+    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair]);
 
 
     const runningTotal = useMemo(() => {
@@ -516,11 +512,15 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         let cumulativeNet = 0;
         const today = startOfDay(new Date());
 
-        for (const date of uniqueSortedDates) {
-            if (date > today) {
-                break;
-            }
-            
+        if (uniqueSortedDates.length === 0) {
+            return 0;
+        }
+
+        const firstDay = uniqueSortedDates[0];
+        const dateRange = eachDayOfInterval({start: firstDay, end: today});
+
+
+        for (const date of dateRange) {
             const dailyNet = calculateDailyNet(date);
             const dateKey = format(date, 'yyyy-MM-dd');
             const dailySettlement = settlements[dateKey] || 0;
@@ -644,3 +644,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
+
+
+    
