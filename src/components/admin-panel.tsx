@@ -4,7 +4,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatNumber } from "@/lib/utils";
-import { Wallet, Calendar as CalendarIcon, Percent, Scale, TrendingUpIcon, TrendingDownIcon, Landmark, Banknote, Trash2, HandCoins } from 'lucide-react';
+import { Wallet, Calendar as CalendarIcon, Percent, Scale, TrendingUp, TrendingDown, Landmark, Banknote, Trash2, HandCoins } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -282,7 +282,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                         </CardHeader>
                         <CardContent>
                             <div className={`text-2xl font-bold ${grandTotalForPeriod.brokerNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {grandTotalForPeriod.brokerNet >= 0 ? `+${formatNumber(grandTotalForPeriod.brokerNet)}` : `${formatNumber(grandTotalForPeriod.brokerNet)}`}
+                                {grandTotalForPeriod.brokerNet >= 0 ? `+${formatNumber(grandTotalForPeriod.brokerNet)}` : formatNumber(grandTotalForPeriod.brokerNet)}
                             </div>
                             <p className="text-xs text-muted-foreground">
                                 Total profit for {format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy")}
@@ -570,17 +570,17 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 {draws.map(draw => {
                     const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
                     return (
-                        <Card key={draw} className="p-3 flex flex-col justify-between">
-                            <div className="flex justify-between items-center text-muted-foreground">
+                        <Card key={draw} className="p-4 flex flex-col justify-between">
+                             <div className="flex justify-between items-start text-muted-foreground">
                                 <CardTitle className="text-base font-bold text-primary">{draw}</CardTitle>
-                                <HandCoins className="h-4 w-4" />
+                                <HandCoins className="h-5 w-5" />
                             </div>
                             <div className="text-center text-3xl font-bold my-4">
                                 {formatNumber(totalRaw)}
                             </div>
-                            <div className="flex justify-between items-center text-xs text-muted-foreground p-1 bg-muted/50 rounded-sm mt-auto">
+                            <div className="flex justify-between items-center text-xs text-muted-foreground p-1 bg-muted/50 rounded-md mt-auto">
                                 <div className='flex items-center gap-1'>
-                                    <TrendingDownIcon className="h-3 w-3" />
+                                    <TrendingDown className="h-4 w-4" />
                                     <span>Pass</span>
                                 </div>
                                 <span className={`font-semibold ${totalPassing > 0 ? 'text-red-500' : ''}`}>{formatNumber(totalPassing)}</span>
@@ -589,10 +589,10 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                     );
                 })}
 
-                <Card className="p-4 bg-muted/50 border-2 border-green-500 flex flex-col justify-between">
+                <Card className="p-4 bg-muted/50 border-2 border-primary flex flex-col justify-between">
                     <div className="flex justify-between items-center mb-4">
-                        <CardTitle className="text-base font-bold text-green-400">Final Summary</CardTitle>
-                        <Landmark className="h-5 w-5 text-green-400/70" />
+                        <CardTitle className="text-base font-bold text-primary">Final Summary</CardTitle>
+                        <Landmark className="h-5 w-5 text-primary/70" />
                     </div>
                     <div className="space-y-2 text-sm flex-grow">
                         <div className="flex justify-between items-center">
@@ -604,12 +604,12 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                             <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.brokerComm)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-1.5"><TrendingDownIcon className="h-4 w-4"/>Total Passing:</span> 
+                            <span className="text-muted-foreground flex items-center gap-1.5"><TrendingDown className="h-4 w-4"/>Total Passing:</span> 
                             <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.totalPassing)}</span>
                         </div>
                     </div>
-                    <Separator className="my-3 bg-green-500/20" />
-                    <div className={`flex justify-between items-center font-bold text-lg ${finalSummaryForDay.finalNet >= 0 ? 'text-green-400' : 'text-red-500'}`}>
+                    <Separator className="my-3 bg-primary/20" />
+                    <div className={`flex justify-between items-center font-bold text-lg ${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                        <span>Final Net:</span> 
                        <span className="font-mono">{formatNumber(finalSummaryForDay.finalNet)}</span>
                     </div>
@@ -633,6 +633,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 }
 
     
+
 
 
 
