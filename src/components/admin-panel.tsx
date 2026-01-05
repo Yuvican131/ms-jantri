@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getYear, getMonth, startOfYear, endOfYear, eachMonthOfInterval, startOfDay, endOfDay, subDays, parseISO, compareAsc } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getYear, getMonth, startOfYear, endOfYear, eachMonthOfInterval, startOfDay, endOfDay, subDays, parseISO, compareAsc, isBefore } from "date-fns";
 import type { Client } from '@/hooks/useClients';
 import type { SavedSheetInfo } from '@/hooks/useSheetLog';
 import { useDeclaredNumbers } from '@/hooks/useDeclaredNumbers';
@@ -525,8 +525,35 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
 
     const runningTotal = useMemo(() => {
-        return 0;
-    }, []);
+        const allLogDates = Object.values(savedSheetLog).flat().map(log => startOfDay(new Date(log.date)));
+        const allSettlementDates = Object.keys(settlements).map(dateStr => startOfDay(new Date(dateStr)));
+        const allDates = [...allLogDates, ...allSettlementDates];
+        
+        if (allDates.length === 0) {
+            return 0;
+        }
+
+        const sortedUniqueDates = [...new Set(allDates.map(d => d.getTime()))].map(t => new Date(t)).sort(compareAsc);
+
+        const firstDate = sortedUniqueDates[0];
+        const today = startOfDay(new Date());
+        
+        if (!firstDate) {
+            return 0;
+        }
+        
+        const dateInterval = eachDayOfInterval({ start: firstDate, end: today });
+        
+        let cumulativeTotal = 0;
+        
+        for (const day of dateInterval) {
+            const dailyNetProfit = calculateDailyNet(day);
+            const dailySettlement = settlements[format(day, 'yyyy-MM-dd')] || 0;
+            cumulativeTotal += dailyNetProfit + dailySettlement;
+        }
+
+        return cumulativeTotal;
+    }, [savedSheetLog, settlements, calculateDailyNet]);
 
 
   return (
@@ -608,7 +635,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 })}
 
                 
-                 <Card className="p-4 bg-transparent border-2 border-green-500 col-span-2 md:col-span-1 lg:col-span-2 xl:col-auto">
+                 <Card className="p-4 bg-transparent border-2 border-green-500 col-span-2 md:col-span-1 lg:col-span-2 xl:auto">
                     <CardHeader className="p-0 mb-2">
                         <CardTitle className="text-base font-bold text-green-400">Final Summary</CardTitle>
                     </CardHeader>
