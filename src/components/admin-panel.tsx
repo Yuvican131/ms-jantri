@@ -570,17 +570,17 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 {draws.map(draw => {
                     const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
                     return (
-                        <Card key={draw} className="p-4 flex flex-col justify-between">
-                             <div className="flex justify-between items-start text-muted-foreground">
-                                <CardTitle className="text-base font-bold text-primary">{draw}</CardTitle>
+                        <Card key={draw} className="p-3 flex flex-col justify-between">
+                            <div className="flex justify-between items-start text-muted-foreground">
+                                <CardTitle className="text-lg font-bold">{draw}</CardTitle>
                                 <HandCoins className="h-5 w-5" />
                             </div>
                             <div className="text-center text-3xl font-bold my-4">
                                 {formatNumber(totalRaw)}
                             </div>
-                            <div className="flex justify-between items-center text-xs text-muted-foreground p-1 bg-muted/50 rounded-md mt-auto">
-                                <div className='flex items-center gap-1'>
-                                    <TrendingDown className="h-4 w-4 text-red-500" />
+                            <div className="flex justify-between items-center text-sm text-muted-foreground p-2 bg-muted/50 rounded-md mt-auto">
+                                <div className='flex items-center gap-1.5'>
+                                    <TrendingDown className="h-4 w-4" />
                                     <span>Pass</span>
                                 </div>
                                 <span className={`font-semibold ${totalPassing > 0 ? 'text-red-500' : ''}`}>{formatNumber(totalPassing)}</span>
@@ -589,7 +589,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                     );
                 })}
 
-                <Card className="p-4 bg-muted/30 border-2 border-green-500 flex flex-col justify-between">
+                <Card className="p-4 bg-card border-2 border-primary flex flex-col justify-between">
                     <div className="flex justify-between items-center mb-4">
                         <CardTitle className="text-base font-bold text-primary">Final Summary</CardTitle>
                         <Landmark className="h-5 w-5 text-primary/70" />
@@ -639,5 +639,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
 
 
+
+    
 
     
