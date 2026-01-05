@@ -281,7 +281,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                             <Wallet className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className={`text-2xl font-bold ${grandTotalForPeriod.brokerNet >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+                            <div className={`text-2xl font-bold ${grandTotalForPeriod.brokerNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                 {grandTotalForPeriod.brokerNet >= 0 ? `+${formatNumber(grandTotalForPeriod.brokerNet)}` : `${formatNumber(grandTotalForPeriod.brokerNet)}`}
                             </div>
                             <p className="text-xs text-muted-foreground">
@@ -306,7 +306,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                                 <TableCell>{row.label}</TableCell>
                                 <TableCell className="text-right">₹{formatNumber(row.clientPayable)}</TableCell>
                                 <TableCell className="text-right">₹{formatNumber(row.upperPayable)}</TableCell>
-                                <TableCell className={`text-right font-bold ${row.brokerNet >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+                                <TableCell className={`text-right font-bold ${row.brokerNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                     {row.brokerNet >= 0 ? `+₹${formatNumber(row.brokerNet)}` : `-₹${formatNumber(Math.abs(row.brokerNet))}`}
                                 </TableCell>
                                 </TableRow>
@@ -317,7 +317,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                                 <TableCell colSpan={1} className="font-bold text-lg text-right">Total</TableCell>
                                 <TableCell className="text-right font-bold text-lg">₹{formatNumber(grandTotalForPeriod.clientPayable)}</TableCell>
                                 <TableCell className="text-right font-bold text-lg">₹{formatNumber(grandTotalForPeriod.upperPayable)}</TableCell>
-                                <TableCell className={`text-right font-bold text-lg ${grandTotalForPeriod.brokerNet >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+                                <TableCell className={`text-right font-bold text-lg ${grandTotalForPeriod.brokerNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                     {grandTotalForPeriod.brokerNet >= 0 ? `+₹${formatNumber(grandTotalForPeriod.brokerNet)}` : `-₹${formatNumber(Math.abs(grandTotalForPeriod.brokerNet))}`}
                                 </TableCell>
                             </TableRow>
@@ -633,6 +633,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 }
 
     
+
 
 
 
