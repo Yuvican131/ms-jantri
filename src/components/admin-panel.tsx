@@ -282,7 +282,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                         </CardHeader>
                         <CardContent>
                             <div className={`text-2xl font-bold ${grandTotalForPeriod.brokerNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {grandTotalForPeriod.brokerNet >= 0 ? `+${formatNumber(grandTotalForPeriod.brokerNet)}` : formatNumber(grandTotalForPeriod.brokerNet)}
+                                {grandTotalForPeriod.brokerNet >= 0 ? `+${formatNumber(grandTotalForPeriod.brokerNet)}` : `${formatNumber(grandTotalForPeriod.brokerNet)}`}
                             </div>
                             <p className="text-xs text-muted-foreground">
                                 Total profit for {format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy")}
@@ -570,12 +570,12 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 {draws.map(draw => {
                     const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
                     return (
-                        <Card key={draw} className="p-3 flex flex-col justify-between">
+                        <Card key={draw} className="p-3 flex flex-col">
                             <div className="flex justify-between items-start text-muted-foreground">
-                                <CardTitle className="text-lg font-bold">{draw}</CardTitle>
+                                <CardTitle className="text-base font-bold">{draw}</CardTitle>
                                 <HandCoins className="h-5 w-5" />
                             </div>
-                            <div className="text-center text-3xl font-bold my-4">
+                            <div className="flex-grow flex items-center justify-center text-center text-2xl md:text-xl lg:text-2xl font-bold my-2">
                                 {formatNumber(totalRaw)}
                             </div>
                             <div className="flex justify-between items-center text-sm text-muted-foreground p-2 bg-muted/50 rounded-md mt-auto">
@@ -589,7 +589,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                     );
                 })}
 
-                <Card className="p-4 bg-card border-2 border-primary flex flex-col justify-between">
+                <Card className="p-4 bg-card border-2 border-primary flex flex-col justify-between col-span-1 md:col-span-3 lg:col-span-1">
                     <div className="flex justify-between items-center mb-4">
                         <CardTitle className="text-base font-bold text-primary">Final Summary</CardTitle>
                         <Landmark className="h-5 w-5 text-primary/70" />
@@ -631,15 +631,3 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
-
-    
-
-
-
-
-
-
-
-    
-
-    
