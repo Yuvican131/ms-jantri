@@ -31,6 +31,7 @@ type ReportRow = {
   clientPayable: number;
   upperPayable: number;
   brokerNet: number;
+  hasActivity: boolean;
 };
 
 const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
@@ -80,12 +81,12 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
             let hasActivity = false;
 
             const clientsToProcess = selectedClientId === 'all' ? clients : clients.filter(c => c.id === selectedClientId);
-
+            
             const logsForPeriod = allLogs.filter(log => {
                 const logDate = startOfDay(new Date(log.date));
                 return logDate >= periodStart && logDate <= periodEnd;
             });
-
+            
             if (logsForPeriod.length > 0) hasActivity = true;
             
             // Client Payable Calculation
@@ -475,14 +476,37 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         const dateStr = format(summaryDate, 'yyyy-MM-dd');
         const logsForDay = Object.values(savedSheetLog).flat().filter(log => log.date === dateStr);
         
-        let totalRaw = 0;
+        let totalClientPayable = 0;
+        clients.forEach(client => {
+            let clientGameTotal = 0;
+            let clientPassingAmount = 0;
+            const clientCommPercent = (client.comm && !isNaN(parseFloat(client.comm))) ? parseFloat(client.comm) / 100 : 0;
+            const clientPairRate = parseFloat(client.pair) || defaultClientPair;
+
+            logsForDay.filter(log => log.clientId === client.id).forEach(log => {
+                clientGameTotal += log.gameTotal;
+                const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
+                if (declaredNumber && log.data[declaredNumber]) {
+                    clientPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
+                }
+            });
+
+            if (clientGameTotal > 0) {
+                const clientCommission = clientGameTotal * clientCommPercent;
+                const clientNet = clientGameTotal - clientCommission;
+                const clientWinnings = clientPassingAmount * clientPairRate;
+                totalClientPayable += clientNet - clientWinnings;
+            }
+        });
+        
+        let totalGameRaw = 0;
         let totalPassingUpper = 0;
     
         const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
         
         logsForDay.forEach(log => {
-            totalRaw += log.gameTotal;
+            totalGameRaw += log.gameTotal;
             
             const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
             if (declaredNumber && log.data[declaredNumber]) {
@@ -490,12 +514,14 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             }
         });
         
-        const brokerComm = totalRaw * upperCommPercent;
-        const totalPassingAmount = totalPassingUpper * upperPairRate;
-        const finalNet = totalRaw - brokerComm - totalPassingAmount;
-    
-        return { totalRaw, brokerComm, totalPassing: totalPassingAmount, finalNet };
-    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair]);
+        const upperCommission = totalGameRaw * upperCommPercent;
+        const upperWinnings = totalPassingUpper * upperPairRate;
+        const totalUpperPayable = totalGameRaw - upperCommission - upperWinnings;
+
+        const finalNet = totalClientPayable - totalUpperPayable;
+
+        return { totalRaw: totalGameRaw, brokerComm: upperCommission, totalPassing: upperWinnings, finalNet };
+    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair, clients]);
 
 
     const runningTotal = useMemo(() => {
@@ -515,6 +541,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         const firstDay = uniqueSortedDates[0];
         const today = startOfDay(new Date());
         
+        if (!firstDay) return 0;
+
         const dateRange = eachDayOfInterval({start: firstDay, end: today});
 
         for (const date of dateRange) {
