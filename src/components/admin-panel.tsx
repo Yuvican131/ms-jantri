@@ -482,7 +482,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
     const finalSummaryForDay = useMemo(() => {
         const allLogs = Object.values(savedSheetLog).flat();
-        const finalNet = calculateDailyNet(summaryDate, allLogs);
         
         const dateStr = format(summaryDate, 'yyyy-MM-dd');
         const logsForDay = allLogs.filter(log => log.date === dateStr);
@@ -503,9 +502,10 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
         const brokerComm = totalGameRaw * upperCommPercent;
         const totalPassing = totalPassingUpper * upperPairRate;
+        const finalNet = (totalGameRaw - brokerComm) - totalPassing;
 
         return { totalRaw: totalGameRaw, brokerComm, totalPassing, finalNet };
-    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair, calculateDailyNet]);
+    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair]);
 
   return (
     <Card className="h-full flex flex-col">
@@ -570,7 +570,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                     const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
                     return (
                         <Card key={draw} className="p-3 flex flex-col justify-between">
-                            <div className="flex justify-between items-start text-muted-foreground">
+                            <div className="flex justify-between items-center text-muted-foreground">
                                 <CardTitle className="text-base font-bold text-primary">{draw}</CardTitle>
                                 <HandCoins className="h-4 w-4" />
                             </div>
@@ -589,7 +589,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 })}
 
                 <Card className="p-4 bg-muted/50 border-2 border-green-500 flex flex-col justify-between">
-                    <div className="flex justify-between items-start mb-4">
+                    <div className="flex justify-between items-center mb-4">
                         <CardTitle className="text-base font-bold text-green-400">Final Summary</CardTitle>
                         <Landmark className="h-5 w-5 text-green-400/70" />
                     </div>
