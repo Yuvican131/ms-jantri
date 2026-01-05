@@ -349,8 +349,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     const [lenaAmount, setLenaAmount] = useState('');
     
     const [settlements, setSettlements] = useState<{[key: string]: number}>({});
-    
-    const runningTotal = 0;
 
     useEffect(() => {
         try {
@@ -371,6 +369,64 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     useEffect(() => {
         localStorage.setItem('brokerSettlements', JSON.stringify(settlements));
     }, [settlements]);
+    
+    const calculateDailyNet = useCallback((date: Date, allLogs: SavedSheetInfo[]) => {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const logsForDay = allLogs.filter(log => log.date === dateStr);
+        if (logsForDay.length === 0) return 0;
+        
+        let totalGameRaw = 0;
+        let totalPassingUpper = 0;
+    
+        const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
+        const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
+        
+        logsForDay.forEach(log => {
+            totalGameRaw += log.gameTotal;
+            const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
+            if (declaredNumber && log.data[declaredNumber]) {
+                totalPassingUpper += parseFloat(log.data[declaredNumber]);
+            }
+        });
+        
+        const brokerComm = totalGameRaw * upperCommPercent;
+        const totalPassing = totalPassingUpper * upperPairRate;
+        const finalNet = (totalGameRaw - brokerComm) - totalPassing;
+
+        return finalNet;
+
+    }, [declaredNumbers, appliedUpperComm, appliedUpperPair]);
+    
+    const runningTotal = useMemo(() => {
+        const allLogs = Object.values(savedSheetLog).flat();
+        if (allLogs.length === 0 && Object.keys(settlements).length === 0) {
+            return 0;
+        }
+
+        const allDatesStr = new Set([
+            ...allLogs.map(log => log.date), 
+            ...Object.keys(settlements)
+        ]);
+
+        if (allDatesStr.size === 0) return 0;
+
+        const sortedDates = Array.from(allDatesStr).sort((a,b) => compareAsc(parseISO(a), parseISO(b)));
+        
+        const firstDay = startOfDay(parseISO(sortedDates[0]));
+        const today = endOfDay(new Date());
+
+        let cumulativeTotal = 0;
+        
+        const daysToIterate = eachDayOfInterval({start: firstDay, end: today});
+
+        for (const day of daysToIterate) {
+            const dailyNet = calculateDailyNet(day, allLogs);
+            const settlementForDay = settlements[format(day, 'yyyy-MM-dd')] || 0;
+            cumulativeTotal += dailyNet + settlementForDay;
+        }
+
+        return cumulativeTotal;
+    }, [savedSheetLog, settlements, calculateDailyNet]);
 
 
     const handleSettlement = () => {
@@ -417,14 +473,14 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     };
 
     const finalSummaryForDay = useMemo(() => {
+        const allLogs = Object.values(savedSheetLog).flat();
+        const finalNet = calculateDailyNet(summaryDate, allLogs);
+        
         const dateStr = format(summaryDate, 'yyyy-MM-dd');
-        const logsForDay = Object.values(savedSheetLog).flat().filter(log => log.date === dateStr);
+        const logsForDay = allLogs.filter(log => log.date === dateStr);
         
         let totalGameRaw = 0;
         let totalPassingUpper = 0;
-    
-        const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
-        const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
         
         logsForDay.forEach(log => {
             totalGameRaw += log.gameTotal;
@@ -435,13 +491,13 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             }
         });
         
+        const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
+        const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
         const brokerComm = totalGameRaw * upperCommPercent;
         const totalPassing = totalPassingUpper * upperPairRate;
 
-        const finalNet = (totalGameRaw - brokerComm) - totalPassing;
-
         return { totalRaw: totalGameRaw, brokerComm, totalPassing, finalNet };
-    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair]);
+    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair, calculateDailyNet]);
 
   return (
     <Card className="h-full flex flex-col">
@@ -554,5 +610,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
+
+    
 
     
