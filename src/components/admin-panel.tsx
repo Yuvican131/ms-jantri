@@ -473,24 +473,30 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         
         let totalRaw = 0;
         let totalPassingUpper = 0;
+        let totalBrokerComm = 0;
     
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
-        const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
         
         logsForDay.forEach(log => {
             totalRaw += log.gameTotal;
+            
+            const client = clients.find(c => c.id === log.clientId);
+            if (client) {
+                 const clientCommPercent = (client.comm && !isNaN(parseFloat(client.comm))) ? parseFloat(client.comm) / 100 : 0;
+                 totalBrokerComm += log.gameTotal * clientCommPercent;
+            }
+
             const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
             if (declaredNumber && log.data[declaredNumber]) {
                 totalPassingUpper += parseFloat(log.data[declaredNumber]);
             }
         });
         
-        const brokerComm = totalRaw * upperCommPercent;
         const totalPassingAmount = totalPassingUpper * upperPairRate;
-        const finalNet = totalRaw - brokerComm - totalPassingAmount;
+        const finalNet = totalRaw - totalBrokerComm - totalPassingAmount;
     
-        return { totalRaw, brokerComm, totalPassing: totalPassingAmount, finalNet };
-    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperPair, appliedUpperComm]);
+        return { totalRaw, brokerComm: totalBrokerComm, totalPassing: totalPassingAmount, finalNet };
+    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperPair, clients]);
 
 
     const runningTotal = useMemo(() => {
@@ -499,20 +505,18 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
           return 0;
         }
 
-        const allDatesWithActivity = [
-            ...new Set(allLogs.map(log => startOfDay(parseISO(log.date)))),
-            ...Object.keys(settlements).map(key => startOfDay(parseISO(key)))
-        ];
+        const allActivityDates = new Set<string>();
+        allLogs.forEach(log => allActivityDates.add(log.date));
+        Object.keys(settlements).forEach(dateStr => allActivityDates.add(dateStr));
         
-        const uniqueSortedDates = [...new Set(allDatesWithActivity.map(d => d.getTime()))]
-                                  .map(time => new Date(time))
+        const uniqueSortedDates = Array.from(allActivityDates)
+                                  .map(dateStr => startOfDay(parseISO(dateStr)))
                                   .sort(compareAsc);
 
         let cumulativeNet = 0;
         const today = startOfDay(new Date());
 
         for (const date of uniqueSortedDates) {
-            // Only sum up to and including today.
             if (date > today) {
                 break;
             }
@@ -526,7 +530,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
         return cumulativeNet;
 
-    }, [savedSheetLog, calculateDailyNet, settlements]);
+    }, [savedSheetLog, settlements, calculateDailyNet]);
 
 
   return (
@@ -640,5 +644,3 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
-
-    
