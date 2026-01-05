@@ -525,35 +525,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
 
 
     const runningTotal = useMemo(() => {
-        const allLogDates = Object.values(savedSheetLog).flat().map(log => startOfDay(new Date(log.date)));
-        const allSettlementDates = Object.keys(settlements).map(dateStr => startOfDay(new Date(dateStr)));
-        const allDates = [...allLogDates, ...allSettlementDates];
-        
-        if (allDates.length === 0) {
-            return 0;
-        }
-
-        const sortedUniqueDates = [...new Set(allDates.map(d => d.getTime()))].map(t => new Date(t)).sort(compareAsc);
-
-        const firstDate = sortedUniqueDates[0];
-        const today = startOfDay(new Date());
-        
-        if (!firstDate) {
-            return 0;
-        }
-        
-        const dateInterval = eachDayOfInterval({ start: firstDate, end: today });
-        
-        let cumulativeTotal = 0;
-        
-        for (const day of dateInterval) {
-            const dailyNetProfit = calculateDailyNet(day);
-            const dailySettlement = settlements[format(day, 'yyyy-MM-dd')] || 0;
-            cumulativeTotal += dailyNetProfit + dailySettlement;
-        }
-
-        return cumulativeTotal;
-    }, [savedSheetLog, settlements, calculateDailyNet]);
+        return 0;
+    }, []);
 
 
   return (
