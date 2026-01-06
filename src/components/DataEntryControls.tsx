@@ -54,6 +54,7 @@ export function DataEntryControls({
 }: DataEntryControlsProps) {
     const { toast } = useToast();
     const [multiText, setMultiText] = useState("");
+    const [quickEntryText, setQuickEntryText] = useState("");
     const [laddiNum1, setLaddiNum1] = useState('');
     const [laddiNum2, setLaddiNum2] = useState('');
     const [laddiAmount, setLaddiAmount] = useState('');
@@ -68,6 +69,7 @@ export function DataEntryControls({
     const [generatedSheetContent, setGeneratedSheetContent] = useState("");
 
     const multiTextRef = useRef<HTMLTextAreaElement>(null);
+    const quickEntryRef = useRef<HTMLInputElement>(null);
     const laddiNum1Ref = useRef<HTMLInputElement>(null);
     const laddiNum2Ref = useRef<HTMLInputElement>(null);
     const laddiAmountRef = useRef<HTMLInputElement>(null);
@@ -245,6 +247,68 @@ export function DataEntryControls({
         }
     };
     
+    const handleQuickEntryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let value = e.target.value;
+    
+        // Allow equals sign and numbers
+        if (value.includes('=')) {
+            const parts = value.split('=');
+            const numbers = parts[0].replace(/[^0-9,]/g, '');
+            const amount = parts[1]?.replace(/[^0-9]/g, '') || '';
+            setQuickEntryText(`${numbers}=${amount}`);
+            return;
+        }
+        
+        // Auto-comma logic
+        let rawNumbers = value.replace(/[^0-9]/g, '');
+        if (rawNumbers.length > 0) {
+            let formatted = rawNumbers.match(/.{1,2}/g)?.join(',') + (rawNumbers.length % 2 === 0 ? ',' : '');
+            setQuickEntryText(formatted);
+        } else {
+            setQuickEntryText('');
+        }
+    };
+    
+    const handleQuickEntryApply = () => {
+        if (isDataEntryDisabled) {
+            showClientSelectionToast();
+            return;
+        }
+        
+        const text = quickEntryText;
+        if (!text.includes('=')) return;
+        
+        const [numbersStr, amountStr] = text.split('=');
+        const amount = parseFloat(amountStr);
+
+        if (isNaN(amount) || !amountStr) {
+            toast({ title: "Invalid Amount", description: "Please enter a valid amount after the '=' sign.", variant: "destructive" });
+            return;
+        }
+
+        const numbers = numbersStr.split(',').filter(n => n.trim() !== '' && !isNaN(Number(n))).map(Number);
+        
+        if (numbers.length === 0) {
+            toast({ title: "No Numbers Entered", description: "Please enter numbers to play.", variant: "destructive" });
+            return;
+        }
+        
+        const totalForCheck = numbers.length * amount;
+        if (!checkBalance(totalForCheck)) {
+            return;
+        }
+
+        const finalUpdates: { [key: string]: number } = {};
+        numbers.forEach(num => {
+            const key = String(num).padStart(2, '0');
+            finalUpdates[key] = (finalUpdates[key] || 0) + amount;
+        });
+
+        onDataUpdate(finalUpdates, text);
+        setQuickEntryText("");
+        quickEntryRef.current?.focus();
+    };
+
     const handleLaddiApply = () => {
         if (isDataEntryDisabled) {
             showClientSelectionToast();
@@ -380,6 +444,13 @@ export function DataEntryControls({
              }
             e.preventDefault();
             switch (from) {
+                case 'quickEntry':
+                    if (quickEntryText.includes('=')) {
+                        handleQuickEntryApply();
+                    } else {
+                        setQuickEntryText(prev => prev + '=');
+                    }
+                    break;
                 case 'laddiNum1':
                     laddiNum2Ref.current?.focus();
                     break;
@@ -483,6 +554,19 @@ export function DataEntryControls({
               </div>
               <ScrollArea className="flex-grow pr-2 -mr-2">
               <div className="space-y-2 pr-2">
+                <div className="border rounded-lg p-2 flex flex-col gap-2">
+                    <h3 className="font-semibold text-xs mb-1">Quick Entry</h3>
+                    <Input
+                        ref={quickEntryRef}
+                        placeholder="e.g. 11,22,33=100"
+                        value={quickEntryText}
+                        onChange={handleQuickEntryChange}
+                        onKeyDown={(e) => handleKeyDown(e, 'quickEntry')}
+                        className="w-full text-base"
+                        disabled={isDataEntryDisabled}
+                        onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
+                    />
+                </div>
                 <div className="border rounded-lg p-2 flex flex-col gap-2">
                     <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
                     <Textarea
@@ -639,3 +723,6 @@ export function DataEntryControls({
 
     
 
+
+
+    
