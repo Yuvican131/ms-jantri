@@ -564,7 +564,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                 </Card>
             </div>
             
-            <div className="flex flex-wrap justify-start gap-4">
+            <div className="inline-flex flex-wrap gap-4">
               {draws.map(draw => {
                   const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
                   return (
@@ -573,8 +573,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                               <h3 className="font-bold text-lg">{draw}</h3>
                               <HandCoins className="h-5 w-5 text-muted-foreground" />
                           </div>
-                          <div className="text-center text-2xl font-bold my-2 flex-grow flex items-center justify-center min-h-0 break-all">
-                              <span>{formatNumber(totalRaw)}</span>
+                          <div className="text-center text-2xl font-bold my-2 flex-grow flex items-center justify-center min-h-0">
+                              <span className="text-sm break-all">{formatNumber(totalRaw)}</span>
                           </div>
                           <div className="flex justify-between items-center text-sm p-2 -m-2 mt-2 bg-muted/50 rounded-md">
                               <div className='flex items-center gap-1.5 text-muted-foreground'>
@@ -629,3 +629,5 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     </Card>
   );
 }
+
+    
