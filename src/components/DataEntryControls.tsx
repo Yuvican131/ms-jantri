@@ -172,8 +172,7 @@ export function DataEntryControls({
 
                 cleaned = cleaned.replace(/ghar/gi, "");
                 
-                // New logic for 121_454(200)
-                if (cleaned.includes('_') && amount !== null) {
+                if (cleaned.includes('_') && amount !== null && cleaned.split('_').length === 2) {
                     result.push({ overlappingPair: cleaned, amount });
                     continue;
                 }
@@ -233,14 +232,16 @@ export function DataEntryControls({
                 if (item.crossing) {
                     activeCrossing = item.crossing;
                 } else if (item.overlappingPair && item.amount) {
-                    const numberPart = item.overlappingPair.replace(/_/g, "").trim();
+                    const parts = item.overlappingPair.split('_');
                     const amount = item.amount;
-                    
                     const combinations = new Set<string>();
-                    for (let i = 0; i < numberPart.length - 1; i++) {
-                        combinations.add(numberPart[i] + numberPart[i + 1]);
-                    }
 
+                    parts.forEach(part => {
+                        for (let i = 0; i < part.length - 1; i++) {
+                            combinations.add(part[i] + part[i + 1]);
+                        }
+                    });
+                    
                     const entryTotal = combinations.size * amount;
                     totalForCheck += entryTotal;
 
@@ -467,8 +468,11 @@ export function DataEntryControls({
         }
     };
     
-    const handleKeyDown = (e: React.KeyboardEvent, from: string) => {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>, from: string) => {
         if (e.key === 'Enter') {
+            if (from === 'multiText' && e.shiftKey) {
+                 return; 
+            }
             e.preventDefault();
             switch (from) {
                 case 'laddiNum1':
@@ -490,7 +494,6 @@ export function DataEntryControls({
                     handleHarupApply();
                     break;
                 case 'multiText':
-                    if (e.shiftKey) return; 
                     handleMultiTextApply();
                     break;
             }
@@ -736,3 +739,4 @@ export function DataEntryControls({
     
 
     
+
