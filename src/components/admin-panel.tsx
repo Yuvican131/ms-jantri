@@ -368,8 +368,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
         if (logsForDay.length === 0) return { clientPayable: 0, upperPayable: 0, brokerNet: 0};
 
         let totalClientPayable = 0;
-        let totalUpperPayable = 0;
-
+        
         // Client Payable
         clientsForCalc.forEach(client => {
             const clientLogs = logsForDay.filter(l => l.clientId === client.id);
@@ -392,8 +391,13 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
             const clientWinnings = clientPassingAmount * clientPairRate;
             totalClientPayable += clientNet - clientWinnings;
         });
+        
+        // This is the broker's profit/loss from their clients.
+        // It's not directly used in the running total, but could be useful for other reports.
+        const clientSideProfitLoss = totalClientPayable;
 
-        // Upper Payable
+
+        // Upper Payable - this is what matters for the broker's own running total
         let totalGameRawForUpper = 0;
         let totalPassingAmountRawForUpper = 0;
         const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
@@ -409,11 +413,12 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
         const upperCommission = totalGameRawForUpper * upperCommPercent;
         const upperNet = totalGameRawForUpper - upperCommission;
         const upperWinnings = totalPassingAmountRawForUpper * upperPairRate;
-        totalUpperPayable = upperNet - upperWinnings;
+        
+        // The "brokerNet" for the running total is the broker's P/L with the upper broker.
+        // It's what the upper broker owes the broker (positive) or what the broker owes the upper broker (negative).
+        const brokerNet = upperNet - upperWinnings;
 
-        const brokerNet = totalClientPayable - totalUpperPayable;
-
-        return { clientPayable: totalClientPayable, upperPayable: totalUpperPayable, brokerNet };
+        return { clientPayable: clientSideProfitLoss, upperPayable: 0, brokerNet };
 
     }, [declaredNumbers, appliedUpperComm, appliedUpperPair]);
     
@@ -495,27 +500,25 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
         const logsForDay = allLogs.filter(log => log.date === dateStr);
 
         let totalRaw = 0;
-        let commission = 0;
-        let passing = 0;
+        let passingRaw = 0;
 
         logsForDay.forEach(log => {
-            const client = clients.find(c => c.id === log.clientId);
-            if (!client) return;
-            
-            const clientCommPercent = parseFloat(client.comm) / 100 || 0;
-            const clientPairRate = parseFloat(client.pair) || defaultClientPair;
-
             totalRaw += log.gameTotal;
-            commission += log.gameTotal * clientCommPercent;
 
             const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
             if (declaredNumber && log.data[declaredNumber]) {
                 const passingAmount = parseFloat(log.data[declaredNumber]) || 0;
-                passing += passingAmount * clientPairRate;
+                passingRaw += passingAmount;
             }
         });
+
+        const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
+        const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
+
+        const commission = totalRaw * upperCommPercent;
+        const passing = passingRaw * upperPairRate;
         
-        const finalNet = totalRaw - commission - passing;
+        const finalNet = (totalRaw - commission) - passing;
 
         return { 
             totalRaw, 
@@ -523,7 +526,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
             passing, 
             finalNet,
         };
-    }, [summaryDate, savedSheetLog, declaredNumbers, clients]);
+    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair]);
 
   return (
     <Card className="h-full flex flex-col">
@@ -572,11 +575,11 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                     <div className="flex items-end gap-2">
                         <div className='flex-grow'>
                             <Label htmlFor='jama-amount' className='text-xs font-semibold'>Jama</Label>
-                            <Input id='jama-amount' placeholder='Amount' value={jamaAmount} onChange={e => {setJamaAmount(e.target.value); setLenaAmount('');}}/>
+                            <Input id='jama-amount' placeholder='e.g. Amount you pay' value={jamaAmount} onChange={e => {setJamaAmount(e.target.value); setLenaAmount('');}}/>
                         </div>
                         <div className='flex-grow'>
                              <Label htmlFor='lena-amount' className='text-xs font-semibold'>Lena</Label>
-                            <Input id='lena-amount' placeholder='Amount' value={lenaAmount} onChange={e => {setLenaAmount(e.target.value); setJamaAmount('');}}/>
+                            <Input id='lena-amount' placeholder='e.g. Amount you receive' value={lenaAmount} onChange={e => {setLenaAmount(e.target.value); setJamaAmount('');}}/>
                         </div>
                         <Button onClick={handleSettlement} className="h-10">Settle</Button>
                     </div>
@@ -613,15 +616,15 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                     </div>
                     <div className="space-y-1 text-base flex-grow flex flex-col justify-center my-2">
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><Banknote className="h-4 w-4"/>Total Raw:</span>
+                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><Banknote className="h-4 w-4"/>Total:</span>
                             <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.totalRaw)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><Percent className="h-4 w-4"/>Broker Comm:</span> 
+                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><Percent className="h-4 w-4"/>Upper Comm:</span> 
                             <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.commission)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><TrendingDown className="h-4 w-4 text-red-500"/>Total Passing:</span> 
+                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><TrendingDown className="h-4 w-4 text-red-500"/>Upper Passing:</span> 
                             <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.passing)}</span>
                         </div>
                     </div>
@@ -648,5 +651,3 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     </Card>
   );
 }
-
-    
