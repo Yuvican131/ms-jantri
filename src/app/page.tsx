@@ -94,21 +94,20 @@ export default function Home() {
   const [activeSheets, setActiveSheets] = useState<ActiveSheet[]>([]);
   const [formSelectedDate, setFormSelectedDate] = useState<Date>(new Date());
   
-  const [settlements, setSettlements] = useState<{[key: string]: number}>({});
+  const [settlements, setSettlements] = useState<{ [key: string]: number }>({});
 
   useEffect(() => {
     try {
-        const savedSettlements = localStorage.getItem('brokerSettlements');
-        if (savedSettlements) {
-            setSettlements(JSON.parse(savedSettlements));
-        }
+      const savedSettlements = localStorage.getItem('brokerSettlements');
+      if (savedSettlements) {
+        setSettlements(JSON.parse(savedSettlements));
+      }
     } catch (error) {
-        console.error("Failed to parse settlements from localStorage", error);
+      console.error("Failed to parse settlements from localStorage", error);
     }
   }, []);
 
   useEffect(() => {
-    // This effect ensures any change to settlements state is persisted.
     localStorage.setItem('brokerSettlements', JSON.stringify(settlements));
   }, [settlements]);
 
@@ -615,3 +614,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

@@ -428,7 +428,11 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
         if (allDatesWithActivity.size === 0) return 0;
         
         const sortedDates = Array.from(allDatesWithActivity).sort((a, b) => compareAsc(parseISO(a), parseISO(b)));
-        const firstDate = parseISO(sortedDates[0]);
+        
+        const firstDateStr = sortedDates[0];
+        if (!firstDateStr) return 0;
+        
+        const firstDate = parseISO(firstDateStr);
         const today = new Date();
         const intervalDays = eachDayOfInterval({ start: firstDate, end: today });
 
@@ -609,15 +613,15 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                     </div>
                     <div className="space-y-1 text-base flex-grow flex flex-col justify-center my-2">
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><Banknote className="h-4 w-4"/>Total:</span>
+                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><Banknote className="h-4 w-4"/>Total Raw:</span>
                             <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.totalRaw)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><Percent className="h-4 w-4"/>Commission:</span> 
+                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><Percent className="h-4 w-4"/>Broker Comm:</span> 
                             <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.commission)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><TrendingDown className="h-4 w-4 text-red-500"/>Passing:</span> 
+                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><TrendingDown className="h-4 w-4 text-red-500"/>Total Passing:</span> 
                             <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.passing)}</span>
                         </div>
                     </div>
@@ -644,3 +648,5 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     </Card>
   );
 }
+
+    
