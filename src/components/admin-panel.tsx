@@ -74,7 +74,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
         let totalClientPayable = 0;
         let totalUpperPayable = 0;
         let hasActivity = false;
-        
+
         const allLogs = Object.values(savedSheetLog).flat();
         const logsForPeriod = allLogs.filter(log => {
             const logDate = startOfDay(new Date(log.date));
@@ -133,7 +133,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
         const upperWinnings = totalPassingAmountRawForUpper * upperPairRate;
         totalUpperPayable = (totalGameRawForUpper - upperCommission) - upperWinnings;
         
-        const brokerNet = totalUpperPayable; //This calculation needs review
+        const brokerNet = totalClientPayable - totalUpperPayable;
         
         return { clientPayable: totalClientPayable, upperPayable: totalUpperPayable, brokerNet, hasActivity };
 
@@ -564,7 +564,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                 </Card>
             </div>
             
-            <div className="inline-flex flex-wrap gap-4">
+            <div className="inline-flex flex-wrap gap-4 justify-start">
               {draws.map(draw => {
                   const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
                   return (
@@ -573,8 +573,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                               <h3 className="font-bold text-lg">{draw}</h3>
                               <HandCoins className="h-5 w-5 text-muted-foreground" />
                           </div>
-                          <div className="text-center text-2xl font-bold my-2 flex-grow flex items-center justify-center min-h-0">
-                              <span className="text-sm break-all">{formatNumber(totalRaw)}</span>
+                          <div className="text-center font-bold my-2 flex-grow flex items-center justify-center min-h-0">
+                              <span className="text-2xl break-all">{formatNumber(totalRaw)}</span>
                           </div>
                           <div className="flex justify-between items-center text-sm p-2 -m-2 mt-2 bg-muted/50 rounded-md">
                               <div className='flex items-center gap-1.5 text-muted-foreground'>
@@ -629,5 +629,3 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     </Card>
   );
 }
-
-    
