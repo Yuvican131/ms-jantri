@@ -587,8 +587,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                   );
               })}
 
-              <div className="bg-card rounded-lg p-4 w-56 h-44 flex flex-col justify-between border-t-4 border-primary text-primary">
-                  <div className="flex justify-between items-center font-bold text-lg">
+              <div className="bg-card rounded-lg p-4 w-56 h-44 flex flex-col justify-between border-t-4 border-primary">
+                  <div className="flex justify-between items-center font-bold text-lg text-primary">
                       <h3>Final Summary</h3>
                       <Landmark className="h-5 w-5 text-primary/80" />
                   </div>
@@ -607,9 +607,9 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                       </div>
                   </div>
                    <Separator className="my-2 bg-primary/20" />
-                  <div className={`flex justify-between items-center font-bold text-lg ${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                     <span>Final Net</span> 
-                     <span className="font-mono">{formatNumber(finalSummaryForDay.finalNet)}</span>
+                  <div className="flex justify-between items-center font-bold text-lg">
+                     <span className={`${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>Final Net</span>
+                     <span className={`font-mono ${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatNumber(finalSummaryForDay.finalNet)}</span>
                   </div>
               </div>
           </div>
@@ -629,3 +629,5 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     </Card>
   );
 }
+
+    
