@@ -127,53 +127,77 @@ export function DataEntryControls({
         }
         if (!multiText.trim()) return;
 
-        // --- Standard Logic ---
-        const raw = multiText.replace(/=/g, ' (').replace(/(\d)\s+\(/, '$1(') + ')';
-        const tokens = raw.match(/\(\d+\)|\b\d{1,3}\b/g);
-        if (!tokens) {
-            toast({ title: "Invalid format", description: "Could not find any numbers or amounts.", variant: "destructive" });
-            return;
+        let result: { value: number, amount: number | null }[] = [];
+
+        // --- New Pair Parsing Logic ---
+        function parsePairNumbers(text: string) {
+            const cleaned = text.replace(/ghar/gi, "").replace(/_/g, "").trim();
+            const amountMatch = cleaned.match(/\((\d+)\)/);
+            const amount = amountMatch ? Number(amountMatch[1]) : null;
+            const numberStr = cleaned.replace(/\(\d+\)/, "").replace(/\s/g, "");
+
+            if (!amountMatch || !/^\d+$/.test(numberStr) || numberStr.length < 2) {
+                return null; // Not this format
+            }
+
+            const pairs = [];
+            for (let i = 0; i < numberStr.length - 1; i++) {
+                const pairValue = Number(numberStr[i] + numberStr[i + 1]);
+                pairs.push({ value: pairValue, amount });
+            }
+            return pairs;
         }
         
-        let errorOccurred = false;
-        const finalUpdates: { [key: string]: number } = {};
-        let tempNumbers: number[] = [];
-        let totalAmountForCheck = 0;
-        let lastAmount: number | null = null;
-        
-        // Logic from your function
-        let currentAmount = null;
-        const result: { value: number, amount: number }[] = [];
-        const tempValues: number[] = [];
+        const pairResult = parsePairNumbers(multiText);
 
-        tokens.forEach((token, index) => {
-            if (token.startsWith("(")) {
-                const amount = Number(token.replace(/[()]/g, ""));
-                if (index === tokens.length - 1) {
-                    tempValues.forEach(v => {
-                        result.push({ value: v, amount });
-                    });
-                    tempValues.length = 0;
-                } else {
-                    currentAmount = amount;
-                }
-            } else {
-                if (currentAmount !== null) {
-                    result.push({ value: Number(token), amount: currentAmount });
-                } else {
-                    tempValues.push(Number(token));
-                }
+        if (pairResult) {
+            result = pairResult;
+        } else {
+            // --- Fallback to Standard Logic ---
+            const raw = multiText.replace(/=/g, ' (').replace(/(\d)\s+\(/, '$1(') + ')';
+            const tokens = raw.match(/\(\d+\)|\b\d{1,3}\b/g);
+            if (!tokens) {
+                toast({ title: "Invalid format", description: "Could not find any numbers or amounts.", variant: "destructive" });
+                return;
             }
-        });
+
+            let currentAmount: number | null = null;
+            const tempValues: number[] = [];
+            
+            tokens.forEach((token, index) => {
+                if (token.startsWith("(")) {
+                    const amount = Number(token.replace(/[()]/g, ""));
+                    if (index === tokens.length - 1) {
+                        tempValues.forEach(v => {
+                            result.push({ value: v, amount });
+                        });
+                        tempValues.length = 0;
+                    } else {
+                        currentAmount = amount;
+                    }
+                } else {
+                    const value = Number(token);
+                    if (!isNaN(value)) {
+                        if (currentAmount !== null) {
+                            result.push({ value, amount: currentAmount });
+                        } else {
+                            tempValues.push(value);
+                        }
+                    }
+                }
+            });
+        }
 
 
-        if (result.length > 0) {
-            const totalForCheck = result.reduce((sum, item) => sum + item.amount, 0);
+        if (result.length > 0 && result[0].amount !== null) {
+            const finalUpdates: { [key: string]: number } = {};
+            const totalForCheck = result.reduce((sum, item) => sum + (item.amount || 0), 0);
             if (!checkBalance(totalForCheck)) {
                 return;
             }
 
             result.forEach(item => {
+                if (item.amount === null) return;
                 const dataKey = item.value === 100 ? '00' : item.value.toString().padStart(2, '0');
                 finalUpdates[dataKey] = (finalUpdates[dataKey] || 0) + item.amount;
             });
@@ -578,3 +602,4 @@ export function DataEntryControls({
     
 
     
+
