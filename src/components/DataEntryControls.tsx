@@ -131,78 +131,40 @@ export function DataEntryControls({
         let totalForCheck = 0;
         const pendingUpdates: { key: string; amount: number }[] = [];
         
-        function parseFinalUniversalData(text: string) {
-            const groups = text.split(/[\n\s]+/).filter(g => g.trim() !== "");
-            const parsedResult: any[] = [];
-        
-            groups.forEach(group => {
-                const amountMatch = group.match(/\((\d+)\)/) || group.match(/[*=X](\d+)/i);
-                const amount = amountMatch ? Number(amountMatch[1]) : null;
-        
-                let cleaned = group.replace(/\(\d+\)/, "").replace(/[*=X](\d+)/i, "").trim();
-                cleaned = cleaned.replace(/ghar/gi, "").replace(/_/g, " ");
-        
-                const tokens = cleaned.split(/[,.\s\/]+/).map(t => t.trim()).filter(t => t !== "" && !isNaN(Number(t)));
-                
-                if (tokens.length > 1 && tokens.some(t => t.length >= 3)) {
-                     // This is a crossing/laddi case
-                    parsedResult.push({
-                        type: 'crossing',
-                        numbers: tokens,
-                        amount: amount
-                    });
-                } else if (tokens.length > 0) {
-                    tokens.forEach(token => {
-                         if (token.length > 2) {
-                             // Treat long numbers as series of 2-digit numbers
-                             for (let i = 0; i < token.length; i += 2) {
-                                 const pair = token.slice(i, i + 2);
-                                 if(pair.length === 2) {
-                                    parsedResult.push({ type: 'value', value: Number(pair), amount });
-                                 }
-                             }
-                         } else {
-                            parsedResult.push({ type: 'value', value: Number(token), amount });
-                         }
+        function parseMessyData(text: string): { key: string; amount: number }[] {
+            const updates: { key: string; amount: number }[] = [];
+            const tokens = text.match(/\d+\(\d+\)|\d+=\d+|\d+[*]\d+|\d+,\d+|\d+/g) || [];
+            
+            tokens.forEach(token => {
+                let key: string;
+                let amount: number;
+
+                if (token.includes('(')) {
+                    [key, amount] = token.replace(')', '').split('(').map(s => s.trim());
+                    updates.push({ key, amount: Number(amount) });
+                } else if (token.includes('=')) {
+                    [key, amount] = token.split('=').map(s => s.trim());
+                    updates.push({ key, amount: Number(amount) });
+                } else if (token.includes('*')) {
+                    [key, amount] = token.split('*').map(s => s.trim());
+                    updates.push({ key, amount: Number(amount) });
+                } else if (token.includes(',')) {
+                    const parts = token.split(',');
+                    amount = Number(parts.pop()?.trim());
+                    parts.forEach(part => {
+                        if (part.trim()) updates.push({ key: part.trim(), amount });
                     });
                 }
             });
-            return parsedResult;
+            return updates;
         }
-
-        const parsedData = parseFinalUniversalData(multiText);
+        
+        const parsedData = parseMessyData(multiText);
 
         parsedData.forEach(item => {
-            if (item.amount === null) return;
-        
-            if (item.type === 'crossing') {
-                const num1 = item.numbers[0];
-                const num2 = item.numbers[1];
-                if (!num1 || !num2) return;
-
-                const digits1 = [...new Set(num1.split(''))];
-                const digits2 = [...new Set(num2.split(''))];
-                let combinations = new Set<string>();
-        
-                for (const d1 of digits1) {
-                    for (const d2 of digits2) {
-                        combinations.add(`${d1}${d2}`);
-                        combinations.add(`${d2}${d1}`);
-                    }
-                }
-                
-                if (combinations.size > 0) {
-                     combinations.forEach(combo => {
-                        const amountPerCombo = item.amount;
-                        pendingUpdates.push({ key: combo, amount: amountPerCombo });
-                        totalForCheck += amountPerCombo;
-                    });
-                }
-            } else if (item.type === 'value') {
-                const key = String(item.value).padStart(2, '0');
-                pendingUpdates.push({ key, amount: item.amount });
-                totalForCheck += item.amount;
-            }
+            const key = String(item.key).padStart(2, '0');
+            pendingUpdates.push({ key: key, amount: item.amount });
+            totalForCheck += item.amount;
         });
 
         if (!checkBalance(totalForCheck)) {
@@ -218,7 +180,25 @@ export function DataEntryControls({
             setMultiText("");
             focusMultiText();
         } else {
-            toast({ title: "No data processed", description: "Could not find valid number/amount pairs.", variant: "destructive" });
+             // Fallback for simple "1,2,3(100)" format
+            const regex = /([\d,]+)\((\d+)\)/;
+            const match = multiText.match(regex);
+            if (match) {
+                const numbers = match[1].split(',').filter(n => n.trim() !== '');
+                const amount = Number(match[2]);
+                let simpleTotal = numbers.length * amount;
+                if (!checkBalance(simpleTotal)) return;
+
+                numbers.forEach(numStr => {
+                    const key = numStr.trim().padStart(2, '0');
+                    finalUpdates[key] = (finalUpdates[key] || 0) + amount;
+                });
+                onDataUpdate(finalUpdates, multiText);
+                setMultiText("");
+                focusMultiText();
+            } else {
+                toast({ title: "No data processed", description: "Could not find valid number/amount pairs.", variant: "destructive" });
+            }
         }
     };
     
@@ -612,4 +592,6 @@ export function DataEntryControls({
     );
 
     
+    
+
     
