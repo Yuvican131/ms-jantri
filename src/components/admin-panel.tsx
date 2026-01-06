@@ -498,8 +498,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
         const logsForDay = allLogs.filter(log => log.date === dateStr);
 
         let totalRaw = 0;
-        let totalCommission = 0;
-        let totalPassing = 0;
+        let commission = 0;
+        let passing = 0;
 
         logsForDay.forEach(log => {
             const client = clients.find(c => c.id === log.clientId);
@@ -509,22 +509,22 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
             const clientPairRate = parseFloat(client.pair) || defaultClientPair;
 
             totalRaw += log.gameTotal;
-            totalCommission += log.gameTotal * clientCommPercent;
+            commission += log.gameTotal * clientCommPercent;
 
             const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
             if (declaredNumber && log.data[declaredNumber]) {
                 const passingAmount = parseFloat(log.data[declaredNumber]) || 0;
-                totalPassing += passingAmount * clientPairRate;
+                passing += passingAmount * clientPairRate;
             }
         });
         
-        const finalNet = (totalRaw - totalCommission) - totalPassing;
+        const finalNet = (totalRaw - commission) - passing;
 
         return { 
-            totalRaw: totalRaw, 
-            commission: totalCommission, 
-            passing: totalPassing, 
-            finalNet: finalNet,
+            totalRaw, 
+            commission, 
+            passing, 
+            finalNet,
         };
     }, [summaryDate, savedSheetLog, declaredNumbers, clients]);
 
@@ -616,15 +616,15 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                     </div>
                     <div className="space-y-1 text-sm flex-grow flex flex-col justify-center my-2">
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-1.5"><Banknote className="h-4 w-4"/>Total:</span>
+                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><Banknote className="h-4 w-4"/>Total:</span>
                             <span className="font-semibold font-mono text-base">{formatNumber(finalSummaryForDay.totalRaw)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-1.5"><Percent className="h-4 w-4"/>Commission:</span> 
+                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><Percent className="h-4 w-4"/>Commission:</span> 
                             <span className="font-semibold font-mono text-base">{formatNumber(finalSummaryForDay.commission)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-1.5"><TrendingDown className="h-4 w-4 text-red-500"/>Passing:</span> 
+                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><TrendingDown className="h-4 w-4 text-red-500"/>Passing:</span> 
                             <span className="font-semibold font-mono text-base">{formatNumber(finalSummaryForDay.passing)}</span>
                         </div>
                     </div>
