@@ -129,19 +129,39 @@ export function DataEntryControls({
 
         let result: { value: number, amount: number | null }[] = [];
 
-        // --- New Pair Parsing Logic ---
+        // --- New X amount parser ---
+        function parseMessyCells(text: string) {
+          let cleaned = text.replace(/ghar/gi, "").trim();
+          const amountMatch = cleaned.match(/X(\d+)/i);
+          if (!amountMatch) return null; // This parser only works for X format
+
+          const amount = Number(amountMatch[1]);
+        
+          cleaned = cleaned.replace(/X\d+/i, "");
+        
+          const numbers = cleaned
+            .split(/[,.\s]+/)
+            .map(s => s.trim())
+            .filter(s => s !== "" && !isNaN(s))
+            .map(Number);
+        
+          return numbers.map(n => ({ value: n, amount }));
+        }
+
+        // --- Running Pair/Ghar Parser ---
         function parsePairNumbers(text: string) {
             const cleanedText = text.replace(/ghar/gi, "").trim();
             const amountMatch = cleanedText.match(/\((\d+)\)/);
-            const amount = amountMatch ? Number(amountMatch[1]) : null;
-        
-            if (!amountMatch) return null; // This format requires an amount in brackets
-        
+            
+            // This format requires an amount in brackets and an underscore
+            if (!amountMatch || !cleanedText.includes('_')) return null; 
+
+            const amount = Number(amountMatch[1]);
             const numberPartsStr = cleanedText.replace(/\(\d+\)/, "").trim();
-            const numberParts = numberPartsStr.split('_').filter(p => p); // Split by underscore and remove empty parts
+            const numberParts = numberPartsStr.split('_').filter(p => p);
         
             if (numberParts.some(part => !/^\d+$/.test(part))) {
-                return null; // One of the parts is not a valid number
+                return null;
             }
         
             const pairs: { value: number, amount: number | null }[] = [];
@@ -152,16 +172,18 @@ export function DataEntryControls({
                     pairs.push({ value: pairValue, amount });
                 }
             }
-        
             return pairs.length > 0 ? pairs : null;
         }
-        
+
+        const xResult = parseMessyCells(multiText);
         const pairResult = parsePairNumbers(multiText);
 
-        if (pairResult) {
+        if (xResult && xResult.length > 0) {
+            result = xResult;
+        } else if (pairResult) {
             result = pairResult;
         } else {
-            // --- Fallback to Standard Logic ---
+            // --- Fallback to Standard Tokenizer Logic ---
             const raw = multiText.replace(/=/g, ' (').replace(/(\d)\s+\(/, '$1(') + ')';
             const tokens = raw.match(/\(\d+\)|\b\d{1,3}\b/g);
             if (!tokens) {
@@ -612,3 +634,6 @@ export function DataEntryControls({
     
 
 
+
+
+    
