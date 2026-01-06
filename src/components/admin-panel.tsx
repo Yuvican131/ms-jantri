@@ -450,9 +450,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         const intervalDays = eachDayOfInterval({ start: startDate, end: endDate });
     
         for (const day of intervalDays) {
-            const dateStr = format(day, 'yyyy-MM-dd');
             const { brokerNet } = calculateDailyNet(day, allLogs, clients);
-            const settlementForDay = settlements[dateStr] || 0;
+            const settlementForDay = settlements[format(day, 'yyyy-MM-dd')] || 0;
             cumulativeTotal += brokerNet + settlementForDay;
         }
     
@@ -508,7 +507,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
         const dateStr = format(summaryDate, 'yyyy-MM-dd');
         const logsForDay = allLogs.filter(log => log.date === dateStr);
 
-        const { brokerNet } = calculateDailyNet(summaryDate, allLogs, clients);
+        const { brokerNet, clientPayable, upperPayable } = calculateDailyNet(summaryDate, allLogs, clients);
         
         let totalGameRawForUpper = 0;
         let totalPassingForUpper = 0;
@@ -524,10 +523,9 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
             }
         });
         
-        const brokerComm = totalGameRawForUpper * upperCommPercent;
-        const totalPassingValue = totalPassingForUpper * upperPairRate;
+        const brokerComm = upperPayable - (totalGameRawForUpper - (totalPassingForUpper * upperPairRate));
 
-        return { totalRaw: totalGameRawForUpper, brokerComm, totalPassing: totalPassingValue, finalNet: brokerNet };
+        return { totalRaw: totalGameRawForUpper, brokerComm, totalPassing: totalPassingForUpper * upperPairRate, finalNet: brokerNet };
     }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair, clients, calculateDailyNet]);
 
   return (
@@ -592,7 +590,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 {draws.map(draw => {
                     const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
                     return (
-                       <Card key={draw} className="p-3 flex flex-col">
+                       <Card key={draw} className="p-3 flex flex-col h-40">
                             <div className="flex justify-between items-start text-muted-foreground">
                                 <CardTitle className="text-base font-bold">{draw}</CardTitle>
                                 <HandCoins className="h-5 w-5" />
@@ -611,7 +609,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                     );
                 })}
 
-                 <div className="p-4 bg-card border-2 border-primary flex flex-col col-span-1 md:col-span-3 lg:col-span-1 min-h-0">
+                 <div className="p-4 bg-card border-2 border-primary flex flex-col col-span-1 md:col-span-3 lg:col-span-1 min-h-0 h-40">
                     <div className="flex justify-between items-center mb-4">
                         <CardTitle className="text-base font-bold text-primary">Final Summary</CardTitle>
                         <Landmark className="h-5 w-5 text-primary/70" />
@@ -657,3 +655,4 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     
 
     
+
