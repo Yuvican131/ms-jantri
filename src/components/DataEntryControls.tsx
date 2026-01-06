@@ -119,26 +119,26 @@ export function DataEntryControls({
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         let newValue = e.target.value;
 
-        // Auto-format for concatenated entries like `...)(...)`
-        if (newValue.length > multiText.length) {
-             newValue = newValue.replace(/\)(?=[^\s\n])/g, ')\n');
-        }
-
+        // Allow backspace to work naturally
         if (newValue.length < multiText.length) {
             setMultiText(newValue);
             return;
         }
 
+        // Auto-format for concatenated entries like `...)(...)`
+        newValue = newValue.replace(/\)(?=[^\s\n])/g, ')\n');
+
+        // The rest of the auto-comma logic for keyboard entry
         if (newValue.includes('\n') || newValue.match(/[=()_*x]/i)) {
             setMultiText(newValue);
             return;
         }
-
+        
         const rawNumbers = newValue.replace(/[^0-9]/g, '');
         if (rawNumbers.length > 0) {
             const pairs = rawNumbers.match(/.{1,2}/g) || [];
             let formatted = pairs.join(',');
-            if (rawNumbers.length % 2 === 0) {
+            if (rawNumbers.length % 2 === 0 && rawNumbers.length > 0) {
                 formatted += ',';
             }
             setMultiText(formatted);
@@ -157,7 +157,7 @@ export function DataEntryControls({
         const finalUpdates: { [key: string]: number } = {};
         let totalForCheck = 0;
 
-        const processedText = multiText.replace(/\)(?=[^\s\n])/g, ')\n');
+        let processedText = multiText.replace(/\)(?=[^\s\n])/g, ')\n');
     
         function parseFinalUniversalData(text: string) {
             const result: { value?: number, amount?: number | null, crossing?: number, combination?: number, runningPair?: string, overlappingPair?: string }[] = [];
@@ -180,11 +180,8 @@ export function DataEntryControls({
                 cleaned = cleaned.replace(/ghar/gi, "");
                 
                  if (cleaned.includes('_') && amount !== null) {
-                     const parts = cleaned.split('_');
-                    if (parts.length === 2 && parts.every(p => /^\d*$/.test(p.replace(/[,.]/g, '')))) {
-                         result.push({ overlappingPair: cleaned, amount });
-                        continue;
-                    }
+                    result.push({ overlappingPair: cleaned, amount });
+                    continue;
                 }
 
                 const runningPairMatch = cleaned.match(/(\d+)-(\d+)/);
@@ -323,7 +320,7 @@ export function DataEntryControls({
                     });
                     activeCrossing = null;
                 } else if (item.value !== undefined && item.amount !== null && !isNaN(item.value)) {
-                    if (String(item.value).length === 1) {
+                    if (String(item.value).length < 2) {
                          toast({ title: "Wrong Input", description: `Single digit number '${item.value}' cannot be processed. Please enter 2-digit numbers.`, variant: "destructive" });
                          throw new Error("Invalid single-digit input");
                     }
