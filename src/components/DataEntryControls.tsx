@@ -151,6 +151,9 @@ export function DataEntryControls({
     
         const finalUpdates: { [key: string]: number } = {};
         let totalForCheck = 0;
+
+        // Pre-process to add space between concatenated entries like ...)(...
+        const processedText = multiText.replace(/\)(?=\d)/g, ') ');
     
         function parseFinalUniversalData(text: string) {
             const result: { value?: number, amount?: number | null, crossing?: number, combination?: number, runningPair?: string, overlappingPair?: string }[] = [];
@@ -173,11 +176,15 @@ export function DataEntryControls({
                 cleaned = cleaned.replace(/ghar/gi, "");
                 
                 if (cleaned.includes('_') && amount !== null && cleaned.split('_').length === 2) {
-                    result.push({ overlappingPair: cleaned, amount });
-                    continue;
+                     // Check if it's the specific overlapping pair format e.g. 121_454(200)
+                    const parts = cleaned.split('_');
+                    if (parts.every(p => /^\d+$/.test(p))) {
+                        result.push({ overlappingPair: cleaned, amount });
+                        continue;
+                    }
                 }
 
-                const runningPairMatch = cleaned.match(/(\d+)_(\d+)/);
+                const runningPairMatch = cleaned.match(/(\d+)-(\d+)/); // e.g. 12-45 for combinations
                 if (runningPairMatch) {
                     result.push({ runningPair: runningPairMatch[0], amount });
                     continue;
@@ -192,9 +199,10 @@ export function DataEntryControls({
                     tokens.forEach((token, index) => {
                         if (!token) return;
                         
-                        if (token.length === 1 && amount !== null && !/^\d+$/.test(token)) {
-                            toast({ title: "Wrong Input", description: `Single digit number '${token}' cannot be processed. Please enter 2-digit numbers.`, variant: "destructive" });
-                            throw new Error("Invalid single-digit input"); 
+                        if (token.length === 1 && !/^\d+$/.test(token)) {
+                            // This is likely an error, not a number
+                            toast({ title: "Wrong Input", description: `Single character '${token}' cannot be processed. Please enter valid numbers.`, variant: "destructive" });
+                            throw new Error("Invalid single-character input"); 
                         }
         
                         if (index === 0 && token.length >= 3 && !amount) {
@@ -213,6 +221,10 @@ export function DataEntryControls({
                                 result.push({ combination: num, amount });
                                 activeCrossing = null; 
                             } else {
+                                if (String(token).length === 1 && amount === null) {
+                                    toast({ title: "Wrong Input", description: `Single digit number '${token}' cannot be processed without an amount. Please enter 2-digit numbers or specify an amount.`, variant: "destructive" });
+                                    throw new Error("Invalid single-digit input without amount"); 
+                                }
                                 result.push({ value: num, amount });
                             }
                         }
@@ -224,7 +236,7 @@ export function DataEntryControls({
         }
 
         try {
-            const parsedData = parseFinalUniversalData(multiText);
+            const parsedData = parseFinalUniversalData(processedText);
             
             let activeCrossing: number | null = null;
 
@@ -232,15 +244,25 @@ export function DataEntryControls({
                 if (item.crossing) {
                     activeCrossing = item.crossing;
                 } else if (item.overlappingPair && item.amount) {
-                    const parts = item.overlappingPair.split('_');
+                    const [part1, part2] = item.overlappingPair.split('_');
                     const amount = item.amount;
                     const combinations = new Set<string>();
-
-                    parts.forEach(part => {
-                        for (let i = 0; i < part.length - 1; i++) {
-                            combinations.add(part[i] + part[i + 1]);
+                
+                    const processPart = (numStr: string) => {
+                        for (let i = 0; i < numStr.length - 1; i++) {
+                            const pair = numStr[i] + numStr[i+1];
+                            const reversePair = numStr[i+1] + numStr[i];
+                            if (numStr[i] !== numStr[i+1]) {
+                                combinations.add(pair);
+                                combinations.add(reversePair);
+                            } else {
+                                combinations.add(pair);
+                            }
                         }
-                    });
+                    };
+                
+                    processPart(part1);
+                    processPart(part2);
                     
                     const entryTotal = combinations.size * amount;
                     totalForCheck += entryTotal;
@@ -251,7 +273,7 @@ export function DataEntryControls({
                     });
                     
                 } else if (item.runningPair) {
-                    const [startStr, endStr] = item.runningPair.split('_');
+                    const [startStr, endStr] = item.runningPair.split('-');
                     const startDigits = [...new Set(startStr.split(''))];
                     const endDigits = [...new Set(endStr.split(''))];
                     const amount = item.amount || 0;
@@ -728,15 +750,16 @@ export function DataEntryControls({
             </Dialog>
         </>
     );
-
     
     
-
-    
-
-
-
     
 
     
+
+
+
+    
+
+    
+
 
