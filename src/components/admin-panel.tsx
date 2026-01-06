@@ -564,11 +564,11 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                 </Card>
             </div>
             
-            <div className="inline-flex flex-wrap gap-4 justify-start">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-7 gap-4">
               {draws.map(draw => {
                   const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
                   return (
-                      <div key={draw} className="bg-card border rounded-lg p-4 w-40 h-44 flex flex-col justify-between">
+                      <div key={draw} className="bg-card border rounded-lg p-4 flex flex-col justify-between">
                           <div className="flex justify-between items-start text-card-foreground">
                               <h3 className="font-bold text-lg">{draw}</h3>
                               <HandCoins className="h-5 w-5 text-muted-foreground" />
@@ -587,7 +587,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                   );
               })}
 
-              <div className="bg-card rounded-lg p-4 w-60 h-48 flex flex-col justify-between border-t-4 border-primary">
+              <div className="bg-card rounded-lg p-4 flex flex-col justify-between border-t-4 border-primary">
                   <div className="flex justify-between items-center font-bold text-lg text-primary">
                       <h3>Final Summary</h3>
                       <Landmark className="h-5 w-5 text-primary/80" />
@@ -629,6 +629,3 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     </Card>
   );
 }
-
-    
-
