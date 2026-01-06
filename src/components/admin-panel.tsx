@@ -583,17 +583,17 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                         <h3 className="font-bold text-primary">Final Summary</h3>
                         <Landmark className="h-5 w-5 text-primary/70" />
                     </div>
-                    <div className="space-y-1 text-sm flex-grow">
+                    <div className="space-y-1 text-sm flex-grow mt-2">
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-2"><CircleDollarSign className="h-4 w-4"/>Total Raw</span>
+                            <span className="text-muted-foreground flex items-center gap-2"><CircleDollarSign className="h-4 w-4"/>Total</span>
                             <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.totalRaw)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-2"><Percent className="h-4 w-4"/>% Broker Comm</span> 
+                            <span className="text-muted-foreground flex items-center gap-2"><Percent className="h-4 w-4"/>Commission</span> 
                             <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.commission)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-2"><Trophy className="h-4 w-4"/>Total Passing</span> 
+                            <span className="text-muted-foreground flex items-center gap-2"><Trophy className="h-4 w-4"/>Passing</span> 
                             <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.passing)}</span>
                         </div>
                     </div>
@@ -620,6 +620,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     </Card>
   );
 }
+
 
 
 
