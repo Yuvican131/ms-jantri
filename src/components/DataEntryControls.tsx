@@ -243,26 +243,23 @@ export function DataEntryControls({
                 if (item.crossing) {
                     activeCrossing = item.crossing;
                 } else if (item.overlappingPair && item.amount) {
-                    const [part1, part2] = item.overlappingPair.split('_');
+                    const parts = item.overlappingPair.split('_');
                     const amount = item.amount;
                     const combinations = new Set<string>();
-                
-                    const processPart = (numStr: string) => {
-                        const cleanedNumStr = numStr.replace(/[.,]/g, '');
-                        for (let i = 0; i < cleanedNumStr.length - 1; i++) {
+
+                    parts.forEach(part => {
+                        const cleanedNumStr = part.replace(/[.,]/g, '');
+                         for (let i = 0; i < cleanedNumStr.length - 1; i++) {
                             const pair = cleanedNumStr.substring(i, i + 2);
-                            if (pair.length === 2) {
+                            if(pair.length === 2){
                                 combinations.add(pair);
                                 const reversePair = pair.split('').reverse().join('');
-                                if (pair !== reversePair) {
+                                if(pair !== reversePair) {
                                     combinations.add(reversePair);
                                 }
                             }
                         }
-                    };
-                
-                    processPart(part1);
-                    processPart(part2);
+                    });
                     
                     const entryTotal = combinations.size * amount;
                     totalForCheck += entryTotal;
@@ -320,9 +317,9 @@ export function DataEntryControls({
                     });
                     activeCrossing = null;
                 } else if (item.value !== undefined && item.amount !== null && !isNaN(item.value)) {
-                    if (String(item.value).length < 2) {
-                         toast({ title: "Wrong Input", description: `Single digit number '${item.value}' cannot be processed. Please enter 2-digit numbers.`, variant: "destructive" });
-                         throw new Error("Invalid single-digit input");
+                    if (String(item.value).length % 2 !== 0 && String(item.value).length > 1) {
+                        toast({ title: "Wrong Input", description: `Number '${item.value}' has an odd number of digits. Please enter 2-digit numbers.`, variant: "destructive" });
+                        throw new Error("Invalid odd-digit number");
                     }
                     if(String(item.value).length > 2) {
                         const valueStr = String(item.value);
@@ -515,7 +512,10 @@ export function DataEntryControls({
                     handleHarupApply();
                     break;
                 case 'multiText':
-                    if (multiText.trim() && !multiText.includes('=')) {
+                    // If text contains patterns like (amount), *amount, _ or is complex, apply immediately.
+                    if (multiText.trim() && multiText.match(/[\*()_]/)) {
+                        handleMultiTextApply();
+                    } else if (multiText.trim() && !multiText.includes('=')) {
                         setMultiText(prev => {
                             let newText = prev.trim();
                             if (newText.endsWith(',')) {
@@ -773,6 +773,8 @@ export function DataEntryControls({
 
 
 
+
+    
 
     
 
