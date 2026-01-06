@@ -418,26 +418,19 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     }, [declaredNumbers, appliedUpperComm, appliedUpperPair]);
     
     const runningTotal = useMemo(() => {
-        const allLogs = Object.values(savedSheetLog).flat();
         let cumulativeTotal = 0;
+        const allLogs = Object.values(savedSheetLog).flat();
 
         const allDatesWithActivity = new Set<string>();
         allLogs.forEach(log => allDatesWithActivity.add(log.date));
         Object.keys(settlements).forEach(dateStr => allDatesWithActivity.add(dateStr));
-
-        if (allDatesWithActivity.size === 0) {
-            return 0;
-        }
-
+        
+        if (allDatesWithActivity.size === 0) return 0;
+        
         const sortedDates = Array.from(allDatesWithActivity).sort((a, b) => compareAsc(parseISO(a), parseISO(b)));
-
-        if (sortedDates.length === 0) {
-            return 0;
-        }
-
-        const startDate = parseISO(sortedDates[0]);
-        const endDate = new Date();
-        const intervalDays = eachDayOfInterval({ start: startDate, end: endDate });
+        const firstDate = parseISO(sortedDates[0]);
+        const today = new Date();
+        const intervalDays = eachDayOfInterval({ start: firstDate, end: today });
 
         for (const day of intervalDays) {
             const { brokerNet } = calculateDailyNet(day, allLogs, clients);
@@ -518,7 +511,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
             }
         });
         
-        const finalNet = (totalRaw - commission) - passing;
+        const finalNet = totalRaw - commission - passing;
 
         return { 
             totalRaw, 
@@ -614,18 +607,18 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                         <CardTitle className="text-base font-bold text-primary">Final Summary</CardTitle>
                         <Landmark className="h-5 w-5 text-primary/70" />
                     </div>
-                    <div className="space-y-1 text-sm flex-grow flex flex-col justify-center my-2">
+                    <div className="space-y-1 text-base flex-grow flex flex-col justify-center my-2">
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><Banknote className="h-4 w-4"/>Total:</span>
-                            <span className="font-semibold font-mono text-base">{formatNumber(finalSummaryForDay.totalRaw)}</span>
+                            <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.totalRaw)}</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><Percent className="h-4 w-4"/>Commission:</span> 
-                            <span className="font-semibold font-mono text-base">{formatNumber(finalSummaryForDay.commission)}</span>
+                            <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.commission)}</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><TrendingDown className="h-4 w-4 text-red-500"/>Passing:</span> 
-                            <span className="font-semibold font-mono text-base">{formatNumber(finalSummaryForDay.passing)}</span>
+                            <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.passing)}</span>
                         </div>
                     </div>
                      <Separator className="my-2 bg-primary/20" />
