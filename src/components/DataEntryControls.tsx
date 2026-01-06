@@ -117,16 +117,7 @@ export function DataEntryControls({
     }, [laddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi]);
 
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const value = e.target.value;
-        const noSpecialChars = !value.includes('=') && !value.includes('(') && !value.includes(')');
-        
-        if (noSpecialChars && /^[0-9,]*$/.test(value.replace(/\s/g, ''))) {
-            const cleanValue = value.replace(/[^0-9]/g, '');
-            const formatted = cleanValue.match(/.{1,2}/g)?.join(',') || '';
-            setMultiText(formatted);
-        } else {
-            setMultiText(value);
-        }
+        setMultiText(e.target.value);
     };
     
     const handleMultiTextApply = () => {
@@ -134,82 +125,66 @@ export function DataEntryControls({
             showClientSelectionToast();
             return;
         }
-
-        let text = multiText;
-        if (!text.trim()) return;
-
+        const raw = multiText.replace(/=/g, '(') + ')'; // Normalize '=' to '()'
+        if (!raw.trim()) return;
+        
+        const tokens = raw.match(/\(\d+\)|\b\d{1,3}\b/g);
+        if (!tokens) {
+            toast({ title: "Invalid format", description: "Could not find any numbers or amounts.", variant: "destructive" });
+            return;
+        }
+        
         let errorOccurred = false;
         const finalUpdates: { [key: string]: number } = {};
+        let tempNumbers: number[] = [];
+        let totalAmountForCheck = 0;
 
-        const processChunk = (numberChunk: string, amount: number) => {
-            if (isNaN(amount) || amount <= 0) return;
-
-            const twoDigitNumbers = numberChunk.match(/\d{2}/g) || [];
-            
-            // For numbers like 202, 313, extract all possible 2-digit numbers
-            const otherNumbers = numberChunk.match(/\d{3,}/g) || [];
-            otherNumbers.forEach(numStr => {
-                for (let i = 0; i < numStr.length - 1; i++) {
-                    twoDigitNumbers.push(numStr.substring(i, i + 2));
+        // First pass to calculate total for balance check
+        tokens.forEach(token => {
+            if (token.startsWith('(')) {
+                const amount = Number(token.replace(/[()]/g, ""));
+                if (tempNumbers.length > 0 && !isNaN(amount)) {
+                    totalAmountForCheck += tempNumbers.length * amount;
+                    tempNumbers = [];
                 }
-            });
-            
-            if (twoDigitNumbers.length === 0) return;
-
-            const entryTotal = twoDigitNumbers.length * amount;
-            if (!checkBalance(entryTotal)) {
-                errorOccurred = true;
-                return;
-            }
-            twoDigitNumbers.forEach(num => {
-                const numAsInt = parseInt(num, 10);
-                const dataKey = numAsInt === 100 ? '00' : num.padStart(2, '0');
-                finalUpdates[dataKey] = (finalUpdates[dataKey] || 0) + amount;
-            });
-        };
-
-        const lines = text.split('\n');
-        lines.forEach(line => {
-            if (errorOccurred) return;
-            
-            // Handle `numbers=amount` format
-            if (line.includes('=')) {
-                const parts = line.split('=');
-                if (parts.length >= 2) {
-                    const numberChunk = parts[0];
-                    const amount = parseFloat(parts[1]);
-                    if (!isNaN(amount)) {
-                        processChunk(numberChunk, amount);
-                    }
+            } else {
+                const num = Number(token);
+                if (!isNaN(num)) {
+                    tempNumbers.push(num);
                 }
-            } 
-            // Handle `numbers(amount)` format
-            else if (line.includes('(') && line.includes(')')) {
-                 const segments = line.split('(');
-                 let numberBuffer = segments[0];
-
-                 for (let i = 1; i < segments.length; i++) {
-                     const part = segments[i];
-                     const amountMatch = part.match(/(\d+)\)/);
-                     if (amountMatch) {
-                         const amount = parseFloat(amountMatch[1]);
-                         processChunk(numberBuffer, amount);
-                         numberBuffer = part.substring(amountMatch[0].length);
-                     } else {
-                         numberBuffer += '(' + part;
-                     }
-                 }
             }
         });
         
-        if (errorOccurred) return;
-        
+        if (!checkBalance(totalAmountForCheck)) {
+            return;
+        }
+
+        // Second pass to build updates if balance check passes
+        tempNumbers = [];
+        tokens.forEach(token => {
+            if (token.startsWith('(')) {
+                const amount = Number(token.replace(/[()]/g, ""));
+                if (tempNumbers.length > 0 && !isNaN(amount) && amount > 0) {
+                    tempNumbers.forEach(num => {
+                        const dataKey = num === 100 ? '00' : num.toString().padStart(2, '0');
+                        finalUpdates[dataKey] = (finalUpdates[dataKey] || 0) + amount;
+                    });
+                    tempNumbers = [];
+                }
+            } else {
+                 const num = Number(token);
+                 if (!isNaN(num) && num >= 1 && num <= 100) {
+                     tempNumbers.push(num);
+                 }
+            }
+        });
+
         if (Object.keys(finalUpdates).length > 0) {
             onDataUpdate(finalUpdates, multiText);
             setMultiText("");
             focusMultiText();
         } else {
-             toast({ title: "No data processed", description: "Could not find valid number/amount pairs.", variant: "destructive" });
+            toast({ title: "No data processed", description: "Could not find valid number/amount pairs.", variant: "destructive" });
         }
     };
     
@@ -367,11 +342,7 @@ export function DataEntryControls({
                     handleHarupApply();
                     break;
                 case 'multiText':
-                    if (multiText.includes('=') || multiText.includes('(')) {
-                        handleMultiTextApply();
-                    } else if (multiText.match(/^[0-9,]+$/)) {
-                        setMultiText(multiText + "=");
-                    }
+                    handleMultiTextApply();
                     break;
             }
         }
@@ -605,4 +576,5 @@ export function DataEntryControls({
             </Dialog>
         </>
     );
-}
+
+    
