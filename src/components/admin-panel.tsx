@@ -564,7 +564,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                 </Card>
             </div>
             
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap justify-start gap-4">
               {draws.map(draw => {
                   const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
                   return (
