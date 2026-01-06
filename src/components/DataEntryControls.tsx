@@ -51,7 +51,7 @@ export function DataEntryControls({
     openMasterSheet,
     currentGridData,
     draw,
-}: DataEntryControls) {
+}: DataEntryControlsProps) {
     const { toast } = useToast();
     const [multiText, setMultiText] = useState("");
     const [laddiNum1, setLaddiNum1] = useState('');
@@ -158,7 +158,7 @@ export function DataEntryControls({
             const result: { value?: number, amount?: number | null, crossing?: number, combination?: number, runningPair?: string }[] = [];
             const groups = text.split(/\s+/).filter(g => g.trim() !== "");
 
-            groups.forEach(group => {
+            for (const group of groups) {
                 const amountMatch = group.match(/\((\d+)\)/) 
                                  || group.match(/[\*x=](\d+)/i)
                                  || group.match(/(?<![a-zA-Z0-9])(\d+)$/);
@@ -177,7 +177,7 @@ export function DataEntryControls({
                 const runningPairMatch = cleaned.match(/(\d+)_(\d+)/);
                 if (runningPairMatch) {
                     result.push({ runningPair: runningPairMatch[0], amount });
-                    return;
+                    continue;
                 }
 
                 const parts = cleaned.split('_').filter(p => p);
@@ -188,6 +188,12 @@ export function DataEntryControls({
         
                     tokens.forEach((token, index) => {
                         if (!token) return;
+                        
+                        // New Validation: Check token length
+                        if (token.length === 1 && amount !== null) {
+                            toast({ title: "Wrong Input", description: `Single digit number '${token}' cannot be processed. Please enter 2-digit numbers.`, variant: "destructive" });
+                            throw new Error("Invalid single-digit input"); 
+                        }
         
                         if (index === 0 && token.length >= 3 && !amount) {
                             activeCrossing = Number(token);
@@ -210,96 +216,101 @@ export function DataEntryControls({
                         }
                     });
                 });
-            });
+            }
         
             return result;
         }
 
-        const parsedData = parseFinalUniversalData(multiText);
-        
-        let activeCrossing: number | null = null;
+        try {
+            const parsedData = parseFinalUniversalData(multiText);
+            
+            let activeCrossing: number | null = null;
 
-        parsedData.forEach(item => {
-            if (item.crossing) {
-                activeCrossing = item.crossing;
-            } else if (item.runningPair) {
-                 const [startStr, endStr] = item.runningPair.split('_');
-                 const startDigits = [...new Set(startStr.split(''))];
-                 const endDigits = [...new Set(endStr.split(''))];
-                 const amount = item.amount || 0;
-                 const combinations = new Set<string>();
-                 for (const d1 of startDigits) {
-                     for (const d2 of endDigits) {
-                         if (d1 !== d2) {
+            parsedData.forEach(item => {
+                if (item.crossing) {
+                    activeCrossing = item.crossing;
+                } else if (item.runningPair) {
+                    const [startStr, endStr] = item.runningPair.split('_');
+                    const startDigits = [...new Set(startStr.split(''))];
+                    const endDigits = [...new Set(endStr.split(''))];
+                    const amount = item.amount || 0;
+                    const combinations = new Set<string>();
+                    for (const d1 of startDigits) {
+                        for (const d2 of endDigits) {
+                            if (d1 !== d2) {
+                                combinations.add(`${d1}${d2}`);
+                                combinations.add(`${d2}${d1}`);
+                            } else {
+                                combinations.add(`${d1}${d2}`);
+                            }
+                        }
+                    }
+                    const entryTotal = combinations.size * amount;
+                    totalForCheck += entryTotal;
+                    combinations.forEach(pair => {
+                        const key = pair.padStart(2, '0');
+                        finalUpdates[key] = (finalUpdates[key] || 0) + amount;
+                    });
+
+                } else if (item.combination && activeCrossing) {
+                    const crossingDigits = [...new Set(String(activeCrossing).split(''))];
+                    const combinationDigits = [...new Set(String(item.combination).split(''))];
+                    const amount = item.amount || 0;
+                    
+                    const combinations = new Set<string>();
+                    for (const d1 of crossingDigits) {
+                        for (const d2 of combinationDigits) {
+                            if (d1 !== d2) {
                             combinations.add(`${d1}${d2}`);
                             combinations.add(`${d2}${d1}`);
-                         } else {
+                            } else {
                             combinations.add(`${d1}${d2}`);
-                         }
-                     }
-                 }
-                 const entryTotal = combinations.size * amount;
-                 totalForCheck += entryTotal;
-                 combinations.forEach(pair => {
-                     const key = pair.padStart(2, '0');
-                     finalUpdates[key] = (finalUpdates[key] || 0) + amount;
-                 });
+                            }
+                        }
+                    }
+                    const entryTotal = combinations.size * amount;
+                    totalForCheck += entryTotal;
+                    
+                    combinations.forEach(pair => {
+                        const key = pair.padStart(2, '0');
+                        finalUpdates[key] = (finalUpdates[key] || 0) + amount;
+                    });
+                    activeCrossing = null;
+                } else if (item.value !== undefined && item.amount !== null && !isNaN(item.value)) {
+                    if(String(item.value).length > 2) {
+                        const valueStr = String(item.value);
+                        for (let i = 0; i < valueStr.length; i += 2) {
+                            if(valueStr.slice(i, i + 2).length === 2) {
+                                const key = valueStr.slice(i, i + 2);
+                                const amount = item.amount;
+                                totalForCheck += amount;
+                                finalUpdates[key] = (finalUpdates[key] || 0) + amount;
+                            }
+                        }
+                    } else {
+                        const key = String(item.value).padStart(2, '0');
+                        const amount = item.amount;
+                        totalForCheck += amount;
+                        finalUpdates[key] = (finalUpdates[key] || 0) + amount;
+                    }
+                }
+            });
 
-            } else if (item.combination && activeCrossing) {
-                const crossingDigits = [...new Set(String(activeCrossing).split(''))];
-                const combinationDigits = [...new Set(String(item.combination).split(''))];
-                const amount = item.amount || 0;
-                
-                const combinations = new Set<string>();
-                for (const d1 of crossingDigits) {
-                    for (const d2 of combinationDigits) {
-                        if (d1 !== d2) {
-                           combinations.add(`${d1}${d2}`);
-                           combinations.add(`${d2}${d1}`);
-                        } else {
-                           combinations.add(`${d1}${d2}`);
-                        }
-                    }
-                }
-                const entryTotal = combinations.size * amount;
-                totalForCheck += entryTotal;
-                
-                combinations.forEach(pair => {
-                    const key = pair.padStart(2, '0');
-                    finalUpdates[key] = (finalUpdates[key] || 0) + amount;
-                });
-                activeCrossing = null;
-            } else if (item.value !== undefined && item.amount !== null && !isNaN(item.value)) {
-                if(String(item.value).length > 2) {
-                     const valueStr = String(item.value);
-                     for (let i = 0; i < valueStr.length; i += 2) {
-                        if(valueStr.slice(i, i + 2).length === 2) {
-                            const key = valueStr.slice(i, i + 2);
-                            const amount = item.amount;
-                            totalForCheck += amount;
-                            finalUpdates[key] = (finalUpdates[key] || 0) + amount;
-                        }
-                    }
-                } else {
-                    const key = String(item.value).padStart(2, '0');
-                    const amount = item.amount;
-                    totalForCheck += amount;
-                    finalUpdates[key] = (finalUpdates[key] || 0) + amount;
-                }
+
+            if (!checkBalance(totalForCheck)) {
+                return;
             }
-        });
 
-
-        if (!checkBalance(totalForCheck)) {
+            if (Object.keys(finalUpdates).length > 0) {
+                onDataUpdate(finalUpdates, multiText);
+                setMultiText("");
+                focusMultiText();
+            } else {
+                toast({ title: "No data processed", description: "Could not find valid number/amount pairs.", variant: "destructive" });
+            }
+        } catch (error: any) {
+            // Error is already toasted in parse function, so just exit.
             return;
-        }
-
-        if (Object.keys(finalUpdates).length > 0) {
-            onDataUpdate(finalUpdates, multiText);
-            setMultiText("");
-            focusMultiText();
-        } else {
-            toast({ title: "No data processed", description: "Could not find valid number/amount pairs.", variant: "destructive" });
         }
     };
     
@@ -457,10 +468,11 @@ export function DataEntryControls({
                     handleHarupApply();
                     break;
                 case 'multiText':
-                    if (multiText.includes('=') || multiText.includes('*') || multiText.includes('(') || multiText.includes('x') || (/\d$/.test(multiText) && multiText.split(/[,.\s\/]+/).filter(t => t).length > 1) ) {
+                    if (multiText.includes('=')) {
                         handleMultiTextApply();
                     } else if (multiText.trim() !== '') {
-                        setMultiText(prev => prev.trim().endsWith(',') ? prev.trim() + '=' : prev.trim() + ',');
+                        // Remove trailing comma if it exists before adding equals
+                        setMultiText(prev => prev.trim().replace(/,$/, '') + '=');
                     }
                     break;
             }
