@@ -431,8 +431,9 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     
         const sortedDates = Array.from(allDatesWithActivity).sort((a, b) => compareAsc(parseISO(a), parseISO(b)));
     
+        // Ensure the loop includes today, even if there's no activity
         const startDate = parseISO(sortedDates[0]);
-        const endDate = new Date(); // Today
+        const endDate = new Date();
         const intervalDays = eachDayOfInterval({ start: startDate, end: endDate });
     
         for (const day of intervalDays) {
@@ -490,29 +491,45 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
 
     const finalSummaryForDay = useMemo(() => {
         const allLogs = Object.values(savedSheetLog).flat();
+        const { brokerNet, clientPayable } = calculateDailyNet(summaryDate, allLogs, clients);
+        
+        let totalGameRaw = 0;
+        let totalPassingAmount = 0;
+
         const dateStr = format(summaryDate, 'yyyy-MM-dd');
         const logsForDay = allLogs.filter(log => log.date === dateStr);
 
-        const { brokerNet, clientPayable, upperPayable } = calculateDailyNet(summaryDate, allLogs, clients);
-        
-        let totalGameRawForUpper = 0;
-        let totalPassingForUpper = 0;
-        
-        const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
-        const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
-
         logsForDay.forEach(log => {
-            totalGameRawForUpper += log.gameTotal;
+            totalGameRaw += log.gameTotal;
             const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
             if(declaredNumber && log.data[declaredNumber]) {
-                totalPassingForUpper += parseFloat(log.data[declaredNumber]) || 0;
+                totalPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
             }
         });
         
-        const brokerComm = upperPayable - (totalGameRawForUpper - (totalPassingForUpper * upperPairRate));
+        const totalCommission = logsForDay.reduce((acc, log) => {
+            const client = clients.find(c => c.id === log.clientId);
+            const clientCommPercent = client ? (parseFloat(client.comm) / 100) : 0;
+            return acc + (log.gameTotal * clientCommPercent);
+        }, 0);
+        
+        const totalPassingValue = logsForDay.reduce((acc, log) => {
+             const client = clients.find(c => c.id === log.clientId);
+             const clientPairRate = client ? parseFloat(client.pair) : defaultClientPair;
+             const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
+             if(declaredNumber && log.data[declaredNumber]) {
+                return acc + ((parseFloat(log.data[declaredNumber]) || 0) * clientPairRate);
+            }
+            return acc;
+        }, 0)
 
-        return { totalRaw: totalGameRawForUpper, brokerComm, totalPassing: totalPassingForUpper * upperPairRate, finalNet: brokerNet };
-    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair, clients, calculateDailyNet]);
+        return { 
+            totalRaw: totalGameRaw, 
+            commission: totalCommission, 
+            passing: totalPassingValue, 
+            finalNet: clientPayable 
+        };
+    }, [summaryDate, savedSheetLog, declaredNumbers, clients, calculateDailyNet]);
 
   return (
     <Card className="h-full flex flex-col">
@@ -595,26 +612,26 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                     );
                 })}
 
-                 <div className="p-4 bg-card border-2 border-primary flex flex-col col-span-1 md:col-span-3 lg:col-span-1 min-h-0 h-40">
-                    <div className="flex justify-between items-center mb-4">
+                <div className="p-4 bg-card border-2 border-primary flex flex-col col-span-1 md:col-span-3 lg:col-span-1 min-h-0 h-40">
+                    <div className="flex justify-between items-center">
                         <CardTitle className="text-base font-bold text-primary">Final Summary</CardTitle>
                         <Landmark className="h-5 w-5 text-primary/70" />
                     </div>
-                    <div className="space-y-2 text-sm flex-grow flex flex-col justify-center">
+                    <div className="space-y-1 text-sm flex-grow flex flex-col justify-center my-2">
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-1.5"><Banknote className="h-4 w-4"/>Total Raw:</span>
+                            <span className="text-muted-foreground flex items-center gap-1.5"><Banknote className="h-4 w-4"/>Total:</span>
                             <span className="font-semibold font-mono text-base">{formatNumber(finalSummaryForDay.totalRaw)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-1.5"><Percent className="h-4 w-4"/>Broker Comm:</span> 
-                            <span className="font-semibold font-mono text-base">{formatNumber(finalSummaryForDay.brokerComm)}</span>
+                            <span className="text-muted-foreground flex items-center gap-1.5"><Percent className="h-4 w-4"/>Commission:</span> 
+                            <span className="font-semibold font-mono text-base">{formatNumber(finalSummaryForDay.commission)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-1.5"><TrendingDown className="h-4 w-4 text-red-500"/>Total Passing:</span> 
-                            <span className="font-semibold font-mono text-base">{formatNumber(finalSummaryForDay.totalPassing)}</span>
+                            <span className="text-muted-foreground flex items-center gap-1.5"><TrendingDown className="h-4 w-4 text-red-500"/>Passing:</span> 
+                            <span className="font-semibold font-mono text-base">{formatNumber(finalSummaryForDay.passing)}</span>
                         </div>
                     </div>
-                     <Separator className="my-3 bg-primary/20" />
+                     <Separator className="my-2 bg-primary/20" />
                     <div className={`flex justify-between items-center font-bold text-lg ${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                        <span>Final Net:</span> 
                        <span className="font-mono">{formatNumber(finalSummaryForDay.finalNet)}</span>
