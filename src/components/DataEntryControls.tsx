@@ -126,79 +126,133 @@ export function DataEntryControls({
             return;
         }
         if (!multiText.trim()) return;
-
+    
         const finalUpdates: { [key: string]: number } = {};
         let totalForCheck = 0;
-        const pendingUpdates: { key: string; amount: number }[] = [];
-        
-        function parseMessyData(text: string): { key: string; amount: number }[] {
-            const updates: { key: string; amount: number }[] = [];
-            const tokens = text.match(/\d+\(\d+\)|\d+=\d+|\d+[*]\d+|\d+,\d+|\d+/g) || [];
-            
-            tokens.forEach(token => {
-                let key: string;
-                let amount: number;
+    
+        const combinationTable = {
+            3: [6, 9],
+            4: [12, 16],
+            5: [20, 25],
+            6: [30, 36],
+            7: [42, 49],
+            8: [56, 64],
+            9: [72, 81]
+        };
 
-                if (token.includes('(')) {
-                    [key, amount] = token.replace(')', '').split('(').map(s => s.trim());
-                    updates.push({ key, amount: Number(amount) });
-                } else if (token.includes('=')) {
-                    [key, amount] = token.split('=').map(s => s.trim());
-                    updates.push({ key, amount: Number(amount) });
-                } else if (token.includes('*')) {
-                    [key, amount] = token.split('*').map(s => s.trim());
-                    updates.push({ key, amount: Number(amount) });
-                } else if (token.includes(',')) {
-                    const parts = token.split(',');
-                    amount = Number(parts.pop()?.trim());
-                    parts.forEach(part => {
-                        if (part.trim()) updates.push({ key: part.trim(), amount });
-                    });
-                }
-            });
-            return updates;
-        }
+        function parseFinalUniversalData(text: string) {
+            const result: { value?: number, amount?: number | null, crossing?: number, combination?: number }[] = [];
+            const groups = text.split(/\s+/).filter(g => g.trim() !== "");
+
+            groups.forEach(group => {
+                const amountMatch = group.match(/\((\d+)\)/) || group.match(/\*(\d+)/i) || group.match(/X(\d+)/i);
+                const amount = amountMatch ? Number(amountMatch[1]) : null;
+
+                let cleaned = group.replace(/\(\d+\)/, "").replace(/\*\d+/i, "").replace(/X\d+/i, "").trim();
+                cleaned = cleaned.replace(/ghar/gi, "");
+
+                const parts = cleaned.split('_');
+                
+                parts.forEach(part => {
+                    // Handle running pairs like 787
+                    if (parts.length > 1) { // This logic is for underscore-separated parts
+                        for (let i = 0; i < part.length - 1; i++) {
+                            const pair = Number(part[i] + part[i + 1]);
+                            result.push({ value: pair, amount });
+                        }
+                        return; // Continue to next part
+                    }
+
+                    // Handle standard messy data
+                    const tokens = part.split(/[,.\s\/]+/).map(t => t.trim()).filter(t => t !== "");
+                    let activeCrossing: number | null = null;
         
-        const parsedData = parseMessyData(multiText);
+                    tokens.forEach((token, index) => {
+                        if (!token) return;
+        
+                        if (index === 0 && token.length >= 3) {
+                            activeCrossing = Number(token);
+                            // It's a crossing, we don't add it as a value yet, just set it.
+                        } else if (token.length > 2) {
+                            for (let i = 0; i < token.length - 1; i += 2) {
+                                const pair = Number(token.slice(i, i + 2));
+                                result.push({ value: pair, amount });
+                            }
+                        } else {
+                            const num = Number(token);
+                            if (activeCrossing) {
+                                const allowedCombinations = combinationTable[String(activeCrossing).length as keyof typeof combinationTable];
+                                if (allowedCombinations && allowedCombinations.includes(num)) {
+                                    result.push({ combination: num, amount });
+                                } else {
+                                    result.push({ value: num, amount });
+                                }
+                                activeCrossing = null; // Reset after use
+                            } else {
+                                result.push({ value: num, amount });
+                            }
+                        }
+                    });
+                });
+            });
+        
+            return result;
+        }
+
+        const parsedData = parseFinalUniversalData(multiText);
+        
+        let activeCrossing: number | null = null;
+        const pendingCombinations: { combination: number, amount: number | null }[] = [];
 
         parsedData.forEach(item => {
-            const key = String(item.key).padStart(2, '0');
-            pendingUpdates.push({ key: key, amount: item.amount });
-            totalForCheck += item.amount;
+            if (item.crossing) {
+                activeCrossing = item.crossing;
+            } else if (item.combination && activeCrossing) {
+                // This is where the Laddi-like logic should go
+                const crossingDigits = [...new Set(String(activeCrossing).split(''))];
+                const combinationDigits = [...new Set(String(item.combination).split(''))];
+                const amount = item.amount || 0;
+                
+                const combinations = new Set<string>();
+                 for (const d1 of crossingDigits) {
+                    for (const d2 of combinationDigits) {
+                        if (d1 !== d2) {
+                           combinations.add(`${d1}${d2}`);
+                           combinations.add(`${d2}${d1}`);
+                        } else {
+                           combinations.add(`${d1}${d2}`);
+                        }
+                    }
+                }
+
+                const entryTotal = combinations.size * amount;
+                totalForCheck += entryTotal;
+                
+                combinations.forEach(pair => {
+                    const key = pair.padStart(2, '0');
+                    finalUpdates[key] = (finalUpdates[key] || 0) + amount;
+                });
+                
+                activeCrossing = null; // Reset after processing
+            } else if (item.value !== undefined && item.amount !== null) {
+                const key = String(item.value).padStart(2, '0');
+                const amount = item.amount;
+                totalForCheck += amount;
+                finalUpdates[key] = (finalUpdates[key] || 0) + amount;
+            }
         });
+
 
         if (!checkBalance(totalForCheck)) {
             return;
         }
-
-        pendingUpdates.forEach(({key, amount}) => {
-            finalUpdates[key] = (finalUpdates[key] || 0) + amount;
-        });
 
         if (Object.keys(finalUpdates).length > 0) {
             onDataUpdate(finalUpdates, multiText);
             setMultiText("");
             focusMultiText();
         } else {
-             // Fallback for simple "1,2,3(100)" format
-            const regex = /([\d,]+)\((\d+)\)/;
-            const match = multiText.match(regex);
-            if (match) {
-                const numbers = match[1].split(',').filter(n => n.trim() !== '');
-                const amount = Number(match[2]);
-                let simpleTotal = numbers.length * amount;
-                if (!checkBalance(simpleTotal)) return;
-
-                numbers.forEach(numStr => {
-                    const key = numStr.trim().padStart(2, '0');
-                    finalUpdates[key] = (finalUpdates[key] || 0) + amount;
-                });
-                onDataUpdate(finalUpdates, multiText);
-                setMultiText("");
-                focusMultiText();
-            } else {
-                toast({ title: "No data processed", description: "Could not find valid number/amount pairs.", variant: "destructive" });
-            }
+            toast({ title: "No data processed", description: "Could not find valid number/amount pairs.", variant: "destructive" });
         }
     };
     
