@@ -592,22 +592,22 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                       <h3>Final Summary</h3>
                       <Landmark className="h-5 w-5 text-primary/80" />
                   </div>
-                  <div className="space-y-1 text-base flex-grow mt-2 text-card-foreground">
+                  <div className="space-y-1 text-sm flex-grow mt-2 text-card-foreground">
                       <div className="flex justify-between items-center">
                           <span className="text-muted-foreground">Total</span>
-                          <span className="font-semibold font-mono text-lg">{formatNumber(finalSummaryForDay.totalRaw)}</span>
+                          <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.totalRaw)}</span>
                       </div>
                       <div className="flex justify-between items-center">
                           <span className="text-muted-foreground">Commission</span> 
-                          <span className="font-semibold font-mono text-lg">{formatNumber(finalSummaryForDay.commission)}</span>
+                          <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.commission)}</span>
                       </div>
                       <div className="flex justify-between items-center">
                           <span className="text-muted-foreground">Passing</span> 
-                          <span className="font-semibold font-mono text-lg">{formatNumber(finalSummaryForDay.passing)}</span>
+                          <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.passing)}</span>
                       </div>
                   </div>
                    <Separator className="my-2 bg-primary/20" />
-                  <div className="flex justify-between items-center font-bold text-xl">
+                  <div className="flex justify-between items-center font-bold text-lg">
                      <span className={`${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>Final Net</span>
                      <span className={`font-mono ${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatNumber(finalSummaryForDay.finalNet)}</span>
                   </div>
@@ -631,3 +631,4 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
 }
 
     
+
