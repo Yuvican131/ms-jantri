@@ -127,20 +127,24 @@ export function DataEntryControls({
         }
         if (!multiText.trim()) return;
 
+        const finalUpdates: { [key: string]: number } = {};
+        let totalForCheck = 0;
+        const pendingUpdates: { key: string; amount: number }[] = [];
+        
         function parseFinalUniversalData(text: string) {
-            const parsedResult: any[] = [];
             const groups = text.split(/[\n\s]+/).filter(g => g.trim() !== "");
-
+            const parsedResult: any[] = [];
+        
             groups.forEach(group => {
                 const amountMatch = group.match(/\((\d+)\)/) || group.match(/[*=X](\d+)/i);
                 const amount = amountMatch ? Number(amountMatch[1]) : null;
-
+        
                 let cleaned = group.replace(/\(\d+\)/, "").replace(/[*=X](\d+)/i, "").trim();
                 cleaned = cleaned.replace(/ghar/gi, "").replace(/_/g, " ");
-
+        
                 const tokens = cleaned.split(/[,.\s\/]+/).map(t => t.trim()).filter(t => t !== "" && !isNaN(Number(t)));
                 
-                if (tokens.length === 2 && tokens[0].length >= 3) {
+                if (tokens.length > 1 && tokens.some(t => t.length >= 3)) {
                      // This is a crossing/laddi case
                     parsedResult.push({
                         type: 'crossing',
@@ -150,13 +154,15 @@ export function DataEntryControls({
                 } else if (tokens.length > 0) {
                     tokens.forEach(token => {
                          if (token.length > 2) {
+                             // Treat long numbers as series of 2-digit numbers
                              for (let i = 0; i < token.length; i += 2) {
-                                 if(token.slice(i, i + 2).length === 2) {
-                                    result.push({ type: 'value', value: Number(token.slice(i, i + 2)), amount });
+                                 const pair = token.slice(i, i + 2);
+                                 if(pair.length === 2) {
+                                    parsedResult.push({ type: 'value', value: Number(pair), amount });
                                  }
                              }
                          } else {
-                            result.push({ type: 'value', value: Number(token), amount });
+                            parsedResult.push({ type: 'value', value: Number(token), amount });
                          }
                     });
                 }
@@ -165,18 +171,19 @@ export function DataEntryControls({
         }
 
         const parsedData = parseFinalUniversalData(multiText);
-        const finalUpdates: { [key: string]: number } = {};
-        let totalForCheck = 0;
-        const pendingUpdates: { key: string; amount: number }[] = [];
 
         parsedData.forEach(item => {
             if (item.amount === null) return;
-
+        
             if (item.type === 'crossing') {
-                const digits1 = [...new Set(item.numbers[0].split(''))];
-                const digits2 = [...new Set(item.numbers[1].split(''))];
-                let combinations = new Set<string>();
+                const num1 = item.numbers[0];
+                const num2 = item.numbers[1];
+                if (!num1 || !num2) return;
 
+                const digits1 = [...new Set(num1.split(''))];
+                const digits2 = [...new Set(num2.split(''))];
+                let combinations = new Set<string>();
+        
                 for (const d1 of digits1) {
                     for (const d2 of digits2) {
                         combinations.add(`${d1}${d2}`);
@@ -184,16 +191,15 @@ export function DataEntryControls({
                     }
                 }
                 
-                const perCombinationAmount = item.amount / combinations.size;
-                if (combinations.size > 0 && isFinite(perCombinationAmount)) {
-                    combinations.forEach(combo => {
-                        pendingUpdates.push({ key: combo, amount: perCombinationAmount });
-                        totalForCheck += perCombinationAmount;
+                if (combinations.size > 0) {
+                     combinations.forEach(combo => {
+                        const amountPerCombo = item.amount;
+                        pendingUpdates.push({ key: combo, amount: amountPerCombo });
+                        totalForCheck += amountPerCombo;
                     });
                 }
-
             } else if (item.type === 'value') {
-                const key = item.value === 100 ? '00' : String(item.value).padStart(2, '0');
+                const key = String(item.value).padStart(2, '0');
                 pendingUpdates.push({ key, amount: item.amount });
                 totalForCheck += item.amount;
             }
@@ -605,4 +611,5 @@ export function DataEntryControls({
         </>
     );
 
+    
     
