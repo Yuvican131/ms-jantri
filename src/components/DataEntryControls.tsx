@@ -118,17 +118,17 @@ export function DataEntryControls({
 
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newValue = e.target.value;
-    
+
         if (newValue.length < multiText.length) {
             setMultiText(newValue);
             return;
         }
-    
+
         if (newValue.includes('\n') || newValue.match(/[=()_*x]/i)) {
             setMultiText(newValue);
             return;
         }
-    
+
         const rawNumbers = newValue.replace(/[^0-9]/g, '');
         if (rawNumbers.length > 0) {
             const pairs = rawNumbers.match(/.{1,2}/g) || [];
@@ -153,7 +153,7 @@ export function DataEntryControls({
         let totalForCheck = 0;
     
         function parseFinalUniversalData(text: string) {
-            const result: { value?: number, amount?: number | null, crossing?: number, combination?: number, runningPair?: string }[] = [];
+            const result: { value?: number, amount?: number | null, crossing?: number, combination?: number, runningPair?: string, overlappingPair?: string }[] = [];
             const groups = text.split(/\s+/).filter(g => g.trim() !== "");
 
             for (const group of groups) {
@@ -171,6 +171,12 @@ export function DataEntryControls({
                 if (cleaned.endsWith(',')) cleaned = cleaned.slice(0,-1);
 
                 cleaned = cleaned.replace(/ghar/gi, "");
+                
+                // New logic for 121_454(200)
+                if (cleaned.includes('_') && amount !== null) {
+                    result.push({ overlappingPair: cleaned, amount });
+                    continue;
+                }
 
                 const runningPairMatch = cleaned.match(/(\d+)_(\d+)/);
                 if (runningPairMatch) {
@@ -187,7 +193,7 @@ export function DataEntryControls({
                     tokens.forEach((token, index) => {
                         if (!token) return;
                         
-                        if (token.length === 1 && amount !== null) {
+                        if (token.length === 1 && amount !== null && !/^\d+$/.test(token)) {
                             toast({ title: "Wrong Input", description: `Single digit number '${token}' cannot be processed. Please enter 2-digit numbers.`, variant: "destructive" });
                             throw new Error("Invalid single-digit input"); 
                         }
@@ -226,6 +232,23 @@ export function DataEntryControls({
             parsedData.forEach(item => {
                 if (item.crossing) {
                     activeCrossing = item.crossing;
+                } else if (item.overlappingPair && item.amount) {
+                    const numberPart = item.overlappingPair.replace(/_/g, "").trim();
+                    const amount = item.amount;
+                    
+                    const combinations = new Set<string>();
+                    for (let i = 0; i < numberPart.length - 1; i++) {
+                        combinations.add(numberPart[i] + numberPart[i + 1]);
+                    }
+
+                    const entryTotal = combinations.size * amount;
+                    totalForCheck += entryTotal;
+
+                    combinations.forEach(pair => {
+                        const key = pair.padStart(2, '0');
+                        finalUpdates[key] = (finalUpdates[key] || 0) + amount;
+                    });
+                    
                 } else if (item.runningPair) {
                     const [startStr, endStr] = item.runningPair.split('_');
                     const startDigits = [...new Set(startStr.split(''))];
@@ -468,12 +491,7 @@ export function DataEntryControls({
                     break;
                 case 'multiText':
                     if (e.shiftKey) return; 
-
-                    if (multiText.includes('=')) {
-                        handleMultiTextApply();
-                    } else if (multiText.trim() !== '') {
-                        setMultiText(prev => prev.trim().replace(/,$/, '') + '=');
-                    }
+                    handleMultiTextApply();
                     break;
             }
         }
