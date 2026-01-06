@@ -131,21 +131,29 @@ export function DataEntryControls({
 
         // --- New Pair Parsing Logic ---
         function parsePairNumbers(text: string) {
-            const cleaned = text.replace(/ghar/gi, "").replace(/_/g, "").trim();
-            const amountMatch = cleaned.match(/\((\d+)\)/);
+            const cleanedText = text.replace(/ghar/gi, "").trim();
+            const amountMatch = cleanedText.match(/\((\d+)\)/);
             const amount = amountMatch ? Number(amountMatch[1]) : null;
-            const numberStr = cleaned.replace(/\(\d+\)/, "").replace(/\s/g, "");
-
-            if (!amountMatch || !/^\d+$/.test(numberStr) || numberStr.length < 2) {
-                return null; // Not this format
+        
+            if (!amountMatch) return null; // This format requires an amount in brackets
+        
+            const numberPartsStr = cleanedText.replace(/\(\d+\)/, "").trim();
+            const numberParts = numberPartsStr.split('_').filter(p => p); // Split by underscore and remove empty parts
+        
+            if (numberParts.some(part => !/^\d+$/.test(part))) {
+                return null; // One of the parts is not a valid number
             }
-
-            const pairs = [];
-            for (let i = 0; i < numberStr.length - 1; i++) {
-                const pairValue = Number(numberStr[i] + numberStr[i + 1]);
-                pairs.push({ value: pairValue, amount });
+        
+            const pairs: { value: number, amount: number | null }[] = [];
+            for (const part of numberParts) {
+                if (part.length < 2) continue;
+                for (let i = 0; i < part.length - 1; i++) {
+                    const pairValue = Number(part[i] + part[i + 1]);
+                    pairs.push({ value: pairValue, amount });
+                }
             }
-            return pairs;
+        
+            return pairs.length > 0 ? pairs : null;
         }
         
         const pairResult = parsePairNumbers(multiText);
@@ -189,7 +197,7 @@ export function DataEntryControls({
         }
 
 
-        if (result.length > 0 && result[0].amount !== null) {
+        if (result.length > 0 && result.every(item => item.amount !== null)) {
             const finalUpdates: { [key: string]: number } = {};
             const totalForCheck = result.reduce((sum, item) => sum + (item.amount || 0), 0);
             if (!checkBalance(totalForCheck)) {
@@ -602,4 +610,5 @@ export function DataEntryControls({
     
 
     
+
 
