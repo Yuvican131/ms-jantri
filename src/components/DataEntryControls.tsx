@@ -119,13 +119,11 @@ export function DataEntryControls({
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newValue = e.target.value;
     
-        // If the new value is shorter, it's a deletion, so just update the state
         if (newValue.length < multiText.length) {
             setMultiText(newValue);
             return;
         }
     
-        // Don't auto-format if it's a multi-line paste or contains special chars
         if (newValue.includes('\n') || newValue.match(/[=()_*x]/i)) {
             setMultiText(newValue);
             return;
@@ -159,10 +157,9 @@ export function DataEntryControls({
             const groups = text.split(/\s+/).filter(g => g.trim() !== "");
 
             for (const group of groups) {
-                // Extract amount: (100), *100, x100, =100, or trailing number
                 const amountMatch = group.match(/\((\d+)\)/) 
                                  || group.match(/[\*x=](\d+)/i)
-                                 || group.match(/(?<![a-zA-Z0-9])(\d+)$/);
+                                 || group.match(/(?<![a-zA-Z0-9\._])(\d+)$/);
 
                 const amount = amountMatch ? Number(amountMatch[1]) : null;
         
@@ -277,11 +274,16 @@ export function DataEntryControls({
                     });
                     activeCrossing = null;
                 } else if (item.value !== undefined && item.amount !== null && !isNaN(item.value)) {
+                    if (String(item.value).length === 1) {
+                         toast({ title: "Wrong Input", description: `Single digit number '${item.value}' cannot be processed. Please enter 2-digit numbers.`, variant: "destructive" });
+                         throw new Error("Invalid single-digit input");
+                    }
                     if(String(item.value).length > 2) {
                         const valueStr = String(item.value);
                         for (let i = 0; i < valueStr.length; i += 2) {
-                            if(valueStr.slice(i, i + 2).length === 2) {
-                                const key = valueStr.slice(i, i + 2);
+                            const pair = valueStr.slice(i, i + 2);
+                            if(pair.length === 2) {
+                                const key = pair;
                                 const amount = item.amount;
                                 totalForCheck += amount;
                                 finalUpdates[key] = (finalUpdates[key] || 0) + amount;
@@ -465,12 +467,11 @@ export function DataEntryControls({
                     handleHarupApply();
                     break;
                 case 'multiText':
-                    if (e.shiftKey) return; // Allow shift+enter for new line
+                    if (e.shiftKey) return; 
 
                     if (multiText.includes('=')) {
                         handleMultiTextApply();
                     } else if (multiText.trim() !== '') {
-                        // Remove trailing comma if it exists before adding equals
                         setMultiText(prev => prev.trim().replace(/,$/, '') + '=');
                     }
                     break;
