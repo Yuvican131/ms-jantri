@@ -117,16 +117,27 @@ export function DataEntryControls({
     }, [laddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi]);
 
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        let value = e.target.value;
-        // Don't auto-format if it's a multi-line paste or contains special chars
-        if (value.includes('\n') || value.match(/[=()_*x]/i)) {
-            setMultiText(value);
+        const newValue = e.target.value;
+    
+        // If the new value is shorter, it's a deletion, so just update the state
+        if (newValue.length < multiText.length) {
+            setMultiText(newValue);
             return;
         }
-
-        let rawNumbers = value.replace(/[^0-9]/g, '');
+    
+        // Don't auto-format if it's a multi-line paste or contains special chars
+        if (newValue.includes('\n') || newValue.match(/[=()_*x]/i)) {
+            setMultiText(newValue);
+            return;
+        }
+    
+        let rawNumbers = newValue.replace(/[^0-9]/g, '');
         if (rawNumbers.length > 0) {
-            let formatted = rawNumbers.match(/.{1,2}/g)?.join(',') + (rawNumbers.length % 2 === 0 ? ',' : '');
+            let formatted = rawNumbers.match(/.{1,2}/g)?.join(',') + (rawNumbers.length % 2 === 1 ? '' : ',');
+             // Only add trailing comma if length is even and it's not empty
+            if (rawNumbers.length % 2 === 0 && rawNumbers.length > 0) {
+                formatted += ',';
+            }
             setMultiText(formatted);
         } else {
             setMultiText('');
@@ -144,13 +155,16 @@ export function DataEntryControls({
         let totalForCheck = 0;
     
         function parseFinalUniversalData(text: string) {
-            const result: { value?: number, amount?: number | null, crossing?: number, combination?: number }[] = [];
+            const result: { value?: number, amount?: number | null, crossing?: number, combination?: number, runningPair?: string }[] = [];
             const groups = text.split(/\s+/).filter(g => g.trim() !== "");
 
             groups.forEach(group => {
-                const amountMatch = group.match(/\((\d+)\)/) || group.match(/[\*x=](\d+)/i) || group.match(/(\d+)$/);
-                const amount = amountMatch ? Number(amountMatch[1]) : null;
+                const amountMatch = group.match(/\((\d+)\)/) 
+                                 || group.match(/[\*x=](\d+)/i)
+                                 || group.match(/(?<![a-zA-Z0-9])(\d+)$/);
 
+                const amount = amountMatch ? Number(amountMatch[1]) : null;
+        
                 let cleaned = group;
                 if (amountMatch) {
                      cleaned = cleaned.substring(0, amountMatch.index).trim();
@@ -160,29 +174,30 @@ export function DataEntryControls({
 
                 cleaned = cleaned.replace(/ghar/gi, "");
 
+                const runningPairMatch = cleaned.match(/(\d+)_(\d+)/);
+                if (runningPairMatch) {
+                    result.push({ runningPair: runningPairMatch[0], amount });
+                    return;
+                }
+
                 const parts = cleaned.split('_').filter(p => p);
                 
                 parts.forEach(part => {
-                    if (parts.length > 1 && part.length > 1) { 
-                        for (let i = 0; i < part.length - 1; i++) {
-                            const pair = Number(part[i] + part[i + 1]);
-                            result.push({ value: pair, amount });
-                        }
-                        return; 
-                    }
                     const tokens = part.split(/[,.\s\/]+/).map(t => t.trim()).filter(t => t !== "");
                     let activeCrossing: number | null = null;
         
                     tokens.forEach((token, index) => {
                         if (!token) return;
         
-                        if (index === 0 && token.length >= 3) {
+                        if (index === 0 && token.length >= 3 && !amount) {
                             activeCrossing = Number(token);
                             result.push({ crossing: activeCrossing });
-                        } else if (token.length > 2) {
-                            for (let i = 0; i < token.length - 1; i += 2) {
-                                const pair = Number(token.slice(i, i + 2));
-                                result.push({ value: pair, amount });
+                        } else if (token.length > 2 && !activeCrossing) {
+                            for (let i = 0; i < token.length; i += 2) {
+                                if(token.slice(i, i + 2).length === 2) {
+                                    const pair = Number(token.slice(i, i + 2));
+                                    result.push({ value: pair, amount });
+                                }
                             }
                         } else {
                             const num = Number(token);
@@ -207,6 +222,29 @@ export function DataEntryControls({
         parsedData.forEach(item => {
             if (item.crossing) {
                 activeCrossing = item.crossing;
+            } else if (item.runningPair) {
+                 const [startStr, endStr] = item.runningPair.split('_');
+                 const startDigits = [...new Set(startStr.split(''))];
+                 const endDigits = [...new Set(endStr.split(''))];
+                 const amount = item.amount || 0;
+                 const combinations = new Set<string>();
+                 for (const d1 of startDigits) {
+                     for (const d2 of endDigits) {
+                         if (d1 !== d2) {
+                            combinations.add(`${d1}${d2}`);
+                            combinations.add(`${d2}${d1}`);
+                         } else {
+                            combinations.add(`${d1}${d2}`);
+                         }
+                     }
+                 }
+                 const entryTotal = combinations.size * amount;
+                 totalForCheck += entryTotal;
+                 combinations.forEach(pair => {
+                     const key = pair.padStart(2, '0');
+                     finalUpdates[key] = (finalUpdates[key] || 0) + amount;
+                 });
+
             } else if (item.combination && activeCrossing) {
                 const crossingDigits = [...new Set(String(activeCrossing).split(''))];
                 const combinationDigits = [...new Set(String(item.combination).split(''))];
@@ -232,10 +270,22 @@ export function DataEntryControls({
                 });
                 activeCrossing = null;
             } else if (item.value !== undefined && item.amount !== null && !isNaN(item.value)) {
-                const key = String(item.value).padStart(2, '0');
-                const amount = item.amount;
-                totalForCheck += amount;
-                finalUpdates[key] = (finalUpdates[key] || 0) + amount;
+                if(String(item.value).length > 2) {
+                     const valueStr = String(item.value);
+                     for (let i = 0; i < valueStr.length; i += 2) {
+                        if(valueStr.slice(i, i + 2).length === 2) {
+                            const key = valueStr.slice(i, i + 2);
+                            const amount = item.amount;
+                            totalForCheck += amount;
+                            finalUpdates[key] = (finalUpdates[key] || 0) + amount;
+                        }
+                    }
+                } else {
+                    const key = String(item.value).padStart(2, '0');
+                    const amount = item.amount;
+                    totalForCheck += amount;
+                    finalUpdates[key] = (finalUpdates[key] || 0) + amount;
+                }
             }
         });
 
@@ -407,7 +457,7 @@ export function DataEntryControls({
                     handleHarupApply();
                     break;
                 case 'multiText':
-                    if (multiText.includes('=') || multiText.includes('*') || multiText.includes('(') || multiText.includes('x')) {
+                    if (multiText.includes('=') || multiText.includes('*') || multiText.includes('(') || multiText.includes('x') || (/\d$/.test(multiText) && multiText.split(/[,.\s\/]+/).filter(t => t).length > 1) ) {
                         handleMultiTextApply();
                     } else if (multiText.trim() !== '') {
                         setMultiText(prev => prev.trim().endsWith(',') ? prev.trim() + '=' : prev.trim() + ',');
