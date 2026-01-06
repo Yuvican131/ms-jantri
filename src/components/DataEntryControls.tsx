@@ -127,56 +127,6 @@ export function DataEntryControls({
         }
         if (!multiText.trim()) return;
 
-        function parseCrossingInput(text: string) {
-            const cleaned = text.replace(/ghar/gi, "").trim();
-            const crossingMatch = cleaned.match(/\b\d{3,}\b/);
-            const bracketMatch = cleaned.match(/\((\d+)\)/);
-            const amountMatch = cleaned.match(/=\s*(\d+)/);
-            const allNumbers = cleaned.match(/\b\d+\b/g) || [];
-
-            const crossing = crossingMatch ? crossingMatch[0] : null;
-            const amount = amountMatch ? Number(amountMatch[1]) : bracketMatch ? Number(bracketMatch[1]) : null;
-
-            const combination = allNumbers
-                .map(Number)
-                .find(n => String(n) !== crossing && n !== amount);
-
-            return { crossing, combination, amount };
-        }
-
-        const crossingData = parseCrossingInput(multiText);
-
-        if (crossingData.crossing && crossingData.amount) {
-            let digits = new Set(crossingData.crossing.split(''));
-            if (crossingData.combination) {
-                String(crossingData.combination).split('').forEach(d => digits.add(d));
-            }
-            const digitArray = Array.from(digits);
-            
-            const combinations = new Set<string>();
-            for (const d1 of digitArray) {
-                for (const d2 of digitArray) {
-                    combinations.add(`${d1}${d2}`);
-                }
-            }
-            
-            const updates: { [key: string]: number } = {};
-            combinations.forEach(numStr => {
-                const numAsInt = parseInt(numStr, 10);
-                const dataKey = numAsInt === 100 ? '00' : numStr.padStart(2, '0');
-                updates[dataKey] = (updates[dataKey] || 0) + crossingData.amount!;
-            });
-
-            if (Object.keys(updates).length > 0) {
-                onDataUpdate(updates, multiText);
-                setMultiText("");
-                focusMultiText();
-            } else {
-                toast({ title: "No data processed", description: "Could not generate combinations from crossing.", variant: "destructive" });
-            }
-            return;
-        }
-
         // --- Standard Logic ---
         const raw = multiText.replace(/=/g, ' (').replace(/(\d)\s+\(/, '$1(') + ')';
         const tokens = raw.match(/\(\d+\)|\b\d{1,3}\b/g);
