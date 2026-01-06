@@ -125,9 +125,60 @@ export function DataEntryControls({
             showClientSelectionToast();
             return;
         }
-        const raw = multiText.replace(/=/g, '(') + ')'; // Normalize '=' to '()'
-        if (!raw.trim()) return;
-        
+        if (!multiText.trim()) return;
+
+        function parseCrossingInput(text: string) {
+            const cleaned = text.replace(/ghar/gi, "").trim();
+            const crossingMatch = cleaned.match(/\b\d{3,}\b/);
+            const bracketMatch = cleaned.match(/\((\d+)\)/);
+            const amountMatch = cleaned.match(/=\s*(\d+)/);
+            const allNumbers = cleaned.match(/\b\d+\b/g) || [];
+
+            const crossing = crossingMatch ? crossingMatch[0] : null;
+            const amount = amountMatch ? Number(amountMatch[1]) : bracketMatch ? Number(bracketMatch[1]) : null;
+
+            const combination = allNumbers
+                .map(Number)
+                .find(n => String(n) !== crossing && n !== amount);
+
+            return { crossing, combination, amount };
+        }
+
+        const crossingData = parseCrossingInput(multiText);
+
+        if (crossingData.crossing && crossingData.amount) {
+            let digits = new Set(crossingData.crossing.split(''));
+            if (crossingData.combination) {
+                String(crossingData.combination).split('').forEach(d => digits.add(d));
+            }
+            const digitArray = Array.from(digits);
+            
+            const combinations = new Set<string>();
+            for (const d1 of digitArray) {
+                for (const d2 of digitArray) {
+                    combinations.add(`${d1}${d2}`);
+                }
+            }
+            
+            const updates: { [key: string]: number } = {};
+            combinations.forEach(numStr => {
+                const numAsInt = parseInt(numStr, 10);
+                const dataKey = numAsInt === 100 ? '00' : numStr.padStart(2, '0');
+                updates[dataKey] = (updates[dataKey] || 0) + crossingData.amount!;
+            });
+
+            if (Object.keys(updates).length > 0) {
+                onDataUpdate(updates, multiText);
+                setMultiText("");
+                focusMultiText();
+            } else {
+                toast({ title: "No data processed", description: "Could not generate combinations from crossing.", variant: "destructive" });
+            }
+            return;
+        }
+
+        // --- Standard Logic ---
+        const raw = multiText.replace(/=/g, ' (').replace(/(\d)\s+\(/, '$1(') + ')';
         const tokens = raw.match(/\(\d+\)|\b\d{1,3}\b/g);
         if (!tokens) {
             toast({ title: "Invalid format", description: "Could not find any numbers or amounts.", variant: "destructive" });
@@ -138,48 +189,45 @@ export function DataEntryControls({
         const finalUpdates: { [key: string]: number } = {};
         let tempNumbers: number[] = [];
         let totalAmountForCheck = 0;
-
-        // First pass to calculate total for balance check
-        tokens.forEach(token => {
-            if (token.startsWith('(')) {
-                const amount = Number(token.replace(/[()]/g, ""));
-                if (tempNumbers.length > 0 && !isNaN(amount)) {
-                    totalAmountForCheck += tempNumbers.length * amount;
-                    tempNumbers = [];
-                }
-            } else {
-                const num = Number(token);
-                if (!isNaN(num)) {
-                    tempNumbers.push(num);
-                }
-            }
-        });
+        let lastAmount: number | null = null;
         
-        if (!checkBalance(totalAmountForCheck)) {
-            return;
-        }
+        // Logic from your function
+        let currentAmount = null;
+        const result: { value: number, amount: number }[] = [];
+        const tempValues: number[] = [];
 
-        // Second pass to build updates if balance check passes
-        tempNumbers = [];
-        tokens.forEach(token => {
-            if (token.startsWith('(')) {
+        tokens.forEach((token, index) => {
+            if (token.startsWith("(")) {
                 const amount = Number(token.replace(/[()]/g, ""));
-                if (tempNumbers.length > 0 && !isNaN(amount) && amount > 0) {
-                    tempNumbers.forEach(num => {
-                        const dataKey = num === 100 ? '00' : num.toString().padStart(2, '0');
-                        finalUpdates[dataKey] = (finalUpdates[dataKey] || 0) + amount;
+                if (index === tokens.length - 1) {
+                    tempValues.forEach(v => {
+                        result.push({ value: v, amount });
                     });
-                    tempNumbers = [];
+                    tempValues.length = 0;
+                } else {
+                    currentAmount = amount;
                 }
             } else {
-                 const num = Number(token);
-                 if (!isNaN(num) && num >= 1 && num <= 100) {
-                     tempNumbers.push(num);
-                 }
+                if (currentAmount !== null) {
+                    result.push({ value: Number(token), amount: currentAmount });
+                } else {
+                    tempValues.push(Number(token));
+                }
             }
         });
 
-        if (Object.keys(finalUpdates).length > 0) {
+
+        if (result.length > 0) {
+            const totalForCheck = result.reduce((sum, item) => sum + item.amount, 0);
+            if (!checkBalance(totalForCheck)) {
+                return;
+            }
+
+            result.forEach(item => {
+                const dataKey = item.value === 100 ? '00' : item.value.toString().padStart(2, '0');
+                finalUpdates[dataKey] = (finalUpdates[dataKey] || 0) + item.amount;
+            });
+            
             onDataUpdate(finalUpdates, multiText);
             setMultiText("");
             focusMultiText();
@@ -576,5 +624,7 @@ export function DataEntryControls({
             </Dialog>
         </>
     );
+
+    
 
     
