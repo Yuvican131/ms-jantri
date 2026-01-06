@@ -131,11 +131,10 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
         });
 
         const upperCommission = totalGameRawForUpper * upperCommPercent;
-        const upperNet = totalGameRawForUpper - upperCommission;
-        const upperWinnings = totalPassingAmountRawForUpper * upperPairRate;
-        totalUpperPayable = upperNet - upperWinnings;
+        const upperWinnings = totalGameRawForUpper * upperPairRate;
+        totalUpperPayable = upperWinnings - (totalGameRawForUpper - upperCommission);
         
-        const brokerNet = totalClientPayable - totalUpperPayable;
+        const brokerNet = totalUpperPayable - totalClientPayable;
         
         return { clientPayable: totalClientPayable, upperPayable: totalUpperPayable, brokerNet, hasActivity };
 
@@ -362,7 +361,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     }, []);
 
     
-   const calculateDailyNet = useCallback((date: Date, allLogs: SavedSheetInfo[]) => {
+    const calculateDailyNet = useCallback((date: Date, allLogs: SavedSheetInfo[]) => {
         const dateStr = format(date, 'yyyy-MM-dd');
         const logsForDay = allLogs.filter(log => log.date === dateStr);
         if (logsForDay.length === 0) return 0;
@@ -387,34 +386,45 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     }, [declaredNumbers, appliedUpperComm, appliedUpperPair]);
     
     const runningTotal = useMemo(() => {
-        let cumulativeTotal = 0;
-        const allLogs = Object.values(savedSheetLog).flat();
-
-        const allDatesWithActivity = new Set<string>();
-        allLogs.forEach(log => allDatesWithActivity.add(log.date));
-        Object.keys(settlements).forEach(dateStr => {
-            if (dateStr !== 'NaN-NaN-NaN') { // Guard against invalid date keys
+      let cumulativeTotal = 0;
+      const allLogs = Object.values(savedSheetLog).flat();
+      
+      const allDatesWithActivity = new Set<string>();
+      allLogs.forEach(log => allDatesWithActivity.add(log.date));
+      Object.keys(settlements).forEach(dateStr => {
+        if (dateStr !== 'NaN-NaN-NaN' && !/undefined/.test(dateStr)) {
+             try {
+                parseISO(dateStr); // check if it's a valid date string
                 allDatesWithActivity.add(dateStr);
+            } catch (e) {
+                // Ignore invalid date strings from settlements
             }
-        });
-        
-        if (allDatesWithActivity.size === 0) return 0;
-        
-        const sortedDates = Array.from(allDatesWithActivity).sort((a, b) => compareAsc(parseISO(a), parseISO(b)));
-        
-        if (sortedDates.length === 0 || !sortedDates[0]) return 0;
-        
+        }
+      });
+    
+      if (allDatesWithActivity.size === 0) return 0;
+    
+      const sortedDates = Array.from(allDatesWithActivity).sort((a, b) => compareAsc(parseISO(a), parseISO(b)));
+    
+      if (sortedDates.length === 0 || !sortedDates[0]) return 0;
+    
+      // Ensure we don't try to create an interval with an invalid start date
+      try {
         const firstDate = parseISO(sortedDates[0]);
         const today = new Date();
         const intervalDays = firstDate <= today ? eachDayOfInterval({ start: firstDate, end: today }) : [];
-
+    
         for (const day of intervalDays) {
-            const brokerNetForDay = calculateDailyNet(day, allLogs);
-            const settlementForDay = settlements[format(day, 'yyyy-MM-dd')] || 0;
-            cumulativeTotal += brokerNetForDay + settlementForDay;
+          const brokerNetForDay = calculateDailyNet(day, allLogs);
+          const settlementForDay = settlements[format(day, 'yyyy-MM-dd')] || 0;
+          cumulativeTotal += brokerNetForDay + settlementForDay;
         }
-
-        return cumulativeTotal;
+      } catch (e) {
+          console.error("Error creating date interval for running total", e);
+          return 0; // Return 0 if date logic fails
+      }
+    
+      return cumulativeTotal;
     }, [savedSheetLog, settlements, calculateDailyNet]);
 
     const handleSettlement = () => {
@@ -555,7 +565,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                 </Card>
             </div>
             
-             <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8 min-h-0">
+             <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
                 {draws.map(draw => {
                     const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
                     return (
@@ -625,3 +635,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
 
 
 
+
+
+    
