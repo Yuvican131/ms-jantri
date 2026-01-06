@@ -131,10 +131,10 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
         });
 
         const upperCommission = totalGameRawForUpper * upperCommPercent;
-        const upperWinnings = totalGameRawForUpper * upperPairRate;
-        totalUpperPayable = upperWinnings - (totalGameRawForUpper - upperCommission);
+        const upperWinnings = totalPassingAmountRawForUpper * upperPairRate;
+        totalUpperPayable = (totalGameRawForUpper - upperCommission) - upperWinnings;
         
-        const brokerNet = totalUpperPayable - totalClientPayable;
+        const brokerNet = totalUpperPayable; //This calculation needs review
         
         return { clientPayable: totalClientPayable, upperPayable: totalUpperPayable, brokerNet, hasActivity };
 
@@ -569,22 +569,22 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                 {draws.map(draw => {
                     const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
                     return (
-                       <Card key={draw} className="p-3 flex flex-col h-40">
+                        <div key={draw} className="p-3 flex flex-col justify-between rounded-lg bg-card border h-40">
                             <div className="flex justify-between items-start text-muted-foreground">
                                 <CardTitle className="text-base font-bold">{draw}</CardTitle>
                                 <HandCoins className="h-5 w-5" />
                             </div>
-                            <div className="flex-grow flex items-center justify-center text-center text-2xl md:text-xl lg:text-2xl font-bold my-2 min-h-0">
+                            <div className="flex-grow flex items-center justify-center text-center text-2xl font-bold my-2 min-h-0">
                                 <span className="truncate">{formatNumber(totalRaw)}</span>
                             </div>
-                            <div className="flex justify-between items-center text-sm text-muted-foreground p-2 bg-muted/50 rounded-md mt-auto">
+                            <div className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md mt-auto">
                                 <div className='flex items-center gap-1.5'>
                                     <TrendingDown className="h-4 w-4 text-red-500" />
                                     <span>Pass</span>
                                 </div>
                                 <span className={`font-semibold ${totalPassing > 0 ? 'text-red-500' : ''}`}>{formatNumber(totalPassing)}</span>
                             </div>
-                        </Card>
+                        </div>
                     );
                 })}
 
@@ -636,5 +636,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
 
 
 
+
+    
 
     
