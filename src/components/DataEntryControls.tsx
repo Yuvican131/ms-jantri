@@ -121,7 +121,7 @@ export function DataEntryControls({
 
         // Auto-format for concatenated entries like `...)(...)`
         if (newValue.length > multiText.length) {
-            newValue = newValue.replace(/\)(?=\d)/g, ')\n');
+             newValue = newValue.replace(/\)(?=[^\s\n])/g, ')\n');
         }
 
         if (newValue.length < multiText.length) {
@@ -157,7 +157,7 @@ export function DataEntryControls({
         const finalUpdates: { [key: string]: number } = {};
         let totalForCheck = 0;
 
-        const processedText = multiText.replace(/\)(?=\d)/g, ') ');
+        const processedText = multiText.replace(/\)(?=[^\s\n])/g, ') ');
     
         function parseFinalUniversalData(text: string) {
             const result: { value?: number, amount?: number | null, crossing?: number, combination?: number, runningPair?: string, overlappingPair?: string }[] = [];
@@ -180,9 +180,9 @@ export function DataEntryControls({
                 cleaned = cleaned.replace(/ghar/gi, "");
                 
                 if (cleaned.includes('_') && amount !== null) {
-                    const parts = cleaned.split('_');
-                    if (parts.length === 2 && parts.every(p => /^\d+$/.test(p))) {
-                        result.push({ overlappingPair: cleaned, amount });
+                     const parts = cleaned.split('_');
+                    if (parts.length === 2 && parts.every(p => /^\d*$/.test(p.replace(/[,.]/g, '')))) {
+                         result.push({ overlappingPair: cleaned, amount });
                         continue;
                     }
                 }
@@ -251,8 +251,9 @@ export function DataEntryControls({
                     const combinations = new Set<string>();
                 
                     const processPart = (numStr: string) => {
-                        for (let i = 0; i < numStr.length - 1; i++) {
-                            const pair = numStr.substring(i, i + 2);
+                        const cleanedNumStr = numStr.replace(/[.,]/g, '');
+                        for (let i = 0; i < cleanedNumStr.length - 1; i++) {
+                            const pair = cleanedNumStr.substring(i, i + 2);
                             const reversePair = pair.split('').reverse().join('');
                             if (pair[0] !== pair[1]) {
                                 combinations.add(pair);
@@ -493,8 +494,8 @@ export function DataEntryControls({
     
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>, from: string) => {
         if (e.key === 'Enter') {
-            if (from === 'multiText' && e.shiftKey) {
-                 return; 
+             if (from === 'multiText' && e.shiftKey) {
+                 return; // Allow new lines with Shift+Enter
             }
             e.preventDefault();
             switch (from) {
@@ -517,11 +518,7 @@ export function DataEntryControls({
                     handleHarupApply();
                     break;
                 case 'multiText':
-                    if (multiText.includes("=")) {
-                       handleMultiTextApply();
-                    } else if (multiText.trim()) {
-                       setMultiText(prev => prev.trim().endsWith(',') ? prev.trim().slice(0, -1) + '=' : prev.trim() + '=');
-                    }
+                    handleMultiTextApply();
                     break;
             }
         }
@@ -769,5 +766,7 @@ export function DataEntryControls({
 
 
 
+
+    
 
     
