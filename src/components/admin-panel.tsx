@@ -4,7 +4,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatNumber } from "@/lib/utils";
-import { Wallet, Calendar as CalendarIcon, Percent, Scale, TrendingUp, TrendingDown, Landmark, Banknote, Trash2, HandCoins, Minus, Plus, Save } from 'lucide-react';
+import { Wallet, Calendar as CalendarIcon, Percent, Scale, TrendingUp, TrendingDown, Landmark, Banknote, Trash2, HandCoins, Minus, Plus, Save, CircleDollarSign, Trophy } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -362,41 +362,11 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     }, []);
 
     
-    const calculateDailyNet = useCallback((date: Date, allLogs: SavedSheetInfo[], clientsForCalc: Client[]) => {
+    const calculateDailyNet = useCallback((date: Date, allLogs: SavedSheetInfo[]) => {
         const dateStr = format(date, 'yyyy-MM-dd');
         const logsForDay = allLogs.filter(log => log.date === dateStr);
-        if (logsForDay.length === 0) return { clientPayable: 0, upperPayable: 0, brokerNet: 0};
-
-        let totalClientPayable = 0;
-        
-        // Client Payable
-        clientsForCalc.forEach(client => {
-            const clientLogs = logsForDay.filter(l => l.clientId === client.id);
-            if(clientLogs.length === 0) return;
-            
-            let clientGameTotal = 0;
-            let clientPassingAmount = 0;
-            const clientCommPercent = (client.comm && !isNaN(parseFloat(client.comm))) ? parseFloat(client.comm) / 100 : 0;
-            const clientPairRate = parseFloat(client.pair) || defaultClientPair;
-
-            clientLogs.forEach(log => {
-                clientGameTotal += log.gameTotal;
-                const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
-                if(declaredNumber && log.data[declaredNumber]) {
-                    clientPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
-                }
-            });
-            const clientCommission = clientGameTotal * clientCommPercent;
-            const clientNet = clientGameTotal - clientCommission;
-            const clientWinnings = clientPassingAmount * clientPairRate;
-            totalClientPayable += clientNet - clientWinnings;
-        });
-        
-        // This is the broker's profit/loss from their clients.
-        // It's not directly used in the running total, but could be useful for other reports.
-        const clientSideProfitLoss = totalClientPayable;
-
-
+        if (logsForDay.length === 0) return 0;
+    
         // Upper Payable - this is what matters for the broker's own running total
         let totalGameRawForUpper = 0;
         let totalPassingAmountRawForUpper = 0;
@@ -418,7 +388,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
         // It's what the upper broker owes the broker (positive) or what the broker owes the upper broker (negative).
         const brokerNet = upperNet - upperWinnings;
 
-        return { clientPayable: clientSideProfitLoss, upperPayable: 0, brokerNet };
+        return brokerNet;
 
     }, [declaredNumbers, appliedUpperComm, appliedUpperPair]);
     
@@ -437,18 +407,20 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
         const firstDateStr = sortedDates[0];
         if (!firstDateStr) return 0;
         
+        // Using the actual first date of activity as the start
         const firstDate = parseISO(firstDateStr);
         const today = new Date();
-        const intervalDays = eachDayOfInterval({ start: firstDate, end: today });
+        // Ensure the interval is correct, even if 'today' is before 'firstDate'
+        const intervalDays = firstDate <= today ? eachDayOfInterval({ start: firstDate, end: today }) : [];
 
         for (const day of intervalDays) {
-            const { brokerNet } = calculateDailyNet(day, allLogs, clients);
+            const brokerNetForDay = calculateDailyNet(day, allLogs);
             const settlementForDay = settlements[format(day, 'yyyy-MM-dd')] || 0;
-            cumulativeTotal += brokerNet + settlementForDay;
+            cumulativeTotal += brokerNetForDay + settlementForDay;
         }
 
         return cumulativeTotal;
-    }, [savedSheetLog, settlements, clients, calculateDailyNet]);
+    }, [savedSheetLog, settlements, calculateDailyNet]);
 
 
     const handleSettlement = () => {
@@ -463,10 +435,13 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
         const settlementChange = lena - jama;
         const dateKey = format(summaryDate, 'yyyy-MM-dd');
         
-        setSettlements(prev => ({
-            ...prev,
-            [dateKey]: (prev[dateKey] || 0) + settlementChange
-        }));
+        setSettlements(prev => {
+            const newSettlements = {
+                ...prev,
+                [dateKey]: (prev[dateKey] || 0) + settlementChange
+            };
+            return newSettlements;
+        });
         
         toast({ title: "Settlement Recorded", description: `Settlement for ${format(summaryDate, 'PPP')} has been updated.` });
         setJamaAmount('');
@@ -614,23 +589,23 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                         <CardTitle className="text-base font-bold text-primary">Final Summary</CardTitle>
                         <Landmark className="h-5 w-5 text-primary/70" />
                     </div>
-                    <div className="space-y-1 text-base flex-grow flex flex-col justify-center my-2">
+                    <div className="space-y-2 text-sm flex-grow flex flex-col justify-center my-2">
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><Banknote className="h-4 w-4"/>Total:</span>
+                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><CircleDollarSign className="h-4 w-4"/>Total Raw</span>
                             <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.totalRaw)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><Percent className="h-4 w-4"/>Upper Comm:</span> 
+                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><Percent className="h-4 w-4"/>% Broker Comm</span> 
                             <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.commission)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><TrendingDown className="h-4 w-4 text-red-500"/>Upper Passing:</span> 
+                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><Trophy className="h-4 w-4"/>Total Passing</span> 
                             <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.passing)}</span>
                         </div>
                     </div>
                      <Separator className="my-2 bg-primary/20" />
                     <div className={`flex justify-between items-center font-bold text-lg ${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                       <span>Final Net:</span> 
+                       <span>Final Net</span> 
                        <span className="font-mono">{formatNumber(finalSummaryForDay.finalNet)}</span>
                     </div>
                 </div>
@@ -651,3 +626,4 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     </Card>
   );
 }
+
