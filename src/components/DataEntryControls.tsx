@@ -129,7 +129,32 @@ export function DataEntryControls({
 
         let result: { value: number, amount: number | null }[] = [];
 
-        // --- New X amount parser ---
+        function parseMultiGroupCells(text: string) {
+            if (!text.includes('*')) return null;
+
+            const groups = text.split(/\s+/);
+            const parsedResult = [];
+
+            for (const group of groups) {
+                const amountMatch = group.match(/\*(\d+)/);
+                const amount = amountMatch ? Number(amountMatch[1]) : null;
+                if (amount === null) continue; // Skip groups without an amount
+
+                let numbersPart = group.replace(/\*\d+/, "");
+
+                const numbers = numbersPart
+                  .split(/[,.\s]+/)
+                  .map(s => s.trim())
+                  .filter(s => s !== "" && !isNaN(s))
+                  .map(Number);
+                
+                numbers.forEach(n => {
+                  parsedResult.push({ value: n, amount });
+                });
+            }
+            return parsedResult.length > 0 ? parsedResult : null;
+        }
+
         function parseMessyCells(text: string) {
           let cleaned = text.replace(/ghar/gi, "").trim();
           const amountMatch = cleaned.match(/X(\d+)/i);
@@ -148,12 +173,10 @@ export function DataEntryControls({
           return numbers.map(n => ({ value: n, amount }));
         }
 
-        // --- Running Pair/Ghar Parser ---
         function parsePairNumbers(text: string) {
             const cleanedText = text.replace(/ghar/gi, "").trim();
             const amountMatch = cleanedText.match(/\((\d+)\)/);
             
-            // This format requires an amount in brackets and an underscore
             if (!amountMatch || !cleanedText.includes('_')) return null; 
 
             const amount = Number(amountMatch[1]);
@@ -174,11 +197,14 @@ export function DataEntryControls({
             }
             return pairs.length > 0 ? pairs : null;
         }
-
+        
+        const multiGroupResult = parseMultiGroupCells(multiText);
         const xResult = parseMessyCells(multiText);
         const pairResult = parsePairNumbers(multiText);
 
-        if (xResult && xResult.length > 0) {
+        if (multiGroupResult) {
+            result = multiGroupResult;
+        } else if (xResult && xResult.length > 0) {
             result = xResult;
         } else if (pairResult) {
             result = pairResult;
@@ -635,5 +661,7 @@ export function DataEntryControls({
 
 
 
+
+    
 
     
