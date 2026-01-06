@@ -130,40 +130,33 @@ export function DataEntryControls({
         const finalUpdates: { [key: string]: number } = {};
         let totalForCheck = 0;
     
-        const combinationTable = {
-            3: [6, 9],
-            4: [12, 16],
-            5: [20, 25],
-            6: [30, 36],
-            7: [42, 49],
-            8: [56, 64],
-            9: [72, 81]
-        };
-
         function parseFinalUniversalData(text: string) {
+            const combinationTable = {
+                3: [6, 9], 4: [12, 16], 5: [20, 25], 6: [30, 36], 7: [42, 49], 8: [56, 64], 9: [72, 81]
+            };
             const result: { value?: number, amount?: number | null, crossing?: number, combination?: number }[] = [];
             const groups = text.split(/\s+/).filter(g => g.trim() !== "");
 
             groups.forEach(group => {
-                const amountMatch = group.match(/\((\d+)\)/) || group.match(/\*(\d+)/i) || group.match(/X(\d+)/i);
+                const amountMatch = group.match(/\((\d+)\)/) || group.match(/\*(\d+)/i) || group.match(/X(\d+)/i) || group.match(/=(\d+)/) || group.match(/(\d+)$/);
                 const amount = amountMatch ? Number(amountMatch[1]) : null;
 
-                let cleaned = group.replace(/\(\d+\)/, "").replace(/\*\d+/i, "").replace(/X\d+/i, "").trim();
+                let cleaned = group;
+                if (amountMatch) {
+                    cleaned = cleaned.substring(0, amountMatch.index).trim();
+                }
                 cleaned = cleaned.replace(/ghar/gi, "");
 
-                const parts = cleaned.split('_');
+                const parts = cleaned.split('_').filter(p => p);
                 
                 parts.forEach(part => {
-                    // Handle running pairs like 787
-                    if (parts.length > 1) { // This logic is for underscore-separated parts
+                    if (parts.length > 1) { 
                         for (let i = 0; i < part.length - 1; i++) {
                             const pair = Number(part[i] + part[i + 1]);
                             result.push({ value: pair, amount });
                         }
-                        return; // Continue to next part
+                        return; 
                     }
-
-                    // Handle standard messy data
                     const tokens = part.split(/[,.\s\/]+/).map(t => t.trim()).filter(t => t !== "");
                     let activeCrossing: number | null = null;
         
@@ -172,7 +165,7 @@ export function DataEntryControls({
         
                         if (index === 0 && token.length >= 3) {
                             activeCrossing = Number(token);
-                            // It's a crossing, we don't add it as a value yet, just set it.
+                            result.push({ crossing: activeCrossing });
                         } else if (token.length > 2) {
                             for (let i = 0; i < token.length - 1; i += 2) {
                                 const pair = Number(token.slice(i, i + 2));
@@ -187,7 +180,7 @@ export function DataEntryControls({
                                 } else {
                                     result.push({ value: num, amount });
                                 }
-                                activeCrossing = null; // Reset after use
+                                activeCrossing = null; 
                             } else {
                                 result.push({ value: num, amount });
                             }
@@ -202,19 +195,17 @@ export function DataEntryControls({
         const parsedData = parseFinalUniversalData(multiText);
         
         let activeCrossing: number | null = null;
-        const pendingCombinations: { combination: number, amount: number | null }[] = [];
 
         parsedData.forEach(item => {
             if (item.crossing) {
                 activeCrossing = item.crossing;
             } else if (item.combination && activeCrossing) {
-                // This is where the Laddi-like logic should go
                 const crossingDigits = [...new Set(String(activeCrossing).split(''))];
                 const combinationDigits = [...new Set(String(item.combination).split(''))];
                 const amount = item.amount || 0;
                 
                 const combinations = new Set<string>();
-                 for (const d1 of crossingDigits) {
+                for (const d1 of crossingDigits) {
                     for (const d2 of combinationDigits) {
                         if (d1 !== d2) {
                            combinations.add(`${d1}${d2}`);
@@ -224,7 +215,6 @@ export function DataEntryControls({
                         }
                     }
                 }
-
                 const entryTotal = combinations.size * amount;
                 totalForCheck += entryTotal;
                 
@@ -232,8 +222,7 @@ export function DataEntryControls({
                     const key = pair.padStart(2, '0');
                     finalUpdates[key] = (finalUpdates[key] || 0) + amount;
                 });
-                
-                activeCrossing = null; // Reset after processing
+                activeCrossing = null;
             } else if (item.value !== undefined && item.amount !== null) {
                 const key = String(item.value).padStart(2, '0');
                 const amount = item.amount;
@@ -649,3 +638,4 @@ export function DataEntryControls({
     
 
     
+
