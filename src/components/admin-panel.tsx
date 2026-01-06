@@ -565,55 +565,55 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                 </Card>
             </div>
             
-             <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
-                {draws.map(draw => {
-                    const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
-                    return (
-                        <div key={draw} className="p-3 flex flex-col justify-between rounded-lg bg-card border h-40">
-                            <div className="flex justify-between items-start text-muted-foreground">
-                                <CardTitle className="text-base font-bold">{draw}</CardTitle>
-                                <HandCoins className="h-5 w-5" />
-                            </div>
-                            <div className="flex-grow flex items-center justify-center text-center text-2xl font-bold my-2 min-h-0">
-                                <span className="truncate">{formatNumber(totalRaw)}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md mt-auto">
-                                <div className='flex items-center gap-1.5'>
-                                    <TrendingDown className="h-4 w-4 text-red-500" />
-                                    <span>Pass</span>
-                                </div>
-                                <span className={`font-semibold ${totalPassing > 0 ? 'text-red-500' : ''}`}>{formatNumber(totalPassing)}</span>
-                            </div>
-                        </div>
-                    );
-                })}
+            <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
+              {draws.map(draw => {
+                  const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
+                  return (
+                      <div key={draw} className="p-3 flex flex-col justify-between rounded-lg bg-card border h-40">
+                          <div className="flex justify-between items-start text-muted-foreground">
+                              <CardTitle className="text-base font-bold">{draw}</CardTitle>
+                              <HandCoins className="h-5 w-5" />
+                          </div>
+                          <div className="flex-grow flex items-center justify-center text-center text-2xl font-bold my-2 min-h-0">
+                              <span className="truncate">{formatNumber(totalRaw)}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded-md mt-auto">
+                              <div className='flex items-center gap-1.5'>
+                                  <TrendingDown className="h-4 w-4 text-red-500" />
+                                  <span>Pass</span>
+                              </div>
+                              <span className={`font-semibold ${totalPassing > 0 ? 'text-red-500' : ''}`}>{formatNumber(totalPassing)}</span>
+                          </div>
+                      </div>
+                  );
+              })}
 
-                <div className="p-4 bg-card border-2 border-primary rounded-lg flex flex-col justify-between col-span-1 md:col-span-3 lg:col-span-1 h-40">
-                    <div className="flex justify-between items-center">
-                        <h3 className="font-bold text-primary">Final Summary</h3>
-                        <Landmark className="h-5 w-5 text-primary/70" />
-                    </div>
-                    <div className="space-y-1 text-sm flex-grow mt-2">
-                        <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-2"><CircleDollarSign className="h-4 w-4"/>Total</span>
-                            <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.totalRaw)}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-2"><Percent className="h-4 w-4"/>Commission</span> 
-                            <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.commission)}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-2"><Trophy className="h-4 w-4"/>Passing</span> 
-                            <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.passing)}</span>
-                        </div>
-                    </div>
-                     <Separator className="my-2 bg-primary/20" />
-                    <div className={`flex justify-between items-center font-bold text-base ${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                       <span>Final Net</span> 
-                       <span className="font-mono">{formatNumber(finalSummaryForDay.finalNet)}</span>
-                    </div>
-                </div>
-            </div>
+              <div className="p-4 bg-card border-2 border-primary rounded-lg flex flex-col justify-between col-span-1 md:col-span-3 lg:col-span-1 h-40">
+                  <div className="flex justify-between items-center">
+                      <h3 className="font-bold text-primary">Final Summary</h3>
+                      <Landmark className="h-5 w-5 text-primary/70" />
+                  </div>
+                  <div className="space-y-1 text-sm flex-grow mt-2">
+                      <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground flex items-center gap-2"><CircleDollarSign className="h-4 w-4"/>Total Raw</span>
+                          <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.totalRaw)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground flex items-center gap-2"><Percent className="h-4 w-4"/>% Broker Comm</span> 
+                          <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.commission)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground flex items-center gap-2"><Trophy className="h-4 w-4"/>Total Passing</span> 
+                          <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.passing)}</span>
+                      </div>
+                  </div>
+                   <Separator className="my-2 bg-primary/20" />
+                  <div className={`flex justify-between items-center font-bold text-base ${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                     <span>Final Net</span> 
+                     <span className="font-mono">{formatNumber(finalSummaryForDay.finalNet)}</span>
+                  </div>
+              </div>
+          </div>
 
         </div>
 
