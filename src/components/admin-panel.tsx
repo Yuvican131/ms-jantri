@@ -274,7 +274,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
                             <CardTitle className="text-sm font-medium">
-                                {viewMode === 'month' ? 'Monthly Summary' : 'Yearly Summary'}
+                                {viewMode === 'month' ? 'Monthly Profit' : 'Yearly Profit'}
                             </CardTitle>
                             <Wallet className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
