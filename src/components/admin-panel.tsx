@@ -420,28 +420,31 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     const runningTotal = useMemo(() => {
         const allLogs = Object.values(savedSheetLog).flat();
         let cumulativeTotal = 0;
-    
+
         const allDatesWithActivity = new Set<string>();
         allLogs.forEach(log => allDatesWithActivity.add(log.date));
         Object.keys(settlements).forEach(dateStr => allDatesWithActivity.add(dateStr));
-    
+
         if (allDatesWithActivity.size === 0) {
             return 0;
         }
-    
+
         const sortedDates = Array.from(allDatesWithActivity).sort((a, b) => compareAsc(parseISO(a), parseISO(b)));
-    
-        // Ensure the loop includes today, even if there's no activity
+
+        if (sortedDates.length === 0) {
+            return 0;
+        }
+
         const startDate = parseISO(sortedDates[0]);
         const endDate = new Date();
         const intervalDays = eachDayOfInterval({ start: startDate, end: endDate });
-    
+
         for (const day of intervalDays) {
             const { brokerNet } = calculateDailyNet(day, allLogs, clients);
             const settlementForDay = settlements[format(day, 'yyyy-MM-dd')] || 0;
             cumulativeTotal += brokerNet + settlementForDay;
         }
-    
+
         return cumulativeTotal;
     }, [savedSheetLog, settlements, clients, calculateDailyNet]);
 
@@ -491,45 +494,39 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
 
     const finalSummaryForDay = useMemo(() => {
         const allLogs = Object.values(savedSheetLog).flat();
-        const { brokerNet, clientPayable } = calculateDailyNet(summaryDate, allLogs, clients);
-        
-        let totalGameRaw = 0;
-        let totalPassingAmount = 0;
-
         const dateStr = format(summaryDate, 'yyyy-MM-dd');
         const logsForDay = allLogs.filter(log => log.date === dateStr);
 
+        let totalRaw = 0;
+        let totalCommission = 0;
+        let totalPassing = 0;
+
         logsForDay.forEach(log => {
-            totalGameRaw += log.gameTotal;
+            const client = clients.find(c => c.id === log.clientId);
+            if (!client) return;
+            
+            const clientCommPercent = parseFloat(client.comm) / 100 || 0;
+            const clientPairRate = parseFloat(client.pair) || defaultClientPair;
+
+            totalRaw += log.gameTotal;
+            totalCommission += log.gameTotal * clientCommPercent;
+
             const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
-            if(declaredNumber && log.data[declaredNumber]) {
-                totalPassingAmount += parseFloat(log.data[declaredNumber]) || 0;
+            if (declaredNumber && log.data[declaredNumber]) {
+                const passingAmount = parseFloat(log.data[declaredNumber]) || 0;
+                totalPassing += passingAmount * clientPairRate;
             }
         });
         
-        const totalCommission = logsForDay.reduce((acc, log) => {
-            const client = clients.find(c => c.id === log.clientId);
-            const clientCommPercent = client ? (parseFloat(client.comm) / 100) : 0;
-            return acc + (log.gameTotal * clientCommPercent);
-        }, 0);
-        
-        const totalPassingValue = logsForDay.reduce((acc, log) => {
-             const client = clients.find(c => c.id === log.clientId);
-             const clientPairRate = client ? parseFloat(client.pair) : defaultClientPair;
-             const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
-             if(declaredNumber && log.data[declaredNumber]) {
-                return acc + ((parseFloat(log.data[declaredNumber]) || 0) * clientPairRate);
-            }
-            return acc;
-        }, 0)
+        const finalNet = (totalRaw - totalCommission) - totalPassing;
 
         return { 
-            totalRaw: totalGameRaw, 
+            totalRaw: totalRaw, 
             commission: totalCommission, 
-            passing: totalPassingValue, 
-            finalNet: clientPayable 
+            passing: totalPassing, 
+            finalNet: finalNet,
         };
-    }, [summaryDate, savedSheetLog, declaredNumbers, clients, calculateDailyNet]);
+    }, [summaryDate, savedSheetLog, declaredNumbers, clients]);
 
   return (
     <Card className="h-full flex flex-col">
