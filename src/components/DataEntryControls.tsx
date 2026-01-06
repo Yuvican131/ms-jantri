@@ -117,7 +117,12 @@ export function DataEntryControls({
     }, [laddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi]);
 
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const newValue = e.target.value;
+        let newValue = e.target.value;
+
+        // Auto-format for concatenated entries like `...)(...)`
+        if (newValue.length > multiText.length) {
+            newValue = newValue.replace(/\)(?=\d)/g, ')\n');
+        }
 
         if (newValue.length < multiText.length) {
             setMultiText(newValue);
@@ -152,12 +157,11 @@ export function DataEntryControls({
         const finalUpdates: { [key: string]: number } = {};
         let totalForCheck = 0;
 
-        // Pre-process to add space between concatenated entries like ...)(...
         const processedText = multiText.replace(/\)(?=\d)/g, ') ');
     
         function parseFinalUniversalData(text: string) {
             const result: { value?: number, amount?: number | null, crossing?: number, combination?: number, runningPair?: string, overlappingPair?: string }[] = [];
-            const groups = text.split(/\s+/).filter(g => g.trim() !== "");
+            const groups = text.split(/[\s\n]+/).filter(g => g.trim() !== "");
 
             for (const group of groups) {
                 const amountMatch = group.match(/\((\d+)\)/) 
@@ -175,16 +179,15 @@ export function DataEntryControls({
 
                 cleaned = cleaned.replace(/ghar/gi, "");
                 
-                if (cleaned.includes('_') && amount !== null && cleaned.split('_').length === 2) {
-                     // Check if it's the specific overlapping pair format e.g. 121_454(200)
+                if (cleaned.includes('_') && amount !== null) {
                     const parts = cleaned.split('_');
-                    if (parts.every(p => /^\d+$/.test(p))) {
+                    if (parts.length === 2 && parts.every(p => /^\d+$/.test(p))) {
                         result.push({ overlappingPair: cleaned, amount });
                         continue;
                     }
                 }
 
-                const runningPairMatch = cleaned.match(/(\d+)-(\d+)/); // e.g. 12-45 for combinations
+                const runningPairMatch = cleaned.match(/(\d+)-(\d+)/);
                 if (runningPairMatch) {
                     result.push({ runningPair: runningPairMatch[0], amount });
                     continue;
@@ -200,7 +203,6 @@ export function DataEntryControls({
                         if (!token) return;
                         
                         if (token.length === 1 && !/^\d+$/.test(token)) {
-                            // This is likely an error, not a number
                             toast({ title: "Wrong Input", description: `Single character '${token}' cannot be processed. Please enter valid numbers.`, variant: "destructive" });
                             throw new Error("Invalid single-character input"); 
                         }
@@ -250,9 +252,9 @@ export function DataEntryControls({
                 
                     const processPart = (numStr: string) => {
                         for (let i = 0; i < numStr.length - 1; i++) {
-                            const pair = numStr[i] + numStr[i+1];
-                            const reversePair = numStr[i+1] + numStr[i];
-                            if (numStr[i] !== numStr[i+1]) {
+                            const pair = numStr.substring(i, i + 2);
+                            const reversePair = pair.split('').reverse().join('');
+                            if (pair[0] !== pair[1]) {
                                 combinations.add(pair);
                                 combinations.add(reversePair);
                             } else {
@@ -357,7 +359,6 @@ export function DataEntryControls({
                 toast({ title: "No data processed", description: "Could not find valid number/amount pairs.", variant: "destructive" });
             }
         } catch (error: any) {
-            // Error is already toasted in parse function, so just exit.
             return;
         }
     };
@@ -460,7 +461,7 @@ export function DataEntryControls({
         harupADigits.forEach(digitA => {
             for (let i = 0; i < 10; i++) {
                 const cellNumber = parseInt(`${digitA}${i}`, 10);
-                if (cellNumber === 0) continue; // Skip 00 for 'A' harup
+                if (cellNumber === 0) continue; 
                 const key = cellNumber === 100 ? '00' : cellNumber.toString().padStart(2, '0');
                 updates[key] = (updates[key] || 0) + perDigitAmountA;
             }
@@ -469,7 +470,7 @@ export function DataEntryControls({
         harupBDigits.forEach(digitB => {
             for (let i = 0; i < 10; i++) {
                 const cellNumber = parseInt(`${i}${digitB}`, 10);
-                if (cellNumber === 0) continue; // Skip 00 for 'B' harup
+                if (cellNumber === 0) continue; 
                 const key = cellNumber === 100 ? '00' : cellNumber.toString().padStart(2, '0');
                 updates[key] = (updates[key] || 0) + perDigitAmountB;
             }
@@ -516,7 +517,11 @@ export function DataEntryControls({
                     handleHarupApply();
                     break;
                 case 'multiText':
-                    handleMultiTextApply();
+                    if (multiText.includes("=")) {
+                       handleMultiTextApply();
+                    } else if (multiText.trim()) {
+                       setMultiText(prev => prev.trim().endsWith(',') ? prev.trim().slice(0, -1) + '=' : prev.trim() + '=');
+                    }
                     break;
             }
         }
@@ -763,3 +768,6 @@ export function DataEntryControls({
     
 
 
+
+
+    
