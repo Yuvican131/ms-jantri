@@ -131,11 +131,11 @@ export function DataEntryControls({
             return;
         }
     
-        let rawNumbers = newValue.replace(/[^0-9]/g, '');
+        const rawNumbers = newValue.replace(/[^0-9]/g, '');
         if (rawNumbers.length > 0) {
-            let formatted = rawNumbers.match(/.{1,2}/g)?.join(',') + (rawNumbers.length % 2 === 1 ? '' : ',');
-             // Only add trailing comma if length is even and it's not empty
-            if (rawNumbers.length % 2 === 0 && rawNumbers.length > 0) {
+            const pairs = rawNumbers.match(/.{1,2}/g) || [];
+            let formatted = pairs.join(',');
+            if (rawNumbers.length % 2 === 0) {
                 formatted += ',';
             }
             setMultiText(formatted);
@@ -159,6 +159,7 @@ export function DataEntryControls({
             const groups = text.split(/\s+/).filter(g => g.trim() !== "");
 
             for (const group of groups) {
+                // Extract amount: (100), *100, x100, =100, or trailing number
                 const amountMatch = group.match(/\((\d+)\)/) 
                                  || group.match(/[\*x=](\d+)/i)
                                  || group.match(/(?<![a-zA-Z0-9])(\d+)$/);
@@ -189,7 +190,6 @@ export function DataEntryControls({
                     tokens.forEach((token, index) => {
                         if (!token) return;
                         
-                        // New Validation: Check token length
                         if (token.length === 1 && amount !== null) {
                             toast({ title: "Wrong Input", description: `Single digit number '${token}' cannot be processed. Please enter 2-digit numbers.`, variant: "destructive" });
                             throw new Error("Invalid single-digit input"); 
@@ -444,9 +444,6 @@ export function DataEntryControls({
     
     const handleKeyDown = (e: React.KeyboardEvent, from: string) => {
         if (e.key === 'Enter') {
-             if (e.shiftKey && from === 'multiText') {
-                return;
-             }
             e.preventDefault();
             switch (from) {
                 case 'laddiNum1':
@@ -468,6 +465,8 @@ export function DataEntryControls({
                     handleHarupApply();
                     break;
                 case 'multiText':
+                    if (e.shiftKey) return; // Allow shift+enter for new line
+
                     if (multiText.includes('=')) {
                         handleMultiTextApply();
                     } else if (multiText.trim() !== '') {
