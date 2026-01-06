@@ -93,7 +93,24 @@ export default function Home() {
   const [formSelectedDraw, setFormSelectedDraw] = useState<string | null>(null);
   const [activeSheets, setActiveSheets] = useState<ActiveSheet[]>([]);
   const [formSelectedDate, setFormSelectedDate] = useState<Date>(new Date());
+  
+  const [settlements, setSettlements] = useState<{[key: string]: number}>({});
 
+  useEffect(() => {
+    try {
+        const savedSettlements = localStorage.getItem('brokerSettlements');
+        if (savedSettlements) {
+            setSettlements(JSON.parse(savedSettlements));
+        }
+    } catch (error) {
+        console.error("Failed to parse settlements from localStorage", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    // This effect ensures any change to settlements state is persisted.
+    localStorage.setItem('brokerSettlements', JSON.stringify(settlements));
+  }, [settlements]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -547,7 +564,13 @@ export default function Home() {
             <LedgerRecord clients={clients} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />
           </TabsContent>
           <TabsContent value="admin-panel">
-            <AdminPanel userId={user?.uid} clients={clients} savedSheetLog={savedSheetLog} />
+            <AdminPanel 
+              userId={user?.uid} 
+              clients={clients} 
+              savedSheetLog={savedSheetLog}
+              settlements={settlements}
+              setSettlements={setSettlements}
+            />
           </TabsContent>
         </Tabs>
       </main>
@@ -592,7 +615,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
-
-    

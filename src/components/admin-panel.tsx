@@ -339,10 +339,12 @@ type AdminPanelProps = {
   userId?: string;
   clients: Client[];
   savedSheetLog: { [draw: string]: SavedSheetInfo[] };
+  settlements: { [key: string]: number };
+  setSettlements: React.Dispatch<React.SetStateAction<{ [key: string]: number }>>;
 };
 
 
-export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPanelProps) {
+export default function AdminPanel({ userId, clients, savedSheetLog, settlements, setSettlements }: AdminPanelProps) {
     const { toast } = useToast();
     const { declaredNumbers } = useDeclaredNumbers(userId);
     const [summaryDate, setSummaryDate] = useState<Date>(new Date());
@@ -352,28 +354,12 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     const [jamaAmount, setJamaAmount] = useState('');
     const [lenaAmount, setLenaAmount] = useState('');
     
-    const [settlements, setSettlements] = useState<{[key: string]: number}>({});
-
-
     useEffect(() => {
-        try {
-            const savedSettlements = localStorage.getItem('brokerSettlements');
-            if (savedSettlements) {
-                setSettlements(JSON.parse(savedSettlements));
-            }
-        } catch (error) {
-            console.error("Failed to parse data from localStorage", error);
-        }
-        
         const savedComm = localStorage.getItem('upperBrokerComm');
         const savedPair = localStorage.getItem('upperBrokerPair');
         if (savedComm) setAppliedUpperComm(savedComm);
         if (savedPair) setAppliedUpperPair(savedPair);
     }, []);
-
-    useEffect(() => {
-        localStorage.setItem('brokerSettlements', JSON.stringify(settlements));
-    }, [settlements]);
 
     
     const calculateDailyNet = useCallback((date: Date, allLogs: SavedSheetInfo[], clientsForCalc: Client[]) => {
@@ -574,11 +560,11 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
                 <Card className="p-2 flex-grow">
                     <div className="flex items-end gap-2">
                         <div className='flex-grow'>
-                            <Label htmlFor='jama-amount' className='text-xs font-semibold'>Jama (Pay Out)</Label>
+                            <Label htmlFor='jama-amount' className='text-xs font-semibold'>Jama</Label>
                             <Input id='jama-amount' placeholder='Amount' value={jamaAmount} onChange={e => {setJamaAmount(e.target.value); setLenaAmount('');}}/>
                         </div>
                         <div className='flex-grow'>
-                             <Label htmlFor='lena-amount' className='text-xs font-semibold'>Lena (Receive)</Label>
+                             <Label htmlFor='lena-amount' className='text-xs font-semibold'>Lena</Label>
                             <Input id='lena-amount' placeholder='Amount' value={lenaAmount} onChange={e => {setLenaAmount(e.target.value); setJamaAmount('');}}/>
                         </div>
                         <Button onClick={handleSettlement} className="h-10">Settle</Button>
@@ -651,8 +637,3 @@ export default function AdminPanel({ userId, clients, savedSheetLog }: AdminPane
     </Card>
   );
 }
-
-    
-
-    
-
