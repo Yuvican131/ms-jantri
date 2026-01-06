@@ -126,138 +126,104 @@ export function DataEntryControls({
             return;
         }
         if (!multiText.trim()) return;
+        
+        const combinationTable: { [key: number]: number[] } = {
+          3: [6, 9], 4: [12, 16], 5: [20, 25], 6: [30, 36],
+          7: [42, 49], 8: [56, 64], 9: [72, 81]
+        };
 
-        let result: { value: number, amount: number | null }[] = [];
+        const finalUpdates: { [key: string]: number } = {};
 
-        function parseMultiGroupCells(text: string) {
-            if (!text.includes('*')) return null;
+        function parseFinalUniversalData(text: string) {
+            const parsedResult: any[] = [];
+            const groups = text.split(/[\n\s]+/).filter(g => g.trim() !== "");
 
-            const groups = text.split(/\s+/);
-            const parsedResult = [];
-
-            for (const group of groups) {
-                const amountMatch = group.match(/\*(\d+)/);
+            groups.forEach(group => {
+                const amountMatch = group.match(/\((\d+)\)/) || group.match(/[*=](\d+)/i);
                 const amount = amountMatch ? Number(amountMatch[1]) : null;
-                if (amount === null) continue; // Skip groups without an amount
 
-                let numbersPart = group.replace(/\*\d+/, "");
-
-                const numbers = numbersPart
-                  .split(/[,.\s]+/)
-                  .map(s => s.trim())
-                  .filter(s => s !== "" && !isNaN(s))
-                  .map(Number);
+                let cleaned = group.replace(/\(\d+\)/, "").replace(/[*=](\d+)/i, "").trim();
+                cleaned = cleaned.replace(/ghar/gi, "").replace(/_/g, "");
                 
-                numbers.forEach(n => {
-                  parsedResult.push({ value: n, amount });
-                });
-            }
-            return parsedResult.length > 0 ? parsedResult : null;
-        }
+                const tokens = cleaned.split(/[,.\s\/]+/).map(t => t.trim()).filter(t => t !== "");
 
-        function parseMessyCells(text: string) {
-          let cleaned = text.replace(/ghar/gi, "").trim();
-          const amountMatch = cleaned.match(/X(\d+)/i);
-          if (!amountMatch) return null; // This parser only works for X format
+                let crossing: number | null = null;
 
-          const amount = Number(amountMatch[1]);
-        
-          cleaned = cleaned.replace(/X\d+/i, "");
-        
-          const numbers = cleaned
-            .split(/[,.\s]+/)
-            .map(s => s.trim())
-            .filter(s => s !== "" && !isNaN(s))
-            .map(Number);
-        
-          return numbers.map(n => ({ value: n, amount }));
-        }
+                tokens.forEach((token, index) => {
+                    if (!token || isNaN(Number(token))) return;
 
-        function parsePairNumbers(text: string) {
-            const cleanedText = text.replace(/ghar/gi, "").trim();
-            const amountMatch = cleanedText.match(/\((\d+)\)/);
-            
-            if (!amountMatch || !cleanedText.includes('_')) return null; 
-
-            const amount = Number(amountMatch[1]);
-            const numberPartsStr = cleanedText.replace(/\(\d+\)/, "").trim();
-            const numberParts = numberPartsStr.split('_').filter(p => p);
-        
-            if (numberParts.some(part => !/^\d+$/.test(part))) {
-                return null;
-            }
-        
-            const pairs: { value: number, amount: number | null }[] = [];
-            for (const part of numberParts) {
-                if (part.length < 2) continue;
-                for (let i = 0; i < part.length - 1; i++) {
-                    const pairValue = Number(part[i] + part[i + 1]);
-                    pairs.push({ value: pairValue, amount });
-                }
-            }
-            return pairs.length > 0 ? pairs : null;
-        }
-        
-        const multiGroupResult = parseMultiGroupCells(multiText);
-        const xResult = parseMessyCells(multiText);
-        const pairResult = parsePairNumbers(multiText);
-
-        if (multiGroupResult) {
-            result = multiGroupResult;
-        } else if (xResult && xResult.length > 0) {
-            result = xResult;
-        } else if (pairResult) {
-            result = pairResult;
-        } else {
-            // --- Fallback to Standard Tokenizer Logic ---
-            const raw = multiText.replace(/=/g, ' (').replace(/(\d)\s+\(/, '$1(') + ')';
-            const tokens = raw.match(/\(\d+\)|\b\d{1,3}\b/g);
-            if (!tokens) {
-                toast({ title: "Invalid format", description: "Could not find any numbers or amounts.", variant: "destructive" });
-                return;
-            }
-
-            let currentAmount: number | null = null;
-            const tempValues: number[] = [];
-            
-            tokens.forEach((token, index) => {
-                if (token.startsWith("(")) {
-                    const amount = Number(token.replace(/[()]/g, ""));
-                    if (index === tokens.length - 1) {
-                        tempValues.forEach(v => {
-                            result.push({ value: v, amount });
-                        });
-                        tempValues.length = 0;
+                    if (index === 0 && token.length >= 3) {
+                        crossing = Number(token);
+                        parsedResult.push({ crossing });
+                    } else if (token.length > 2) {
+                        for (let i = 0; i < token.length - 1; i += 2) {
+                            const pair = Number(token.slice(i, i + 2));
+                            parsedResult.push({ value: pair, amount });
+                        }
                     } else {
-                        currentAmount = amount;
-                    }
-                } else {
-                    const value = Number(token);
-                    if (!isNaN(value)) {
-                        if (currentAmount !== null) {
-                            result.push({ value, amount: currentAmount });
+                        const num = Number(token);
+                        const crossingLen = crossing ? String(crossing).length : 0;
+                        const allowedCombinations = combinationTable[crossingLen];
+
+                        if (crossing && allowedCombinations && allowedCombinations.includes(num)) {
+                            parsedResult.push({ combination: num, amount });
                         } else {
-                            tempValues.push(value);
+                            parsedResult.push({ value: num, amount });
                         }
                     }
-                }
+                });
             });
+            return parsedResult;
         }
 
+        const parsedData = parseFinalUniversalData(multiText);
+        let activeCrossing: number | null = null;
+        let totalForCheck = 0;
+        
+        const pendingUpdates: { key: string; amount: number }[] = [];
 
-        if (result.length > 0 && result.every(item => item.amount !== null)) {
-            const finalUpdates: { [key: string]: number } = {};
-            const totalForCheck = result.reduce((sum, item) => sum + (item.amount || 0), 0);
-            if (!checkBalance(totalForCheck)) {
+        parsedData.forEach(item => {
+            if (item.crossing) {
+                activeCrossing = item.crossing;
                 return;
             }
-
-            result.forEach(item => {
-                if (item.amount === null) return;
-                const dataKey = item.value === 100 ? '00' : item.value.toString().padStart(2, '0');
-                finalUpdates[dataKey] = (finalUpdates[dataKey] || 0) + item.amount;
-            });
             
+            if (item.amount === null) return;
+            
+            if (item.combination && activeCrossing) {
+                const crossingDigits = [...new Set(String(activeCrossing).split(''))];
+                const comboCount = item.combination;
+                if (crossingDigits.length > 0 && comboCount > 0) {
+                  const perCombinationAmount = item.amount / comboCount;
+                  for (let i = 0; i < crossingDigits.length; i++) {
+                    for (let j = i; j < crossingDigits.length; j++) {
+                      const d1 = crossingDigits[i];
+                      const d2 = crossingDigits[j];
+                      if (d1 === d2) continue; // No jodi
+                      
+                      pendingUpdates.push({ key: `${d1}${d2}`, amount: perCombinationAmount });
+                      pendingUpdates.push({ key: `${d2}${d1}`, amount: perCombinationAmount });
+                      totalForCheck += perCombinationAmount * 2;
+                    }
+                  }
+                }
+            } else if (item.value !== undefined) {
+                const key = item.value === 100 ? '00' : String(item.value).padStart(2, '0');
+                pendingUpdates.push({ key, amount: item.amount });
+                totalForCheck += item.amount;
+            }
+        });
+
+
+        if (!checkBalance(totalForCheck)) {
+            return;
+        }
+
+        pendingUpdates.forEach(({key, amount}) => {
+            finalUpdates[key] = (finalUpdates[key] || 0) + amount;
+        });
+
+        if (Object.keys(finalUpdates).length > 0) {
             onDataUpdate(finalUpdates, multiText);
             setMultiText("");
             focusMultiText();
