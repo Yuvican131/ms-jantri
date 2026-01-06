@@ -362,12 +362,11 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     }, []);
 
     
-    const calculateDailyNet = useCallback((date: Date, allLogs: SavedSheetInfo[]) => {
+   const calculateDailyNet = useCallback((date: Date, allLogs: SavedSheetInfo[]) => {
         const dateStr = format(date, 'yyyy-MM-dd');
         const logsForDay = allLogs.filter(log => log.date === dateStr);
         if (logsForDay.length === 0) return 0;
     
-        // Upper Payable - this is what matters for the broker's own running total
         let totalGameRawForUpper = 0;
         let totalPassingAmountRawForUpper = 0;
         const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
@@ -381,14 +380,9 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
             }
         });
         const upperCommission = totalGameRawForUpper * upperCommPercent;
-        const upperNet = totalGameRawForUpper - upperCommission;
         const upperWinnings = totalPassingAmountRawForUpper * upperPairRate;
         
-        // The "brokerNet" for the running total is the broker's P/L with the upper broker.
-        // It's what the upper broker owes the broker (positive) or what the broker owes the upper broker (negative).
-        const brokerNet = upperNet - upperWinnings;
-
-        return brokerNet;
+        return (totalGameRawForUpper - upperCommission) - upperWinnings;
 
     }, [declaredNumbers, appliedUpperComm, appliedUpperPair]);
     
@@ -398,19 +392,20 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
 
         const allDatesWithActivity = new Set<string>();
         allLogs.forEach(log => allDatesWithActivity.add(log.date));
-        Object.keys(settlements).forEach(dateStr => allDatesWithActivity.add(dateStr));
+        Object.keys(settlements).forEach(dateStr => {
+            if (dateStr !== 'NaN-NaN-NaN') { // Guard against invalid date keys
+                allDatesWithActivity.add(dateStr);
+            }
+        });
         
         if (allDatesWithActivity.size === 0) return 0;
         
         const sortedDates = Array.from(allDatesWithActivity).sort((a, b) => compareAsc(parseISO(a), parseISO(b)));
         
-        const firstDateStr = sortedDates[0];
-        if (!firstDateStr) return 0;
+        if (sortedDates.length === 0 || !sortedDates[0]) return 0;
         
-        // Using the actual first date of activity as the start
-        const firstDate = parseISO(firstDateStr);
+        const firstDate = parseISO(sortedDates[0]);
         const today = new Date();
-        // Ensure the interval is correct, even if 'today' is before 'firstDate'
         const intervalDays = firstDate <= today ? eachDayOfInterval({ start: firstDate, end: today }) : [];
 
         for (const day of intervalDays) {
@@ -421,7 +416,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
 
         return cumulativeTotal;
     }, [savedSheetLog, settlements, calculateDailyNet]);
-
 
     const handleSettlement = () => {
         const jama = parseFloat(jamaAmount) || 0;
@@ -584,26 +578,26 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                     );
                 })}
 
-                <div className="p-4 bg-card border-2 border-primary flex flex-col col-span-1 md:col-span-3 lg:col-span-1 min-h-0 h-40">
-                    <div className="flex justify-between items-center">
-                        <CardTitle className="text-base font-bold text-primary">Final Summary</CardTitle>
+                <div className="p-4 bg-card border-2 border-primary rounded-lg flex flex-col col-span-1 md:col-span-3 lg:col-span-1">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-bold text-primary">Final Summary</h3>
                         <Landmark className="h-5 w-5 text-primary/70" />
                     </div>
-                    <div className="space-y-2 text-sm flex-grow flex flex-col justify-center my-2">
+                    <div className="space-y-3 text-sm flex-grow">
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><CircleDollarSign className="h-4 w-4"/>Total Raw</span>
+                            <span className="text-muted-foreground flex items-center gap-2"><CircleDollarSign className="h-4 w-4"/>Total Raw</span>
                             <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.totalRaw)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><Percent className="h-4 w-4"/>% Broker Comm</span> 
+                            <span className="text-muted-foreground flex items-center gap-2"><Percent className="h-4 w-4"/>% Broker Comm</span> 
                             <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.commission)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-1.5 font-semibold"><Trophy className="h-4 w-4"/>Total Passing</span> 
+                            <span className="text-muted-foreground flex items-center gap-2"><Trophy className="h-4 w-4"/>Total Passing</span> 
                             <span className="font-semibold font-mono">{formatNumber(finalSummaryForDay.passing)}</span>
                         </div>
                     </div>
-                     <Separator className="my-2 bg-primary/20" />
+                     <Separator className="my-3 bg-primary/20" />
                     <div className={`flex justify-between items-center font-bold text-lg ${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                        <span>Final Net</span> 
                        <span className="font-mono">{formatNumber(finalSummaryForDay.finalNet)}</span>
@@ -626,4 +620,5 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     </Card>
   );
 }
+
 
