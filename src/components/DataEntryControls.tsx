@@ -51,10 +51,9 @@ export function DataEntryControls({
     openMasterSheet,
     currentGridData,
     draw,
-}: DataEntryControlsProps) {
+}: DataEntryControls) {
     const { toast } = useToast();
     const [multiText, setMultiText] = useState("");
-    const [quickEntryText, setQuickEntryText] = useState("");
     const [laddiNum1, setLaddiNum1] = useState('');
     const [laddiNum2, setLaddiNum2] = useState('');
     const [laddiAmount, setLaddiAmount] = useState('');
@@ -69,7 +68,6 @@ export function DataEntryControls({
     const [generatedSheetContent, setGeneratedSheetContent] = useState("");
 
     const multiTextRef = useRef<HTMLTextAreaElement>(null);
-    const quickEntryRef = useRef<HTMLInputElement>(null);
     const laddiNum1Ref = useRef<HTMLInputElement>(null);
     const laddiNum2Ref = useRef<HTMLInputElement>(null);
     const laddiAmountRef = useRef<HTMLInputElement>(null);
@@ -119,7 +117,20 @@ export function DataEntryControls({
     }, [laddiNum1, laddiNum2, removeJodda, reverseLaddi, runningLaddi]);
 
     const handleMultiTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setMultiText(e.target.value);
+        let value = e.target.value;
+        // Don't auto-format if it's a multi-line paste or contains special chars
+        if (value.includes('\n') || value.match(/[=()_*x]/i)) {
+            setMultiText(value);
+            return;
+        }
+
+        let rawNumbers = value.replace(/[^0-9]/g, '');
+        if (rawNumbers.length > 0) {
+            let formatted = rawNumbers.match(/.{1,2}/g)?.join(',') + (rawNumbers.length % 2 === 0 ? ',' : '');
+            setMultiText(formatted);
+        } else {
+            setMultiText('');
+        }
     };
     
     const handleMultiTextApply = () => {
@@ -133,26 +144,26 @@ export function DataEntryControls({
         let totalForCheck = 0;
     
         function parseFinalUniversalData(text: string) {
-            const combinationTable = {
-                3: [6, 9], 4: [12, 16], 5: [20, 25], 6: [30, 36], 7: [42, 49], 8: [56, 64], 9: [72, 81]
-            };
             const result: { value?: number, amount?: number | null, crossing?: number, combination?: number }[] = [];
             const groups = text.split(/\s+/).filter(g => g.trim() !== "");
 
             groups.forEach(group => {
-                const amountMatch = group.match(/\((\d+)\)/) || group.match(/\*(\d+)/i) || group.match(/X(\d+)/i) || group.match(/=(\d+)/) || group.match(/(\d+)$/);
+                const amountMatch = group.match(/\((\d+)\)/) || group.match(/[\*x=](\d+)/i) || group.match(/(\d+)$/);
                 const amount = amountMatch ? Number(amountMatch[1]) : null;
 
                 let cleaned = group;
                 if (amountMatch) {
-                    cleaned = cleaned.substring(0, amountMatch.index).trim();
+                     cleaned = cleaned.substring(0, amountMatch.index).trim();
                 }
+                
+                if (cleaned.endsWith(',')) cleaned = cleaned.slice(0,-1);
+
                 cleaned = cleaned.replace(/ghar/gi, "");
 
                 const parts = cleaned.split('_').filter(p => p);
                 
                 parts.forEach(part => {
-                    if (parts.length > 1) { 
+                    if (parts.length > 1 && part.length > 1) { 
                         for (let i = 0; i < part.length - 1; i++) {
                             const pair = Number(part[i] + part[i + 1]);
                             result.push({ value: pair, amount });
@@ -176,12 +187,7 @@ export function DataEntryControls({
                         } else {
                             const num = Number(token);
                             if (activeCrossing) {
-                                const allowedCombinations = combinationTable[String(activeCrossing).length as keyof typeof combinationTable];
-                                if (allowedCombinations && allowedCombinations.includes(num)) {
-                                    result.push({ combination: num, amount });
-                                } else {
-                                    result.push({ value: num, amount });
-                                }
+                                result.push({ combination: num, amount });
                                 activeCrossing = null; 
                             } else {
                                 result.push({ value: num, amount });
@@ -225,7 +231,7 @@ export function DataEntryControls({
                     finalUpdates[key] = (finalUpdates[key] || 0) + amount;
                 });
                 activeCrossing = null;
-            } else if (item.value !== undefined && item.amount !== null) {
+            } else if (item.value !== undefined && item.amount !== null && !isNaN(item.value)) {
                 const key = String(item.value).padStart(2, '0');
                 const amount = item.amount;
                 totalForCheck += amount;
@@ -247,68 +253,6 @@ export function DataEntryControls({
         }
     };
     
-    const handleQuickEntryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let value = e.target.value;
-    
-        // Allow equals sign and numbers
-        if (value.includes('=')) {
-            const parts = value.split('=');
-            const numbers = parts[0].replace(/[^0-9,]/g, '');
-            const amount = parts[1]?.replace(/[^0-9]/g, '') || '';
-            setQuickEntryText(`${numbers}=${amount}`);
-            return;
-        }
-        
-        // Auto-comma logic
-        let rawNumbers = value.replace(/[^0-9]/g, '');
-        if (rawNumbers.length > 0) {
-            let formatted = rawNumbers.match(/.{1,2}/g)?.join(',') + (rawNumbers.length % 2 === 0 ? ',' : '');
-            setQuickEntryText(formatted);
-        } else {
-            setQuickEntryText('');
-        }
-    };
-    
-    const handleQuickEntryApply = () => {
-        if (isDataEntryDisabled) {
-            showClientSelectionToast();
-            return;
-        }
-        
-        const text = quickEntryText;
-        if (!text.includes('=')) return;
-        
-        const [numbersStr, amountStr] = text.split('=');
-        const amount = parseFloat(amountStr);
-
-        if (isNaN(amount) || !amountStr) {
-            toast({ title: "Invalid Amount", description: "Please enter a valid amount after the '=' sign.", variant: "destructive" });
-            return;
-        }
-
-        const numbers = numbersStr.split(',').filter(n => n.trim() !== '' && !isNaN(Number(n))).map(Number);
-        
-        if (numbers.length === 0) {
-            toast({ title: "No Numbers Entered", description: "Please enter numbers to play.", variant: "destructive" });
-            return;
-        }
-        
-        const totalForCheck = numbers.length * amount;
-        if (!checkBalance(totalForCheck)) {
-            return;
-        }
-
-        const finalUpdates: { [key: string]: number } = {};
-        numbers.forEach(num => {
-            const key = String(num).padStart(2, '0');
-            finalUpdates[key] = (finalUpdates[key] || 0) + amount;
-        });
-
-        onDataUpdate(finalUpdates, text);
-        setQuickEntryText("");
-        quickEntryRef.current?.focus();
-    };
-
     const handleLaddiApply = () => {
         if (isDataEntryDisabled) {
             showClientSelectionToast();
@@ -439,18 +383,11 @@ export function DataEntryControls({
     
     const handleKeyDown = (e: React.KeyboardEvent, from: string) => {
         if (e.key === 'Enter') {
-             if (e.shiftKey) { // Allow Shift+Enter for new lines in multi-text
-                if (from === 'multiText') return;
+             if (e.shiftKey && from === 'multiText') {
+                return;
              }
             e.preventDefault();
             switch (from) {
-                case 'quickEntry':
-                    if (quickEntryText.includes('=')) {
-                        handleQuickEntryApply();
-                    } else {
-                        setQuickEntryText(prev => prev + '=');
-                    }
-                    break;
                 case 'laddiNum1':
                     laddiNum2Ref.current?.focus();
                     break;
@@ -470,7 +407,11 @@ export function DataEntryControls({
                     handleHarupApply();
                     break;
                 case 'multiText':
-                    handleMultiTextApply();
+                    if (multiText.includes('=') || multiText.includes('*') || multiText.includes('(') || multiText.includes('x')) {
+                        handleMultiTextApply();
+                    } else if (multiText.trim() !== '') {
+                        setMultiText(prev => prev.trim().endsWith(',') ? prev.trim() + '=' : prev.trim() + ',');
+                    }
                     break;
             }
         }
@@ -555,23 +496,10 @@ export function DataEntryControls({
               <ScrollArea className="flex-grow pr-2 -mr-2">
               <div className="space-y-2 pr-2">
                 <div className="border rounded-lg p-2 flex flex-col gap-2">
-                    <h3 className="font-semibold text-xs mb-1">Quick Entry</h3>
-                    <Input
-                        ref={quickEntryRef}
-                        placeholder="e.g. 11,22,33=100"
-                        value={quickEntryText}
-                        onChange={handleQuickEntryChange}
-                        onKeyDown={(e) => handleKeyDown(e, 'quickEntry')}
-                        className="w-full text-base"
-                        disabled={isDataEntryDisabled}
-                        onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
-                    />
-                </div>
-                <div className="border rounded-lg p-2 flex flex-col gap-2">
-                    <h3 className="font-semibold text-xs mb-1">Multi-Text</h3>
+                    <h3 className="font-semibold text-xs mb-1">Multi-Text Entry</h3>
                     <Textarea
                         ref={multiTextRef}
-                        placeholder="e.g. 12,21=100 or 11,22(100)"
+                        placeholder="e.g. 11,22,33=100 or 11,22(100) or 123*10"
                         rows={4}
                         value={multiText}
                         onChange={handleMultiTextChange}
@@ -724,5 +652,7 @@ export function DataEntryControls({
     
 
 
+
+    
 
     
