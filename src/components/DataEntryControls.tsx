@@ -126,94 +126,78 @@ export function DataEntryControls({
             return;
         }
         if (!multiText.trim()) return;
-        
-        const combinationTable: { [key: number]: number[] } = {
-          3: [6, 9], 4: [12, 16], 5: [20, 25], 6: [30, 36],
-          7: [42, 49], 8: [56, 64], 9: [72, 81]
-        };
-
-        const finalUpdates: { [key: string]: number } = {};
 
         function parseFinalUniversalData(text: string) {
             const parsedResult: any[] = [];
             const groups = text.split(/[\n\s]+/).filter(g => g.trim() !== "");
 
             groups.forEach(group => {
-                const amountMatch = group.match(/\((\d+)\)/) || group.match(/[*=](\d+)/i);
+                const amountMatch = group.match(/\((\d+)\)/) || group.match(/[*=X](\d+)/i);
                 const amount = amountMatch ? Number(amountMatch[1]) : null;
 
-                let cleaned = group.replace(/\(\d+\)/, "").replace(/[*=](\d+)/i, "").trim();
-                cleaned = cleaned.replace(/ghar/gi, "").replace(/_/g, "");
+                let cleaned = group.replace(/\(\d+\)/, "").replace(/[*=X](\d+)/i, "").trim();
+                cleaned = cleaned.replace(/ghar/gi, "").replace(/_/g, " ");
+
+                const tokens = cleaned.split(/[,.\s\/]+/).map(t => t.trim()).filter(t => t !== "" && !isNaN(Number(t)));
                 
-                const tokens = cleaned.split(/[,.\s\/]+/).map(t => t.trim()).filter(t => t !== "");
-
-                let crossing: number | null = null;
-
-                tokens.forEach((token, index) => {
-                    if (!token || isNaN(Number(token))) return;
-
-                    if (index === 0 && token.length >= 3) {
-                        crossing = Number(token);
-                        parsedResult.push({ crossing });
-                    } else if (token.length > 2) {
-                        for (let i = 0; i < token.length - 1; i += 2) {
-                            const pair = Number(token.slice(i, i + 2));
-                            parsedResult.push({ value: pair, amount });
-                        }
-                    } else {
-                        const num = Number(token);
-                        const crossingLen = crossing ? String(crossing).length : 0;
-                        const allowedCombinations = combinationTable[crossingLen];
-
-                        if (crossing && allowedCombinations && allowedCombinations.includes(num)) {
-                            parsedResult.push({ combination: num, amount });
-                        } else {
-                            parsedResult.push({ value: num, amount });
-                        }
-                    }
-                });
+                if (tokens.length === 2 && tokens[0].length >= 3) {
+                     // This is a crossing/laddi case
+                    parsedResult.push({
+                        type: 'crossing',
+                        numbers: tokens,
+                        amount: amount
+                    });
+                } else if (tokens.length > 0) {
+                    tokens.forEach(token => {
+                         if (token.length > 2) {
+                             for (let i = 0; i < token.length; i += 2) {
+                                 if(token.slice(i, i + 2).length === 2) {
+                                    result.push({ type: 'value', value: Number(token.slice(i, i + 2)), amount });
+                                 }
+                             }
+                         } else {
+                            result.push({ type: 'value', value: Number(token), amount });
+                         }
+                    });
+                }
             });
             return parsedResult;
         }
 
         const parsedData = parseFinalUniversalData(multiText);
-        let activeCrossing: number | null = null;
+        const finalUpdates: { [key: string]: number } = {};
         let totalForCheck = 0;
-        
         const pendingUpdates: { key: string; amount: number }[] = [];
 
         parsedData.forEach(item => {
-            if (item.crossing) {
-                activeCrossing = item.crossing;
-                return;
-            }
-            
             if (item.amount === null) return;
-            
-            if (item.combination && activeCrossing) {
-                const crossingDigits = [...new Set(String(activeCrossing).split(''))];
-                const comboCount = item.combination;
-                if (crossingDigits.length > 0 && comboCount > 0) {
-                  const perCombinationAmount = item.amount / comboCount;
-                  for (let i = 0; i < crossingDigits.length; i++) {
-                    for (let j = i; j < crossingDigits.length; j++) {
-                      const d1 = crossingDigits[i];
-                      const d2 = crossingDigits[j];
-                      if (d1 === d2) continue; // No jodi
-                      
-                      pendingUpdates.push({ key: `${d1}${d2}`, amount: perCombinationAmount });
-                      pendingUpdates.push({ key: `${d2}${d1}`, amount: perCombinationAmount });
-                      totalForCheck += perCombinationAmount * 2;
+
+            if (item.type === 'crossing') {
+                const digits1 = [...new Set(item.numbers[0].split(''))];
+                const digits2 = [...new Set(item.numbers[1].split(''))];
+                let combinations = new Set<string>();
+
+                for (const d1 of digits1) {
+                    for (const d2 of digits2) {
+                        combinations.add(`${d1}${d2}`);
+                        combinations.add(`${d2}${d1}`);
                     }
-                  }
                 }
-            } else if (item.value !== undefined) {
+                
+                const perCombinationAmount = item.amount / combinations.size;
+                if (combinations.size > 0 && isFinite(perCombinationAmount)) {
+                    combinations.forEach(combo => {
+                        pendingUpdates.push({ key: combo, amount: perCombinationAmount });
+                        totalForCheck += perCombinationAmount;
+                    });
+                }
+
+            } else if (item.type === 'value') {
                 const key = item.value === 100 ? '00' : String(item.value).padStart(2, '0');
                 pendingUpdates.push({ key, amount: item.amount });
                 totalForCheck += item.amount;
             }
         });
-
 
         if (!checkBalance(totalForCheck)) {
             return;
@@ -620,14 +604,5 @@ export function DataEntryControls({
             </Dialog>
         </>
     );
-
-    
-
-    
-
-
-
-
-    
 
     
