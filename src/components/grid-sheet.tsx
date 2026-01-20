@@ -76,7 +76,7 @@ export type GridSheetProps = {
   isLastEntryDialogOpen: boolean;
   setIsLastEntryDialogOpen: (open: boolean) => void;
   clients: Client[];
-  onClientSheetSave: (clientName: string, clientId: string, data: CellData, draw: string, date: Date) => void;
+  onClientSheetSave: (clientName: string, clientId: string, data: CellData, draw: string, date: Date, rawInput?: string) => void;
   savedSheetLog: { [draw: string]: SavedSheetInfo[] };
   accounts: Account[];
   draws: string[];
@@ -450,6 +450,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [logToDelete, setLogToDelete] = useState<{ id: string, name: string } | null>(null);
   const [isViewEntryDialogOpen, setIsViewEntryDialogOpen] = useState(false);
   const isMobile = useIsMobile();
+  const [currentRawInput, setCurrentRawInput] = useState<string>("");
 
 
   const [validations, setValidations] = useState<CellValidation>({})
@@ -527,6 +528,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 
     if (updatedKeys.length > 0) {
         updateClientData(selectedClientId, newData);
+        setCurrentRawInput(prev => prev ? `${prev}\n${lastEntryString}` : lastEntryString);
         setUpdatedCells(updatedKeys);
         props.setLastEntry(lastEntryString);
         setTimeout(() => setUpdatedCells([]), 2000);
@@ -653,6 +655,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     setValidations({});
     setUpdatedCells([]);
     props.setLastEntry('');
+    setCurrentRawInput("");
     toast({ title: "Sheet Cleared", description: "All cell values for the current view have been reset." });
   };
   
@@ -679,9 +682,10 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     
     const clientName = props.clients.find(c => c.id === selectedClientId)?.name || "Unknown Client";
     
-    props.onClientSheetSave(clientName, selectedClientId, newEntries, props.draw, props.date);
+    props.onClientSheetSave(clientName, selectedClientId, newEntries, props.draw, props.date, currentRawInput);
     
     updateClientData(selectedClientId, {});
+    setCurrentRawInput("");
     setPreviousSheetState(null);
     focusMultiText();
   };
@@ -887,8 +891,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                                                 Entry {clientEntries.length - index}: 
                                                 <span className="font-mono text-primary ml-2">₹{formatNumber(entry.gameTotal)}</span>
                                             </p>
-                                            <p className="text-xs text-muted-foreground truncate max-w-xs">
-                                                {Object.entries(entry.data).map(([k, v]) => `${k}=${v}`).join(', ')}
+                                            <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                                                {entry.rawInput || Object.entries(entry.data).map(([k, v]) => `${k}=${v}`).join(', ')}
                                             </p>
                                         </div>
                                         <Button variant="ghost" size="icon" className="text-destructive" onClick={() => props.onDeleteLogEntry(entry.id)}>

@@ -1,3 +1,4 @@
+
 'use client';
 import { useMemo, useCallback } from 'react';
 import { collection, doc, writeBatch, query, where, getDocs } from 'firebase/firestore';
@@ -14,6 +15,7 @@ export interface SavedSheetInfo {
   data: { [key: string]: string };
   date: string; // ISO date string
   draw: string;
+  rawInput?: string;
 }
 
 export const useSheetLog = (userId?: string) => {

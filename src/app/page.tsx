@@ -285,7 +285,7 @@ export default function Home() {
     setSelectedDraw(null);
   };
   
-  const handleClientSheetSave = (clientName: string, clientId: string, newData: { [key: string]: string }, draw: string, date: Date) => {
+  const handleClientSheetSave = (clientName: string, clientId: string, newData: { [key: string]: string }, draw: string, date: Date, rawInput?: string) => {
     const todayStr = date.toISOString().split('T')[0];
   
     const newEntryTotal = Object.values(newData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
@@ -306,6 +306,7 @@ export default function Home() {
       data: newData,
       date: todayStr,
       draw,
+      rawInput: rawInput || "Manual Grid Update"
     };
   
     addSheetLogEntry(newEntry);

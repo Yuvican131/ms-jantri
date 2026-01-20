@@ -248,8 +248,9 @@ export function DataEntryControls({
                     const combinations = new Set<string>();
 
                     const generateOverlappingPairs = (numStr: string) => {
-                        for (let i = 0; i < numStr.length - 1; i++) {
-                           const pair = numStr.substring(i, i+2);
+                        const cleanedNumStr = numStr.replace(/[.,]/g, '');
+                        for (let i = 0; i < cleanedNumStr.length - 1; i++) {
+                           const pair = cleanedNumStr.substring(i, i+2);
                            if (pair.length === 2) {
                              combinations.add(pair);
                              const reversePair = pair.split('').reverse().join('');
@@ -260,10 +261,8 @@ export function DataEntryControls({
                         }
                     };
 
-                    generateOverlappingPairs(part1.replace(/[.,]/g, ''));
-                    if (part2) {
-                        generateOverlappingPairs(part2.replace(/[.,]/g, ''));
-                    }
+                    if (part1) generateOverlappingPairs(part1);
+                    if (part2) generateOverlappingPairs(part2);
                     
                     const entryTotal = combinations.size * amount;
                     totalForCheck += entryTotal;
@@ -416,7 +415,9 @@ export function DataEntryControls({
         });
 
         if (Object.keys(updates).length > 0) {
-            const lastEntryString = `Laddi: ${laddiNum1}x${laddiNum2}=${laddiAmount} (Jodda: ${removeJodda}, Reverse: ${reverseLaddi}, Running: ${runningLaddi})`;
+            const lastEntryString = runningLaddi
+              ? `Running ${laddiNum1}-${laddiNum2} (${combinationCount} Pairs) = ${laddiAmount}`
+              : `${laddiNum1}${laddiNum2} (${combinationCount} Pairs) = ${laddiAmount}`;
             onDataUpdate(updates, lastEntryString);
             setLaddiNum1('');
             setLaddiNum2('');
@@ -476,9 +477,9 @@ export function DataEntryControls({
         });
 
         let lastEntryString = "";
-        if (harupADigits.length > 0) lastEntryString += `A: ${harupA}=${harupAmount}\n`;
-        if (harupBDigits.length > 0) lastEntryString += `B: ${harupB}=${harupAmount}\n`;
-
+        if (harupA) lastEntryString += `${harupA} A = ${harupAmount}\n`;
+        if (harupB) lastEntryString += `${harupB} B = ${harupAmount}`;
+        
         if (Object.keys(updates).length > 0) {
             onDataUpdate(updates, lastEntryString.trim());
             setHarupA('');
@@ -627,20 +628,15 @@ export function DataEntryControls({
                     />
                     <div className="grid grid-cols-2 gap-2 mt-1">
                         <Button onClick={handleMultiTextApply} className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">Apply</Button>
-                        <Button onClick={handleGenerateSheet} variant="outline" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
-                            Generate
-                        </Button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 mt-1">
                         <Button onClick={onClear} variant="destructive" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
                             <Trash2 className="h-3 w-3 mr-1" />
                             Clear
                         </Button>
-                         <Button onClick={openViewEntryDialog} variant="outline" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
-                            <Eye className="h-3 w-3 mr-1" />
-                            View Entries
-                        </Button>
                     </div>
+                     <Button onClick={openViewEntryDialog} variant="outline" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
+                        <Eye className="h-3 w-3 mr-1" />
+                        View Entries
+                    </Button>
                 </div>
                 
                 <div className="border rounded-lg p-2 flex flex-col gap-2">
