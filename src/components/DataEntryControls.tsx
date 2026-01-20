@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, Undo2, Trash2, FileSpreadsheet, Copy } from "lucide-react";
+import { Save, Undo2, Trash2, FileSpreadsheet, Copy, Eye } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -32,6 +32,7 @@ interface DataEntryControlsProps {
     openMasterSheet: () => void;
     currentGridData: { [key: string]: string };
     draw: string;
+    openViewEntryDialog: () => void;
 }
 
 export function DataEntryControls({
@@ -51,6 +52,7 @@ export function DataEntryControls({
     openMasterSheet,
     currentGridData,
     draw,
+    openViewEntryDialog,
 }: DataEntryControlsProps) {
     const { toast } = useToast();
     const [multiText, setMultiText] = useState("");
@@ -124,11 +126,9 @@ export function DataEntryControls({
             setMultiText(newValue);
             return;
         }
-
-        // Auto-format for concatenated entries like `...)(...)`
+        
         newValue = newValue.replace(/\)(?=[^\s\n])/g, ')\n');
 
-        // The rest of the auto-comma logic for keyboard entry
         if (newValue.includes('\n') || newValue.match(/[=()_*x]/i)) {
             setMultiText(newValue);
             return;
@@ -179,7 +179,7 @@ export function DataEntryControls({
 
                 cleaned = cleaned.replace(/ghar/gi, "");
                 
-                 if (cleaned.includes('_') && amount !== null) {
+                if (cleaned.includes('_')) {
                     result.push({ overlappingPair: cleaned, amount });
                     continue;
                 }
@@ -243,23 +243,27 @@ export function DataEntryControls({
                 if (item.crossing) {
                     activeCrossing = item.crossing;
                 } else if (item.overlappingPair && item.amount) {
-                    const parts = item.overlappingPair.split('_');
+                    const [part1, part2] = item.overlappingPair.split('_');
                     const amount = item.amount;
                     const combinations = new Set<string>();
 
-                    parts.forEach(part => {
-                        const cleanedNumStr = part.replace(/[.,]/g, '');
-                         for (let i = 0; i < cleanedNumStr.length - 1; i++) {
-                            const pair = cleanedNumStr.substring(i, i + 2);
-                            if(pair.length === 2){
-                                combinations.add(pair);
-                                const reversePair = pair.split('').reverse().join('');
-                                if(pair !== reversePair) {
-                                    combinations.add(reversePair);
-                                }
-                            }
+                    const generateOverlappingPairs = (numStr: string) => {
+                        for (let i = 0; i < numStr.length - 1; i++) {
+                           const pair = numStr.substring(i, i+2);
+                           if (pair.length === 2) {
+                             combinations.add(pair);
+                             const reversePair = pair.split('').reverse().join('');
+                             if (pair !== reversePair) {
+                               combinations.add(reversePair);
+                             }
+                           }
                         }
-                    });
+                    };
+
+                    generateOverlappingPairs(part1.replace(/[.,]/g, ''));
+                    if (part2) {
+                        generateOverlappingPairs(part2.replace(/[.,]/g, ''));
+                    }
                     
                     const entryTotal = combinations.size * amount;
                     totalForCheck += entryTotal;
@@ -512,7 +516,6 @@ export function DataEntryControls({
                     handleHarupApply();
                     break;
                 case 'multiText':
-                    // If text contains patterns like (amount), *amount, _ or is complex, apply immediately.
                     if (multiText.trim() && multiText.match(/[\*()_]/)) {
                         handleMultiTextApply();
                     } else if (multiText.trim() && !multiText.includes('=')) {
@@ -630,6 +633,10 @@ export function DataEntryControls({
                         <Button onClick={onClear} variant="destructive" className="shrink-0 text-xs h-8" disabled={isDataEntryDisabled} size="sm">
                             <Trash2 className="h-3 w-3 mr-1" />
                             Clear
+                        </Button>
+                         <Button onClick={openViewEntryDialog} variant="outline" className="shrink-0 text-xs h-8" disabled={isDataEntryDisabled} size="sm">
+                            <Eye className="h-3 w-3 mr-1" />
+                            View Entries
                         </Button>
                     </div>
                 </div>

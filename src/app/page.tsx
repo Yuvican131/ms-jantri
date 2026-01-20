@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
@@ -85,7 +86,7 @@ export default function Home() {
   const { theme, setTheme } = useTheme();
 
   const { clients, addClient, updateClient, deleteClient, handleClientTransaction, clearClientData } = useClients(user?.uid);
-  const { savedSheetLog, addSheetLogEntry, deleteSheetLogsForDraw } = useSheetLog(user?.uid);
+  const { savedSheetLog, addSheetLogEntry, deleteSheetLogsForDraw, deleteSheetLogEntry } = useSheetLog(user?.uid);
   const { declaredNumbers, setDeclaredNumber, removeDeclaredNumber, getDeclaredNumber } = useDeclaredNumbers(user?.uid);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [drawToDelete, setDrawToDelete] = useState<{ draw: string; date: Date } | null>(null);
@@ -208,22 +209,26 @@ export default function Home() {
       let netResultForSelectedDay = 0;
       
       draws.forEach(drawName => {
-        const clientLogForSelectedDay = logsForSelectedDay.find(log => log.draw === drawName);
-        
-        const totalAmount = clientLogForSelectedDay?.gameTotal || 0;
-        const declaredNumberForSelectedDay = getDeclaredNumber(drawName, dateForCalc);
-        const passingAmount = declaredNumberForSelectedDay && clientLogForSelectedDay
-            ? parseFloat(clientLogForSelectedDay.data[declaredNumberForSelectedDay] || "0")
-            : 0;
-        
-        if (clientLogForSelectedDay) {
-            const commissionOnDay = totalAmount * clientCommissionPercent;
-            const netFromGamesOnDay = totalAmount - commissionOnDay;
-            const winningsOnDay = passingAmount * passingMultiplier;
+        const clientLogsForSelectedDay = logsForSelectedDay.filter(log => log.draw === drawName);
+        let totalAmountForDraw = 0;
+        let passingAmountForDraw = 0;
+
+        clientLogsForSelectedDay.forEach(log => {
+          const declaredNumberForSelectedDay = getDeclaredNumber(drawName, dateForCalc);
+          const passingAmountInLog = declaredNumberForSelectedDay ? parseFloat(log.data[declaredNumberForSelectedDay] || "0") : 0;
+
+          totalAmountForDraw += log.gameTotal;
+          passingAmountForDraw += passingAmountInLog;
+        });
+
+        if (totalAmountForDraw > 0) {
+            const commissionOnDay = totalAmountForDraw * clientCommissionPercent;
+            const netFromGamesOnDay = totalAmountForDraw - commissionOnDay;
+            const winningsOnDay = passingAmountForDraw * passingMultiplier;
             netResultForSelectedDay += (netFromGamesOnDay - winningsOnDay);
         }
 
-        updatedDrawsForSelectedDay[drawName] = { totalAmount, passingAmount };
+        updatedDrawsForSelectedDay[drawName] = { totalAmount: totalAmountForDraw, passingAmount: passingAmountForDraw };
       });
       
       const closingBalance = openingBalanceForSelectedDay + netResultForSelectedDay;
@@ -283,32 +288,27 @@ export default function Home() {
   const handleClientSheetSave = (clientName: string, clientId: string, newData: { [key: string]: string }, draw: string, date: Date) => {
     const todayStr = date.toISOString().split('T')[0];
   
-    const existingLog = (savedSheetLog[draw] || []).find(log => log.clientId === clientId && log.date === todayStr);
+    const newEntryTotal = Object.values(newData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
   
-    if (existingLog) {
-      const mergedData: { [key: string]: string } = { ...existingLog.data };
-      Object.entries(newData).forEach(([key, value]) => {
-        mergedData[key] = String((parseFloat(mergedData[key]) || 0) + (parseFloat(value) || 0));
+    if (newEntryTotal === 0) {
+      toast({
+        title: "No Data to Save",
+        description: "The sheet is empty.",
+        variant: "destructive"
       });
-      const newTotal = Object.values(mergedData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
-      const updatedLog: SavedSheetInfo = {
-        ...existingLog,
-        gameTotal: newTotal,
-        data: mergedData,
-      };
-      addSheetLogEntry(updatedLog);
-    } else {
-      const newEntryTotal = Object.values(newData).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
-      const newEntry: Omit<SavedSheetInfo, 'id'> = {
-        clientName,
-        clientId,
-        gameTotal: newEntryTotal,
-        data: newData,
-        date: todayStr,
-        draw,
-      };
-      addSheetLogEntry(newEntry);
+      return;
     }
+  
+    const newEntry: Omit<SavedSheetInfo, 'id'> = {
+      clientName,
+      clientId,
+      gameTotal: newEntryTotal,
+      data: newData,
+      date: todayStr,
+      draw,
+    };
+  
+    addSheetLogEntry(newEntry);
   
     toast({
       title: "Sheet Saved",
@@ -429,6 +429,7 @@ export default function Home() {
                 savedSheetLog={savedSheetLog}
                 accounts={accounts}
                 draws={draws}
+                onDeleteLogEntry={deleteSheetLogEntry}
               />
             ) : (
               <div className="flex flex-col items-center justify-start w-full h-full pt-8 space-y-8">

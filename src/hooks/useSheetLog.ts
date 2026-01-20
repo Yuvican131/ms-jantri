@@ -63,7 +63,8 @@ export const useSheetLog = (userId?: string) => {
     setSheetLogData(prevData => prevData?.filter(log => log.id !== logId) || null);
     const docRef = doc(firestore, `users/${userId}/sheetLogs`, logId);
     deleteDocumentNonBlocking(docRef);
-  }, [userId, firestore, setSheetLogData]);
+    toast({ title: "Entry Deleted", description: "The log entry has been removed." });
+  }, [userId, firestore, setSheetLogData, toast]);
 
   const deleteSheetLogsForClient = useCallback(async (clientId: string, showToast: boolean = true) => {
     if (!userId) return Promise.resolve();

@@ -1,6 +1,6 @@
 
 "use client"
-import React, { useState, useImperativeHandle, forwardRef, useRef, useCallback } from "react"
+import React, { useState, useImperativeHandle, forwardRef, useRef, useCallback, useMemo } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { validateCellContent, ValidateCellContentOutput } from "@/ai/flows/validate-cell-content"
 import { Button } from "@/components/ui/button"
@@ -80,6 +80,7 @@ export type GridSheetProps = {
   savedSheetLog: { [draw: string]: SavedSheetInfo[] };
   accounts: Account[];
   draws: string[];
+  onDeleteLogEntry: (logId: string) => void;
 }
 
 const MasterSheetViewer = ({
@@ -447,6 +448,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isMasterSheetDialogOpen, setIsMasterSheetDialogOpen] = useState(false);
   const [logToDelete, setLogToDelete] = useState<{ id: string, name: string } | null>(null);
+  const [isViewEntryDialogOpen, setIsViewEntryDialogOpen] = useState(false);
   const isMobile = useIsMobile();
 
 
@@ -692,10 +694,29 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     setLogToDelete(null);
   };
 
+  const openViewEntryDialog = () => {
+    if (!selectedClientId) {
+      showClientSelectionToast();
+      return;
+    }
+    setIsViewEntryDialogOpen(true);
+  };
+
+  const clientEntries = useMemo(() => {
+    if (!selectedClientId || !props.savedSheetLog[props.draw]) {
+      return [];
+    }
+    const dateStrToMatch = format(props.date, 'yyyy-MM-dd');
+    return props.savedSheetLog[props.draw]
+      .filter(log => log.clientId === selectedClientId && log.date === dateStrToMatch)
+      .sort((a, b) => b.id.localeCompare(a.id));
+  }, [selectedClientId, props.savedSheetLog, props.draw, props.date]);
+
+
   const getClientDisplay = (client: Client) => {
     const dateStr = props.date.toISOString().split('T')[0];
-    const logEntry = (props.savedSheetLog[props.draw] || []).find(log => log.clientId === client.id && log.date === dateStr);
-    const totalAmount = logEntry?.gameTotal || 0;
+    const clientLogs = (props.savedSheetLog[props.draw] || []).filter(log => log.clientId === client.id && log.date === dateStr);
+    const totalAmount = clientLogs.reduce((sum, log) => sum + log.gameTotal, 0);
     return `${client.name} - ${formatNumber(totalAmount)}`;
   };
   
@@ -740,6 +761,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                     openMasterSheet={() => setIsMasterSheetDialogOpen(true)}
                     currentGridData={currentData}
                     draw={props.draw}
+                    openViewEntryDialog={openViewEntryDialog}
                  />
               </TabsContent>
             </Tabs>
@@ -774,6 +796,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                   openMasterSheet={() => setIsMasterSheetDialogOpen(true)}
                   currentGridData={currentData}
                   draw={props.draw}
+                  openViewEntryDialog={openViewEntryDialog}
                />
             </div>
           )}
@@ -839,6 +862,50 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                 Copy to Clipboard
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isViewEntryDialogOpen} onOpenChange={setIsViewEntryDialogOpen}>
+        <DialogContent className="max-w-xl">
+            <DialogHeader>
+                <DialogTitle>
+                    Entries for {props.clients.find(c => c.id === selectedClientId)?.name}
+                </DialogTitle>
+                <DialogDescription>
+                    Draw: {props.draw} | Date: {format(props.date, 'PPP')}
+                </DialogDescription>
+            </DialogHeader>
+            <div className="my-4">
+                <ScrollArea className="max-h-[60vh]">
+                    <div className="space-y-2 pr-4">
+                        {clientEntries.length > 0 ? (
+                            clientEntries.map((entry, index) => (
+                                <Card key={entry.id} className="p-3">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <p className="font-semibold">
+                                                Entry {clientEntries.length - index}: 
+                                                <span className="font-mono text-primary ml-2">₹{formatNumber(entry.gameTotal)}</span>
+                                            </p>
+                                            <p className="text-xs text-muted-foreground truncate max-w-xs">
+                                                {Object.entries(entry.data).map(([k, v]) => `${k}=${v}`).join(', ')}
+                                            </p>
+                                        </div>
+                                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => props.onDeleteLogEntry(entry.id)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </Card>
+                            ))
+                        ) : (
+                            <p className="text-center text-muted-foreground py-8">No entries saved for this client today.</p>
+                        )}
+                    </div>
+                </ScrollArea>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsViewEntryDialogOpen(false)}>Close</Button>
+            </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
