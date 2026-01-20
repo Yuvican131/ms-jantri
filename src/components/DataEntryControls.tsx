@@ -625,16 +625,16 @@ export function DataEntryControls({
                         disabled={isDataEntryDisabled}
                         onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
                     />
-                    <div className="flex flex-wrap gap-2 mt-1 items-start">
-                        <Button onClick={handleMultiTextApply} className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={isDataEntryDisabled} size="sm">Apply</Button>
-                        <Button onClick={handleGenerateSheet} variant="outline" className="flex-grow sm:flex-grow-0 text-xs h-8" disabled={isDataEntryDisabled} size="sm">
+                    <div className="grid grid-cols-2 gap-2 mt-1">
+                        <Button onClick={handleMultiTextApply} className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">Apply</Button>
+                        <Button onClick={handleGenerateSheet} variant="outline" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
                             Generate
                         </Button>
-                        <Button onClick={onClear} variant="destructive" className="shrink-0 text-xs h-8" disabled={isDataEntryDisabled} size="sm">
+                        <Button onClick={onClear} variant="destructive" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
                             <Trash2 className="h-3 w-3 mr-1" />
                             Clear
                         </Button>
-                         <Button onClick={openViewEntryDialog} variant="outline" className="shrink-0 text-xs h-8" disabled={isDataEntryDisabled} size="sm">
+                         <Button onClick={openViewEntryDialog} variant="outline" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
                             <Eye className="h-3 w-3 mr-1" />
                             View Entries
                         </Button>
@@ -786,3 +786,4 @@ export function DataEntryControls({
     
 
     
+
