@@ -630,6 +630,8 @@ export function DataEntryControls({
                         <Button onClick={handleGenerateSheet} variant="outline" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
                             Generate
                         </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mt-1">
                         <Button onClick={onClear} variant="destructive" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
                             <Trash2 className="h-3 w-3 mr-1" />
                             Clear
@@ -786,4 +788,3 @@ export function DataEntryControls({
     
 
     
-
