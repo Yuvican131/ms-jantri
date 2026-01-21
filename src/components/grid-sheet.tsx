@@ -713,7 +713,13 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     const dateStrToMatch = format(props.date, 'yyyy-MM-dd');
     return props.savedSheetLog[props.draw]
       .filter(log => log.clientId === selectedClientId && log.date === dateStrToMatch)
-      .sort((a, b) => b.id.localeCompare(a.id));
+      .sort((a, b) => {
+        if (a.createdAt && b.createdAt) {
+          return b.createdAt.localeCompare(a.createdAt);
+        }
+        // Fallback for entries without a createdAt timestamp
+        return b.id.localeCompare(a.id);
+      });
   }, [selectedClientId, props.savedSheetLog, props.draw, props.date]);
 
 

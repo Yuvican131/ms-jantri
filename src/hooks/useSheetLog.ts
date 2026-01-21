@@ -16,6 +16,7 @@ export interface SavedSheetInfo {
   date: string; // ISO date string
   draw: string;
   rawInput?: string;
+  createdAt?: string;
 }
 
 export const useSheetLog = (userId?: string) => {
