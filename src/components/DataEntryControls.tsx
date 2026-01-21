@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, Undo2, Trash2, FileSpreadsheet, Copy, Eye } from "lucide-react";
+import { Save, Undo2, Trash2, FileSpreadsheet, Copy, Eye, Download } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -644,11 +644,15 @@ export function DataEntryControls({
                             <Trash2 className="h-3 w-3 mr-1" />
                             Clear
                         </Button>
+                        <Button onClick={openViewEntryDialog} variant="outline" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
+                            <Eye className="h-3 w-3 mr-1" />
+                            View Entries
+                        </Button>
+                        <Button onClick={handleGenerateSheet} variant="outline" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
+                            <Download className="h-3 w-3 mr-1" />
+                            Generate Sheet
+                        </Button>
                     </div>
-                     <Button onClick={openViewEntryDialog} variant="outline" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
-                        <Eye className="h-3 w-3 mr-1" />
-                        View Entries
-                    </Button>
                 </div>
                 
                 <div className="border rounded-lg p-2 flex flex-col gap-2">
