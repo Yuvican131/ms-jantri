@@ -713,7 +713,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     const dateStrToMatch = format(props.date, 'yyyy-MM-dd');
     return props.savedSheetLog[props.draw]
       .filter(log => log.clientId === selectedClientId && log.date === dateStrToMatch)
-      .sort((a, b) => a.id.localeCompare(b.id));
+      .sort((a, b) => b.id.localeCompare(a.id));
   }, [selectedClientId, props.savedSheetLog, props.draw, props.date]);
 
 
@@ -920,4 +920,3 @@ GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
 
-    
