@@ -894,7 +894,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                                     <div className="flex justify-between items-center">
                                         <div>
                                             <p className="font-semibold">
-                                                Entry {index + 1}: 
+                                                Entry {clientEntries.length - index}: 
                                                 <span className="font-mono text-primary ml-2">₹{formatNumber(entry.gameTotal)}</span>
                                             </p>
                                             <p className="text-xs text-muted-foreground whitespace-pre-wrap">
@@ -925,4 +925,5 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
 
