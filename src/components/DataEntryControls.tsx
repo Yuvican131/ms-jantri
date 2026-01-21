@@ -96,14 +96,18 @@ export function DataEntryControls({
         }
 
         const digits1 = num1.split('');
-        const digits2 = num2.split('');
+        const digits2 = num2 ? num2.split('') : digits1;
         let combinations = new Set<string>();
 
-        if (digits1.length > 0 && digits2.length > 0) {
+        if (digits1.length > 0) {
             for (const d1 of digits1) {
                 for (const d2 of digits2) {
                     if (removeJoddaFlag && d1 === d2) continue;
-                    combinations.add(`${d1}${d2}`);
+                    
+                    const pair = `${d1}${d2}`;
+                    if (num2 || d1 <= d2) {
+                        combinations.add(pair);
+                    }
                     if (reverseFlag && d1 !== d2) {
                         combinations.add(`${d2}${d1}`);
                     }
@@ -366,7 +370,7 @@ export function DataEntryControls({
             showClientSelectionToast();
             return;
         }
-        if ((!laddiNum1 || !laddiNum2) && !runningLaddi || !laddiAmount) {
+        if ((!laddiNum1 && !runningLaddi) || !laddiAmount) {
             toast({ title: "Laddi Error", description: "Please fill all required Laddi fields.", variant: "destructive" });
             return;
         }
@@ -392,11 +396,14 @@ export function DataEntryControls({
             }
         } else {
             const digits1 = laddiNum1.split('');
-            const digits2 = laddiNum2.split('');
+            const digits2 = laddiNum2 ? laddiNum2.split('') : digits1;
             for (const d1 of digits1) {
                 for (const d2 of digits2) {
                     if (removeJodda && d1 === d2) continue;
-                    combinations.add(`${d1}${d2}`);
+                    const pair = `${d1}${d2}`;
+                    if (laddiNum2 || d1 <= d2) {
+                        combinations.add(pair);
+                    }
                     if (reverseLaddi && d1 !== d2) {
                         combinations.add(`${d2}${d1}`);
                     }
@@ -415,9 +422,14 @@ export function DataEntryControls({
         });
 
         if (Object.keys(updates).length > 0) {
-            const lastEntryString = runningLaddi
-              ? `Running ${laddiNum1}-${laddiNum2} (${combinationCount} Pairs) = ${laddiAmount}`
-              : `${laddiNum1}${laddiNum2} (${combinationCount} Pairs) = ${laddiAmount}`;
+            let lastEntryString;
+            if (runningLaddi) {
+                lastEntryString = `Running ${laddiNum1}-${laddiNum2} (${combinationCount} Pairs) = ${laddiAmount}`;
+            } else if (laddiNum2) {
+                lastEntryString = `${laddiNum1} × ${laddiNum2} (${combinationCount} Pairs) = ${laddiAmount}`;
+            } else {
+                lastEntryString = `${laddiNum1} (${combinationCount} Pairs) = ${laddiAmount}`;
+            }
             onDataUpdate(updates, lastEntryString);
             setLaddiNum1('');
             setLaddiNum2('');
@@ -517,7 +529,7 @@ export function DataEntryControls({
                     handleHarupApply();
                     break;
                 case 'multiText':
-                    if (multiText.trim() && multiText.match(/[\*()_]/)) {
+                    if (multiText.trim().match(/[\*()_]/)) {
                         handleMultiTextApply();
                     } else if (multiText.trim() && !multiText.includes('=')) {
                         setMultiText(prev => {
@@ -784,3 +796,4 @@ export function DataEntryControls({
     
 
     
+

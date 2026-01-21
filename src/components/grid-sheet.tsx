@@ -713,7 +713,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     const dateStrToMatch = format(props.date, 'yyyy-MM-dd');
     return props.savedSheetLog[props.draw]
       .filter(log => log.clientId === selectedClientId && log.date === dateStrToMatch)
-      .sort((a, b) => b.id.localeCompare(a.id));
+      .sort((a, b) => a.id.localeCompare(b.id));
   }, [selectedClientId, props.savedSheetLog, props.draw, props.date]);
 
 
@@ -888,7 +888,7 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                                     <div className="flex justify-between items-center">
                                         <div>
                                             <p className="font-semibold">
-                                                Entry {clientEntries.length - index}: 
+                                                Entry {index + 1}: 
                                                 <span className="font-mono text-primary ml-2">₹{formatNumber(entry.gameTotal)}</span>
                                             </p>
                                             <p className="text-xs text-muted-foreground whitespace-pre-wrap">
