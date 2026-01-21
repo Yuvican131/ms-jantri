@@ -425,7 +425,7 @@ export function DataEntryControls({
             let lastEntryString;
             if (runningLaddi) {
                 lastEntryString = `Running ${laddiNum1}-${laddiNum2} (${combinationCount} Pairs) = ${laddiAmount}`;
-            } else if (laddiNum2) {
+            } else if (laddiNum2 && laddiNum1 !== laddiNum2) {
                 lastEntryString = `${laddiNum1} × ${laddiNum2} (${combinationCount} Pairs) = ${laddiAmount}`;
             } else {
                 lastEntryString = `${laddiNum1} (${combinationCount} Pairs) = ${laddiAmount}`;
@@ -798,5 +798,7 @@ export function DataEntryControls({
     
 
 
+
+    
 
     
