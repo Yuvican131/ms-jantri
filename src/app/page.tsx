@@ -34,6 +34,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "next-themes";
 import { Switch } from "@/components/ui/switch";
+import type { Settlement } from "@/components/admin-panel";
 
 function GridIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -95,13 +96,17 @@ export default function Home() {
   const [activeSheets, setActiveSheets] = useState<ActiveSheet[]>([]);
   const [formSelectedDate, setFormSelectedDate] = useState<Date>(new Date());
   
-  const [settlements, setSettlements] = useState<{ [key: string]: number }>({});
+  const [settlements, setSettlements] = useState<{ [key: string]: Settlement[] }>({});
 
   useEffect(() => {
     try {
       const savedSettlements = localStorage.getItem('brokerSettlements');
       if (savedSettlements) {
-        setSettlements(JSON.parse(savedSettlements));
+        const parsedSettlements = JSON.parse(savedSettlements);
+        const firstKey = Object.keys(parsedSettlements)[0];
+        if (firstKey && Array.isArray(parsedSettlements[firstKey])) {
+           setSettlements(parsedSettlements);
+        }
       }
     } catch (error) {
       console.error("Failed to parse settlements from localStorage", error);

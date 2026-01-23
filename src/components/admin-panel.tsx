@@ -18,6 +18,7 @@ import type { Client } from '@/hooks/useClients';
 import type { SavedSheetInfo } from '@/hooks/useSheetLog';
 import { useDeclaredNumbers } from '@/hooks/useDeclaredNumbers';
 import { useToast } from "@/hooks/use-toast";
+import { ScrollArea } from './ui/scroll-area';
 
 
 const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
@@ -332,13 +333,19 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
     );
 };
 
+export type Settlement = {
+  id: string;
+  amount: number;
+  reference: string;
+  timestamp: string;
+};
 
 type AdminPanelProps = {
   userId?: string;
   clients: Client[];
   savedSheetLog: { [draw: string]: SavedSheetInfo[] };
-  settlements: { [key: string]: number };
-  setSettlements: React.Dispatch<React.SetStateAction<{ [key: string]: number }>>;
+  settlements: { [key: string]: Settlement[] };
+  setSettlements: React.Dispatch<React.SetStateAction<{ [key: string]: Settlement[] }>>;
 };
 
 
@@ -351,6 +358,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
 
     const [jamaAmount, setJamaAmount] = useState('');
     const [lenaAmount, setLenaAmount] = useState('');
+    const [settlementReference, setSettlementReference] = useState('');
     
     useEffect(() => {
         const savedComm = localStorage.getItem('upperBrokerComm');
@@ -407,7 +415,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     
       if (sortedDates.length === 0 || !sortedDates[0]) return 0;
     
-      // Ensure we don't try to create an interval with an invalid start date
       try {
         const firstDate = parseISO(sortedDates[0]);
         const today = new Date();
@@ -415,7 +422,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     
         for (const day of intervalDays) {
           const brokerNetForDay = calculateDailyNet(day, allLogs);
-          const settlementForDay = settlements[format(day, 'yyyy-MM-dd')] || 0;
+          const dailySettlements = settlements[format(day, 'yyyy-MM-dd')] || [];
+          const settlementForDay = dailySettlements.reduce((acc, s) => acc + s.amount, 0);
           cumulativeTotal += brokerNetForDay + settlementForDay;
         }
       } catch (e) {
@@ -434,21 +442,50 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
             toast({ title: "Invalid Entry", description: "Please enter a value in either Jama or Lena, not both.", variant: "destructive" });
             return;
         }
+        if (jama === 0 && lena === 0) {
+            toast({ title: "Invalid Entry", description: "Please enter an amount for Jama or Lena.", variant: "destructive" });
+            return;
+        }
 
         const settlementChange = lena - jama;
         const dateKey = format(summaryDate, 'yyyy-MM-dd');
         
+        const newSettlement: Settlement = {
+            id: new Date().toISOString(),
+            amount: settlementChange,
+            reference: settlementReference,
+            timestamp: new Date().toISOString()
+        };
+
         setSettlements(prev => {
-            const newSettlements = {
+            const daySettlements = prev[dateKey] ? [...prev[dateKey]] : [];
+            daySettlements.push(newSettlement);
+            return {
                 ...prev,
-                [dateKey]: (prev[dateKey] || 0) + settlementChange
+                [dateKey]: daySettlements
             };
-            return newSettlements;
         });
         
         toast({ title: "Settlement Recorded", description: `Settlement for ${format(summaryDate, 'PPP')} has been updated.` });
         setJamaAmount('');
         setLenaAmount('');
+        setSettlementReference('');
+    };
+
+    const handleDeleteSettlement = (settlementId: string) => {
+        const dateKey = format(summaryDate, 'yyyy-MM-dd');
+        setSettlements(prev => {
+            const daySettlements = prev[dateKey] || [];
+            const newDaySettlements = daySettlements.filter(s => s.id !== settlementId);
+            if (newDaySettlements.length > 0) {
+                return { ...prev, [dateKey]: newDaySettlements };
+            } else {
+                const newSettlements = { ...prev };
+                delete newSettlements[dateKey];
+                return newSettlements;
+            }
+        });
+        toast({ title: "Settlement entry deleted." });
     };
 
     const calculateDrawSummary = (draw: string, date: Date) => {
@@ -505,6 +542,8 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
             finalNet,
         };
     }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair]);
+    
+    const dailySettlements = settlements[format(summaryDate, 'yyyy-MM-dd')] || [];
 
   return (
     <Card className="h-full flex flex-col">
@@ -550,14 +589,18 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                 </Popover>
 
                 <Card className="p-2 flex-grow">
-                    <div className="flex items-end gap-2">
-                        <div className='flex-grow'>
+                    <div className="grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-2">
+                        <div className="space-y-1">
                             <Label htmlFor='jama-amount' className='text-xs font-semibold'>Jama</Label>
-                            <Input id='jama-amount' placeholder='e.g. Amount you pay' value={jamaAmount} onChange={e => {setJamaAmount(e.target.value); setLenaAmount('');}}/>
+                            <Input id='jama-amount' placeholder='Amount you pay' value={jamaAmount} onChange={e => {setJamaAmount(e.target.value); setLenaAmount('');}}/>
                         </div>
-                        <div className='flex-grow'>
+                        <div className="space-y-1">
                              <Label htmlFor='lena-amount' className='text-xs font-semibold'>Lena</Label>
-                            <Input id='lena-amount' placeholder='e.g. Amount you receive' value={lenaAmount} onChange={e => {setLenaAmount(e.target.value); setJamaAmount('');}}/>
+                            <Input id='lena-amount' placeholder='Amount you receive' value={lenaAmount} onChange={e => {setLenaAmount(e.target.value); setJamaAmount('');}}/>
+                        </div>
+                        <div className="space-y-1">
+                             <Label htmlFor='settlement-ref' className='text-xs font-semibold'>Reference</Label>
+                            <Input id='settlement-ref' placeholder='e.g. Online/Cash' value={settlementReference} onChange={e => setSettlementReference(e.target.value)} />
                         </div>
                         <Button onClick={handleSettlement} className="h-10">Settle</Button>
                     </div>
@@ -623,6 +666,45 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
           </div>
 
         </div>
+
+        {dailySettlements.length > 0 && (
+            <Card className="mt-6">
+                <CardHeader>
+                    <CardTitle className="text-base">Settlement History</CardTitle>
+                    <CardDescription>Recorded settlements for {format(summaryDate, 'PPP')}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ScrollArea className="max-h-60">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Time</TableHead>
+                                    <TableHead>Amount</TableHead>
+                                    <TableHead>Reference</TableHead>
+                                    <TableHead className="text-right">Action</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {dailySettlements.map(s => (
+                                    <TableRow key={s.id}>
+                                        <TableCell>{format(new Date(s.timestamp), 'p')}</TableCell>
+                                        <TableCell className={`font-semibold ${s.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                            {s.amount > 0 ? `+${formatNumber(s.amount)}` : formatNumber(s.amount)}
+                                        </TableCell>
+                                        <TableCell>{s.reference}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteSettlement(s.id)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </ScrollArea>
+                </CardContent>
+            </Card>
+        )}
 
         <Separator className="my-8" />
         
