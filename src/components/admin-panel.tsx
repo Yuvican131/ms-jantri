@@ -553,11 +553,50 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
             <CardTitle>Admin Panel</CardTitle>
             <CardDescription>High-level overview of your brokerage operations.</CardDescription>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
             <Card className="p-2 flex items-center gap-2">
                 <Label className="text-sm font-semibold whitespace-nowrap">Running Net</Label>
                 <div className={`text-lg font-extrabold ${runningTotal >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatNumber(runningTotal)}</div>
             </Card>
+
+             <Button variant="outline" onClick={() => setIsSettlementHistoryOpen(true)} disabled={dailySettlements.length === 0} size="icon" className="h-9 w-9">
+                <History className="h-4 w-4" />
+                <span className="sr-only">View History</span>
+            </Button>
+            <Popover>
+                <PopoverTrigger asChild>
+                    <Button className="h-9">
+                        <Plus className="mr-2 h-4 w-4" /> Record Settlement
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                    <div className="grid gap-4">
+                        <div className="space-y-2">
+                            <h4 className="font-medium leading-none">Add Settlement</h4>
+                            <p className="text-sm text-muted-foreground">
+                                Record a payment to adjust the running total for {format(summaryDate, 'PPP')}.
+                            </p>
+                        </div>
+                        <div className="grid gap-2">
+                             <div className="grid grid-cols-3 items-center gap-4">
+                                <Label htmlFor="jama-amount">Jama (Pay)</Label>
+                                <Input id="jama-amount" placeholder="Amount" value={jamaAmount} onChange={e => {setJamaAmount(e.target.value); setLenaAmount('');}} className="col-span-2 h-8" />
+                            </div>
+                            <div className="grid grid-cols-3 items-center gap-4">
+                                <Label htmlFor="lena-amount">Lena (Receive)</Label>
+                                <Input id="lena-amount" placeholder="Amount" value={lenaAmount} onChange={e => {setLenaAmount(e.target.value); setJamaAmount('');}} className="col-span-2 h-8"/>
+                            </div>
+                            <div className="grid grid-cols-3 items-center gap-4">
+                                <Label htmlFor="settlement-ref">Reference</Label>
+                                <Input id="settlement-ref" placeholder="e.g. Online/Cash" value={settlementReference} onChange={e => setSettlementReference(e.target.value)} className="col-span-2 h-8"/>
+                            </div>
+                        </div>
+                        <Button onClick={handleSettlement}>
+                            <Save className="mr-2 h-4 w-4" /> Save Settlement
+                        </Button>
+                    </div>
+                </PopoverContent>
+            </Popover>
         </div>
       </CardHeader>
       <CardContent className="flex-1 space-y-6 overflow-y-auto">
@@ -647,38 +686,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                   </div>
               </div>
           </div>
-
-          <Card className="mt-6">
-            <CardHeader>
-                <CardTitle className="text-base">Record a Settlement</CardTitle>
-                <CardDescription>Record a payment made or received to adjust the running net total.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                    <div className="space-y-1">
-                        <Label htmlFor='jama-amount'>Jama (You Pay)</Label>
-                        <Input id='jama-amount' placeholder='Amount' value={jamaAmount} onChange={e => {setJamaAmount(e.target.value); setLenaAmount('');}}/>
-                    </div>
-                    <div className="space-y-1">
-                        <Label htmlFor='lena-amount'>Lena (You Receive)</Label>
-                        <Input id='lena-amount' placeholder='Amount' value={lenaAmount} onChange={e => {setLenaAmount(e.target.value); setJamaAmount('');}}/>
-                    </div>
-                    <div className="space-y-1">
-                        <Label htmlFor='settlement-ref'>Reference</Label>
-                        <Input id='settlement-ref' placeholder='e.g. Online/Cash' value={settlementReference} onChange={e => setSettlementReference(e.target.value)} />
-                    </div>
-                </div>
-                <div className="flex justify-end gap-2 mt-4">
-                    <Button variant="outline" onClick={() => setIsSettlementHistoryOpen(true)} disabled={dailySettlements.length === 0}>
-                        <History className="mr-2 h-4 w-4" /> View History
-                    </Button>
-                    <Button onClick={handleSettlement}>
-                        <Save className="mr-2 h-4 w-4" /> Save Settlement
-                    </Button>
-                </div>
-            </CardContent>
-          </Card>
-
         </div>
 
         <Separator className="my-8" />
