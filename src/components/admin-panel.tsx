@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatNumber } from "@/lib/utils";
-import { Wallet, Calendar as CalendarIcon, Percent, Scale, TrendingUp, TrendingDown, Landmark, Banknote, Trash2, HandCoins, Minus, Plus, Save, CircleDollarSign, Trophy } from 'lucide-react';
+import { Wallet, Calendar as CalendarIcon, Percent, Scale, TrendingUp, TrendingDown, Landmark, Banknote, Trash2, HandCoins, Minus, Plus, Save, CircleDollarSign, Trophy, History } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import type { SavedSheetInfo } from '@/hooks/useSheetLog';
 import { useDeclaredNumbers } from '@/hooks/useDeclaredNumbers';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from './ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 
 
 const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
@@ -196,7 +197,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
     return (
         <div className="space-y-6">
             <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
-                <Wallet className="h-5 w-5" /> Broker Profit &amp; Loss
+                <Wallet className="h-5 w-5" /> Broker Profit & Loss
             </h3>
             <div className="p-4 border rounded-lg bg-muted/50">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
@@ -225,7 +226,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                  <div className="space-y-2">
                     <Label>View By</Label>
                     <Select value={viewMode} onValueChange={(value) => setViewMode(value as 'month' | 'year')}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectTrigger><SelectValue /></SelectValue>
                         <SelectContent>
                             <SelectItem value="month">Month</SelectItem>
                             <SelectItem value="year">Year</SelectItem>
@@ -261,7 +262,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                 <div className="space-y-2">
                     <Label>Filter by Client</Label>
                     <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectTrigger><SelectValue /></SelectValue>
                         <SelectContent>
                             <SelectItem value="all">All Clients</SelectItem>
                             {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
@@ -359,6 +360,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     const [jamaAmount, setJamaAmount] = useState('');
     const [lenaAmount, setLenaAmount] = useState('');
     const [settlementReference, setSettlementReference] = useState('');
+    const [isSettlementHistoryOpen, setIsSettlementHistoryOpen] = useState(false);
     
     useEffect(() => {
         const savedComm = localStorage.getItem('upperBrokerComm');
@@ -587,27 +589,9 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                         />
                     </PopoverContent>
                 </Popover>
-
-                <Card className="p-2 flex-grow">
-                    <div className="grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-2">
-                        <div className="space-y-1">
-                            <Label htmlFor='jama-amount' className='text-xs font-semibold'>Jama</Label>
-                            <Input id='jama-amount' placeholder='Amount you pay' value={jamaAmount} onChange={e => {setJamaAmount(e.target.value); setLenaAmount('');}}/>
-                        </div>
-                        <div className="space-y-1">
-                             <Label htmlFor='lena-amount' className='text-xs font-semibold'>Lena</Label>
-                            <Input id='lena-amount' placeholder='Amount you receive' value={lenaAmount} onChange={e => {setLenaAmount(e.target.value); setJamaAmount('');}}/>
-                        </div>
-                        <div className="space-y-1">
-                             <Label htmlFor='settlement-ref' className='text-xs font-semibold'>Reference</Label>
-                            <Input id='settlement-ref' placeholder='e.g. Online/Cash' value={settlementReference} onChange={e => setSettlementReference(e.target.value)} />
-                        </div>
-                        <Button onClick={handleSettlement} className="h-10">Settle</Button>
-                    </div>
-                </Card>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
               {draws.map(draw => {
                   const { totalRaw, totalPassing } = calculateDrawSummary(draw, summaryDate);
                   const dateStr = format(summaryDate, 'yyyy-MM-dd');
@@ -643,68 +627,60 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                       <h3>Final Summary</h3>
                       <Landmark className="h-5 w-5 text-primary/80" />
                   </div>
-                  <div className="space-y-1 flex-grow mt-2 text-card-foreground">
+                  <div className="space-y-1 mt-2 flex-grow text-card-foreground">
                       <div className="flex justify-between items-center">
                           <span className="text-muted-foreground text-sm">Total</span>
-                          <span className="font-semibold text-base">{formatNumber(finalSummaryForDay.totalRaw)}</span>
+                          <span className="font-semibold text-xl">{formatNumber(finalSummaryForDay.totalRaw)}</span>
                       </div>
                       <div className="flex justify-between items-center">
                           <span className="text-muted-foreground text-sm">Commission</span> 
-                          <span className="font-semibold text-base">{formatNumber(finalSummaryForDay.commission)}</span>
+                          <span className="font-semibold text-xl">{formatNumber(finalSummaryForDay.commission)}</span>
                       </div>
                       <div className="flex justify-between items-center">
                           <span className="text-muted-foreground text-sm">Passing</span> 
-                          <span className="font-semibold text-base">{formatNumber(finalSummaryForDay.passing)}</span>
+                          <span className="font-semibold text-xl">{formatNumber(finalSummaryForDay.passing)}</span>
                       </div>
                   </div>
                    <Separator className="my-2 bg-primary/20" />
-                  <div className="flex justify-between items-center font-bold text-lg">
+                  <div className="flex justify-between items-center font-bold text-xl">
                      <span className={`${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>Final Net</span>
                      <span className={`${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatNumber(finalSummaryForDay.finalNet)}</span>
                   </div>
               </div>
           </div>
 
-        </div>
+          <Card className="mt-6">
+            <CardHeader>
+                <CardTitle className="text-base">Record a Settlement</CardTitle>
+                <CardDescription>Record a payment made or received to adjust the running net total.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div className="space-y-1">
+                        <Label htmlFor='jama-amount'>Jama (You Pay)</Label>
+                        <Input id='jama-amount' placeholder='Amount' value={jamaAmount} onChange={e => {setJamaAmount(e.target.value); setLenaAmount('');}}/>
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor='lena-amount'>Lena (You Receive)</Label>
+                        <Input id='lena-amount' placeholder='Amount' value={lenaAmount} onChange={e => {setLenaAmount(e.target.value); setJamaAmount('');}}/>
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor='settlement-ref'>Reference</Label>
+                        <Input id='settlement-ref' placeholder='e.g. Online/Cash' value={settlementReference} onChange={e => setSettlementReference(e.target.value)} />
+                    </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" onClick={() => setIsSettlementHistoryOpen(true)} disabled={dailySettlements.length === 0}>
+                        <History className="mr-2 h-4 w-4" /> View History
+                    </Button>
+                    <Button onClick={handleSettlement}>
+                        <Save className="mr-2 h-4 w-4" /> Save Settlement
+                    </Button>
+                </div>
+            </CardContent>
+          </Card>
 
-        {dailySettlements.length > 0 && (
-            <Card className="mt-6">
-                <CardHeader>
-                    <CardTitle className="text-base">Settlement History</CardTitle>
-                    <CardDescription>Recorded settlements for {format(summaryDate, 'PPP')}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ScrollArea className="max-h-60">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Time</TableHead>
-                                    <TableHead>Amount</TableHead>
-                                    <TableHead>Reference</TableHead>
-                                    <TableHead className="text-right">Action</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {dailySettlements.map(s => (
-                                    <TableRow key={s.id}>
-                                        <TableCell>{format(new Date(s.timestamp), 'p')}</TableCell>
-                                        <TableCell className={`font-semibold ${s.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                            {s.amount > 0 ? `+${formatNumber(s.amount)}` : formatNumber(s.amount)}
-                                        </TableCell>
-                                        <TableCell>{s.reference}</TableCell>
-                                        <TableCell className="text-right">
-                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteSettlement(s.id)}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
-                </CardContent>
-            </Card>
-        )}
+        </div>
 
         <Separator className="my-8" />
         
@@ -716,6 +692,51 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
             />
         </div>
       </CardContent>
+      <Dialog open={isSettlementHistoryOpen} onOpenChange={setIsSettlementHistoryOpen}>
+          <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                  <DialogTitle>Settlement History</DialogTitle>
+                  <DialogDescription>Recorded settlements for {format(summaryDate, 'PPP')}</DialogDescription>
+              </DialogHeader>
+              <div className="my-4">
+                  <ScrollArea className="max-h-[60vh]">
+                      <Table>
+                          <TableHeader>
+                              <TableRow>
+                                  <TableHead>Time</TableHead>
+                                  <TableHead>Amount</TableHead>
+                                  <TableHead>Reference</TableHead>
+                                  <TableHead className="text-right">Action</TableHead>
+                              </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                              {dailySettlements.map(s => (
+                                  <TableRow key={s.id}>
+                                      <TableCell>{format(new Date(s.timestamp), 'p')}</TableCell>
+                                      <TableCell className={`font-semibold ${s.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                          {s.amount > 0 ? `+${formatNumber(s.amount)}` : formatNumber(s.amount)}
+                                      </TableCell>
+                                      <TableCell>{s.reference}</TableCell>
+                                      <TableCell className="text-right">
+                                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteSettlement(s.id)}>
+                                              <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                      </TableCell>
+                                  </TableRow>
+                              ))}
+                          </TableBody>
+                      </Table>
+                  </ScrollArea>
+              </div>
+              <DialogFooter>
+                  <DialogClose asChild>
+                      <Button type="button" variant="secondary">
+                        Close
+                      </Button>
+                  </DialogClose>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
     </Card>
   );
 }
