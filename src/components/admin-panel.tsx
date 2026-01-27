@@ -1,4 +1,3 @@
-
 "use client"
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -197,7 +196,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
     return (
         <div className="space-y-6">
             <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
-                <Wallet className="h-5 w-5" /> Broker Profit & Loss
+                <Wallet className="h-5 w-5" /> Broker Profit and Loss
             </h3>
             <div className="p-4 border rounded-lg bg-muted/50">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
@@ -226,7 +225,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                  <div className="space-y-2">
                     <Label>View By</Label>
                     <Select value={viewMode} onValueChange={(value) => setViewMode(value as 'month' | 'year')}>
-                        <SelectTrigger><SelectValue /></SelectValue>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="month">Month</SelectItem>
                             <SelectItem value="year">Year</SelectItem>
@@ -262,7 +261,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                 <div className="space-y-2">
                     <Label>Filter by Client</Label>
                     <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                        <SelectTrigger><SelectValue /></SelectValue>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Clients</SelectItem>
                             {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
