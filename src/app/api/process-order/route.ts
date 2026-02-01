@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { initializeFirebase } from '@/firebase';
-import { collection, query, where, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
+import { firestore } from '@/firebase/admin';
 import { processOrder } from '@/ai/flows/process-order-flow';
 import { format } from 'date-fns';
 
@@ -12,7 +11,6 @@ import { format } from 'date-fns';
 // }
 
 export async function POST(request: Request) {
-  const { firestore } = initializeFirebase();
   try {
     const body = await request.json();
     const { message, clientPhoneNumber } = body;
@@ -22,16 +20,16 @@ export async function POST(request: Request) {
     }
 
     // 1. Find the user and client associated with the phone number.
-    const usersCollection = collection(firestore, 'users');
-    const usersSnapshot = await getDocs(usersCollection);
+    const usersCollection = firestore.collection('users');
+    const usersSnapshot = await usersCollection.get();
     let targetUserId: string | null = null;
     let targetClient: any | null = null;
     let targetClientId: string | null = null;
 
     for (const userDoc of usersSnapshot.docs) {
-      const clientsCollectionRef = collection(firestore, `users/${userDoc.id}/clients`);
-      const q = query(clientsCollectionRef, where("inOut", "==", clientPhoneNumber));
-      const clientsSnapshot = await getDocs(q);
+      const clientsCollectionRef = firestore.collection(`users/${userDoc.id}/clients`);
+      const q = clientsCollectionRef.where("inOut", "==", clientPhoneNumber);
+      const clientsSnapshot = await q.get();
 
       if (!clientsSnapshot.empty) {
         targetUserId = userDoc.id;
@@ -65,11 +63,11 @@ export async function POST(request: Request) {
     // 4. Prepare to save the data to a sheet log
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const sheetLogId = `${targetClientId}-${draw}-${todayStr}`; // Predictable ID
-    const sheetLogRef = doc(firestore, `users/${targetUserId}/sheetLogs`, sheetLogId);
+    const sheetLogRef = firestore.doc(`users/${targetUserId}/sheetLogs/${sheetLogId}`);
 
-    const sheetLogSnapshot = await getDoc(sheetLogRef);
-    const existingData = sheetLogSnapshot.exists() ? sheetLogSnapshot.data().data : {};
-    let newGameTotal = sheetLogSnapshot.exists() ? sheetLogSnapshot.data().gameTotal : 0;
+    const sheetLogSnapshot = await sheetLogRef.get();
+    const existingData = sheetLogSnapshot.exists ? sheetLogSnapshot.data()?.data : {};
+    let newGameTotal = sheetLogSnapshot.exists ? sheetLogSnapshot.data()?.gameTotal : 0;
     const mergedData = { ...existingData };
 
     orders.forEach(order => {
@@ -91,7 +89,7 @@ export async function POST(request: Request) {
     };
     
     // Using set with merge is like an "upsert" - it creates or updates.
-    await setDoc(sheetLogRef, logEntry, { merge: true });
+    await sheetLogRef.set(logEntry, { merge: true });
 
     return NextResponse.json({ success: true, message: `Order processed for ${targetClient.name} in draw ${draw}.` });
 
