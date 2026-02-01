@@ -1,11 +1,14 @@
 
 'use client';
 import { useMemo, useCallback } from 'react';
-import { collection, doc, writeBatch, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, writeBatch, query, where, getDocs, serverTimestamp, addDoc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from './use-toast';
 import { format } from 'date-fns';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+
 
 export interface SavedSheetInfo {
   id: string;
@@ -16,7 +19,7 @@ export interface SavedSheetInfo {
   date: string; // ISO date string
   draw: string;
   rawInput?: string;
-  createdAt?: string;
+  createdAt?: any; // Can be Firebase Timestamp
 }
 
 export const useSheetLog = (userId?: string) => {
@@ -51,13 +54,20 @@ export const useSheetLog = (userId?: string) => {
       // This is an update to an existing entry
       const docRef = doc(firestore, sheetLogColRef.path, entry.id);
       const { id, ...entryData } = entry;
-      // The useCollection hook will handle the UI update via its real-time listener.
-      // No manual/optimistic update is needed here.
       updateDocumentNonBlocking(docRef, entryData);
     } else {
-      // This is a new entry
-      // The useCollection hook will handle the UI update via its real-time listener.
-      addDocumentNonBlocking(sheetLogColRef, entry);
+      // This is a new entry, add server-side timestamp
+      addDoc(sheetLogColRef, { ...entry, createdAt: serverTimestamp() })
+        .catch(error => {
+            errorEmitter.emit(
+              'permission-error',
+              new FirestorePermissionError({
+                path: sheetLogColRef.path,
+                operation: 'create',
+                requestResourceData: entry,
+              })
+            )
+        });
     }
   }, [sheetLogColRef, firestore]);
   

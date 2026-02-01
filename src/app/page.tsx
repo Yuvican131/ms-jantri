@@ -312,7 +312,6 @@ export default function Home() {
       date: todayStr,
       draw,
       rawInput: rawInput || "Manual Grid Update",
-      createdAt: new Date().toISOString(),
     };
   
     addSheetLogEntry(newEntry);
