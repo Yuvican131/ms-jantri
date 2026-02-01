@@ -552,6 +552,11 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
         <div>
             <CardTitle>Admin Panel</CardTitle>
             <CardDescription>High-level overview of your brokerage operations.</CardDescription>
+            {userId && (
+              <p className="text-xs text-muted-foreground pt-2 break-all">
+                <span className="font-semibold">User ID:</span> {userId}
+              </p>
+            )}
         </div>
         <div className="flex items-center gap-2">
             <Card className="p-2 flex items-center gap-2">
