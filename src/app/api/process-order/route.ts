@@ -11,6 +11,14 @@ import { format } from 'date-fns';
 // }
 
 export async function POST(request: Request) {
+  // Add a guard to check if Firebase Admin was initialized
+  if (!firestore) {
+    return NextResponse.json(
+      { error: 'Firebase Admin SDK is not initialized. Please check the server configuration and environment variables.' },
+      { status: 500 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { message, clientPhoneNumber } = body;
