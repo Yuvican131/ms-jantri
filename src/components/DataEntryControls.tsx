@@ -76,11 +76,11 @@ export function DataEntryControls({
     const harupAInputRef = useRef<HTMLInputElement>(null);
     const harupBInputRef = useRef<HTMLInputElement>(null);
     const harupAmountInputRef = useRef<HTMLInputElement>(null);
-    
+
     const isDataEntryDisabled = !selectedClientId;
 
     useEffect(() => {
-        if(focusMultiText) {
+        if (focusMultiText) {
             focusMultiText();
         }
     }, [focusMultiText]);
@@ -103,7 +103,7 @@ export function DataEntryControls({
             for (const d1 of digits1) {
                 for (const d2 of digits2) {
                     if (removeJoddaFlag && d1 === d2) continue;
-                    
+
                     const pair = `${d1}${d2}`;
                     if (num2 || d1 <= d2) {
                         combinations.add(pair);
@@ -130,14 +130,14 @@ export function DataEntryControls({
             setMultiText(newValue);
             return;
         }
-        
+
         newValue = newValue.replace(/\)(?=[^\s\n])/g, ')\n');
 
         if (newValue.includes('\n') || newValue.match(/[=()_*x]/i)) {
             setMultiText(newValue);
             return;
         }
-        
+
         const rawNumbers = newValue.replace(/[^0-9]/g, '');
         if (rawNumbers.length > 0) {
             const pairs = rawNumbers.match(/.{1,2}/g) || [];
@@ -150,39 +150,39 @@ export function DataEntryControls({
             setMultiText('');
         }
     };
-    
+
     const handleMultiTextApply = () => {
         if (isDataEntryDisabled) {
             showClientSelectionToast();
             return;
         }
         if (!multiText.trim()) return;
-    
+
         const finalUpdates: { [key: string]: number } = {};
         let totalForCheck = 0;
 
         let processedText = multiText.replace(/\)(?=[^\s\n])/g, ')\n');
-    
+
         function parseFinalUniversalData(text: string) {
             const result: { value?: number, amount?: number | null, crossing?: number, combination?: number, runningPair?: string, overlappingPair?: string }[] = [];
             const groups = text.split(/[\s\n]+/).filter(g => g.trim() !== "");
 
             for (const group of groups) {
-                const amountMatch = group.match(/\((\d+)\)/) 
-                                 || group.match(/[\*x=](\d+)/i)
-                                 || group.match(/(?<![a-zA-Z0-9\._])(\d+)$/);
+                const amountMatch = group.match(/\((\d+)\)/)
+                    || group.match(/[\*x=](\d+)/i)
+                    || group.match(/(?<![a-zA-Z0-9\._])(\d+)$/);
 
                 const amount = amountMatch ? Number(amountMatch[1]) : null;
-        
+
                 let cleaned = group;
                 if (amountMatch) {
-                     cleaned = cleaned.substring(0, amountMatch.index).trim();
+                    cleaned = cleaned.substring(0, amountMatch.index).trim();
                 }
-                
-                if (cleaned.endsWith(',')) cleaned = cleaned.slice(0,-1);
+
+                if (cleaned.endsWith(',')) cleaned = cleaned.slice(0, -1);
 
                 cleaned = cleaned.replace(/ghar/gi, "");
-                
+
                 if (cleaned.includes('_')) {
                     result.push({ overlappingPair: cleaned, amount });
                     continue;
@@ -195,25 +195,25 @@ export function DataEntryControls({
                 }
 
                 const parts = cleaned.split('_').filter(p => p);
-                
+
                 parts.forEach(part => {
                     const tokens = part.split(/[,.\s\/]+/).map(t => t.trim()).filter(t => t !== "");
                     let activeCrossing: number | null = null;
-        
+
                     tokens.forEach((token, index) => {
                         if (!token) return;
-                        
+
                         if (token.length === 1 && !/^\d+$/.test(token)) {
                             toast({ title: "Wrong Input", description: `Single character '${token}' cannot be processed. Please enter valid numbers.`, variant: "destructive" });
-                            throw new Error("Invalid single-character input"); 
+                            throw new Error("Invalid single-character input");
                         }
-        
+
                         if (index === 0 && token.length >= 3 && !amount) {
                             activeCrossing = Number(token);
                             result.push({ crossing: activeCrossing });
                         } else if (token.length > 2 && !activeCrossing) {
                             for (let i = 0; i < token.length; i += 2) {
-                                if(token.slice(i, i + 2).length === 2) {
+                                if (token.slice(i, i + 2).length === 2) {
                                     const pair = Number(token.slice(i, i + 2));
                                     result.push({ value: pair, amount });
                                 }
@@ -222,11 +222,11 @@ export function DataEntryControls({
                             const num = Number(token);
                             if (activeCrossing) {
                                 result.push({ combination: num, amount });
-                                activeCrossing = null; 
+                                activeCrossing = null;
                             } else {
                                 if (String(token).length === 1 && amount === null) {
                                     toast({ title: "Wrong Input", description: `Single digit number '${token}' cannot be processed without an amount. Please enter 2-digit numbers or specify an amount.`, variant: "destructive" });
-                                    throw new Error("Invalid single-digit input without amount"); 
+                                    throw new Error("Invalid single-digit input without amount");
                                 }
                                 result.push({ value: num, amount });
                             }
@@ -234,13 +234,13 @@ export function DataEntryControls({
                     });
                 });
             }
-        
+
             return result;
         }
 
         try {
             const parsedData = parseFinalUniversalData(processedText);
-            
+
             let activeCrossing: number | null = null;
 
             parsedData.forEach(item => {
@@ -254,20 +254,20 @@ export function DataEntryControls({
                     const generateOverlappingPairs = (numStr: string) => {
                         const cleanedNumStr = numStr.replace(/[.,]/g, '');
                         for (let i = 0; i < cleanedNumStr.length - 1; i++) {
-                           const pair = cleanedNumStr.substring(i, i+2);
-                           if (pair.length === 2) {
-                             combinations.add(pair);
-                             const reversePair = pair.split('').reverse().join('');
-                             if (pair !== reversePair) {
-                               combinations.add(reversePair);
-                             }
-                           }
+                            const pair = cleanedNumStr.substring(i, i + 2);
+                            if (pair.length === 2) {
+                                combinations.add(pair);
+                                const reversePair = pair.split('').reverse().join('');
+                                if (pair !== reversePair) {
+                                    combinations.add(reversePair);
+                                }
+                            }
                         }
                     };
 
                     if (part1) generateOverlappingPairs(part1);
                     if (part2) generateOverlappingPairs(part2);
-                    
+
                     const entryTotal = combinations.size * amount;
                     totalForCheck += entryTotal;
 
@@ -275,7 +275,7 @@ export function DataEntryControls({
                         const key = pair.padStart(2, '0');
                         finalUpdates[key] = (finalUpdates[key] || 0) + amount;
                     });
-                    
+
                 } else if (item.runningPair) {
                     const [startStr, endStr] = item.runningPair.split('-');
                     const startDigits = [...new Set(startStr.split(''))];
@@ -303,21 +303,21 @@ export function DataEntryControls({
                     const crossingDigits = [...new Set(String(activeCrossing).split(''))];
                     const combinationDigits = [...new Set(String(item.combination).split(''))];
                     const amount = item.amount || 0;
-                    
+
                     const combinations = new Set<string>();
                     for (const d1 of crossingDigits) {
                         for (const d2 of combinationDigits) {
                             if (d1 !== d2) {
-                            combinations.add(`${d1}${d2}`);
-                            combinations.add(`${d2}${d1}`);
+                                combinations.add(`${d1}${d2}`);
+                                combinations.add(`${d2}${d1}`);
                             } else {
-                            combinations.add(`${d1}${d2}`);
+                                combinations.add(`${d1}${d2}`);
                             }
                         }
                     }
                     const entryTotal = combinations.size * amount;
                     totalForCheck += entryTotal;
-                    
+
                     combinations.forEach(pair => {
                         const key = pair.padStart(2, '0');
                         finalUpdates[key] = (finalUpdates[key] || 0) + amount;
@@ -328,11 +328,11 @@ export function DataEntryControls({
                         toast({ title: "Wrong Input", description: `Number '${item.value}' has an odd number of digits. Please enter 2-digit numbers.`, variant: "destructive" });
                         throw new Error("Invalid odd-digit number");
                     }
-                    if(String(item.value).length > 2) {
+                    if (String(item.value).length > 2) {
                         const valueStr = String(item.value);
                         for (let i = 0; i < valueStr.length; i += 2) {
                             const pair = valueStr.slice(i, i + 2);
-                            if(pair.length === 2) {
+                            if (pair.length === 2) {
                                 const key = pair;
                                 const amount = item.amount;
                                 totalForCheck += amount;
@@ -364,7 +364,7 @@ export function DataEntryControls({
             return;
         }
     };
-    
+
     const handleLaddiApply = () => {
         if (isDataEntryDisabled) {
             showClientSelectionToast();
@@ -413,7 +413,7 @@ export function DataEntryControls({
 
         const entryTotal = combinations.size * amountValue;
         if (!checkBalance(entryTotal)) return;
-        
+
         const updates: { [key: string]: number } = {};
         combinations.forEach(cellNumStr => {
             const numAsInt = parseInt(cellNumStr, 10);
@@ -442,7 +442,7 @@ export function DataEntryControls({
             toast({ title: "No Laddi Updates", description: "No valid cell combinations found to update.", variant: "destructive" });
         }
     };
-    
+
     const handleHarupApply = () => {
         if (isDataEntryDisabled) {
             showClientSelectionToast();
@@ -473,7 +473,7 @@ export function DataEntryControls({
         harupADigits.forEach(digitA => {
             for (let i = 0; i < 10; i++) {
                 const cellNumber = parseInt(`${digitA}${i}`, 10);
-                if (cellNumber === 0) continue; 
+                if (cellNumber === 0) continue;
                 const key = cellNumber === 100 ? '00' : cellNumber.toString().padStart(2, '0');
                 updates[key] = (updates[key] || 0) + perDigitAmountA;
             }
@@ -482,7 +482,7 @@ export function DataEntryControls({
         harupBDigits.forEach(digitB => {
             for (let i = 0; i < 10; i++) {
                 const cellNumber = parseInt(`${i}${digitB}`, 10);
-                if (cellNumber === 0) continue; 
+                if (cellNumber === 0) continue;
                 const key = cellNumber === 100 ? '00' : cellNumber.toString().padStart(2, '0');
                 updates[key] = (updates[key] || 0) + perDigitAmountB;
             }
@@ -491,7 +491,7 @@ export function DataEntryControls({
         let lastEntryString = "";
         if (harupA) lastEntryString += `${harupA} A = ${harupAmount}\n`;
         if (harupB) lastEntryString += `${harupB} B = ${harupAmount}`;
-        
+
         if (Object.keys(updates).length > 0) {
             onDataUpdate(updates, lastEntryString.trim());
             setHarupA('');
@@ -502,7 +502,7 @@ export function DataEntryControls({
             toast({ title: "No HARUP Updates", description: "No valid cells found to update.", variant: "destructive" });
         }
     };
-    
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>, from: string) => {
         if (e.key === 'Enter') {
             if (from === 'multiText' && e.shiftKey) {
@@ -546,7 +546,7 @@ export function DataEntryControls({
             }
         }
     };
-    
+
     const handleGenerateSheet = () => {
         if (isDataEntryDisabled) {
             showClientSelectionToast();
@@ -566,7 +566,7 @@ export function DataEntryControls({
                 valueToCells[value].push(displayKey);
             }
         }
-        
+
         const sheetBody = Object.entries(valueToCells)
             .map(([value, cells]) => {
                 cells.sort((a, b) => parseInt(a) - parseInt(b));
@@ -592,217 +592,191 @@ export function DataEntryControls({
             console.error('Failed to copy: ', err);
         });
     };
-    
+
     return (
         <>
             <div className="flex flex-col gap-2 w-full min-h-0 lg:w-[320px] xl:w-[360px] flex-shrink-0">
-              <div className="border rounded-lg p-2 flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                      <Select value={selectedClientId || 'None'} onValueChange={onClientChange}>
-                          <SelectTrigger className="flex-grow h-8 text-xs">
-                              <SelectValue>
-                                {selectedClientId && clients.find(c => c.id === selectedClientId) ? getClientDisplay(clients.find(c => c.id === selectedClientId)!) : "Select Client"}
-                              </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                              <SelectItem value="None">None</SelectItem>
-                              {clients.map(client => (
-                                  <SelectItem key={client.id} value={client.id}>
-                                    {getClientDisplay(client)}
-                                  </SelectItem>
-                              ))}
-                          </SelectContent>
-                      </Select>
-                      <Button onClick={onSave} disabled={!selectedClientId} size="sm" className="h-8 text-xs">
-                          <Save className="h-3 w-3 mr-1" />
-                          Save
-                      </Button>
-                      <Button onClick={onRevert} variant="outline" disabled={isRevertDisabled} size="sm" className="h-8 text-xs">
-                          <Undo2 className="h-3 w-3 mr-1" />
-                          Revert
-                      </Button>
-                  </div>
-              </div>
-              <ScrollArea className="flex-grow pr-2 -mr-2">
-              <div className="space-y-2 pr-2">
                 <div className="border rounded-lg p-2 flex flex-col gap-2">
-                    <h3 className="font-semibold text-xs mb-1">Multi-Text Entry</h3>
-                    <Textarea
-                        ref={multiTextRef}
-                        placeholder="e.g. 11,22,33=100 or 11,22(100) or 123*10"
-                        rows={4}
-                        value={multiText}
-                        onChange={handleMultiTextChange}
-                        onKeyDown={(e) => handleKeyDown(e, 'multiText')}
-                        className="w-full text-base"
-                        disabled={isDataEntryDisabled}
-                        onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
-                    />
-                    <div className="grid grid-cols-2 gap-2 mt-1">
-                        <Button onClick={handleMultiTextApply} className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">Apply</Button>
-                        <Button onClick={onClear} variant="destructive" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Clear
+                    <div className="flex items-center gap-2">
+                        <Select value={selectedClientId || 'None'} onValueChange={onClientChange}>
+                            <SelectTrigger className="flex-grow h-8 text-xs">
+                                <SelectValue>
+                                    {selectedClientId && clients.find(c => c.id === selectedClientId) ? getClientDisplay(clients.find(c => c.id === selectedClientId)!) : "Select Client"}
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="None">None</SelectItem>
+                                {clients.map(client => (
+                                    <SelectItem key={client.id} value={client.id}>
+                                        {getClientDisplay(client)}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Button onClick={onSave} disabled={!selectedClientId} size="sm" className="h-8 text-xs">
+                            <Save className="h-3 w-3 mr-1" />
+                            Save
                         </Button>
-                        <Button onClick={openViewEntryDialog} variant="outline" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
-                            <Eye className="h-3 w-3 mr-1" />
-                            View Entries
-                        </Button>
-                        <Button onClick={handleGenerateSheet} variant="outline" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
-                            <Download className="h-3 w-3 mr-1" />
-                            Generate Sheet
+                        <Button onClick={onRevert} variant="outline" disabled={isRevertDisabled} size="sm" className="h-8 text-xs">
+                            <Undo2 className="h-3 w-3 mr-1" />
+                            Revert
                         </Button>
                     </div>
                 </div>
-                
-                <div className="border rounded-lg p-2 flex flex-col gap-2">
-                  <h3 className="font-semibold mb-1 text-xs">Laddi</h3>
-                  <div className="flex items-start gap-2 mb-1">
-                      <div className="flex-1 flex flex-col items-center gap-1">
-                          <Input
-                            ref={laddiNum1Ref}
-                            id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "Start" : "Num 1"}
-                            value={laddiNum1} onChange={(e) => {
-                                const val = e.target.value.replace(/[^0-9]/g, '');
-                                setLaddiNum1(val);
-                            }}
-                            onKeyDown={(e) => handleKeyDown(e, 'laddiNum1')} 
-                            disabled={isDataEntryDisabled}
-                            onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
-                          />
-                      </div>
-                      <div className="flex flex-col items-center justify-center px-1 pt-1">
-                          <div className="text-xs font-bold text-primary">{combinationCount}</div>
-                          <span className="font-bold text-center text-sm">x</span>
-                      </div>
-                      <div className="flex-1 flex flex-col items-center gap-1">
-                          <Input
-                            ref={laddiNum2Ref}
-                            id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "End" : "Num 2"}
-                            value={laddiNum2} onChange={(e) => setLaddiNum2(e.target.value.replace(/[^0-9]/g, ''))} 
-                            onKeyDown={(e) => handleKeyDown(e, 'laddiNum2')} 
-                            disabled={isDataEntryDisabled}
-                            onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
-                          />
-                      </div>
-                      <div className="flex flex-col items-center justify-center px-1 pt-1">
-                          <span className="font-bold text-center text-sm">=</span>
-                      </div>
-                      <div className="flex-1 flex flex-col items-center gap-1">
-                        <Input
-                          ref={laddiAmountRef}
-                          id="laddiAmount" type="text" className="text-center font-bold h-8 text-sm"
-                          value={laddiAmount} onChange={(e) => setLaddiAmount(e.target.value.replace(/[^0-9]/g, ''))}
-                          placeholder="Amount" 
-                          onKeyDown={(e) => handleKeyDown(e, 'laddiAmount')} 
-                          disabled={isDataEntryDisabled}
-                          onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
-                        />
-                      </div>
-                  </div>
-                  <div className="flex justify-between items-center gap-2 mt-1">
-                      <div className="flex items-center gap-x-3">
-                          <div className="flex items-center gap-1.5">
-                            <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={isDataEntryDisabled || runningLaddi} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
-                            <Label htmlFor="remove-jodda" className={`text-xs ${isDataEntryDisabled || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Jodda</Label>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <Checkbox id="reverse-laddi" checked={reverseLaddi} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setReverseLaddi(Boolean(checked)) }} disabled={isDataEntryDisabled || runningLaddi} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
-                            <Label htmlFor="reverse-laddi" className={`text-xs ${isDataEntryDisabled || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Reverse</Label>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <Checkbox id="running-laddi" checked={runningLaddi} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRunningLaddi(Boolean(checked)); setLaddiNum1(''); setLaddiNum2(''); }} disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
-                            <Label htmlFor="running-laddi" className={`text-xs ${isDataEntryDisabled ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Running</Label>
-                          </div>
-                      </div>
-                      <Button onClick={handleLaddiApply} disabled={isDataEntryDisabled} size="sm" className="h-8 text-xs">Apply</Button>
-                  </div>
-                </div>
-              
-                <div className="border rounded-lg p-2 flex flex-col gap-2">
-                  <h3 className="font-semibold mb-1 text-xs">HARUP</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                    <div className="flex items-center gap-1">
-                        <Label htmlFor="harupA" className="w-6 text-center shrink-0 text-xs">A</Label>
-                        <Input ref={harupAInputRef} id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => setHarupA(e.target.value)} 
-                        onKeyDown={(e) => handleKeyDown(e, 'harupA')} 
-                        disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
+                <ScrollArea className="flex-grow pr-2 -mr-2">
+                    <div className="space-y-2 pr-2">
+                        <div className="border rounded-lg p-2 flex flex-col gap-2">
+                            <h3 className="font-semibold text-xs mb-1">Multi-Text Entry</h3>
+                            <Textarea
+                                ref={multiTextRef}
+                                placeholder="e.g. 11,22,33=100 or 11,22(100) or 123*10"
+                                rows={4}
+                                value={multiText}
+                                onChange={handleMultiTextChange}
+                                onKeyDown={(e) => handleKeyDown(e, 'multiText')}
+                                className="w-full text-base"
+                                disabled={isDataEntryDisabled}
+                                onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
+                            />
+                            <div className="grid grid-cols-2 gap-2 mt-1">
+                                <Button onClick={handleMultiTextApply} className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">Apply</Button>
+                                <Button onClick={onClear} variant="destructive" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
+                                    <Trash2 className="h-3 w-3 mr-1" />
+                                    Clear
+                                </Button>
+                                <Button onClick={openViewEntryDialog} variant="outline" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
+                                    <Eye className="h-3 w-3 mr-1" />
+                                    View Entries
+                                </Button>
+                                <Button onClick={handleGenerateSheet} variant="outline" className="text-xs h-8" disabled={isDataEntryDisabled} size="sm">
+                                    <Download className="h-3 w-3 mr-1" />
+                                    Generate Sheet
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="border rounded-lg p-2 flex flex-col gap-2">
+                            <h3 className="font-semibold mb-1 text-xs">Laddi</h3>
+                            <div className="flex items-start gap-2 mb-1">
+                                <div className="flex-1 flex flex-col items-center gap-1">
+                                    <Input
+                                        ref={laddiNum1Ref}
+                                        id="laddiNum1" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "Start" : "Num 1"}
+                                        value={laddiNum1} onChange={(e) => {
+                                            const val = e.target.value.replace(/[^0-9]/g, '');
+                                            setLaddiNum1(val);
+                                        }}
+                                        onKeyDown={(e) => handleKeyDown(e, 'laddiNum1')}
+                                        disabled={isDataEntryDisabled}
+                                        onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
+                                    />
+                                </div>
+                                <div className="flex flex-col items-center justify-center px-1 pt-1">
+                                    <div className="text-xs font-bold text-primary">{combinationCount}</div>
+                                    <span className="font-bold text-center text-sm">x</span>
+                                </div>
+                                <div className="flex-1 flex flex-col items-center gap-1">
+                                    <Input
+                                        ref={laddiNum2Ref}
+                                        id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "End" : "Num 2"}
+                                        value={laddiNum2} onChange={(e) => setLaddiNum2(e.target.value.replace(/[^0-9]/g, ''))}
+                                        onKeyDown={(e) => handleKeyDown(e, 'laddiNum2')}
+                                        disabled={isDataEntryDisabled}
+                                        onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
+                                    />
+                                </div>
+                                <div className="flex flex-col items-center justify-center px-1 pt-1">
+                                    <span className="font-bold text-center text-sm">=</span>
+                                </div>
+                                <div className="flex-1 flex flex-col items-center gap-1">
+                                    <Input
+                                        ref={laddiAmountRef}
+                                        id="laddiAmount" type="text" className="text-center font-bold h-8 text-sm"
+                                        value={laddiAmount} onChange={(e) => setLaddiAmount(e.target.value.replace(/[^0-9]/g, ''))}
+                                        placeholder="Amount"
+                                        onKeyDown={(e) => handleKeyDown(e, 'laddiAmount')}
+                                        disabled={isDataEntryDisabled}
+                                        onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex justify-between items-center gap-2 mt-1">
+                                <div className="flex items-center gap-x-3">
+                                    <div className="flex items-center gap-1.5">
+                                        <Checkbox id="remove-jodda" checked={removeJodda} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRemoveJodda(Boolean(checked)) }} disabled={isDataEntryDisabled || runningLaddi} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined} />
+                                        <Label htmlFor="remove-jodda" className={`text-xs ${isDataEntryDisabled || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Jodda</Label>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <Checkbox id="reverse-laddi" checked={reverseLaddi} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setReverseLaddi(Boolean(checked)) }} disabled={isDataEntryDisabled || runningLaddi} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined} />
+                                        <Label htmlFor="reverse-laddi" className={`text-xs ${isDataEntryDisabled || runningLaddi ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Reverse</Label>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <Checkbox id="running-laddi" checked={runningLaddi} onCheckedChange={(checked) => { if (isDataEntryDisabled) { showClientSelectionToast(); return; } setRunningLaddi(Boolean(checked)); setLaddiNum1(''); setLaddiNum2(''); }} disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined} />
+                                        <Label htmlFor="running-laddi" className={`text-xs ${isDataEntryDisabled ? 'cursor-not-allowed text-muted-foreground' : ''}`}>Running</Label>
+                                    </div>
+                                </div>
+                                <Button onClick={handleLaddiApply} disabled={isDataEntryDisabled} size="sm" className="h-8 text-xs">Apply</Button>
+                            </div>
+                        </div>
+
+                        <div className="border rounded-lg p-2 flex flex-col gap-2">
+                            <h3 className="font-semibold mb-1 text-xs">HARUP</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                                <div className="flex items-center gap-1">
+                                    <Label htmlFor="harupA" className="w-6 text-center shrink-0 text-xs">A</Label>
+                                    <Input ref={harupAInputRef} id="harupA" placeholder="e.g. 123" className="min-w-0 h-8 text-xs" value={harupA} onChange={(e) => setHarupA(e.target.value)}
+                                        onKeyDown={(e) => handleKeyDown(e, 'harupA')}
+                                        disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined} />
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <Label htmlFor="harupB" className="w-6 text-center shrink-0 text-xs">B</Label>
+                                    <Input ref={harupBInputRef} id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => setHarupB(e.target.value)}
+                                        onKeyDown={(e) => handleKeyDown(e, 'harupB')}
+                                        disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined} />
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                                <Label htmlFor="harupAmount" className="w-6 text-center shrink-0 text-xs">=</Label>
+                                <Input ref={harupAmountInputRef} id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)}
+                                    onKeyDown={(e) => handleKeyDown(e, 'harupAmount')}
+                                    disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined} />
+                                <Button onClick={handleHarupApply} disabled={isDataEntryDisabled} size="sm" className="h-8 text-xs">Apply</Button>
+                            </div>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                        <Label htmlFor="harupB" className="w-6 text-center shrink-0 text-xs">B</Label>
-                        <Input ref={harupBInputRef} id="harupB" placeholder="e.g. 456" className="min-w-0 h-8 text-xs" value={harupB} onChange={(e) => setHarupB(e.target.value)} 
-                        onKeyDown={(e) => handleKeyDown(e, 'harupB')} 
-                        disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
-                    </div>
-                  </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Label htmlFor="harupAmount" className="w-6 text-center shrink-0 text-xs">=</Label>
-                      <Input ref={harupAmountInputRef} id="harupAmount" placeholder="Amount" className="font-bold h-8 text-xs" value={harupAmount} onChange={(e) => setHarupAmount(e.target.value)} 
-                      onKeyDown={(e) => handleKeyDown(e, 'harupAmount')} 
-                      disabled={isDataEntryDisabled} onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}/>
-                      <Button onClick={handleHarupApply} disabled={isDataEntryDisabled} size="sm" className="h-8 text-xs">Apply</Button>
-                  </div>
-                </div>
-              </div>
-            </ScrollArea>
-            <div className="border rounded-lg p-2 mt-2">
-                <Button onClick={openMasterSheet} variant="outline" className="w-full">
-                    <FileSpreadsheet className="mr-2 h-4 w-4" />
-                    View Master Sheet
-                </Button>
-            </div>
-          </div>
-            <Dialog open={isGeneratedSheetDialogOpen} onOpenChange={setIsGeneratedSheetDialogOpen}>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Generated Client Sheet Content</DialogTitle>
-                </DialogHeader>
-                <div className="my-4">
-                  <Textarea
-                    readOnly
-                    value={generatedSheetContent}
-                    rows={Math.min(15, generatedSheetContent.split('\n').length)}
-                    className="bg-muted"
-                  />
-                </div>
-                <DialogFooter className="sm:justify-between">
-                  <DialogClose asChild>
-                    <Button type="button" variant="secondary">
-                      Close
+                </ScrollArea>
+                <div className="border rounded-lg p-2 mt-2">
+                    <Button onClick={openMasterSheet} variant="outline" className="w-full">
+                        <FileSpreadsheet className="mr-2 h-4 w-4" />
+                        View Master Sheet
                     </Button>
-                  </DialogClose>
-                  <Button onClick={() => handleCopyToClipboard(generatedSheetContent)}>
-                    <Copy className="mr-2 h-4 w-4" />
-                    Copy to Clipboard
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
+                </div>
+            </div>
+            <Dialog open={isGeneratedSheetDialogOpen} onOpenChange={setIsGeneratedSheetDialogOpen}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Generated Client Sheet Content</DialogTitle>
+                    </DialogHeader>
+                    <div className="my-4">
+                        <Textarea
+                            readOnly
+                            value={generatedSheetContent}
+                            rows={Math.min(15, generatedSheetContent.split('\n').length)}
+                            className="bg-muted"
+                        />
+                    </div>
+                    <DialogFooter className="sm:justify-between">
+                        <DialogClose asChild>
+                            <Button type="button" variant="secondary">
+                                Close
+                            </Button>
+                        </DialogClose>
+                        <Button onClick={() => handleCopyToClipboard(generatedSheetContent)}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Copy to Clipboard
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
             </Dialog>
         </>
-    );
-    
-    
-    
-
-    
-
-
-
-    
-
-    
-
-
-
-
-    
-
-    
-
-    
-
-
-
-    
-
-    
+    );}
