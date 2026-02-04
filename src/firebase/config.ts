@@ -16,8 +16,7 @@ try {
 }
 
 // For local development, use environment variables from .env
-// For Firebase Hosting, these will be undefined, and the `config` above will be used.
-export const firebaseConfig = config || {
+const envConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -26,6 +25,23 @@ export const firebaseConfig = config || {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
+
+// Hardcoded fallback for local development if environment variables are not set.
+const hardcodedConfig = {
+  apiKey: "AIzaSyDKxGOWyVi6GXpfauTRLaGPGFREkZa-epg",
+  authDomain: "ms-jantri-55079957-98b95.firebaseapp.com",
+  projectId: "ms-jantri-55079957-98b95",
+  storageBucket: "ms-jantri-55079957-98b95.appspot.com", // Corrected domain for storage bucket
+  messagingSenderId: "114108861217",
+  appId: "1:114108861217:web:c3d391d66e156b570c0c60",
+  measurementId: "",
+};
+
+// Priority order for configuration:
+// 1. FIREBASE_CONFIG (from Firebase App Hosting)
+// 2. NEXT_PUBLIC_... environment variables (from Netlify/Vercel/.env)
+// 3. Hardcoded fallback (for local development without .env)
+export const firebaseConfig = config || (envConfig.apiKey ? envConfig : hardcodedConfig);
 
 
 export const hasFirebaseConfig =
