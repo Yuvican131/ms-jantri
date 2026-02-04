@@ -714,9 +714,14 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     return props.savedSheetLog[props.draw]
       .filter(log => log.clientId === selectedClientId && log.date === dateStrToMatch)
       .sort((a, b) => {
-        if (a.createdAt && b.createdAt) {
-          return b.createdAt.localeCompare(a.createdAt);
+        // Handle Firestore Timestamp objects safely
+        const tsA = a.createdAt?.seconds;
+        const tsB = b.createdAt?.seconds;
+
+        if (tsA && tsB) {
+          return tsB - tsA; // Sort by timestamp descending (most recent first)
         }
+        
         // Fallback for entries without a createdAt timestamp
         return b.id.localeCompare(a.id);
       });

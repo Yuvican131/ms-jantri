@@ -47,29 +47,24 @@ export const useSheetLog = (userId?: string) => {
     return logByDraw;
   }, [sheetLogData]);
 
-  const addSheetLogEntry = useCallback((entry: Omit<SavedSheetInfo, 'id'> | SavedSheetInfo) => {
-    if (!sheetLogColRef) return;
-    
-    if ('id' in entry) {
-      // This is an update to an existing entry
-      const docRef = doc(firestore, sheetLogColRef.path, entry.id);
-      const { id, ...entryData } = entry;
-      updateDocumentNonBlocking(docRef, entryData);
-    } else {
-      // This is a new entry, add server-side timestamp
-      addDoc(sheetLogColRef, { ...entry, createdAt: serverTimestamp() })
-        .catch(error => {
-            errorEmitter.emit(
-              'permission-error',
-              new FirestorePermissionError({
-                path: sheetLogColRef.path,
-                operation: 'create',
-                requestResourceData: entry,
-              })
-            )
-        });
-    }
-  }, [sheetLogColRef, firestore]);
+  const addSheetLogEntry = useCallback((entry: Omit<SavedSheetInfo, 'id'>) => {
+    if (!userId) return;
+    const colRef = collection(firestore, `users/${userId}/sheetLogs`);
+    // Use addDoc for new entries, which is what this function now exclusively handles.
+    // The server timestamp is added here to ensure consistency.
+    addDoc(colRef, { ...entry, createdAt: serverTimestamp() })
+      .catch(error => {
+          console.error("Error adding document: ", error);
+          errorEmitter.emit(
+            'permission-error',
+            new FirestorePermissionError({
+              path: colRef.path,
+              operation: 'create',
+              requestResourceData: entry,
+            })
+          )
+      });
+  }, [userId, firestore]);
   
   const deleteSheetLogEntry = useCallback((logId: string) => {
     if (!userId) return;
