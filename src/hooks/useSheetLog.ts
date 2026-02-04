@@ -28,10 +28,37 @@ export const useSheetLog = (userId?: string) => {
 
   const sheetLogColRef = useMemoFirebase(() => {
     if (!userId) return null;
+    // Query without ordering to ensure all documents (with or without createdAt) are fetched.
     return collection(firestore, `users/${userId}/sheetLogs`);
   }, [firestore, userId]);
 
-  const { data: sheetLogData, isLoading, error, setData: setSheetLogData } = useCollection<Omit<SavedSheetInfo, 'id'>>(sheetLogColRef);
+  const { data: rawSheetLogData, isLoading, error, setData: setSheetLogData } = useCollection<Omit<SavedSheetInfo, 'id'>>(sheetLogColRef);
+
+  // Perform sorting on the client side to handle documents with and without timestamps
+  const sheetLogData = useMemo(() => {
+    if (!rawSheetLogData) return null;
+
+    return [...rawSheetLogData].sort((a, b) => {
+      const aHasTimestamp = a.createdAt && a.createdAt.seconds;
+      const bHasTimestamp = b.createdAt && b.createdAt.seconds;
+
+      if (aHasTimestamp && bHasTimestamp) {
+        // If both have a timestamp, sort by it
+        return a.createdAt.seconds - b.createdAt.seconds;
+      }
+      if (aHasTimestamp) {
+        // If only 'a' has a timestamp, 'b' (without) is older
+        return 1;
+      }
+      if (bHasTimestamp) {
+        // If only 'b' has a timestamp, 'a' (without) is older
+        return -1;
+      }
+      // If neither has a timestamp, fall back to ID for a stable (mostly chronological) sort
+      return a.id.localeCompare(b.id);
+    });
+  }, [rawSheetLogData]);
+
 
   const savedSheetLog = useMemo(() => {
     if (!sheetLogData) {
@@ -50,8 +77,7 @@ export const useSheetLog = (userId?: string) => {
   const addSheetLogEntry = useCallback((entry: Omit<SavedSheetInfo, 'id'>) => {
     if (!userId) return;
     const colRef = collection(firestore, `users/${userId}/sheetLogs`);
-    // Use addDoc for new entries, which is what this function now exclusively handles.
-    // The server timestamp is added here to ensure consistency.
+    // Add server timestamp to all new entries for consistent sorting in the future
     addDoc(colRef, { ...entry, createdAt: serverTimestamp() })
       .catch(error => {
           console.error("Error adding document: ", error);
