@@ -86,7 +86,7 @@ export function useCollection<T = any>(
           results.push({ ...(doc.data() as T), id: doc.id });
         });
         setData(results);
-        setIsLoading(false); // Data loaded, set loading to false
+        setIsLoading(false);
         setError(null);
       },
       (err: FirestoreError) => {
