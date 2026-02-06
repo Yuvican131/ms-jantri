@@ -1,0 +1,10 @@
+# Settings to manage and configure a Firebase App Hosting backend.
+# https://firebase.google.com/docs/app-hosting/configure
+runConfig:
+  # Increase this value to automatically spin up more instances in response to traffic.
+  maxInstances: 2
+  # The IAM roles grant the app backend permission to access other Firebase/Google services.
+  serviceAccount:
+    roles:
+      # Allows access to Firestore database
+      - roles/datastore.user

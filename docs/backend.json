@@ -1,0 +1,82 @@
+{
+  "entities": {
+    "Client": {
+      "title": "Client",
+      "type": "object",
+      "description": "Represents a client with associated information.",
+      "properties": {
+        "name": { "type": "string" },
+        "pair": { "type": "string" },
+        "comm": { "type": "string" },
+        "inOut": { "type": "string" },
+        "patti": { "type": "string" },
+        "activeBalance": { "type": "number", "default": 0 },
+        "paymentType": {
+          "type": "string",
+          "enum": ["credit", "pre-paid"],
+          "default": "credit"
+        }
+      },
+      "required": ["name", "pair", "comm", "inOut", "patti", "paymentType"]
+    },
+    "SheetLog": {
+      "title": "SheetLog",
+      "type": "object",
+      "description": "Represents a single saved sheet entry for a client and draw.",
+      "properties": {
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "draw": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "gameTotal": { "type": "number" },
+        "data": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "required": ["clientId", "clientName", "draw", "date", "gameTotal", "data"]
+    },
+    "DeclaredNumber": {
+      "title": "DeclaredNumber",
+      "type": "object",
+      "description": "Represents a declared winning number for a specific draw on a specific date.",
+      "properties": {
+        "draw": { "type": "string" },
+        "number": { "type": "string" },
+        "date": { "type": "string", "format": "date" }
+      },
+      "required": ["draw", "number", "date"]
+    }
+  },
+  "auth": {
+    "providers": ["anonymous"]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}/clients/{clientId}",
+        "definition": {
+          "entityName": "Client",
+          "schema": { "$ref": "#/backend/entities/Client" },
+          "description": "Stores client data for a specific user."
+        }
+      },
+      {
+        "path": "/users/{userId}/sheetLogs/{sheetLogId}",
+        "definition": {
+          "entityName": "SheetLog",
+          "schema": { "$ref": "#/backend/entities/SheetLog" },
+          "description": "Stores sheet log entries for a specific user."
+        }
+      },
+      {
+        "path": "/users/{userId}/declaredNumbers/{declarationId}",
+        "definition": {
+          "entityName": "DeclaredNumber",
+          "schema": { "$ref": "#/backend/entities/DeclaredNumber" },
+          "description": "Stores a declared number for a specific draw and date. The ID is a composite of draw-date."
+        }
+      }
+    ]
+  }
+}
