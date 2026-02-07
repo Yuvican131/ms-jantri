@@ -1,9 +1,8 @@
 
 'use client';
 import { useMemo, useCallback } from 'react';
-import { collection, doc, writeBatch, query, where, getDocs, serverTimestamp, addDoc } from 'firebase/firestore';
+import { collection, doc, writeBatch, query, where, getDocs, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from './use-toast';
 import { format } from 'date-fns';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -28,13 +27,11 @@ export const useSheetLog = (userId?: string) => {
 
   const sheetLogColRef = useMemoFirebase(() => {
     if (!userId) return null;
-    // Query without ordering to ensure all documents (with or without createdAt) are fetched.
     return collection(firestore, `users/${userId}/sheetLogs`);
   }, [firestore, userId]);
 
   const { data: rawSheetLogData, isLoading, error, setData: setSheetLogData } = useCollection<Omit<SavedSheetInfo, 'id'>>(sheetLogColRef);
 
-  // Perform sorting on the client side to handle documents with and without timestamps
   const sheetLogData = useMemo(() => {
     if (!rawSheetLogData) return null;
 
@@ -43,19 +40,14 @@ export const useSheetLog = (userId?: string) => {
       const bHasTimestamp = b.createdAt && b.createdAt.seconds;
 
       if (aHasTimestamp && bHasTimestamp) {
-        // If both have a timestamp, sort by it
-        return a.createdAt.seconds - b.createdAt.seconds;
+        // Sort descending (newest first)
+        return b.createdAt.seconds - a.createdAt.seconds;
       }
-      if (aHasTimestamp) {
-        // If only 'a' has a timestamp, 'b' (without) is older
-        return 1;
-      }
-      if (bHasTimestamp) {
-        // If only 'b' has a timestamp, 'a' (without) is older
-        return -1;
-      }
-      // If neither has a timestamp, fall back to ID for a stable (mostly chronological) sort
-      return a.id.localeCompare(b.id);
+      if (aHasTimestamp) return -1;
+      if (bHasTimestamp) return 1;
+      
+      // Fallback for entries without a createdAt timestamp
+      return b.id.localeCompare(a.id);
     });
   }, [rawSheetLogData]);
 
@@ -77,10 +69,21 @@ export const useSheetLog = (userId?: string) => {
   const addSheetLogEntry = useCallback((entry: Omit<SavedSheetInfo, 'id'>) => {
     if (!userId) return;
     const colRef = collection(firestore, `users/${userId}/sheetLogs`);
-    // Add server timestamp to all new entries for consistent sorting in the future
+
+    // Optimistically update the UI
+    const optimisticEntry: SavedSheetInfo = {
+        ...entry,
+        id: `optimistic-${Date.now()}`, // Temporary ID
+        createdAt: new Date(), // Use client time for optimistic UI
+    };
+    setSheetLogData(prev => prev ? [optimisticEntry, ...prev] : [optimisticEntry]);
+
     addDoc(colRef, { ...entry, createdAt: serverTimestamp() })
       .catch(error => {
           console.error("Error adding document: ", error);
+          // Revert optimistic update on error
+          setSheetLogData(prev => prev?.filter(log => log.id !== optimisticEntry.id) || null);
+          toast({ title: "Save Failed", description: "Could not save the entry.", variant: "destructive" });
           errorEmitter.emit(
             'permission-error',
             new FirestorePermissionError({
@@ -90,15 +93,32 @@ export const useSheetLog = (userId?: string) => {
             })
           )
       });
-  }, [userId, firestore]);
+  }, [userId, firestore, setSheetLogData, toast]);
   
   const deleteSheetLogEntry = useCallback((logId: string) => {
-    if (!userId) return;
+    if (!userId || !sheetLogData) return;
+    
+    // Find the log to remove for potential revert
+    const logToRemove = sheetLogData.find(log => log.id === logId);
+
+    // Optimistically update the UI by removing the item
     setSheetLogData(prevData => prevData?.filter(log => log.id !== logId) || null);
+    
     const docRef = doc(firestore, `users/${userId}/sheetLogs`, logId);
-    deleteDocumentNonBlocking(docRef);
-    toast({ title: "Entry Deleted", description: "The log entry has been removed." });
-  }, [userId, firestore, setSheetLogData, toast]);
+
+    deleteDoc(docRef)
+        .then(() => {
+            toast({ title: "Entry Deleted", description: "The log entry has been removed." });
+        })
+        .catch(error => {
+            console.error("Error deleting document: ", error);
+            // Revert optimistic delete on error
+            if (logToRemove) {
+                setSheetLogData(prev => prev ? [...prev, logToRemove] : [logToRemove]);
+            }
+            toast({ title: "Delete Failed", description: "Could not delete the entry.", variant: "destructive" });
+        });
+  }, [userId, firestore, setSheetLogData, toast, sheetLogData]);
 
   const deleteSheetLogsForClient = useCallback(async (clientId: string, showToast: boolean = true) => {
     if (!userId) return Promise.resolve();
