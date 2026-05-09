@@ -473,8 +473,7 @@ export function DataEntryControls({
         harupADigits.forEach(digitA => {
             for (let i = 0; i < 10; i++) {
                 const cellNumber = parseInt(`${digitA}${i}`, 10);
-                if (cellNumber === 0) continue;
-                const key = cellNumber === 100 ? '00' : cellNumber.toString().padStart(2, '0');
+                const key = cellNumber === 0 || cellNumber === 100 ? '00' : cellNumber.toString().padStart(2, '0');
                 updates[key] = (updates[key] || 0) + perDigitAmountA;
             }
         });
@@ -482,8 +481,7 @@ export function DataEntryControls({
         harupBDigits.forEach(digitB => {
             for (let i = 0; i < 10; i++) {
                 const cellNumber = parseInt(`${i}${digitB}`, 10);
-                if (cellNumber === 0) continue;
-                const key = cellNumber === 100 ? '00' : cellNumber.toString().padStart(2, '0');
+                const key = cellNumber === 0 || cellNumber === 100 ? '00' : cellNumber.toString().padStart(2, '0');
                 updates[key] = (updates[key] || 0) + perDigitAmountB;
             }
         });
@@ -623,7 +621,7 @@ export function DataEntryControls({
                         </Button>
                     </div>
                 </div>
-                <ScrollArea className="flex-grow pr-2 -mr-2">
+                <ScrollArea className="flex-grow pr-2 -mr-2 min-h-0">
                     <div className="space-y-2 pr-2">
                         <div className="border rounded-lg p-2 flex flex-col gap-2">
                             <h3 className="font-semibold text-xs mb-1">Multi-Text Entry</h3>

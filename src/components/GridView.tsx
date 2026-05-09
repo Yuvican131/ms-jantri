@@ -62,14 +62,16 @@ isDataEntryDisabled,
                 <React.Fragment key={`row-${rowIndex}`}>
                     {Array.from({ length: GRID_COLS }, (_, colIndex) => {
                         const cellNumber = rowIndex * GRID_COLS + colIndex + 1;
-                        const displayKey = cellNumber.toString().padStart(2, '0');
-                        const dataKey = cellNumber === 100 ? '00' : displayKey;
+                        const displayKey = cellNumber === 100 ? '00' : cellNumber.toString().padStart(2, '0');
+                        const dataKey = displayKey;
                         const isUpdated = updatedCells.includes(dataKey);
                         const validation = validations[dataKey];
 
                         return (
-                            <div key={dataKey} className="relative flex border rounded-sm grid-cell" style={{ borderColor: 'var(--grid-cell-border-color)' }}>
-                                <div className="absolute top-0.5 left-1 text-xs sm:top-1 sm:left-1.5 sm:text-sm select-none pointer-events-none z-10" style={{ color: 'var(--grid-cell-number-color)' }}>{displayKey}</div>
+                            <div key={dataKey} className={`relative flex flex-col border rounded-sm grid-cell overflow-hidden ${isUpdated ? "ring-1 ring-primary/60 bg-primary/10" : ""} ${isDataEntryDisabled ? 'bg-muted/30' : ''}`} style={{ borderColor: 'var(--grid-cell-border-color)' }}>
+                                {/* Cell number top-left */}
+                                <div className="absolute top-0.5 left-1 text-[0.75rem] sm:text-sm leading-none select-none pointer-events-none z-10 font-semibold" style={{ color: 'var(--grid-cell-number-color)' }}>{displayKey}</div>
+                                {/* Hidden input for editing — covers full cell */}
                                 <Input
                                     id={`cell-${dataKey}`}
                                     type="text"
@@ -78,14 +80,20 @@ isDataEntryDisabled,
                                     onBlur={() => handleCellBlur(dataKey)}
                                     disabled={isDataEntryDisabled}
                                     onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
-                                    className={`p-0 h-full w-full text-center bg-transparent border-0 focus:ring-0 grid-cell-input transition-colors duration-300 ${isUpdated ? "bg-primary/20" : ""} ${isDataEntryDisabled ? 'cursor-not-allowed bg-muted/50' : ''}`}
+                                    className={`absolute inset-0 p-0 h-full w-full text-center bg-transparent border-0 focus:ring-0 grid-cell-input transition-colors duration-300 opacity-0 focus:opacity-100 z-20 ${isDataEntryDisabled ? 'cursor-not-allowed' : 'cursor-text'}`}
                                     style={{ color: 'var(--grid-cell-amount-color)' }}
                                     aria-label={`Cell ${displayKey} value ${currentData[dataKey] || 'empty'}`}
                                 />
+                                {/* Amount label at bottom */}
+                                <div className="absolute bottom-0.5 left-0 right-0 flex items-end justify-center pointer-events-none z-10 px-0.5">
+                                    <span className="text-base sm:text-lg font-bold leading-none truncate text-center" style={{ color: 'var(--grid-cell-amount-color)' }}>
+                                        {currentData[dataKey] ? formatNumber(currentData[dataKey]) : ''}
+                                    </span>
+                                </div>
                                 {validation && !validation.isValid && !validation.isLoading && (
                                     <Popover>
                                         <PopoverTrigger asChild>
-                                            <button className="absolute bottom-0 right-0 p-0.5 text-destructive-foreground bg-destructive rounded-full">
+                                            <button className="absolute top-0 right-0 p-0.5 text-destructive-foreground bg-destructive rounded-full z-30">
                                                 <AlertCircle className="h-3 w-3" />
                                             </button>
                                         </PopoverTrigger>
@@ -95,7 +103,7 @@ isDataEntryDisabled,
                                     </Popover>
                                 )}
                                 {validation && validation.isLoading && (
-                                    <div className="absolute bottom-0 right-0 p-0.5">
+                                    <div className="absolute top-0 right-0 p-0.5 z-30">
                                         <Loader2 className="h-3 w-3 animate-spin" />
                                     </div>
                                 )}

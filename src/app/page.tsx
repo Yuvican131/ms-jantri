@@ -43,7 +43,7 @@ function GridIcon(props: React.SVGProps<SVGSVGElement>) {
       xmlns="http://www.w3.org/2000/svg"
       width="24"
       height="24"
-      viewBox="0 0 24"
+      viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
@@ -75,6 +75,11 @@ export default function Home() {
   const [lastEntry, setLastEntry] = useState('');
   const [isLastEntryDialogOpen, setIsLastEntryDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("sheet");
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const [declarationDraw, setDeclarationDraw] = useState("");
   const [declarationNumber, setDeclarationNumber] = useState("");
@@ -99,8 +104,9 @@ export default function Home() {
   const [settlements, setSettlements] = useState<{ [key: string]: Settlement[] }>({});
 
   useEffect(() => {
+    if (!isMounted) return;
     try {
-      const savedSettlements = localStorage.getItem('brokerSettlements');
+      const savedSettlements = window.localStorage.getItem('brokerSettlements');
       if (savedSettlements) {
         const parsedSettlements = JSON.parse(savedSettlements);
         const firstKey = Object.keys(parsedSettlements)[0];
@@ -111,11 +117,12 @@ export default function Home() {
     } catch (error) {
       console.error("Failed to parse settlements from localStorage", error);
     }
-  }, []);
+  }, [isMounted]);
 
   useEffect(() => {
-    localStorage.setItem('brokerSettlements', JSON.stringify(settlements));
-  }, [settlements]);
+    if (!isMounted) return;
+    window.localStorage.setItem('brokerSettlements', JSON.stringify(settlements));
+  }, [isMounted, settlements]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -196,10 +203,13 @@ export default function Home() {
             const declaredNumberForLogDate = getDeclaredNumber(log.draw, logDate);
             const passingAmountInLog = declaredNumberForLogDate ? parseFloat(log.data[declaredNumberForLogDate] || "0") : 0;
             
+            // Handle 00 result (100) correctly
+            const actualPassingAmount = declaredNumberForLogDate === '00' ? 100 : passingAmountInLog;
+            
             const gameTotal = log.gameTotal;
             const commission = gameTotal * clientCommissionPercent;
             const netFromGames = gameTotal - commission;
-            const winnings = passingAmountInLog * passingMultiplier;
+            const winnings = actualPassingAmount * passingMultiplier;
             dailyNetResult += (netFromGames - winnings);
           }
           runningBalance += dailyNetResult;
@@ -208,32 +218,56 @@ export default function Home() {
   
       const openingBalanceForSelectedDay = runningBalance;
       
-      const updatedDrawsForSelectedDay: { [key: string]: DrawData } = {};
-      const logsForSelectedDay = logsByDate[format(dateForCalc, 'yyyy-MM-dd')] || [];
-  
-      let netResultForSelectedDay = 0;
+const updatedDrawsForSelectedDay: { [key: string]: DrawData } = {};
+  const logsForSelectedDay = logsByDate[format(dateForCalc, 'yyyy-MM-dd')] || [];
+
+  let netResultForSelectedDay = 0;
+
+  draws.forEach(drawName => {
+    const clientLogsForSelectedDay = logsForSelectedDay.filter(log => log.draw === drawName);
+    let totalAmountForDraw = 0;
+    let passingAmountForDraw = 0;
+    let commissionForDraw = 0;
+    let pattiForDraw = 0;
+    let harupAForDraw = 0;
+    let harupBForDraw = 0;
+
+    clientLogsForSelectedDay.forEach(log => {
+      const declaredNumberForSelectedDay = getDeclaredNumber(drawName, dateForCalc);
+      const passingAmountInLog = declaredNumberForSelectedDay ? parseFloat(log.data[declaredNumberForSelectedDay] || "0") : 0;
       
-      draws.forEach(drawName => {
-        const clientLogsForSelectedDay = logsForSelectedDay.filter(log => log.draw === drawName);
-        let totalAmountForDraw = 0;
-        let passingAmountForDraw = 0;
-
-        clientLogsForSelectedDay.forEach(log => {
-          const declaredNumberForSelectedDay = getDeclaredNumber(drawName, dateForCalc);
-          const passingAmountInLog = declaredNumberForSelectedDay ? parseFloat(log.data[declaredNumberForSelectedDay] || "0") : 0;
-
-          totalAmountForDraw += log.gameTotal;
-          passingAmountForDraw += passingAmountInLog;
-        });
-
-        if (totalAmountForDraw > 0) {
-            const commissionOnDay = totalAmountForDraw * clientCommissionPercent;
-            const netFromGamesOnDay = totalAmountForDraw - commissionOnDay;
-            const winningsOnDay = passingAmountForDraw * passingMultiplier;
-            netResultForSelectedDay += (netFromGamesOnDay - winningsOnDay);
+      // Extract harup values from rawInput (View Entries format)
+      let harupAValue = log.data['A'] ? parseFloat(log.data['A']) : 0;
+      let harupBValue = log.data['B'] ? parseFloat(log.data['B']) : 0;
+      
+      // Parse harup from rawInput text when present (format: "0 A = 100", "1 B = 200")
+      if (log.rawInput) {
+        const harupAMatches = log.rawInput.matchAll(/[0-9]+\s*A\s*=\s*(\d+)/gi);
+        const harupBMatches = log.rawInput.matchAll(/[0-9]+\s*B\s*=\s*(\d+)/gi);
+        
+        for (const match of harupAMatches) {
+          harupAValue += parseFloat(match[1]) || 0;
         }
+        for (const match of harupBMatches) {
+          harupBValue += parseFloat(match[1]) || 0;
+        }
+      }
 
-        updatedDrawsForSelectedDay[drawName] = { totalAmount: totalAmountForDraw, passingAmount: passingAmountForDraw };
+      totalAmountForDraw += log.gameTotal;
+      passingAmountForDraw += passingAmountInLog;
+      commissionForDraw += log.gameTotal * clientCommissionPercent;
+      pattiForDraw += log.gameTotal * (1 - clientCommissionPercent);
+      harupAForDraw += harupAValue;
+      harupBForDraw += harupBValue;
+    });
+
+    if (totalAmountForDraw > 0) {
+        const netFromGamesOnDay = totalAmountForDraw - commissionForDraw;
+        const winningsOnDay = passingAmountForDraw * passingMultiplier;
+        netResultForSelectedDay += (netFromGamesOnDay - winningsOnDay);
+    }
+
+updatedDrawsForSelectedDay[drawName] = { totalAmount: totalAmountForDraw, passingAmount: passingAmountForDraw, commission: commissionForDraw, patti: pattiForDraw, harupA: harupAForDraw, harupB: harupBForDraw };
       });
       
       const closingBalance = openingBalanceForSelectedDay + netResultForSelectedDay;
@@ -248,7 +282,7 @@ export default function Home() {
     });
   
     setAccounts(newAccounts);
-  }, [clients, savedSheetLog, getDeclaredNumber, selectedDate]);
+  }, [clients, savedSheetLog, getDeclaredNumber, selectedDate, declaredNumbers, settlements]);
 
 
   useEffect(() => {
@@ -383,9 +417,9 @@ export default function Home() {
 
   return (
     <div className="flex h-screen w-full flex-col bg-background">
-      <main className="flex-1 p-2 md:p-4 flex flex-col min-h-0">
+      <main className="flex-1 p-0 m-0 flex flex-col min-h-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col min-h-0">
-          <div className="flex items-center justify-between pb-2 flex-wrap gap-2">
+          <div className="flex items-center justify-between px-2 py-1 flex-wrap gap-2">
             <div className="flex items-center flex-grow">
               {isMobile ? (
                   <ScrollArea className="w-full whitespace-nowrap">
@@ -564,7 +598,15 @@ export default function Home() {
             />
           </TabsContent>
           <TabsContent value="accounts">
-            <AccountsManager accounts={accounts} clients={clients} setAccounts={setAccounts} />
+            <AccountsManager
+              accounts={accounts}
+              clients={clients}
+              setAccounts={setAccounts}
+              selectedDate={selectedDate || new Date()}
+              onSelectedDateChange={(d) => setSelectedDate(d)}
+              declaredNumbers={declaredNumbers}
+              getDeclaredNumber={getDeclaredNumber}
+            />
           </TabsContent>
            <TabsContent value="ledger-record">
             <LedgerRecord clients={clients} savedSheetLog={savedSheetLog} draws={draws} declaredNumbers={declaredNumbers} />

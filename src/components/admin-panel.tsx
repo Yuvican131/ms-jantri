@@ -51,23 +51,34 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
     const {toast} = useToast();
 
     useEffect(() => {
-        const savedComm = localStorage.getItem('upperBrokerComm');
-        const savedPair = localStorage.getItem('upperBrokerPair');
-        if (savedComm) {
-            setUpperComm(savedComm);
-            setAppliedUpperComm(savedComm);
-        }
-        if (savedPair) {
-            setUpperPair(savedPair);
-            setAppliedUpperPair(savedPair);
+        if (typeof window === 'undefined' || !window.localStorage) return;
+        try {
+            const savedComm = window.localStorage.getItem('upperBrokerComm');
+            const savedPair = window.localStorage.getItem('upperBrokerPair');
+            if (savedComm) {
+                setUpperComm(savedComm);
+                setAppliedUpperComm(savedComm);
+            }
+            if (savedPair) {
+                setUpperPair(savedPair);
+                setAppliedUpperPair(savedPair);
+            }
+        } catch (e) {
+            console.error("Failed to read upper broker settings from localStorage", e);
         }
     }, []);
 
     const handleApplySettings = () => {
         setAppliedUpperComm(upperComm);
         setAppliedUpperPair(upperPair);
-        localStorage.setItem('upperBrokerComm', upperComm);
-        localStorage.setItem('upperBrokerPair', upperPair);
+        if (typeof window !== 'undefined' && window.localStorage) {
+            try {
+                window.localStorage.setItem('upperBrokerComm', upperComm);
+                window.localStorage.setItem('upperBrokerPair', upperPair);
+            } catch (e) {
+                console.error("Failed to save upper broker settings to localStorage", e);
+            }
+        }
         toast({ title: "Settings Applied", description: "Broker commission and pair rates have been updated." });
     };
 
@@ -362,10 +373,15 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     const [isSettlementHistoryOpen, setIsSettlementHistoryOpen] = useState(false);
     
     useEffect(() => {
-        const savedComm = localStorage.getItem('upperBrokerComm');
-        const savedPair = localStorage.getItem('upperBrokerPair');
-        if (savedComm) setAppliedUpperComm(savedComm);
-        if (savedPair) setAppliedUpperPair(savedPair);
+        if (typeof window === 'undefined' || !window.localStorage) return;
+        try {
+            const savedComm = window.localStorage.getItem('upperBrokerComm');
+            const savedPair = window.localStorage.getItem('upperBrokerPair');
+            if (savedComm) setAppliedUpperComm(savedComm);
+            if (savedPair) setAppliedUpperPair(savedPair);
+        } catch (e) {
+            console.error("Failed to read upper broker settings from localStorage", e);
+        }
     }, []);
 
     

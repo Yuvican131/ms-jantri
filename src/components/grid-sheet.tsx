@@ -4,7 +4,7 @@ import React, { useState, useImperativeHandle, forwardRef, useRef, useCallback, 
 import { useToast } from "@/hooks/use-toast"
 import { validateCellContent, ValidateCellContentOutput } from "@/ai/flows/validate-cell-content"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -178,17 +178,39 @@ const MasterSheetViewer = ({
   const masterSheetGrandTotal = calculateGrandTotal(masterSheetData);
   const netProfit = initialGrandTotal - masterSheetGrandTotal;
 
+  const roundToNearestFive = (n: number) => Math.round(n / 5) * 5;
+
   const handleApplyCutting = () => {
     const cutValue = parseFloat(cuttingValue);
-    if (isNaN(cutValue)) {
-      toast({ title: "Invalid Input", description: "Please enter a valid number for cutting.", variant: "destructive" });
+    if (isNaN(cutValue) || cutValue <= 0) {
+      toast({ title: "Invalid Input", description: "Please enter a valid positive number for cutting.", variant: "destructive" });
+      return;
+    }
+
+    const hasAnyMasterData = Object.keys(masterSheetData).length > 0;
+    if (!hasAnyMasterData) {
+      toast({ title: "No Data", description: "Master sheet has no values to apply cutting.", variant: "destructive" });
+      return;
+    }
+
+    const cellValues = Object.values(masterSheetData).map(v => parseFloat(v) || 0);
+    const maxCellValue = cellValues.length ? Math.max(...cellValues) : 0;
+
+    if (cutValue > maxCellValue) {
+      toast({
+        title: "Invalid Cutting",
+        description: `Cutting cannot be greater than the maximum cell amount (${formatNumber(maxCellValue)}).`,
+        variant: "destructive"
+      });
       return;
     }
 
     const newMasterData = { ...masterSheetData };
     Object.keys(newMasterData).forEach(key => {
       const cellValue = parseFloat(newMasterData[key]) || 0;
-      newMasterData[key] = String(cellValue - cutValue);
+      const newVal = Math.max(0, cellValue - cutValue);
+      const rounded = roundToNearestFive(newVal);
+      newMasterData[key] = rounded === 0 ? "" : String(rounded);
     });
     setMasterSheetData(newMasterData);
 
@@ -208,13 +230,50 @@ const MasterSheetViewer = ({
       const cellValue = parseFloat(newMasterData[key]) || 0;
       if (cellValue !== 0) {
         const reduction = cellValue * (lessPercent / 100);
-        newMasterData[key] = String(cellValue - reduction);
+        const newVal = cellValue - reduction;
+        const rounded = roundToNearestFive(newVal);
+        newMasterData[key] = rounded === 0 ? "" : String(rounded);
       }
     });
     setMasterSheetData(newMasterData);
 
     toast({ title: "Less Applied", description: `Subtracted ${lessPercent}% from all cells in the master sheet.` });
     setLessValue("");
+  };
+
+  const handleApplyDabba = () => {
+    const dabbaThreshold = parseFloat(dabbaValue);
+
+    if (isNaN(dabbaThreshold) || dabbaThreshold < 0) {
+      toast({ title: "Invalid Input", description: "Please enter a valid non-negative number for Dabba.", variant: "destructive" });
+      return;
+    }
+
+    const hasAnyMasterData = Object.keys(masterSheetData).length > 0;
+    if (!hasAnyMasterData) {
+      toast({ title: "No Data", description: "Master sheet has no values to apply Dabba.", variant: "destructive" });
+      return;
+    }
+
+    const newMasterData = { ...masterSheetData };
+    let affectedCells = 0;
+
+    Object.keys(newMasterData).forEach((key) => {
+      const cellValue = parseFloat(newMasterData[key]) || 0;
+      // For Dabba: clear any non-zero cell with value <= threshold
+      if (cellValue !== 0 && cellValue <= dabbaThreshold) {
+        newMasterData[key] = "";
+        affectedCells += 1;
+      }
+    });
+
+    setMasterSheetData(newMasterData);
+
+    toast({
+      title: "Dabba Applied",
+      description: `Set ${affectedCells} cell(s) below ${dabbaThreshold} to ${dabbaThreshold}. Values equal or above ${dabbaThreshold} are unchanged.`,
+    });
+    setDabbaValue("");
   };
 
   const handleLogSelectionChange = (index: number) => {
@@ -271,8 +330,8 @@ const MasterSheetViewer = ({
   
  return (
     <>
-    <div className="flex h-full flex-col gap-4 bg-background p-1 md:p-4 pb-4">
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 w-full flex-grow items-stretch">
+    <div className="flex h-full flex-col gap-4 bg-background p-1 md:p-4 pb-4 min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 w-full flex-grow items-stretch min-h-0">
         <div className="flex flex-col min-w-0">
             <div className="grid-sheet-layout h-full w-full">
                 {Array.from({ length: GRID_ROWS }, (_, rowIndex) => (
@@ -314,7 +373,7 @@ const MasterSheetViewer = ({
                 </div>
             </div>
         </div>
-        <div className="flex flex-col gap-4 w-full lg:w-[320px] xl:w-[360px] flex-shrink-0">
+        <div className="flex flex-col gap-4 w-full lg:w-[320px] xl:w-[360px] flex-shrink-0 min-h-0 h-full">
           <div className="border rounded-lg p-3 flex flex-col gap-3 bg-card">
               <h3 className="font-semibold text-sm text-card-foreground">Manual Controls</h3>
               <div className="flex items-center justify-between">
@@ -339,7 +398,7 @@ const MasterSheetViewer = ({
                   <div className="flex items-center gap-2">
                       <Label htmlFor="master-dabba" className="text-sm text-card-foreground w-16">Dabba</Label>
                       <Input id="master-dabba" placeholder="Value" className="text-sm h-8 text-center flex-grow" value={dabbaValue} onChange={(e) => setDabbaValue(e.target.value)} />
-                      <Button size="sm" className="h-8">Apply</Button>
+                      <Button onClick={handleApplyDabba} size="sm" className="h-8">Apply</Button>
                   </div>
               </div>
               <Separator />
@@ -366,48 +425,53 @@ const MasterSheetViewer = ({
           </div>
           
 
-          <Card className="flex flex-col flex-grow bg-card min-h-0">
-              <CardHeader className="p-3">
-                  <CardTitle className="text-sm">Client Entries for {format(date, 'PPP')}</CardTitle>
-              </CardHeader>
-              <CardContent className="p-3 flex-grow min-h-0">
-                  <ScrollArea className="h-full">
-                      <div className="space-y-2 pr-2">
-                          {currentLogs.length > 0 ? currentLogs.map((log, index) => (
-                              <div key={log.id} className="flex justify-between items-center p-2 rounded-md bg-muted text-sm group">
-                                  <div className="flex items-center gap-2">
-                                      <Checkbox
-                                          id={`log-${draw}-${index}`}
-                                          checked={selectedLogIndices.includes(index)}
-                                          onCheckedChange={() => handleLogSelectionChange(index)}
-                                          className="border-primary"
-                                      />
-                                      <label htmlFor={`log-${draw}-${index}`} className="cursor-pointer text-muted-foreground">{index + 1}. {log.clientName}</label>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                      <span className="font-mono font-semibold text-foreground">₹{formatNumber(log.gameTotal)}</span>
-                                       <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive"
-                                          onClick={() => onDeleteLog(log.id, log.clientName)}
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                          <span className="sr-only">Delete Log</span>
-                                        </Button>
-                                  </div>
-                              </div>
-                          )) : (
-                              <div className="text-center text-muted-foreground italic h-full flex items-center justify-center">No logs for this draw on this date.</div>
-                          )}
+          <Card className="flex flex-col flex-1 bg-card min-h-0 overflow-hidden">
+            <CardHeader className="p-3">
+              <CardTitle className="text-sm">Client Entries for {format(date, 'PPP')}</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 flex-1 min-h-0 overflow-hidden">
+              <div className="h-full overflow-y-auto pr-2">
+                <div className="space-y-2">
+                  {currentLogs.length > 0 ? currentLogs.map((log, index) => (
+                    <div key={log.id} className="flex justify-between items-center p-2 rounded-md bg-muted text-sm group">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Checkbox
+                          id={`log-${draw}-${index}`}
+                          checked={selectedLogIndices.includes(index)}
+                          onCheckedChange={() => handleLogSelectionChange(index)}
+                          className="border-primary"
+                        />
+                        <label htmlFor={`log-${draw}-${index}`} className="cursor-pointer text-muted-foreground truncate">
+                          {index + 1}. {log.clientName}
+                        </label>
                       </div>
-                  </ScrollArea>
-              </CardContent>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="font-mono font-semibold text-foreground">₹{formatNumber(log.gameTotal)}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive"
+                          onClick={() => onDeleteLog(log.id, log.clientName)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Delete Log</span>
+                        </Button>
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="text-center text-muted-foreground italic h-full flex items-center justify-center py-8">
+                      No logs for this draw on this date.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="p-3 pt-0">
+              <Button onClick={handleGenerateSheet} variant="outline" className="w-full">
+                <Download className="mr-2 h-4 w-4" /> Generate & Download Report
+              </Button>
+            </CardFooter>
           </Card>
-          
-          <Button onClick={handleGenerateSheet} variant="outline">
-            <Download className="mr-2 h-4 w-4"/> Generate & Download Report
-          </Button>
         </div>
       </div>
     </div>
@@ -687,6 +751,9 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
     updateClientData(selectedClientId, {});
     setCurrentRawInput("");
     setPreviousSheetState(null);
+    setValidations({});
+    setUpdatedCells([]);
+    props.setLastEntry('');
     focusMultiText();
   };
   
@@ -718,12 +785,12 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
         const tsA = a.createdAt?.seconds;
         const tsB = b.createdAt?.seconds;
 
-        if (tsA && tsB) {
-          return tsB - tsA; // Sort by timestamp descending (most recent first)
-        }
-        
-        // Fallback for entries without a createdAt timestamp
-        return b.id.localeCompare(a.id);
+          if (tsA && tsB) {
+            return tsB - tsA; // Sort by timestamp descending (newest first / latest entry on top)
+          }
+          
+          // Fallback for entries without a createdAt timestamp
+          return b.id.localeCompare(a.id);
       });
   }, [selectedClientId, props.savedSheetLog, props.draw, props.date]);
 
@@ -737,8 +804,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
   
   return (
     <>
-      <Card className="h-full flex flex-col overflow-hidden">
-        <CardContent className="p-1 md:p-2 flex-grow flex flex-col min-h-0">
+      <Card className="h-full flex flex-col overflow-hidden border-0 shadow-none rounded-none bg-transparent">
+         <CardContent className="p-0 md:p-0 flex-grow flex flex-col min-h-0 overflow-hidden">
           {isMobile ? (
             <Tabs defaultValue="grid" className="w-full flex flex-col min-h-0">
               <TabsList className="grid w-full grid-cols-2">
@@ -794,7 +861,6 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                   />
               </div>
                <DataEntryControls
-                  ref={multiTextRef}
                   clients={props.clients}
                   selectedClientId={selectedClientId}
                   onClientChange={handleSelectedClientChange}
@@ -891,17 +957,17 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
                 </DialogDescription>
             </DialogHeader>
             <div className="my-4">
-                <ScrollArea className="max-h-[60vh]">
+                 <ScrollArea className="max-h-[60vh] overflow-y-auto">
                     <div className="space-y-2 pr-4">
                         {clientEntries.length > 0 ? (
                             clientEntries.map((entry, index) => (
                                 <Card key={entry.id} className="p-3">
                                     <div className="flex justify-between items-center">
                                         <div>
-                                            <p className="font-semibold">
-                                                Entry {clientEntries.length - index}: 
-                                                <span className="font-mono text-primary ml-2">₹{formatNumber(entry.gameTotal)}</span>
-                                            </p>
+                                             <p className="font-semibold">
+                                                 Entry {index + 1}: 
+                                                 <span className="font-mono text-primary ml-2">₹{formatNumber(entry.gameTotal)}</span>
+                                             </p>
                                             <p className="text-xs text-muted-foreground whitespace-pre-wrap">
                                                 {entry.rawInput || Object.entries(entry.data).map(([k, v]) => `${k}=${v}`).join(', ')}
                                             </p>
@@ -930,5 +996,8 @@ const GridSheet = forwardRef<GridSheetHandle, GridSheetProps>((props, ref) => {
 GridSheet.displayName = 'GridSheet';
 
 export default GridSheet;
+
+
+
 
 

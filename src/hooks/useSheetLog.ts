@@ -1,7 +1,7 @@
 
 'use client';
 import { useMemo, useCallback } from 'react';
-import { collection, doc, writeBatch, query, where, getDocs, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, writeBatch, query, where, getDocs, serverTimestamp, deleteDoc, runTransaction } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useToast } from './use-toast';
 import { format } from 'date-fns';
@@ -68,26 +68,67 @@ export const useSheetLog = (userId?: string) => {
 
   const addSheetLogEntry = useCallback((entry: Omit<SavedSheetInfo, 'id'>) => {
     if (!userId) return;
-    const colRef = collection(firestore, `users/${userId}/sheetLogs`);
+    const docId = `${entry.clientId}-${entry.draw}-${entry.date}`;
+    const docRef = doc(firestore, `users/${userId}/sheetLogs`, docId);
 
-    // Optimistically update the UI
-    const optimisticEntry: SavedSheetInfo = {
-        ...entry,
-        id: `optimistic-${Date.now()}`, // Temporary ID
-        createdAt: new Date(), // Use client time for optimistic UI
-    };
-    setSheetLogData(prev => prev ? [optimisticEntry, ...prev] : [optimisticEntry]);
+    // Optimistically upsert the UI by deterministic id (one entry per client+draw+date).
+    setSheetLogData(prev => {
+      const existing = prev?.find(l => l.id === docId);
+      const merged: SavedSheetInfo = existing
+        ? {
+            ...existing,
+            ...entry,
+            id: docId,
+            gameTotal: (existing.gameTotal || 0) + (entry.gameTotal || 0),
+            data: mergeCellData(existing.data, entry.data),
+            rawInput: mergeRawInput(existing.rawInput, entry.rawInput),
+            createdAt: existing.createdAt || new Date(),
+          }
+        : {
+            ...entry,
+            id: docId,
+            createdAt: new Date(),
+          };
 
-    addDoc(colRef, { ...entry, createdAt: serverTimestamp() })
+      const without = prev?.filter(l => l.id !== docId) || [];
+      return [merged, ...without];
+    });
+
+    runTransaction(firestore, async (tx) => {
+      const snap = await tx.get(docRef);
+
+      if (!snap.exists()) {
+        tx.set(docRef, { ...entry, createdAt: serverTimestamp() });
+        return;
+      }
+
+      const existing = snap.data() as Omit<SavedSheetInfo, 'id'>;
+      const mergedData = mergeCellData(existing.data || {}, entry.data || {});
+      const mergedRawInput = mergeRawInput(existing.rawInput, entry.rawInput);
+      const mergedGameTotal = (existing.gameTotal || 0) + (entry.gameTotal || 0);
+
+      tx.set(
+        docRef,
+        {
+          ...existing,
+          ...entry,
+          data: mergedData,
+          rawInput: mergedRawInput,
+          gameTotal: mergedGameTotal,
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    })
       .catch(error => {
           console.error("Error adding document: ", error);
-          // Revert optimistic update on error
-          setSheetLogData(prev => prev?.filter(log => log.id !== optimisticEntry.id) || null);
+          // Revert optimistic update on error by reloading from existing state (best-effort).
+          // We can't fully restore without a snapshot; at least notify the user.
           toast({ title: "Save Failed", description: "Could not save the entry.", variant: "destructive" });
           errorEmitter.emit(
             'permission-error',
             new FirestorePermissionError({
-              path: colRef.path,
+              path: docRef.path,
               operation: 'create',
               requestResourceData: entry,
             })
@@ -205,3 +246,24 @@ export const useSheetLog = (userId?: string) => {
 
   return { savedSheetLog, isLoading, error, addSheetLogEntry, deleteSheetLogsForClient, getPreviousDataForClient, deleteSheetLogsForDraw, deleteSheetLogEntry };
 };
+
+function mergeCellData(
+  base: { [key: string]: string } = {},
+  incoming: { [key: string]: string } = {}
+) {
+  const merged: { [key: string]: string } = { ...base };
+  for (const [k, v] of Object.entries(incoming)) {
+    const next = parseFloat(v) || 0;
+    const prev = parseFloat(merged[k]) || 0;
+    merged[k] = String(prev + next);
+  }
+  return merged;
+}
+
+function mergeRawInput(a?: string, b?: string) {
+  const left = (a || '').trim();
+  const right = (b || '').trim();
+  if (!left) return right || undefined;
+  if (!right) return left || undefined;
+  return `${left}\n${right}`;
+}

@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { PlusCircle, MoreHorizontal, Edit, Trash2, ArrowUpCircle, ArrowDownCircle, Eraser, Mic } from "lucide-react"
+import { PlusCircle, MoreHorizontal, Edit, Trash2, ArrowUpCircle, ArrowDownCircle, Eraser, Mic, Search } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Account } from "./accounts-manager"
@@ -35,6 +35,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
   const [dialogTitle, setDialogTitle] = useState('');
   const [dialogDescription, setDialogDescription] = useState('');
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
 
   const [clientNameInput, setClientNameInput] = useState('');
@@ -124,7 +125,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
     }
   };
 
-  const handleSaveClient = (e: React.FormEvent<HTMLFormElement>) => {
+const handleSaveClient = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     const name = clientNameInput;
@@ -132,15 +133,15 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
     const comm = formData.get("comm") as string
     const inOut = formData.get("inOut") as string
     const patti = formData.get("patti") as string
-    const activeBalanceStr = formData.get("activeBalance") as string;
-    const activeBalance = parseFloat(activeBalanceStr) || 0;
+    const securityMoneyStr = formData.get("securityMoney") as string;
+    const securityMoney = parseFloat(securityMoneyStr) || 0;
     const paymentType = formData.get("paymentType") as Client['paymentType'];
 
-    if (editingClient) {
-      const updatedClient = { ...editingClient, name, pair, comm, inOut, patti, activeBalance, paymentType };
+if (editingClient) {
+      const updatedClient = { ...editingClient, name, pair, comm, inOut, patti, securityMoney, paymentType };
       onUpdateClient(updatedClient);
     } else {
-      const newClient: Omit<Client, 'id'> = { name, pair, comm, inOut, patti, activeBalance, paymentType }
+      const newClient: Omit<Client, 'id'> = { name, pair, comm, inOut, patti, activeBalance: 0, securityMoney, paymentType }
       onAddClient(newClient);
     }
     setEditingClient(null)
@@ -216,9 +217,19 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
   return (
     <>
       <Card className="h-full flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Manage Clients</CardTitle>
-          <Dialog open={isFormDialogOpen} onOpenChange={(open) => {
+         <CardHeader className="flex flex-row items-center justify-between">
+           <CardTitle>Manage Clients</CardTitle>
+           <div className="flex items-center gap-3">
+             <div className="relative w-[260px]">
+               <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+               <Input
+                 value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)}
+                 placeholder="Search clients..."
+                 className="pl-9 h-9"
+               />
+             </div>
+             <Dialog open={isFormDialogOpen} onOpenChange={(open) => {
             if (!open) {
               setEditingClient(null);
               stopListening();
@@ -270,7 +281,7 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="inOut">Phone Number (In/Out)</Label>
+                    <Label htmlFor="inOut">Phone Number</Label>
                     <Input id="inOut" name="inOut" defaultValue={editingClient?.inOut} placeholder="Phone Number" required />
                   </div>
                   <div className="space-y-2">
@@ -278,10 +289,10 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                     <Input id="patti" name="patti" defaultValue={editingClient?.patti} placeholder="Patti" required />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+<div className="grid grid-cols-2 gap-4">
                     <div>
-                        <Label htmlFor="activeBalance">Opening Balance</Label>
-                        <Input id="activeBalance" name="activeBalance" type="number" defaultValue={editingClient?.activeBalance} placeholder="e.g. 1000" />
+                        <Label htmlFor="securityMoney">Security Money</Label>
+                        <Input id="securityMoney" name="securityMoney" type="number" defaultValue={editingClient?.securityMoney} placeholder="e.g. 1000" />
                     </div>
                     <div>
                         <Label htmlFor="paymentType">Payment Type</Label>
@@ -289,10 +300,9 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                             <SelectTrigger id="paymentType">
                                 <SelectValue placeholder="Select Type" />
                             </SelectTrigger>
-                            <SelectContent>
+                        <SelectContent>
                                 <SelectItem value="credit">Credit</SelectItem>
-                                <SelectItem value="pre-paid">Pre-paid</SelectItem>
-                            </SelectContent>
+                        </SelectContent>
                         </Select>
                     </div>
                 </div>
@@ -304,56 +314,80 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                 </DialogFooter>
               </form>
             </DialogContent>
-          </Dialog>
-        </CardHeader>
+           </Dialog>
+           </div>
+         </CardHeader>
         <CardContent className="flex-1 min-h-0">
-          <div className="hidden md:block">
-            <ScrollArea className="h-full">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-muted-foreground uppercase bg-muted/50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3">SI.No</th>
-                    <th scope="col" className="px-6 py-3">Name</th>
-                    <th scope="col" className="px-6 py-3">Pair</th>
-                    <th scope="col" className="px-6 py-3">Comm</th>
-                    <th scope="col" className="px-6 py-3">Net Balance</th>
-                    <th scope="col" className="px-6 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {clients.map((client, index) => {
-                    const account = accounts.find(acc => acc.id === client.id);
-                    const netBalance = account?.balance ?? client.activeBalance ?? 0;
-                    const balanceColor = netBalance >= 0 ? 'text-green-500' : 'text-red-500';
+          <div className="hidden md:block h-full">
+            <ScrollArea className="h-full rounded-xl border border-border/60 bg-[#060913]">
+              <table className="w-full text-xs text-left">
+               <thead className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground bg-[#0b0f1a]">
+                 <tr>
+                   <th scope="col" className="px-3 py-3">ID</th>
+                   <th scope="col" className="px-3 py-3">Client Name</th>
+                   <th scope="col" className="px-3 py-3">Pair/Comm</th>
+                   <th scope="col" className="px-3 py-3 text-amber-400">Security Money</th>
+                   <th scope="col" className="px-3 py-3">Limit Balance</th>
+                   <th scope="col" className="px-3 py-3 text-right">Actions</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 {clients
+                   .filter(client => client.name.toLowerCase().includes(searchQuery.toLowerCase().trim()))
+                   .map((client, index) => {
+                      const securityMoney = client.securityMoney ?? 0;
+                      // Limit Balance ONLY shows explicit client activeBalance (not sheet running balance)
+                      const limitBalance = client.activeBalance ?? 0;
+                    const securityMoneyColor = securityMoney >= 0 ? 'text-amber-400' : 'text-red-500';
+                      const balanceColor = limitBalance >= 0 ? 'text-green-400' : 'text-red-500';
 
                     return (
-                      <tr key={client.id} className="bg-card border-b hover:bg-muted/50">
-                        <td className="px-6 py-4">{index + 1}</td>
-                        <td className="px-6 py-4 font-medium whitespace-nowrap">{client.name}</td>
-                        <td className="px-6 py-4">{client.pair}</td>
-                        <td className="px-6 py-4">{client.comm}%</td>
-                        <td className={`px-6 py-4 font-bold ${balanceColor}`}>{formatNumber(netBalance)}</td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center justify-end gap-2">
-                              <Button variant="outline" size="sm" onClick={() => openTransactionDialog(client, 'deposit')}>
-                                  <ArrowUpCircle className="mr-2 h-4 w-4 text-green-500" />
-                                  Deposit
+                      <tr key={client.id} className="border-t border-white/5 bg-[#050912] hover:bg-[#0a1020] transition-colors">
+                        <td className="px-3 py-3 text-xs">{index + 1}</td>
+                        <td className="px-3 py-3 font-medium whitespace-nowrap">
+                          <div className="text-sm font-semibold uppercase tracking-wide text-white">{client.name}</div>
+                          <div className="mt-0.5 text-[11px] text-muted-foreground">{formatNumber(client.patti || 0)}</div>
+                        </td>
+                        <td className="px-3 py-3 text-sm font-medium text-white">
+                          P: {client.pair} | C: {client.comm}%
+                        </td>
+                        <td className={`px-3 py-3 text-base font-bold tabular-nums ${securityMoneyColor}`}>
+                          ₹{formatNumber(securityMoney)}
+                        </td>
+                          <td className={`px-3 py-3 text-base font-bold tabular-nums ${balanceColor}`}>
+                            ₹{formatNumber(limitBalance)}
+                          </td>
+                        <td className="px-3 py-3">
+                          <div className="flex items-center justify-end gap-1.5">
+                              <Button variant="outline" size="sm" className="h-7 px-2 text-[11px] border-green-600/70 text-white hover:bg-green-600/10" onClick={() => openTransactionDialog(client, 'deposit')}>
+                                  <ArrowUpCircle className="mr-1 h-3.5 w-3.5 text-green-400" />
+                                  ADD LIMIT
                               </Button>
-                              <Button variant="outline" size="sm" onClick={() => openTransactionDialog(client, 'withdraw')}>
-                                  <ArrowDownCircle className="mr-2 h-4 w-4 text-red-500" />
-                                  Withdrawal
+                              <Button variant="outline" size="sm" className="h-7 px-2 text-[11px] border-red-600/70 text-white hover:bg-red-600/10" onClick={() => openTransactionDialog(client, 'withdraw')}>
+                                  <ArrowDownCircle className="mr-1 h-3.5 w-3.5 text-red-400" />
+                                  RED LIMIT
                               </Button>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <Button variant="ghost" className="h-7 w-7 p-0">
                                     <span className="sr-only">Open menu</span>
-                                    <MoreHorizontal className="h-4 w-4" />
+                                    <MoreHorizontal className="h-3.5 w-3.5" />
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem onClick={() => handleEditClient(client)}>
                                     <Edit className="mr-2 h-4 w-4" />
                                     <span>Edit Details</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => {
+                                    confirmAction(
+                                      `Zero Security Money for ${client.name}?`,
+                                      "This will reset security money to 0. Original security amount will be preserved in client history.",
+                                      () => onUpdateClient({ ...client, securityMoney: 0 })
+                                    );
+                                  }}>
+                                    <Eraser className="mr-2 h-4 w-4" />
+                                    <span>Zero Security Money</span>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleClearClientData(client.id, client.name)}>
                                     <Eraser className="mr-2 h-4 w-4" />
@@ -377,11 +411,13 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
           </div>
           <div className="md:hidden">
             <ScrollArea className="h-full">
-              <div className="space-y-4">
-                {clients.map((client) => {
-                  const account = accounts.find(acc => acc.id === client.id);
-                  const netBalance = account?.balance ?? client.activeBalance ?? 0;
-                  const balanceColor = netBalance >= 0 ? 'text-green-500' : 'text-red-500';
+               <div className="space-y-4">
+                 {clients
+                   .filter(client => client.name.toLowerCase().includes(searchQuery.toLowerCase().trim()))
+                   .map((client) => {
+                  // Limit Balance ONLY shows explicit client activeBalance (not sheet running balance)
+                  const limitBalance = client.activeBalance ?? 0;
+                  const balanceColor = limitBalance >= 0 ? 'text-green-500' : 'text-red-500';
 
                   return (
                     <Card key={client.id} className="p-4">
@@ -417,17 +453,17 @@ export default function ClientsManager({ clients, accounts, onAddClient, onUpdat
                         </DropdownMenu>
                       </div>
                       <div className="mt-4">
-                        <p className="text-sm text-muted-foreground">Net Balance</p>
-                        <p className={`text-2xl font-bold ${balanceColor}`}>₹{formatNumber(netBalance)}</p>
+                        <p className="text-sm text-muted-foreground">Limit Balance</p>
+                        <p className={`text-2xl font-bold ${balanceColor}`}>₹{formatNumber(limitBalance)}</p>
                       </div>
                       <div className="mt-4 flex gap-2">
                         <Button variant="outline" size="sm" className="flex-1" onClick={() => openTransactionDialog(client, 'deposit')}>
                             <ArrowUpCircle className="mr-2 h-4 w-4 text-green-500" />
-                            Deposit
+                            Add Limit
                         </Button>
                         <Button variant="outline" size="sm" className="flex-1" onClick={() => openTransactionDialog(client, 'withdraw')}>
                             <ArrowDownCircle className="mr-2 h-4 w-4 text-red-500" />
-                            Withdrawal
+                            Red Limit
                         </Button>
                       </div>
                     </Card>

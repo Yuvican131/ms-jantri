@@ -50,3 +50,4 @@ next-env.d.ts
 firebase-debug.log
 firestore-debug.log
 >>>>>>> b01afbab0198ce7de48ef944cf86270eda4b9cf3
+.env*.local

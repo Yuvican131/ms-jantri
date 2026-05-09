@@ -1,7 +1,6 @@
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
 
 body {
   font-family: Arial, Helvetica, sans-serif;
@@ -103,11 +102,16 @@ body {
   .grid-sheet-layout {
     display: grid;
     grid-template-columns: repeat(11, 1fr);
-    grid-template-rows: repeat(11, minmax(0, 1fr));
+    grid-template-rows: repeat(11, 1fr);
+    height: 100%;
+    width: 100%;
+    gap: 2px;
+    padding: 4px;
   }
   
   .grid-sheet-layout .grid-cell {
-    min-height: 32px;
+    height: 100%;
+    min-height: 0;
   }
 
   .grid-sheet-layout .grid-cell-number {

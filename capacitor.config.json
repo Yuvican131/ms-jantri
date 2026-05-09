@@ -1,0 +1,9 @@
+{
+  "appId": "com.msjantri.antigravity",
+  "appName": "MS JANTRI",
+  "webDir": "out",
+  "server": {
+    "url": "https://ms-jantri-az20xfp19-yuvicans-projects.vercel.app",
+    "cleartext": true
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "appId": "com.msjantri.antigravity",
+  "appName": "MS Jantri Anti Gravity",
+  "webDir": "out"
+}
