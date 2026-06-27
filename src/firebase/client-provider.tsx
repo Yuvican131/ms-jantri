@@ -17,9 +17,6 @@ interface FirebaseClientProviderProps {
 }
 
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
-  const pathname = usePathname();
-  const isLoginPage = pathname === '/login';
-
   const [services, setServices] = useState<{
     firebaseApp: FirebaseApp | null;
     auth: Auth | null;
@@ -56,50 +53,11 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     }
   }, []);
 
-  // Login page renders immediately without waiting for Firebase
-  if (isLoginPage) {
-    return <>{children}</>;
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background text-foreground">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <p className="text-muted-foreground">Initializing App...</p>
-          {initError && <p className="text-xs text-destructive max-w-md text-center">{initError}</p>}
-        </div>
-      </div>
-    );
-  }
-
-  if (services.error || !services.firebaseApp) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background p-4">
-        <Card className="max-w-md w-full">
-          <CardHeader>
-            <CardTitle>Application Error</CardTitle>
-            <CardDescription>Could not connect to required services.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm font-medium text-destructive">{services.error}</p>
-            <p className="text-xs text-muted-foreground">
-              This usually happens if the environment variables for Firebase are not set correctly. Please verify them in your hosting provider's dashboard (e.g., Netlify, Vercel) and try again.
-            </p>
-            <Button onClick={() => window.location.reload()} className="w-full">
-              Refresh Page
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <FirebaseProvider
       firebaseApp={services.firebaseApp}
-      auth={services.auth!}
-      firestore={services.firestore!}
+      auth={services.auth}
+      firestore={services.firestore}
     >
       {children}
     </FirebaseProvider>
