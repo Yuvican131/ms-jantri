@@ -141,12 +141,25 @@ const BrokerProfitLoss = ({
             totalClientPayable += clientProfit;
         });
 
-        // Upper Payable Calculation is based on ALL applicable clients' data for the period
-        let totalGameRawForUpper = 0;
-        let totalPassingAmountRawForUpper = 0;
+        // Game log net calculation (same as daily summary) for Patti amount
+        let totalRaw = 0;
+        let passingRaw = 0;
+        logsForPeriod.forEach(log => {
+            totalRaw += log.gameTotal;
+            const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
+            if (declaredNumber && log.data[declaredNumber]) {
+                passingRaw += parseFloat(log.data[declaredNumber]) || 0;
+            }
+        });
         const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
         const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
+        const commission = totalRaw * upperCommPercent;
+        const passing = passingRaw * upperPairRate;
+        const gameLogNet = totalRaw - commission - passing;
 
+        // Upper Payable Calculation
+        let totalGameRawForUpper = 0;
+        let totalPassingAmountRawForUpper = 0;
         const logsForUpper = selectedClientId === 'all' 
             ? logsForPeriod 
             : logsForPeriod.filter(log => log.clientId === selectedClientId);
@@ -161,20 +174,18 @@ const BrokerProfitLoss = ({
 
         const upperCommission = totalGameRawForUpper * upperCommPercent;
         const upperWinnings = totalPassingAmountRawForUpper * upperPairRate;
-
-        // Use the applied/stored Patti percent for final daily summary (enforce applied 20% when set)
         const appliedUpperPattiPercent = parsePercentOrDefault(appliedUpperPatti, defaultUpperPatti / 100);
 
-        // upper's payable before applying patti
         totalUpperPayable = (totalGameRawForUpper - upperCommission) - upperWinnings;
-
-        // broker net before patti (for reference)
         const brokerNetBeforePatti = totalClientPayable - totalUpperPayable;
-        // Patti is calculated on absolute broker's net (applies to both profit AND loss)
-        const totalPattiDeduction = Math.abs(brokerNetBeforePatti) * appliedUpperPattiPercent;
 
-        // broker net after patti. Patti is always added to the net (increases profit or reduces loss)
-        const brokerNetAfterPatti = brokerNetBeforePatti + totalPattiDeduction;
+        // Patti calculated on game log net (same as daily summary)
+        const totalPattiDeduction = Math.abs(gameLogNet) * appliedUpperPattiPercent;
+
+        // broker net after patti: green/+₹ = add, red/-₹ = subtract (table only)
+        const brokerNetAfterPatti = totalUpperPayable >= 0
+            ? brokerNetBeforePatti + totalPattiDeduction
+            : brokerNetBeforePatti - totalPattiDeduction;
 
         return { clientPayable: totalClientPayable, upperPayable: totalUpperPayable, brokerNetBeforePatti, brokerNet: brokerNetAfterPatti, totalPattiDeduction, hasActivity };
 
@@ -249,7 +260,7 @@ const BrokerProfitLoss = ({
         }
         return Math.abs(grandTotalForPeriod.totalPattiDeduction || 0);
     }, [viewMode, pattiForSelectedDay, grandTotalForPeriod.totalPattiDeduction]);
-    const monthlyPattiAdjustment = useMemo(() => monthlyPattiAmount, [monthlyPattiAmount]);
+    const monthlyPattiAdjustment = useMemo(() => (sumBrokerNetBeforeRows >= 0 ? -monthlyPattiAmount : monthlyPattiAmount), [monthlyPattiAmount, sumBrokerNetBeforeRows]);
 
     const monthlyTotalWithPatti = sumBrokerNetBeforeRows + monthlyPattiAdjustment;
 
@@ -355,7 +366,7 @@ const BrokerProfitLoss = ({
                             { (grandTotalForPeriod.totalPattiDeduction || 0) > 0 && (
                                 <div className="text-sm mt-1">
                                     <span className="text-muted-foreground">Patti Adjustment</span>
-                                    <span className={`ml-2 font-semibold ${monthlyPattiAdjustment >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    <span className={`ml-2 font-semibold ${grandTotalForPeriod.upperPayable >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                         {monthlyPattiAdjustment >= 0 ? `+₹${formatNumber(monthlyPattiAdjustment)}` : `-₹${formatNumber(Math.abs(monthlyPattiAdjustment))}`}
                                     </span>
                                 </div>
@@ -383,8 +394,8 @@ const BrokerProfitLoss = ({
                                 <TableRow key={index}>
                                 <TableCell>{row.label}</TableCell>
                                 <TableCell className="text-right">₹{formatNumber(row.clientPayable)}</TableCell>
-                                <TableCell className="text-right font-bold text-green-500">
-                                    +₹{formatNumber(row.totalPattiDeduction || 0)}
+                                <TableCell className={`text-right font-bold ${(row.upperPayable >= 0) ? 'text-green-500' : 'text-red-500'}`}>
+                                    {row.upperPayable >= 0 ? `+₹${formatNumber(row.totalPattiDeduction || 0)}` : `-₹${formatNumber(row.totalPattiDeduction || 0)}`}
                                 </TableCell>
                                 <TableCell className={`text-right font-bold ${((row.brokerNetBefore || 0) >= 0) ? 'text-green-500' : 'text-red-500'}`}>
                                     {(row.brokerNetBefore || 0) >= 0 ? `+₹${formatNumber(row.brokerNetBefore || 0)}` : `-₹${formatNumber(Math.abs(row.brokerNetBefore || 0))}`}
@@ -399,8 +410,8 @@ const BrokerProfitLoss = ({
                             <TableRow className="bg-muted/50 hover:bg-muted">
                                 <TableCell colSpan={1} className="font-bold text-lg text-right">Total</TableCell>
                                 <TableCell className="text-right font-bold text-lg">₹{formatNumber(grandTotalForPeriod.clientPayable)}</TableCell>
-                                <TableCell className="text-right font-bold text-lg text-green-500">
-                                    +₹{formatNumber(Math.abs(grandTotalForPeriod.totalPattiDeduction || 0))}
+                                <TableCell className={`text-right font-bold text-lg ${grandTotalForPeriod.upperPayable >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    {grandTotalForPeriod.upperPayable >= 0 ? `+₹${formatNumber(Math.abs(grandTotalForPeriod.totalPattiDeduction || 0))}` : `-₹${formatNumber(Math.abs(grandTotalForPeriod.totalPattiDeduction || 0))}`}
                                 </TableCell>
                                 <TableCell className={`text-right font-bold text-lg ${sumBrokerNetBeforeRows >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                     {sumBrokerNetBeforeRows >= 0 ? `+₹${formatNumber(sumBrokerNetBeforeRows)}` : `-₹${formatNumber(Math.abs(sumBrokerNetBeforeRows))}`}
@@ -677,7 +688,9 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
 
         const finalNetBeforePatti = totalRaw - commission - passing;
         const pattiDeduction = Math.abs(finalNetBeforePatti) * appliedUpperPattiPercent;
-        const finalNetAfterPatti = finalNetBeforePatti + pattiDeduction;
+        const finalNetAfterPatti = finalNetBeforePatti >= 0
+            ? finalNetBeforePatti - pattiDeduction
+            : finalNetBeforePatti + pattiDeduction;
 
         return { 
             totalRaw, 
@@ -833,12 +846,12 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                       </div>
                       <div className="flex justify-between items-center font-bold text-xl">
                           <span>Total</span>
-                          <span className={`${finalSummaryForDay.upperPayable >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatNumber(finalSummaryForDay.finalNet)}</span>
+                            <span className={`${finalSummaryForDay.upperPayable >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatNumber(finalSummaryForDay.finalNet)}</span>
                       </div>
                                             {showPattiDeduction && (
-                                                                         <div className={`flex justify-between items-center text-xs ${finalSummaryForDay.upperPayable >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                                                                 <span>Patti ({parseFloat(appliedUpperPatti) || 0}%)</span>
-                                                     <span>+₹{formatNumber(finalSummaryForDay.pattiDeduction)}</span>
+                                                                          <div className={`flex justify-between items-center text-xs ${finalSummaryForDay.upperPayable >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                                                                  <span>Patti ({parseFloat(appliedUpperPatti) || 0}%)</span>
+                                                                                  <span>{finalSummaryForDay.upperPayable >= 0 ? `+₹${formatNumber(finalSummaryForDay.pattiDeduction)}` : `-₹${formatNumber(finalSummaryForDay.pattiDeduction)}`}</span>
                                                                         </div>
                                                                     )}
                       
