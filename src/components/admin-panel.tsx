@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatNumber } from "@/lib/utils";
-import { Wallet, Calendar as CalendarIcon, Percent, Scale, TrendingUp, TrendingDown, Landmark, Banknote, Trash2, HandCoins, Minus, Plus, Save, CircleDollarSign, Trophy, History } from 'lucide-react';
+import { Wallet, Calendar as CalendarIcon, Percent, Scale, TrendingUp, TrendingDown, Landmark, Banknote, Trash2, HandCoins, Minus, Plus, Save, CircleDollarSign, History } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -25,62 +25,78 @@ const draws = ["DD", "ML", "FB", "GB", "GL", "DS"];
 const defaultUpperComm = 20;
 const defaultClientPair = 90;
 const defaultUpperPair = 80;
+const defaultUpperPatti = 0;
+
+const parseNumberOrDefault = (value: string, fallback: number) => {
+  const parsed = parseFloat(value);
+  return !isNaN(parsed) ? parsed : fallback;
+};
+
+const parsePercentOrDefault = (value: string, fallbackPercent: number) => {
+  const parsed = parseFloat(value);
+  return !isNaN(parsed) ? parsed / 100 : fallbackPercent;
+};
+
+const getEffectiveUpperCommPercent = (upperComm: string, appliedUpperComm: string) => {
+  return parsePercentOrDefault(upperComm, parsePercentOrDefault(appliedUpperComm, defaultUpperComm / 100));
+};
+
+const getEffectiveUpperPairRate = (upperPair: string, appliedUpperPair: string) => {
+  return parseNumberOrDefault(upperPair, parseNumberOrDefault(appliedUpperPair, defaultUpperPair));
+};
+
+const getEffectiveUpperPattiPercent = (upperPatti: string, appliedUpperPatti: string) => {
+    // Prefer the live input value so the UI reflects the current entered Patti immediately;
+    // fallback to the applied/stored value if input is empty, then to default.
+    return parsePercentOrDefault(upperPatti, parsePercentOrDefault(appliedUpperPatti, defaultUpperPatti / 100));
+};
 
 type ReportRow = {
   label: string;
   date: Date;
   clientPayable: number;
   upperPayable: number;
-  brokerNet: number;
+    brokerNet: number;
+    brokerNetBefore?: number;
+    totalPattiDeduction?: number;
   hasActivity: boolean;
 };
 
-const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
+const BrokerProfitLoss = ({
+    userId,
+    clients,
+    savedSheetLog,
+    upperComm,
+    upperPair,
+    upperPatti,
+    appliedUpperComm,
+    appliedUpperPair,
+    appliedUpperPatti,
+    setUpperComm,
+    setUpperPair,
+    setUpperPatti,
+    handleApplyUpperSettings,
+    pattiForSelectedDay
+}: {
     userId?: string;
     clients: Client[];
     savedSheetLog: { [draw: string]: SavedSheetInfo[] };
+    upperComm: string;
+    upperPair: string;
+    upperPatti: string;
+    appliedUpperComm: string;
+    appliedUpperPair: string;
+    appliedUpperPatti: string;
+    setUpperComm: React.Dispatch<React.SetStateAction<string>>;
+    setUpperPair: React.Dispatch<React.SetStateAction<string>>;
+    setUpperPatti: React.Dispatch<React.SetStateAction<string>>;
+    handleApplyUpperSettings: () => void;
+    pattiForSelectedDay?: number;
 }) => {
     const { declaredNumbers } = useDeclaredNumbers(userId);
     const [selectedClientId, setSelectedClientId] = useState<string>('all');
     const [viewMode, setViewMode] = useState<'month' | 'year'>('month');
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-    const [upperComm, setUpperComm] = useState(defaultUpperComm.toString());
-    const [upperPair, setUpperPair] = useState(defaultUpperPair.toString());
-    const [appliedUpperComm, setAppliedUpperComm] = useState(defaultUpperComm.toString());
-    const [appliedUpperPair, setAppliedUpperPair] = useState(defaultUpperPair.toString());
-    const {toast} = useToast();
-
-    useEffect(() => {
-        if (typeof window === 'undefined' || !window.localStorage) return;
-        try {
-            const savedComm = window.localStorage.getItem('upperBrokerComm');
-            const savedPair = window.localStorage.getItem('upperBrokerPair');
-            if (savedComm) {
-                setUpperComm(savedComm);
-                setAppliedUpperComm(savedComm);
-            }
-            if (savedPair) {
-                setUpperPair(savedPair);
-                setAppliedUpperPair(savedPair);
-            }
-        } catch (e) {
-            console.error("Failed to read upper broker settings from localStorage", e);
-        }
-    }, []);
-
-    const handleApplySettings = () => {
-        setAppliedUpperComm(upperComm);
-        setAppliedUpperPair(upperPair);
-        if (typeof window !== 'undefined' && window.localStorage) {
-            try {
-                window.localStorage.setItem('upperBrokerComm', upperComm);
-                window.localStorage.setItem('upperBrokerPair', upperPair);
-            } catch (e) {
-                console.error("Failed to save upper broker settings to localStorage", e);
-            }
-        }
-        toast({ title: "Settings Applied", description: "Broker commission and pair rates have been updated." });
-    };
 
     const calculateNetForPeriod = useCallback((periodStart: Date, periodEnd: Date) => {
         let totalClientPayable = 0;
@@ -120,7 +136,9 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
             const clientCommission = clientGameTotal * clientCommPercent;
             const clientNet = clientGameTotal - clientCommission;
             const clientWinnings = clientPassingAmount * clientPairRate;
-            totalClientPayable += clientNet - clientWinnings;
+            const clientProfit = clientNet - clientWinnings;
+
+            totalClientPayable += clientProfit;
         });
 
         // Upper Payable Calculation is based on ALL applicable clients' data for the period
@@ -143,13 +161,24 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
 
         const upperCommission = totalGameRawForUpper * upperCommPercent;
         const upperWinnings = totalPassingAmountRawForUpper * upperPairRate;
-        totalUpperPayable = (totalGameRawForUpper - upperCommission) - upperWinnings;
-        
-        const brokerNet = totalClientPayable - totalUpperPayable;
-        
-        return { clientPayable: totalClientPayable, upperPayable: totalUpperPayable, brokerNet, hasActivity };
 
-    }, [savedSheetLog, clients, selectedClientId, declaredNumbers, appliedUpperComm, appliedUpperPair]);
+        // Use the applied/stored Patti percent for final daily summary (enforce applied 20% when set)
+        const appliedUpperPattiPercent = parsePercentOrDefault(appliedUpperPatti, defaultUpperPatti / 100);
+
+        // upper's payable before applying patti
+        totalUpperPayable = (totalGameRawForUpper - upperCommission) - upperWinnings;
+
+        // broker net before patti (for reference)
+        const brokerNetBeforePatti = totalClientPayable - totalUpperPayable;
+        // Patti is calculated on absolute broker's net (applies to both profit AND loss)
+        const totalPattiDeduction = Math.abs(brokerNetBeforePatti) * appliedUpperPattiPercent;
+
+        // broker net after patti. Patti is always added to the net (increases profit or reduces loss)
+        const brokerNetAfterPatti = brokerNetBeforePatti + totalPattiDeduction;
+
+        return { clientPayable: totalClientPayable, upperPayable: totalUpperPayable, brokerNetBeforePatti, brokerNet: brokerNetAfterPatti, totalPattiDeduction, hasActivity };
+
+    }, [savedSheetLog, clients, selectedClientId, declaredNumbers, upperComm, upperPair, upperPatti, appliedUpperComm, appliedUpperPair, appliedUpperPatti]);
 
 
     const reportData: ReportRow[] = useMemo(() => {
@@ -161,13 +190,15 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
             return daysInMonth.map(day => {
                 const dayStart = startOfDay(day);
                 const dayEnd = endOfDay(day);
-                const { clientPayable, upperPayable, brokerNet, hasActivity } = calculateNetForPeriod(dayStart, dayEnd);
+                const { clientPayable, upperPayable, brokerNet, brokerNetBeforePatti, totalPattiDeduction, hasActivity } = calculateNetForPeriod(dayStart, dayEnd);
                 return {
                     date: day,
                     label: format(day, "EEE, dd MMM yyyy"),
                     clientPayable,
                     upperPayable,
                     brokerNet,
+                    brokerNetBefore: brokerNetBeforePatti,
+                    totalPattiDeduction,
                     hasActivity
                 };
             }).filter(row => row.hasActivity);
@@ -179,13 +210,15 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
             return monthsInYear.map(month => {
                 const monthStart = startOfMonth(month);
                 const monthEnd = endOfMonth(month);
-                const { clientPayable, upperPayable, brokerNet, hasActivity } = calculateNetForPeriod(monthStart, monthEnd);
+                const { clientPayable, upperPayable, brokerNet, brokerNetBeforePatti, totalPattiDeduction, hasActivity } = calculateNetForPeriod(monthStart, monthEnd);
                 return {
                     date: month,
                     label: format(month, "MMMM yyyy"),
                     clientPayable,
                     upperPayable,
                     brokerNet,
+                    brokerNetBefore: brokerNetBeforePatti,
+                    totalPattiDeduction,
                     hasActivity
                 };
             }).filter(row => row.hasActivity);
@@ -194,13 +227,31 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
     }, [selectedDate, viewMode, calculateNetForPeriod]);
   
     const grandTotalForPeriod = useMemo(() => {
-        return reportData.reduce((acc, row) => {
+        return reportData.reduce<{ clientPayable: number; upperPayable: number; brokerNet: number; brokerNetBefore: number; totalPattiDeduction: number }>((acc, row) => {
             acc.clientPayable += row.clientPayable;
             acc.upperPayable += row.upperPayable;
-            acc.brokerNet += row.brokerNet;
+            acc.brokerNet += row.brokerNet || 0; // after patti (deprecated - recomputed below)
+            acc.brokerNetBefore += row.brokerNetBefore || 0;
+            acc.totalPattiDeduction += row.totalPattiDeduction || 0;
             return acc;
-        }, { clientPayable: 0, upperPayable: 0, brokerNet: 0 });
+        }, { clientPayable: 0, upperPayable: 0, brokerNet: 0, brokerNetBefore: 0, totalPattiDeduction: 0 });
+        // Ensure brokerNet (after Patti) is consistent: recompute from totals to avoid per-row aggregation differences
     }, [reportData]);
+
+    // Sum of per-row broker net BEFORE Patti (monthly profit should not include Patti)
+    const sumBrokerNetBeforeRows = useMemo(() => reportData.reduce((s: number, r: ReportRow) => s + (r.brokerNetBefore || 0), 0), [reportData]);
+    // Sum of per-row broker net AFTER Patti (Final Profit per row)
+    const sumBrokerNetRows = useMemo(() => reportData.reduce((s: number, r: ReportRow) => s + (r.brokerNet || 0), 0), [reportData]);
+    // Monthly Patti amount (absolute sum of per-row Patti) and signed adjustment
+    const monthlyPattiAmount = useMemo(() => {
+        if (viewMode === 'month' && typeof pattiForSelectedDay === 'number') {
+            return Math.abs(pattiForSelectedDay || 0);
+        }
+        return Math.abs(grandTotalForPeriod.totalPattiDeduction || 0);
+    }, [viewMode, pattiForSelectedDay, grandTotalForPeriod.totalPattiDeduction]);
+    const monthlyPattiAdjustment = useMemo(() => monthlyPattiAmount, [monthlyPattiAmount]);
+
+    const monthlyTotalWithPatti = sumBrokerNetBeforeRows + monthlyPattiAdjustment;
 
     const hasData = reportData.length > 0;
 
@@ -210,8 +261,8 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                 <Wallet className="h-5 w-5" /> Broker Profit and Loss
             </h3>
             <div className="p-4 border rounded-lg bg-muted/50">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
-                    <div className="space-y-2">
+                <div className="flex items-end gap-3">
+                    <div className="space-y-1.5 flex-1">
                         <Label htmlFor="upper-comm">Upper Broker Comm (%)</Label>
                         <Input 
                         id="upper-comm" 
@@ -220,7 +271,7 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                         placeholder={String(defaultUpperComm)}
                         />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5 flex-1">
                         <Label htmlFor="upper-pair">Upper Broker Pair Rate</Label>
                         <Input 
                         id="upper-pair" 
@@ -229,7 +280,16 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                         placeholder={String(defaultUpperPair)}
                         />
                     </div>
-                    <Button onClick={handleApplySettings}>Apply Settings</Button>
+                    <div className="space-y-1.5 flex-1">
+                        <Label htmlFor="upper-patti">Upper Broker Patti (%)</Label>
+                        <Input 
+                        id="upper-patti" 
+                        value={upperPatti} 
+                        onChange={(e) => setUpperPatti(e.target.value)} 
+                        placeholder={String(defaultUpperPatti)}
+                        />
+                    </div>
+                    <Button onClick={handleApplyUpperSettings} className="shrink-0">Apply Settings</Button>
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -255,17 +315,15 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                                 {selectedDate ? format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy") : <span>Pick a date</span>}
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                            <Calendar
-                                mode="single"
-                                selected={selectedDate}
-                                onSelect={(date) => date && setSelectedDate(date)}
-                                initialFocus
-                                defaultMonth={selectedDate}
-                                fromYear={2020}
-                                toYear={new Date().getFullYear() + 5}
-                                captionLayout="dropdown-buttons"
-                            />
+                        <PopoverContent className="w-auto p-0 border-0 bg-transparent shadow-none">
+                            <div className="calendar-popup">
+                                <Calendar
+                                    mode="single"
+                                    selected={selectedDate}
+                                    onSelect={(date) => date && setSelectedDate(date)}
+                                    defaultMonth={selectedDate}
+                                />
+                            </div>
                         </PopoverContent>
                     </Popover>
                 </div>
@@ -290,13 +348,22 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                             </CardTitle>
                             <Wallet className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
+                        
                         <CardContent>
-                            <div className={`text-2xl font-bold ${grandTotalForPeriod.brokerNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {grandTotalForPeriod.brokerNet >= 0 ? `+${formatNumber(grandTotalForPeriod.brokerNet)}` : `${formatNumber(grandTotalForPeriod.brokerNet)}`}
+                            <div className="text-sm text-muted-foreground">Final Net (Before Patti): ₹{formatNumber(grandTotalForPeriod.brokerNetBefore)}</div>
+                            
+                            { (grandTotalForPeriod.totalPattiDeduction || 0) > 0 && (
+                                <div className="text-sm mt-1">
+                                    <span className="text-muted-foreground">Patti Adjustment</span>
+                                    <span className={`ml-2 font-semibold ${monthlyPattiAdjustment >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                        {monthlyPattiAdjustment >= 0 ? `+₹${formatNumber(monthlyPattiAdjustment)}` : `-₹${formatNumber(Math.abs(monthlyPattiAdjustment))}`}
+                                    </span>
+                                </div>
+                            )}
+                            <div className={`text-2xl font-bold mt-1 ${monthlyTotalWithPatti >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                {monthlyTotalWithPatti >= 0 ? `+${formatNumber(monthlyTotalWithPatti)}` : `${formatNumber(monthlyTotalWithPatti)}`}
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                                Total profit for {format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy")}
-                            </p>
+                            <div className="text-xs text-muted-foreground mt-1">Total broker profit for {format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy")} (Including Patti adjustment)</div>
                         </CardContent>
                     </Card>
 
@@ -306,8 +373,9 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                             <TableRow>
                                 <TableHead>{viewMode === 'month' ? 'Date' : 'Month'}</TableHead>
                                 <TableHead className="text-right">Client Payable</TableHead>
-                                <TableHead className="text-right">Upper Payable</TableHead>
-                                <TableHead className="text-right">Broker Profit/Loss</TableHead>
+                                <TableHead className="text-right">Patti Amount</TableHead>
+                                <TableHead className="text-right">Profit (Before Patti)</TableHead>
+                                <TableHead className="text-right">Final Profit</TableHead>
                             </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -315,9 +383,14 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                                 <TableRow key={index}>
                                 <TableCell>{row.label}</TableCell>
                                 <TableCell className="text-right">₹{formatNumber(row.clientPayable)}</TableCell>
-                                <TableCell className="text-right">₹{formatNumber(row.upperPayable)}</TableCell>
-                                <TableCell className={`text-right font-bold ${row.brokerNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                    {row.brokerNet >= 0 ? `+₹${formatNumber(row.brokerNet)}` : `-₹${formatNumber(Math.abs(row.brokerNet))}`}
+                                <TableCell className="text-right font-bold text-green-500">
+                                    +₹{formatNumber(row.totalPattiDeduction || 0)}
+                                </TableCell>
+                                <TableCell className={`text-right font-bold ${((row.brokerNetBefore || 0) >= 0) ? 'text-green-500' : 'text-red-500'}`}>
+                                    {(row.brokerNetBefore || 0) >= 0 ? `+₹${formatNumber(row.brokerNetBefore || 0)}` : `-₹${formatNumber(Math.abs(row.brokerNetBefore || 0))}`}
+                                </TableCell>
+                                <TableCell className={`text-right font-bold ${((row.brokerNet || 0) >= 0) ? 'text-green-500' : 'text-red-500'}`}>
+                                    {(row.brokerNet || 0) >= 0 ? `+₹${formatNumber(row.brokerNet || 0)}` : `-₹${formatNumber(Math.abs(row.brokerNet || 0))}`}
                                 </TableCell>
                                 </TableRow>
                             ))}
@@ -326,9 +399,14 @@ const BrokerProfitLoss = ({ userId, clients, savedSheetLog }: {
                             <TableRow className="bg-muted/50 hover:bg-muted">
                                 <TableCell colSpan={1} className="font-bold text-lg text-right">Total</TableCell>
                                 <TableCell className="text-right font-bold text-lg">₹{formatNumber(grandTotalForPeriod.clientPayable)}</TableCell>
-                                <TableCell className="text-right font-bold text-lg">₹{formatNumber(grandTotalForPeriod.upperPayable)}</TableCell>
-                                <TableCell className={`text-right font-bold text-lg ${grandTotalForPeriod.brokerNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                    {grandTotalForPeriod.brokerNet >= 0 ? `+₹${formatNumber(grandTotalForPeriod.brokerNet)}` : `-₹${formatNumber(Math.abs(grandTotalForPeriod.brokerNet))}`}
+                                <TableCell className="text-right font-bold text-lg text-green-500">
+                                    +₹{formatNumber(Math.abs(grandTotalForPeriod.totalPattiDeduction || 0))}
+                                </TableCell>
+                                <TableCell className={`text-right font-bold text-lg ${sumBrokerNetBeforeRows >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    {sumBrokerNetBeforeRows >= 0 ? `+₹${formatNumber(sumBrokerNetBeforeRows)}` : `-₹${formatNumber(Math.abs(sumBrokerNetBeforeRows))}`}
+                                </TableCell>
+                                <TableCell className={`text-right font-bold text-lg ${sumBrokerNetRows >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    {sumBrokerNetRows >= 0 ? `+₹${formatNumber(sumBrokerNetRows)}` : `-₹${formatNumber(Math.abs(sumBrokerNetRows))}`}
                                 </TableCell>
                             </TableRow>
                             </TableFooter>
@@ -364,8 +442,12 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     const { toast } = useToast();
     const { declaredNumbers } = useDeclaredNumbers(userId);
     const [summaryDate, setSummaryDate] = useState<Date>(new Date());
+    const [upperComm, setUpperComm] = useState(defaultUpperComm.toString());
+    const [upperPair, setUpperPair] = useState(defaultUpperPair.toString());
+    const [upperPatti, setUpperPatti] = useState(defaultUpperPatti.toString());
     const [appliedUpperComm, setAppliedUpperComm] = useState(defaultUpperComm.toString());
     const [appliedUpperPair, setAppliedUpperPair] = useState(defaultUpperPair.toString());
+    const [appliedUpperPatti, setAppliedUpperPatti] = useState(defaultUpperPatti.toString());
 
     const [jamaAmount, setJamaAmount] = useState('');
     const [lenaAmount, setLenaAmount] = useState('');
@@ -377,12 +459,41 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
         try {
             const savedComm = window.localStorage.getItem('upperBrokerComm');
             const savedPair = window.localStorage.getItem('upperBrokerPair');
-            if (savedComm) setAppliedUpperComm(savedComm);
-            if (savedPair) setAppliedUpperPair(savedPair);
+            const savedPatti = window.localStorage.getItem('upperBrokerPatti');
+            if (savedComm) {
+                setUpperComm(savedComm);
+                setAppliedUpperComm(savedComm);
+            }
+            if (savedPair) {
+                setUpperPair(savedPair);
+                setAppliedUpperPair(savedPair);
+            }
+            if (savedPatti) {
+                setUpperPatti(savedPatti);
+                setAppliedUpperPatti(savedPatti);
+            }
         } catch (e) {
             console.error("Failed to read upper broker settings from localStorage", e);
         }
     }, []);
+
+    const handleApplyUpperSettings = () => {
+        setAppliedUpperComm(upperComm);
+        setAppliedUpperPair(upperPair);
+        setAppliedUpperPatti(upperPatti);
+
+        if (typeof window !== 'undefined' && window.localStorage) {
+            try {
+                window.localStorage.setItem('upperBrokerComm', upperComm);
+                window.localStorage.setItem('upperBrokerPair', upperPair);
+                window.localStorage.setItem('upperBrokerPatti', upperPatti);
+            } catch (e) {
+                console.error("Failed to save upper broker settings to localStorage", e);
+            }
+        }
+
+        toast({ title: "Settings Applied", description: "Upper broker commission, pair rate, and patti have been updated." });
+    };
 
     
     const calculateDailyNet = useCallback((date: Date, allLogs: SavedSheetInfo[]) => {
@@ -544,22 +655,43 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
             }
         });
 
-        const upperCommPercent = parseFloat(appliedUpperComm) / 100 || defaultUpperComm / 100;
-        const upperPairRate = parseFloat(appliedUpperPair) || defaultUpperPair;
+        const upperCommPercent = getEffectiveUpperCommPercent(upperComm, appliedUpperComm);
+        const upperPairRate = getEffectiveUpperPairRate(upperPair, appliedUpperPair);
+        const appliedUpperPattiPercent = parsePercentOrDefault(appliedUpperPatti, defaultUpperPatti / 100);
+
+        let totalGameRawForUpper = 0;
+        let totalPassingAmountRawForUpper = 0;
+        logsForDay.forEach(log => {
+            totalGameRawForUpper += log.gameTotal;
+            const declaredNumber = declaredNumbers[`${log.draw}-${log.date}`]?.number;
+            if (declaredNumber && log.data[declaredNumber]) {
+                totalPassingAmountRawForUpper += parseFloat(log.data[declaredNumber]) || 0;
+            }
+        });
+        const upperCommission = totalGameRawForUpper * upperCommPercent;
+        const upperWinnings = totalPassingAmountRawForUpper * upperPairRate;
+        const upperPayable = (totalGameRawForUpper - upperCommission) - upperWinnings;
 
         const commission = totalRaw * upperCommPercent;
         const passing = passingRaw * upperPairRate;
-        
-        const finalNet = (totalRaw - commission) - passing;
+
+        const finalNetBeforePatti = totalRaw - commission - passing;
+        const pattiDeduction = Math.abs(finalNetBeforePatti) * appliedUpperPattiPercent;
+        const finalNetAfterPatti = finalNetBeforePatti + pattiDeduction;
 
         return { 
             totalRaw, 
             commission, 
             passing, 
-            finalNet,
+            finalNet: finalNetBeforePatti, 
+            pattiDeduction, 
+            finalNetAfterPatti,
+            upperPayable,
         };
-    }, [summaryDate, savedSheetLog, declaredNumbers, appliedUpperComm, appliedUpperPair]);
+    }, [summaryDate, savedSheetLog, declaredNumbers, upperComm, upperPair, upperPatti, appliedUpperComm, appliedUpperPair, appliedUpperPatti]);
     
+    const effectivePattiPercent = getEffectiveUpperPattiPercent(upperPatti, appliedUpperPatti);
+    const showPattiDeduction = effectivePattiPercent > 0 && finalSummaryForDay.pattiDeduction > 0;
     const dailySettlements = settlements[format(summaryDate, 'yyyy-MM-dd')] || [];
 
   return (
@@ -644,7 +776,6 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                         mode="single"
                         selected={summaryDate}
                         onSelect={(date) => date && setSummaryDate(date)}
-                        initialFocus
                         />
                     </PopoverContent>
                 </Popover>
@@ -686,24 +817,35 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                       <h3>Final Summary</h3>
                       <Landmark className="h-5 w-5 text-primary/80" />
                   </div>
-                  <div className="space-y-1 mt-2 flex-grow text-card-foreground">
+                  <div className="space-y-1 mt-1 text-card-foreground">
                       <div className="flex justify-between items-center">
                           <span className="text-muted-foreground text-sm">Total</span>
                           <span className="font-semibold text-xl">{formatNumber(finalSummaryForDay.totalRaw)}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground text-sm">Commission</span> 
+                          <span className="text-muted-foreground text-sm">Commission</span>
                           <span className="font-semibold text-xl">{formatNumber(finalSummaryForDay.commission)}</span>
                       </div>
+                      
                       <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground text-sm">Passing</span> 
+                          <span className="text-muted-foreground text-sm">Passing</span>
                           <span className="font-semibold text-xl">{formatNumber(finalSummaryForDay.passing)}</span>
                       </div>
-                  </div>
-                   <Separator className="my-2 bg-primary/20" />
-                  <div className="flex justify-between items-center font-bold text-xl">
-                     <span className={`${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>Final Net</span>
-                     <span className={`${finalSummaryForDay.finalNet >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatNumber(finalSummaryForDay.finalNet)}</span>
+                      <div className="flex justify-between items-center font-bold text-xl">
+                          <span>Total</span>
+                          <span className={`${finalSummaryForDay.upperPayable >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatNumber(finalSummaryForDay.finalNet)}</span>
+                      </div>
+                                            {showPattiDeduction && (
+                                                                         <div className={`flex justify-between items-center text-xs ${finalSummaryForDay.upperPayable >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                                                                 <span>Patti ({parseFloat(appliedUpperPatti) || 0}%)</span>
+                                                     <span>+₹{formatNumber(finalSummaryForDay.pattiDeduction)}</span>
+                                                                        </div>
+                                                                    )}
+                      
+                      <div className="flex justify-between items-center font-bold text-xl">
+                          <span>Final Net</span>
+                          <span>{formatNumber(finalSummaryForDay.finalNetAfterPatti)}</span>
+                      </div>
                   </div>
               </div>
           </div>
@@ -716,8 +858,20 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                 userId={userId}
                 clients={clients} 
                 savedSheetLog={savedSheetLog}
+                upperComm={upperComm}
+                upperPair={upperPair}
+                upperPatti={upperPatti}
+                appliedUpperComm={appliedUpperComm}
+                appliedUpperPair={appliedUpperPair}
+                appliedUpperPatti={appliedUpperPatti}
+                setUpperComm={setUpperComm}
+                setUpperPair={setUpperPair}
+                setUpperPatti={setUpperPatti}
+                handleApplyUpperSettings={handleApplyUpperSettings}
+                pattiForSelectedDay={finalSummaryForDay.pattiDeduction}
             />
         </div>
+
       </CardContent>
       <Dialog open={isSettlementHistoryOpen} onOpenChange={setIsSettlementHistoryOpen}>
           <DialogContent className="max-w-2xl">

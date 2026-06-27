@@ -508,13 +508,15 @@ updatedDrawsForSelectedDay[drawName] = { totalAmount: totalAmountForDraw, passin
                                                 {formSelectedDate ? format(formSelectedDate, "PPP") : <span>Pick a date</span>}
                                             </Button>
                                         </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0">
-                                            <Calendar
-                                                mode="single"
-                                                selected={formSelectedDate}
-                                                onSelect={(date) => date && setFormSelectedDate(date)}
-                                                initialFocus
-                                            />
+                                        <PopoverContent className="w-auto p-0 border-0 bg-transparent shadow-none">
+                                            <div className="calendar-popup">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={formSelectedDate}
+                                                    onSelect={(date) => date && setFormSelectedDate(date)}
+                                                    initialFocus
+                                                />
+                                            </div>
                                         </PopoverContent>
                                     </Popover>
                                 </div>

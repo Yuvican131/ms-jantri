@@ -1,10 +1,8 @@
 "use client"
 
-import dynamic from 'next/dynamic'
 import { Toaster } from "@/components/ui/toaster"
-
-const ThemeProvider = dynamic(() => import("@/hooks/use-theme").then(mod => mod.ThemeProvider), { ssr: false })
-const FirebaseClientProvider = dynamic(() => import("@/firebase").then(mod => mod.FirebaseClientProvider), { ssr: false })
+import { ThemeProvider } from "@/hooks/use-theme"
+import { FirebaseClientProvider } from "@/firebase"
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
   return (
