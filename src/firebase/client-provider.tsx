@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase, hasFirebaseConfig } from '@/firebase';
 import type { FirebaseApp } from 'firebase/app';
@@ -16,6 +17,9 @@ interface FirebaseClientProviderProps {
 }
 
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
+  const pathname = usePathname();
+  const isLoginPage = pathname === '/login';
+
   const [services, setServices] = useState<{
     firebaseApp: FirebaseApp | null;
     auth: Auth | null;
@@ -51,6 +55,11 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
       setIsLoading(false);
     }
   }, []);
+
+  // Login page renders immediately without waiting for Firebase
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
 
   if (isLoading) {
     return (

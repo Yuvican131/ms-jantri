@@ -1,25 +1,40 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useAuth, useUser } from "@/firebase"
-import { initiateEmailSignIn, initiateEmailSignUp } from "@/firebase/non-blocking-login"
+import { initializeFirebase } from "@/firebase"
 import { Loader2 } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
-  const auth = useAuth()
-  const { user, isUserLoading } = useUser()
+  const [auth, setAuth] = useState<any>(null)
+  const [checking, setChecking] = useState(true)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
 
-  if (isUserLoading) {
+  useEffect(() => {
+    const { auth: authInstance } = initializeFirebase()
+    if (authInstance) {
+      setAuth(authInstance)
+      const unsub = onAuthStateChanged(authInstance, (user) => {
+        if (user) router.push("/")
+        else setChecking(false)
+      })
+      return () => unsub()
+    } else {
+      setError("Firebase is not configured. Please check your environment setup.")
+      setChecking(false)
+    }
+  }, [router])
+
+  if (checking) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -27,22 +42,29 @@ export default function LoginPage() {
     )
   }
 
-  if (user) {
-    router.push("/")
-    return null
-  }
-
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
     if (!email || !password) { setError("Please fill in all fields"); return }
+    if (!auth) { setError("Firebase not initialized"); return }
     setError("")
-    initiateEmailSignIn(auth, email, password)
+    try {
+      await signInWithEmailAndPassword(auth, email, password)
+      router.push("/")
+    } catch (e: any) {
+      setError(e.message || "Sign in failed")
+    }
   }
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     if (!email || !password) { setError("Please fill in all fields"); return }
     if (password.length < 6) { setError("Password must be at least 6 characters"); return }
+    if (!auth) { setError("Firebase not initialized"); return }
     setError("")
-    initiateEmailSignUp(auth, email, password)
+    try {
+      await createUserWithEmailAndPassword(auth, email, password)
+      router.push("/")
+    } catch (e: any) {
+      setError(e.message || "Sign up failed")
+    }
   }
 
   return (
