@@ -28,30 +28,25 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     error: null,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
     try {
       const firebaseServices = initializeFirebase();
       if (!firebaseServices.firebaseApp) {
-        setServices({
-          firebaseApp: null,
-          auth: null,
-          firestore: null,
-          error: hasFirebaseConfig
-            ? "Firebase initialization failed. Please check your console for errors."
-            : "Firebase configuration is missing. Please set up your environment variables.",
-        });
+        const msg = hasFirebaseConfig
+          ? "Firebase initialization failed. Check console for details."
+          : "Firebase config missing. Set FIREBASE_CONFIG or NEXT_PUBLIC_FIREBASE_* vars.";
+        setInitError(msg);
+        setServices({ firebaseApp: null, auth: null, firestore: null, error: msg });
       } else {
         setServices({ ...firebaseServices, error: null });
       }
     } catch (e: any) {
-      console.error("Firebase initialization failed:", e);
-      setServices({
-        firebaseApp: null,
-        auth: null,
-        firestore: null,
-        error: `An unexpected error occurred during Firebase initialization: ${e.message}`,
-      });
+      const msg = `Firebase init error: ${e?.message || e}`;
+      console.error(msg, e);
+      setInitError(msg);
+      setServices({ firebaseApp: null, auth: null, firestore: null, error: msg });
     } finally {
       setIsLoading(false);
     }
@@ -63,6 +58,7 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin" />
           <p className="text-muted-foreground">Initializing App...</p>
+          {initError && <p className="text-xs text-destructive max-w-md text-center">{initError}</p>}
         </div>
       </div>
     );
