@@ -35,6 +35,20 @@ import { useTheme } from "next-themes";
 import { Switch } from "@/components/ui/switch";
 import type { Settlement } from "@/components/admin-panel";
 
+function ThemeSwitch() {
+  const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme();
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return <div className="h-6 w-11" />;
+  return (
+    <Switch
+      checked={theme === 'dark'}
+      onCheckedChange={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      id="theme-switch"
+    />
+  );
+}
+
 function GridIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -125,7 +139,7 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
+    if (!isUserLoading && (!user || user.isAnonymous)) {
       router.push("/login");
     }
   }, [isUserLoading, user, router]);
@@ -432,11 +446,7 @@ updatedDrawsForSelectedDay[drawName] = { totalAmount: totalAmountForDraw, passin
                <div className="flex items-center gap-4">
                 <div className="flex items-center space-x-2">
                   <Sun className="h-5 w-5" />
-                  <Switch
-                    checked={theme === 'dark'}
-                    onCheckedChange={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                    id="theme-switch"
-                  />
+                  <ThemeSwitch />
                   <Moon className="h-5 w-5" />
                 </div>
 
