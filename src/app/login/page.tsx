@@ -1,0 +1,90 @@
+"use client"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useAuth, useUser } from "@/firebase"
+import { initiateEmailSignIn, initiateEmailSignUp } from "@/firebase/non-blocking-login"
+import { Loader2 } from "lucide-react"
+
+export default function LoginPage() {
+  const router = useRouter()
+  const auth = useAuth()
+  const { user, isUserLoading } = useUser()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+
+  if (isUserLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
+  if (user) {
+    router.push("/")
+    return null
+  }
+
+  const handleSignIn = () => {
+    if (!email || !password) { setError("Please fill in all fields"); return }
+    setError("")
+    initiateEmailSignIn(auth, email, password)
+  }
+
+  const handleSignUp = () => {
+    if (!email || !password) { setError("Please fill in all fields"); return }
+    if (password.length < 6) { setError("Password must be at least 6 characters"); return }
+    setError("")
+    initiateEmailSignUp(auth, email, password)
+  }
+
+  return (
+    <div className="flex h-screen w-full items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">GridSheet Manager</CardTitle>
+          <CardDescription>Sign in to manage your brokerage operations</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="signin" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="signin">Sign In</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            </TabsList>
+            <TabsContent value="signin" className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="signin-email">Email</Label>
+                <Input id="signin-email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="signin-password">Password</Label>
+                <Input id="signin-password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} />
+              </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              <Button className="w-full" onClick={handleSignIn}>Sign In</Button>
+            </TabsContent>
+            <TabsContent value="signup" className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="signup-email">Email</Label>
+                <Input id="signup-email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="signup-password">Password</Label>
+                <Input id="signup-password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} />
+              </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              <Button className="w-full" onClick={handleSignUp}>Create Account</Button>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

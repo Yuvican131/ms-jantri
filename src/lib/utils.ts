@@ -13,3 +13,7 @@ export function formatNumber(num: number | string): string {
   // Return integer if it's a whole number, otherwise format to 2 decimal places
   return number % 1 === 0 ? number.toString() : number.toFixed(2);
 }
+
+export function shortUserId(uid: string): string {
+  return uid.slice(0, 8);
+}

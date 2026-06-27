@@ -3,6 +3,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GridSheet from "@/components/grid-sheet"
 import ClientsManager from "@/components/clients-manager"
@@ -27,8 +28,6 @@ import { useSheetLog, type SavedSheetInfo } from "@/hooks/useSheetLog"
 import { useDeclaredNumbers } from "@/hooks/useDeclaredNumbers"
 import type { Client } from "@/hooks/useClients"
 import { useUser } from "@/firebase"
-import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login"
-import { useAuth } from "@/firebase"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -86,7 +85,6 @@ export default function Home() {
   const [isDeclarationDialogOpen, setIsDeclarationDialogOpen] = useState(false);
   const { toast } = useToast();
   
-  const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const isMobile = useIsMobile();
   const { theme, setTheme } = useTheme();
@@ -124,12 +122,14 @@ export default function Home() {
     window.localStorage.setItem('brokerSettlements', JSON.stringify(settlements));
   }, [isMounted, settlements]);
 
+  const router = useRouter();
+
   useEffect(() => {
     if (!isUserLoading && !user) {
-      initiateAnonymousSignIn(auth);
+      router.push("/login");
     }
-  }, [isUserLoading, user, auth]);
-  
+  }, [isUserLoading, user, router]);
+
   useEffect(() => {
     const uniqueSheetKeys = new Set<string>();
     const sheetsFromLogs: ActiveSheet[] = [];
