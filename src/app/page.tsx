@@ -427,7 +427,7 @@ updatedDrawsForSelectedDay[drawName] = { totalAmount: totalAmountForDraw, passin
   }
 
   if (!user || user.isAnonymous) {
-    return <div className="flex items-center justify-center h-screen text-muted-foreground">Redirecting to login...</div>;
+    return null;
   }
 
   const isSheetAlreadyAdded = formSelectedDraw ? activeSheets.some(s => s.draw === formSelectedDraw && isSameDay(s.date, formSelectedDate)) : false;

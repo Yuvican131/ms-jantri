@@ -15,6 +15,7 @@ export default function LoginPage() {
   const router = useRouter()
   const [auth, setAuth] = useState<any>(null)
   const [checking, setChecking] = useState(true)
+  const [signingOut, setSigningOut] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -23,10 +24,14 @@ export default function LoginPage() {
     const { auth: authInstance } = initializeFirebase()
     if (authInstance) {
       setAuth(authInstance)
-      const unsub = onAuthStateChanged(authInstance, (user) => {
+      const unsub = onAuthStateChanged(authInstance, async (user) => {
         if (user && !user.isAnonymous) router.push("/")
         else {
-          if (user?.isAnonymous) signOut(authInstance)
+          if (user?.isAnonymous) {
+            setSigningOut(true)
+            await signOut(authInstance)
+            setSigningOut(false)
+          }
           setChecking(false)
         }
       })
@@ -37,7 +42,7 @@ export default function LoginPage() {
     }
   }, [router])
 
-  if (checking) {
+  if (checking || signingOut) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin" />
