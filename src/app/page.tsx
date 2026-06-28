@@ -16,7 +16,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter }
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { format, isSameDay, startOfDay, subDays, compareAsc } from "date-fns"
-import { cn, shortUserId } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input"
@@ -448,7 +448,7 @@ updatedDrawsForSelectedDay[drawName] = { totalAmount: totalAmountForDraw, passin
               )}
             </div>
                 <div className="flex items-center gap-4">
-                 <span className="text-xs text-muted-foreground font-mono">{shortUserId(user?.uid || "")}</span>
+                 <span className="text-xs text-muted-foreground font-mono">{user?.email?.split('@')[0] || ""}</span>
                 <div className="flex items-center space-x-2">
                   <Sun className="h-5 w-5" />
                   <ThemeSwitch />
