@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth"
+import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "firebase/auth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,8 +24,11 @@ export default function LoginPage() {
     if (authInstance) {
       setAuth(authInstance)
       const unsub = onAuthStateChanged(authInstance, (user) => {
-        if (user) router.push("/")
-        else setChecking(false)
+        if (user && !user.isAnonymous) router.push("/")
+        else {
+          if (user?.isAnonymous) signOut(authInstance)
+          setChecking(false)
+        }
       })
       return () => unsub()
     } else {
