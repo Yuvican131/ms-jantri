@@ -1,7 +1,7 @@
 "use client"
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, shortUserId } from "@/lib/utils";
 import { Wallet, Calendar as CalendarIcon, Percent, Scale, TrendingUp, TrendingDown, Landmark, Banknote, Trash2, HandCoins, Minus, Plus, Save, CircleDollarSign, History } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -362,6 +362,9 @@ const BrokerProfitLoss = ({
                         
                         <CardContent>
                             <div className="text-sm text-muted-foreground">Final Net (Before Patti): ₹{formatNumber(grandTotalForPeriod.brokerNetBefore)}</div>
+                            <div className={`text-sm mt-1 ${sumBrokerNetRows >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                Final Profit: {sumBrokerNetRows >= 0 ? `+₹${formatNumber(sumBrokerNetRows)}` : `-₹${formatNumber(Math.abs(sumBrokerNetRows))}`}
+                            </div>
                             
                             { (grandTotalForPeriod.totalPattiDeduction || 0) > 0 && (
                                 <div className="text-sm mt-1">
@@ -715,7 +718,7 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
             <CardDescription>High-level overview of your brokerage operations.</CardDescription>
             {userId && (
               <p className="text-xs text-muted-foreground pt-2 break-all">
-                <span className="font-semibold">User ID:</span> {userId}
+                <span className="font-semibold">User ID:</span> {shortUserId(userId)}
               </p>
             )}
         </div>
