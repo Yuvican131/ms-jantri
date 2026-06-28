@@ -364,7 +364,6 @@ const BrokerProfitLoss = ({
                             <div className={`text-2xl font-bold ${sumBrokerNetRows >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                 {sumBrokerNetRows >= 0 ? `+${formatNumber(sumBrokerNetRows)}` : `${formatNumber(sumBrokerNetRows)}`}
                             </div>
-                            <div className="text-xs text-muted-foreground mt-1">{viewMode === 'month' ? 'Monthly' : 'Yearly'} Profit</div>
                         </CardContent>
                     </Card>
 
