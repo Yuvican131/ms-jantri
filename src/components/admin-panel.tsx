@@ -361,23 +361,10 @@ const BrokerProfitLoss = ({
                         </CardHeader>
                         
                         <CardContent>
-                            <div className="text-sm text-muted-foreground">Final Net (Before Patti): ₹{formatNumber(grandTotalForPeriod.brokerNetBefore)}</div>
-                            <div className={`text-sm mt-1 ${sumBrokerNetRows >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                Final Profit: {sumBrokerNetRows >= 0 ? `+₹${formatNumber(sumBrokerNetRows)}` : `-₹${formatNumber(Math.abs(sumBrokerNetRows))}`}
+                            <div className={`text-2xl font-bold ${sumBrokerNetRows >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                {sumBrokerNetRows >= 0 ? `+${formatNumber(sumBrokerNetRows)}` : `${formatNumber(sumBrokerNetRows)}`}
                             </div>
-                            
-                            { (grandTotalForPeriod.totalPattiDeduction || 0) > 0 && (
-                                <div className="text-sm mt-1">
-                                    <span className="text-muted-foreground">Patti Adjustment</span>
-                                    <span className={`ml-2 font-semibold ${grandTotalForPeriod.upperPayable >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                        {monthlyPattiAdjustment >= 0 ? `+₹${formatNumber(monthlyPattiAdjustment)}` : `-₹${formatNumber(Math.abs(monthlyPattiAdjustment))}`}
-                                    </span>
-                                </div>
-                            )}
-                            <div className={`text-2xl font-bold mt-1 ${monthlyTotalWithPatti >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {monthlyTotalWithPatti >= 0 ? `+${formatNumber(monthlyTotalWithPatti)}` : `${formatNumber(monthlyTotalWithPatti)}`}
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1">Total broker profit for {format(selectedDate, viewMode === 'month' ? "MMMM yyyy" : "yyyy")} (Including Patti adjustment)</div>
+                            <div className="text-xs text-muted-foreground mt-1">{viewMode === 'month' ? 'Monthly' : 'Yearly'} Profit</div>
                         </CardContent>
                     </Card>
 
