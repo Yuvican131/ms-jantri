@@ -10,7 +10,7 @@ import ClientsManager from "@/components/clients-manager"
 import AccountsManager, { Account, DrawData } from "@/components/accounts-manager"
 import LedgerRecord from "@/components/ledger-record"
 import AdminPanel from "@/components/admin-panel"
-import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, FileSpreadsheet, Shield, PlusCircle, Trash2, X, RotateCw, Megaphone, ArrowUpRight, Sun, Moon } from 'lucide-react';
+import { Users, Building, ArrowLeft, Calendar as CalendarIcon, History, FileSpreadsheet, Shield, PlusCircle, Trash2, X, RotateCw, Megaphone, ArrowUpRight, Sun, Moon, Pencil } from 'lucide-react';
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
@@ -27,7 +27,8 @@ import { useClients } from "@/hooks/useClients"
 import { useSheetLog, type SavedSheetInfo } from "@/hooks/useSheetLog"
 import { useDeclaredNumbers } from "@/hooks/useDeclaredNumbers"
 import type { Client } from "@/hooks/useClients"
-import { useUser } from "@/firebase"
+import { useUser, initializeFirebase } from "@/firebase"
+import { doc, getDoc, setDoc } from "firebase/firestore"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -114,6 +115,18 @@ export default function Home() {
   const [formSelectedDate, setFormSelectedDate] = useState<Date>(new Date());
   
   const [settlements, setSettlements] = useState<{ [key: string]: Settlement[] }>({});
+  const [displayName, setDisplayName] = useState("")
+  const [editingDisplayName, setEditingDisplayName] = useState(false)
+  const [newDisplayName, setNewDisplayName] = useState("")
+
+  useEffect(() => {
+    if (!user?.uid) return
+    const { firestore } = initializeFirebase()
+    if (!firestore) return
+    getDoc(doc(firestore, "displayNames", user.uid)).then(snap => {
+      if (snap.exists()) setDisplayName(snap.data().name || "")
+    })
+  }, [user?.uid])
 
   useEffect(() => {
     if (!isMounted) return;
@@ -135,6 +148,15 @@ export default function Home() {
     if (!isMounted) return;
     window.localStorage.setItem('brokerSettlements', JSON.stringify(settlements));
   }, [isMounted, settlements]);
+
+  const saveDisplayName = async () => {
+    if (!user?.uid) return
+    const { firestore } = initializeFirebase()
+    if (!firestore) return
+    await setDoc(doc(firestore, "displayNames", user.uid), { name: newDisplayName })
+    setDisplayName(newDisplayName)
+    setEditingDisplayName(false)
+  }
 
   const router = useRouter();
 
@@ -448,7 +470,10 @@ updatedDrawsForSelectedDay[drawName] = { totalAmount: totalAmountForDraw, passin
               )}
             </div>
                 <div className="flex items-center gap-4">
-                 <span className="text-xs text-muted-foreground font-mono">{user?.email?.split('@')[0] || ""}</span>
+                 <span className="text-xs text-muted-foreground font-mono cursor-pointer hover:text-foreground flex items-center gap-1" onClick={() => { setNewDisplayName(displayName); setEditingDisplayName(true) }}>
+                  {displayName || user?.email?.split('@')[0] || ""}
+                  <Pencil className="h-3 w-3" />
+                </span>
                 <div className="flex items-center space-x-2">
                   <Sun className="h-5 w-5" />
                   <ThemeSwitch />
@@ -639,6 +664,22 @@ updatedDrawsForSelectedDay[drawName] = { totalAmount: totalAmountForDraw, passin
           </TabsContent>
         </Tabs>
       </main>
+
+       <Dialog open={editingDisplayName} onOpenChange={setEditingDisplayName}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Display Name</DialogTitle>
+          </DialogHeader>
+          <div className="my-4 space-y-4">
+             <Label htmlFor="display-name">Name</Label>
+             <Input id="display-name" value={newDisplayName} onChange={e => setNewDisplayName(e.target.value)} placeholder="Jhon 001" />
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setEditingDisplayName(false)} variant="outline">Cancel</Button>
+            <Button onClick={saveDisplayName}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
        <Dialog open={isDeclarationDialogOpen} onOpenChange={setIsDeclarationDialogOpen}>
         <DialogContent>
