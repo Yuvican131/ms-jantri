@@ -107,6 +107,9 @@ const MasterSheetViewer = ({
   const [currentLogs, setCurrentLogs] = useState<SavedSheetInfo[]>([]);
   const [initialMasterData, setInitialMasterData] = useState<CellData>({});
   const [showCommissionLess, setShowCommissionLess] = useState(false);
+  const [cuttingReduction, setCuttingReduction] = useState(0);
+  const [lessReduction, setLessReduction] = useState(0);
+  const [dabbaReduction, setDabbaReduction] = useState(0);
 
 
   React.useEffect(() => {
@@ -206,13 +209,16 @@ const MasterSheetViewer = ({
     }
 
     const newMasterData = { ...masterSheetData };
+    let reductionThisTime = 0;
     Object.keys(newMasterData).forEach(key => {
       const cellValue = parseFloat(newMasterData[key]) || 0;
       const newVal = Math.max(0, cellValue - cutValue);
       const rounded = roundToNearestFive(newVal);
+      reductionThisTime += cellValue - rounded;
       newMasterData[key] = rounded === 0 ? "" : String(rounded);
     });
     setMasterSheetData(newMasterData);
+    setCuttingReduction(prev => prev + reductionThisTime);
 
     toast({ title: "Cutting Applied", description: `Subtracted ${cutValue} from all cells in the master sheet.` });
     setCuttingValue("");
@@ -226,16 +232,19 @@ const MasterSheetViewer = ({
     }
 
     const newMasterData = { ...masterSheetData };
+    let reductionThisTime = 0;
     Object.keys(newMasterData).forEach(key => {
       const cellValue = parseFloat(newMasterData[key]) || 0;
       if (cellValue !== 0) {
         const reduction = cellValue * (lessPercent / 100);
         const newVal = cellValue - reduction;
         const rounded = roundToNearestFive(newVal);
+        reductionThisTime += cellValue - rounded;
         newMasterData[key] = rounded === 0 ? "" : String(rounded);
       }
     });
     setMasterSheetData(newMasterData);
+    setLessReduction(prev => prev + reductionThisTime);
 
     toast({ title: "Less Applied", description: `Subtracted ${lessPercent}% from all cells in the master sheet.` });
     setLessValue("");
@@ -257,23 +266,32 @@ const MasterSheetViewer = ({
 
     const newMasterData = { ...masterSheetData };
     let affectedCells = 0;
+    let reductionThisTime = 0;
 
     Object.keys(newMasterData).forEach((key) => {
       const cellValue = parseFloat(newMasterData[key]) || 0;
-      // For Dabba: clear any non-zero cell with value <= threshold
       if (cellValue !== 0 && cellValue <= dabbaThreshold) {
+        reductionThisTime += cellValue;
         newMasterData[key] = "";
         affectedCells += 1;
       }
     });
 
     setMasterSheetData(newMasterData);
+    setDabbaReduction(prev => prev + reductionThisTime);
 
     toast({
       title: "Dabba Applied",
       description: `Set ${affectedCells} cell(s) below ${dabbaThreshold} to ${dabbaThreshold}. Values equal or above ${dabbaThreshold} are unchanged.`,
     });
     setDabbaValue("");
+  };
+
+  const handleReset = () => {
+    setMasterSheetData(initialMasterData);
+    setCuttingReduction(0);
+    setLessReduction(0);
+    setDabbaReduction(0);
   };
 
   const handleLogSelectionChange = (index: number) => {
@@ -381,7 +399,7 @@ const MasterSheetViewer = ({
                     <Switch id="commission-less-switch" checked={showCommissionLess} onCheckedChange={setShowCommissionLess} />
                     <Label htmlFor="commission-less-switch">Show Commission Less</Label>
                 </div>
-                <Button onClick={() => setMasterSheetData(initialMasterData)} size="sm" variant="outline"><RotateCcw className="h-3 w-3 mr-2" /> Reset</Button>
+                <Button onClick={handleReset} size="sm" variant="outline"><RotateCcw className="h-3 w-3 mr-2" /> Reset</Button>
               </div>
               <Separator />
               <div className="flex flex-col gap-2">
@@ -412,6 +430,19 @@ const MasterSheetViewer = ({
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Adjusted Total</span>
                             <span className="font-mono font-semibold">₹{formatNumber(masterSheetGrandTotal)}</span>
+                        </div>
+                        <Separator className="my-1" />
+                        <div className="flex justify-between items-center">
+                            <span className="text-green-600">Cutting Profit</span>
+                            <span className="font-mono font-semibold text-green-600">+₹{formatNumber(cuttingReduction)}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-orange-500">Less Profit</span>
+                            <span className="font-mono font-semibold text-orange-500">+₹{formatNumber(lessReduction)}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-red-500">Dabba Profit</span>
+                            <span className="font-mono font-semibold text-red-500">+₹{formatNumber(dabbaReduction)}</span>
                         </div>
                         <Separator className="my-1" />
                         <div className="flex justify-between items-center text-sm">
