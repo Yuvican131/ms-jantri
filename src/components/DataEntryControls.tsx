@@ -509,6 +509,7 @@ export function DataEntryControls({
             e.preventDefault();
             switch (from) {
                 case 'laddiNum1':
+                    if (!laddiNum2 && laddiNum1) setLaddiNum2(laddiNum1);
                     laddiNum2Ref.current?.focus();
                     break;
                 case 'laddiNum2':
@@ -541,6 +542,12 @@ export function DataEntryControls({
                         handleMultiTextApply();
                     }
                     break;
+            }
+        }
+        if (e.key === 'Backspace' && from === 'laddiNum2') {
+            if (!laddiNum2 && laddiNum1) {
+                setLaddiNum2(laddiNum1);
+                setTimeout(() => laddiNum2Ref.current?.select(), 0);
             }
         }
     };
@@ -679,6 +686,12 @@ export function DataEntryControls({
                                         id="laddiNum2" type="text" pattern="[0-9]*" className="text-center min-w-0 h-8 text-sm" placeholder={runningLaddi ? "End" : "Num 2"}
                                         value={laddiNum2} onChange={(e) => setLaddiNum2(e.target.value.replace(/[^0-9]/g, ''))}
                                         onKeyDown={(e) => handleKeyDown(e, 'laddiNum2')}
+                                        onFocus={() => {
+                                            if (!laddiNum2 && laddiNum1 && !runningLaddi) {
+                                                setLaddiNum2(laddiNum1);
+                                                setTimeout(() => laddiNum2Ref.current?.select(), 0);
+                                            }
+                                        }}
                                         disabled={isDataEntryDisabled}
                                         onClick={isDataEntryDisabled ? showClientSelectionToast : undefined}
                                     />
