@@ -59,6 +59,9 @@ type ReportRow = {
     brokerNet: number;
     brokerNetBefore?: number;
     totalPattiDeduction?: number;
+    cuttingProfit?: number;
+    lessProfit?: number;
+    dabbaProfit?: number;
   hasActivity: boolean;
 };
 
@@ -75,6 +78,15 @@ const BrokerProfitLoss = ({
     setUpperComm,
     setUpperPair,
     setUpperPatti,
+    cuttingAmount,
+    lessPercent,
+    dabbaThreshold,
+    appliedCutting,
+    appliedLess,
+    appliedDabba,
+    setCuttingAmount,
+    setLessPercent,
+    setDabbaThreshold,
     handleApplyUpperSettings,
     pattiForSelectedDay
 }: {
@@ -90,6 +102,15 @@ const BrokerProfitLoss = ({
     setUpperComm: React.Dispatch<React.SetStateAction<string>>;
     setUpperPair: React.Dispatch<React.SetStateAction<string>>;
     setUpperPatti: React.Dispatch<React.SetStateAction<string>>;
+    cuttingAmount: string;
+    lessPercent: string;
+    dabbaThreshold: string;
+    appliedCutting: string;
+    appliedLess: string;
+    appliedDabba: string;
+    setCuttingAmount: React.Dispatch<React.SetStateAction<string>>;
+    setLessPercent: React.Dispatch<React.SetStateAction<string>>;
+    setDabbaThreshold: React.Dispatch<React.SetStateAction<string>>;
     handleApplyUpperSettings: () => void;
     pattiForSelectedDay?: number;
 }) => {
@@ -187,9 +208,49 @@ const BrokerProfitLoss = ({
             ? brokerNetBeforePatti + totalPattiDeduction
             : brokerNetBeforePatti - totalPattiDeduction;
 
-        return { clientPayable: totalClientPayable, upperPayable: totalUpperPayable, brokerNetBeforePatti, brokerNet: brokerNetAfterPatti, totalPattiDeduction, hasActivity };
+        // Cutting/Less/Dabba calculation from cell data
+        const appliedCuttingVal = parseFloat(appliedCutting) || 0;
+        const appliedLessVal = parseFloat(appliedLess) || 0;
+        const appliedDabbaVal = parseFloat(appliedDabba) || 0;
+        const aggregatedCells: { [key: string]: number } = {};
+        logsForPeriod.forEach(log => {
+            Object.entries(log.data).forEach(([key, value]) => {
+                const num = parseFloat(value) || 0;
+                aggregatedCells[key] = (aggregatedCells[key] || 0) + num;
+            });
+        });
+        let cuttingProfit = 0;
+        if (appliedCuttingVal > 0) {
+            Object.values(aggregatedCells).forEach(cellValue => {
+                const newVal = Math.max(0, cellValue - appliedCuttingVal);
+                const rounded = Math.round(newVal / 5) * 5;
+                cuttingProfit += cellValue - rounded;
+            });
+        }
+        let lessProfit = 0;
+        if (appliedLessVal > 0) {
+            Object.values(aggregatedCells).forEach(cellValue => {
+                if (cellValue !== 0) {
+                    const reduction = cellValue * (appliedLessVal / 100);
+                    const newVal = cellValue - reduction;
+                    const rounded = Math.round(newVal / 5) * 5;
+                    lessProfit += cellValue - rounded;
+                }
+            });
+        }
+        let dabbaProfit = 0;
+        if (appliedDabbaVal > 0) {
+            Object.values(aggregatedCells).forEach(cellValue => {
+                if (cellValue !== 0 && cellValue <= appliedDabbaVal) {
+                    dabbaProfit += cellValue;
+                }
+            });
+        }
+        const brokerNetAfterAll = brokerNetAfterPatti + cuttingProfit + lessProfit + dabbaProfit;
 
-    }, [savedSheetLog, clients, selectedClientId, declaredNumbers, upperComm, upperPair, upperPatti, appliedUpperComm, appliedUpperPair, appliedUpperPatti]);
+        return { clientPayable: totalClientPayable, upperPayable: totalUpperPayable, brokerNetBeforePatti, brokerNet: brokerNetAfterAll, totalPattiDeduction, cuttingProfit, lessProfit, dabbaProfit, hasActivity };
+
+    }, [savedSheetLog, clients, selectedClientId, declaredNumbers, upperComm, upperPair, upperPatti, appliedUpperComm, appliedUpperPair, appliedUpperPatti, appliedCutting, appliedLess, appliedDabba]);
 
 
     const reportData: ReportRow[] = useMemo(() => {
@@ -201,7 +262,7 @@ const BrokerProfitLoss = ({
             return daysInMonth.map(day => {
                 const dayStart = startOfDay(day);
                 const dayEnd = endOfDay(day);
-                const { clientPayable, upperPayable, brokerNet, brokerNetBeforePatti, totalPattiDeduction, hasActivity } = calculateNetForPeriod(dayStart, dayEnd);
+                const { clientPayable, upperPayable, brokerNet, brokerNetBeforePatti, totalPattiDeduction, cuttingProfit, lessProfit, dabbaProfit, hasActivity } = calculateNetForPeriod(dayStart, dayEnd);
                 return {
                     date: day,
                     label: format(day, "EEE, dd MMM yyyy"),
@@ -210,6 +271,9 @@ const BrokerProfitLoss = ({
                     brokerNet,
                     brokerNetBefore: brokerNetBeforePatti,
                     totalPattiDeduction,
+                    cuttingProfit,
+                    lessProfit,
+                    dabbaProfit,
                     hasActivity
                 };
             }).filter(row => row.hasActivity);
@@ -221,7 +285,7 @@ const BrokerProfitLoss = ({
             return monthsInYear.map(month => {
                 const monthStart = startOfMonth(month);
                 const monthEnd = endOfMonth(month);
-                const { clientPayable, upperPayable, brokerNet, brokerNetBeforePatti, totalPattiDeduction, hasActivity } = calculateNetForPeriod(monthStart, monthEnd);
+                const { clientPayable, upperPayable, brokerNet, brokerNetBeforePatti, totalPattiDeduction, cuttingProfit, lessProfit, dabbaProfit, hasActivity } = calculateNetForPeriod(monthStart, monthEnd);
                 return {
                     date: month,
                     label: format(month, "MMMM yyyy"),
@@ -230,6 +294,9 @@ const BrokerProfitLoss = ({
                     brokerNet,
                     brokerNetBefore: brokerNetBeforePatti,
                     totalPattiDeduction,
+                    cuttingProfit,
+                    lessProfit,
+                    dabbaProfit,
                     hasActivity
                 };
             }).filter(row => row.hasActivity);
@@ -238,15 +305,17 @@ const BrokerProfitLoss = ({
     }, [selectedDate, viewMode, calculateNetForPeriod]);
   
     const grandTotalForPeriod = useMemo(() => {
-        return reportData.reduce<{ clientPayable: number; upperPayable: number; brokerNet: number; brokerNetBefore: number; totalPattiDeduction: number }>((acc, row) => {
+        return reportData.reduce<{ clientPayable: number; upperPayable: number; brokerNet: number; brokerNetBefore: number; totalPattiDeduction: number; cuttingProfit: number; lessProfit: number; dabbaProfit: number }>((acc, row) => {
             acc.clientPayable += row.clientPayable;
             acc.upperPayable += row.upperPayable;
-            acc.brokerNet += row.brokerNet || 0; // after patti (deprecated - recomputed below)
+            acc.brokerNet += row.brokerNet || 0;
             acc.brokerNetBefore += row.brokerNetBefore || 0;
             acc.totalPattiDeduction += row.totalPattiDeduction || 0;
+            acc.cuttingProfit += row.cuttingProfit || 0;
+            acc.lessProfit += row.lessProfit || 0;
+            acc.dabbaProfit += row.dabbaProfit || 0;
             return acc;
-        }, { clientPayable: 0, upperPayable: 0, brokerNet: 0, brokerNetBefore: 0, totalPattiDeduction: 0 });
-        // Ensure brokerNet (after Patti) is consistent: recompute from totals to avoid per-row aggregation differences
+        }, { clientPayable: 0, upperPayable: 0, brokerNet: 0, brokerNetBefore: 0, totalPattiDeduction: 0, cuttingProfit: 0, lessProfit: 0, dabbaProfit: 0 });
     }, [reportData]);
 
     // Sum of per-row broker net BEFORE Patti (monthly profit should not include Patti)
@@ -305,6 +374,18 @@ const BrokerProfitLoss = ({
                         onChange={(e) => setUpperPatti(e.target.value)} 
                         placeholder={String(defaultUpperPatti)}
                         />
+                    </div>
+                    <div className="space-y-1.5 flex-1">
+                        <Label htmlFor="broker-cutting">Cutting (₹)</Label>
+                        <Input id="broker-cutting" value={cuttingAmount} onChange={(e) => setCuttingAmount(e.target.value)} placeholder="0" />
+                    </div>
+                    <div className="space-y-1.5 flex-1">
+                        <Label htmlFor="broker-less">Less (%)</Label>
+                        <Input id="broker-less" value={lessPercent} onChange={(e) => setLessPercent(e.target.value)} placeholder="0" />
+                    </div>
+                    <div className="space-y-1.5 flex-1">
+                        <Label htmlFor="broker-dabba">Dabba (₹)</Label>
+                        <Input id="broker-dabba" value={dabbaThreshold} onChange={(e) => setDabbaThreshold(e.target.value)} placeholder="0" />
                     </div>
                     <Button onClick={handleApplyUpperSettings} className="shrink-0">Apply Settings</Button>
                 </div>
@@ -380,6 +461,9 @@ const BrokerProfitLoss = ({
                                 <TableHead>{viewMode === 'month' ? 'Date' : 'Month'}</TableHead>
                                 <TableHead className="text-right">Client Payable</TableHead>
                                 <TableHead className="text-right">Patti Amount</TableHead>
+                                <TableHead className="text-right">Cutting</TableHead>
+                                <TableHead className="text-right">Less</TableHead>
+                                <TableHead className="text-right">Dabba</TableHead>
                                 <TableHead className="text-right">Profit (Before Patti)</TableHead>
                                 <TableHead className="text-right">Final Profit</TableHead>
                             </TableRow>
@@ -389,10 +473,13 @@ const BrokerProfitLoss = ({
                                 <TableRow key={index}>
                                 <TableCell>{row.label}</TableCell>
                                 <TableCell className="text-right">₹{formatNumber(row.clientPayable)}</TableCell>
-                                <TableCell className={`text-right font-bold ${(row.upperPayable >= 0) ? 'text-green-500' : 'text-red-500'}`}>
-                                    {row.upperPayable >= 0 ? `+₹${formatNumber(row.totalPattiDeduction || 0)}` : `-₹${formatNumber(row.totalPattiDeduction || 0)}`}
+                                <TableCell className={`text-right ${(row.upperPayable >= 0) ? 'text-green-500' : 'text-red-500'}`}>
+                                    {row.upperPayable >= 0 ? `+₹${formatNumber(row.totalPattiDeduction || 0)}` : `-₹${formatNumber(Math.abs(row.totalPattiDeduction || 0))}`}
                                 </TableCell>
-                                <TableCell className={`text-right font-bold ${((row.brokerNetBefore || 0) >= 0) ? 'text-green-500' : 'text-red-500'}`}>
+                                <TableCell className="text-right text-green-600 font-bold">+₹{formatNumber(row.cuttingProfit || 0)}</TableCell>
+                                <TableCell className="text-right text-orange-500 font-bold">+₹{formatNumber(row.lessProfit || 0)}</TableCell>
+                                <TableCell className="text-right text-red-500 font-bold">+₹{formatNumber(row.dabbaProfit || 0)}</TableCell>
+                                <TableCell className={`text-right ${((row.brokerNetBefore || 0) >= 0) ? 'text-green-500' : 'text-red-500'}`}>
                                     {(row.brokerNetBefore || 0) >= 0 ? `+₹${formatNumber(row.brokerNetBefore || 0)}` : `-₹${formatNumber(Math.abs(row.brokerNetBefore || 0))}`}
                                 </TableCell>
                                 <TableCell className={`text-right font-bold ${((row.brokerNet || 0) >= 0) ? 'text-green-500' : 'text-red-500'}`}>
@@ -408,6 +495,9 @@ const BrokerProfitLoss = ({
                                 <TableCell className={`text-right font-bold text-lg ${netPattiEffect >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                     {netPattiEffect >= 0 ? `+₹${formatNumber(netPattiEffect)}` : `-₹${formatNumber(Math.abs(netPattiEffect))}`}
                                 </TableCell>
+                                <TableCell className="text-right font-bold text-lg text-green-600">+₹{formatNumber(grandTotalForPeriod.cuttingProfit)}</TableCell>
+                                <TableCell className="text-right font-bold text-lg text-orange-500">+₹{formatNumber(grandTotalForPeriod.lessProfit)}</TableCell>
+                                <TableCell className="text-right font-bold text-lg text-red-500">+₹{formatNumber(grandTotalForPeriod.dabbaProfit)}</TableCell>
                                 <TableCell className={`text-right font-bold text-lg ${sumBrokerNetBeforeRows >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                     {sumBrokerNetBeforeRows >= 0 ? `+₹${formatNumber(sumBrokerNetBeforeRows)}` : `-₹${formatNumber(Math.abs(sumBrokerNetBeforeRows))}`}
                                 </TableCell>
@@ -454,6 +544,12 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
     const [appliedUpperComm, setAppliedUpperComm] = useState(defaultUpperComm.toString());
     const [appliedUpperPair, setAppliedUpperPair] = useState(defaultUpperPair.toString());
     const [appliedUpperPatti, setAppliedUpperPatti] = useState(defaultUpperPatti.toString());
+    const [cuttingAmount, setCuttingAmount] = useState('0');
+    const [lessPercent, setLessPercent] = useState('0');
+    const [dabbaThreshold, setDabbaThreshold] = useState('0');
+    const [appliedCutting, setAppliedCutting] = useState('0');
+    const [appliedLess, setAppliedLess] = useState('0');
+    const [appliedDabba, setAppliedDabba] = useState('0');
 
     const [jamaAmount, setJamaAmount] = useState('');
     const [lenaAmount, setLenaAmount] = useState('');
@@ -487,18 +583,24 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
         setAppliedUpperComm(upperComm);
         setAppliedUpperPair(upperPair);
         setAppliedUpperPatti(upperPatti);
+        setAppliedCutting(cuttingAmount);
+        setAppliedLess(lessPercent);
+        setAppliedDabba(dabbaThreshold);
 
         if (typeof window !== 'undefined' && window.localStorage) {
             try {
                 window.localStorage.setItem('upperBrokerComm', upperComm);
                 window.localStorage.setItem('upperBrokerPair', upperPair);
                 window.localStorage.setItem('upperBrokerPatti', upperPatti);
+                window.localStorage.setItem('brokerCutting', cuttingAmount);
+                window.localStorage.setItem('brokerLess', lessPercent);
+                window.localStorage.setItem('brokerDabba', dabbaThreshold);
             } catch (e) {
                 console.error("Failed to save upper broker settings to localStorage", e);
             }
         }
 
-        toast({ title: "Settings Applied", description: "Upper broker commission, pair rate, and patti have been updated." });
+        toast({ title: "Settings Applied", description: "Upper broker commission, pair rate, patti, cutting, less, and dabba have been updated." });
     };
 
     
@@ -875,6 +977,15 @@ export default function AdminPanel({ userId, clients, savedSheetLog, settlements
                 setUpperComm={setUpperComm}
                 setUpperPair={setUpperPair}
                 setUpperPatti={setUpperPatti}
+                cuttingAmount={cuttingAmount}
+                lessPercent={lessPercent}
+                dabbaThreshold={dabbaThreshold}
+                appliedCutting={appliedCutting}
+                appliedLess={appliedLess}
+                appliedDabba={appliedDabba}
+                setCuttingAmount={setCuttingAmount}
+                setLessPercent={setLessPercent}
+                setDabbaThreshold={setDabbaThreshold}
                 handleApplyUpperSettings={handleApplyUpperSettings}
                 pattiForSelectedDay={finalSummaryForDay.pattiDeduction}
             />
