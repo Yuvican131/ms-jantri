@@ -264,6 +264,12 @@ const BrokerProfitLoss = ({
 
     const monthlyTotalWithPatti = sumBrokerNetBeforeRows + monthlyPattiAdjustment;
 
+    // Net patti effect: sum of per-row signed patti (respects each row's own sign)
+    const netPattiEffect = useMemo(() => reportData.reduce((sum: number, r: ReportRow) => {
+        const sign = r.upperPayable >= 0 ? 1 : -1;
+        return sum + sign * (r.totalPattiDeduction || 0);
+    }, 0), [reportData]);
+
     const hasData = reportData.length > 0;
 
     return (
@@ -399,8 +405,8 @@ const BrokerProfitLoss = ({
                             <TableRow className="bg-muted/50 hover:bg-muted">
                                 <TableCell colSpan={1} className="font-bold text-lg text-right">Total</TableCell>
                                 <TableCell className="text-right font-bold text-lg">₹{formatNumber(grandTotalForPeriod.clientPayable)}</TableCell>
-                                <TableCell className={`text-right font-bold text-lg ${grandTotalForPeriod.upperPayable >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                    {grandTotalForPeriod.upperPayable >= 0 ? `+₹${formatNumber(Math.abs(grandTotalForPeriod.totalPattiDeduction || 0))}` : `-₹${formatNumber(Math.abs(grandTotalForPeriod.totalPattiDeduction || 0))}`}
+                                <TableCell className={`text-right font-bold text-lg ${netPattiEffect >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    {netPattiEffect >= 0 ? `+₹${formatNumber(netPattiEffect)}` : `-₹${formatNumber(Math.abs(netPattiEffect))}`}
                                 </TableCell>
                                 <TableCell className={`text-right font-bold text-lg ${sumBrokerNetBeforeRows >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                     {sumBrokerNetBeforeRows >= 0 ? `+₹${formatNumber(sumBrokerNetBeforeRows)}` : `-₹${formatNumber(Math.abs(sumBrokerNetBeforeRows))}`}
